@@ -25,3 +25,6 @@ export async function saveTrainingState(data: any) {
     console.error("❌ Fehler beim Speichern:", err);
   }
 }
+
+export { loadTrainingState as loadKindertrainingData };
+export { saveTrainingState as saveKindertrainingData };

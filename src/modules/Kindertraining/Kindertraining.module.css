@@ -1,0 +1,152 @@
+.personMenu {
+  position: absolute;
+  top: 50%;
+  left: 100%;
+  transform: translateY(-50%);
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px;
+  min-width: 240px;
+}
+
+.personMenu button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 6px;
+  text-align: left;
+}
+
+.personMenu button:hover {
+  background: #f0f0f0;
+  border-radius: 4px;
+}
+
+/* Kommentarbereich unterhalb der Buttons */
+.commentDisplay {
+  display: block;                /* eigene Zeile */
+  width: 100%;
+  text-align: left;              /* linksbündig */
+  font-style: italic;
+  margin-top: 6px;               /* Abstand zu den Buttons */
+  padding-top: 6px;
+  padding-left: 2px;             /* leichter Einzug */
+  border-top: 1px solid #ddd;    /* dezente Trennlinie */
+  white-space: pre-wrap;         /* Zeilenumbrüche */
+  word-wrap: break-word;
+  font-size: 0.9rem;
+  color: #444;
+}
+
+/* Hintergrundfarben */
+.nameUnpaid {
+  background-color: #ffeaea !important; /* hellrot */
+}
+
+.nameHasComment {
+  background-color: #fff9d6 !important; /* hellgelb */
+}
+
+/* Icon-Container für Stift + Euro */
+.iconWrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.unpaidIcon {
+  font-size: 1rem;
+  color: #c00;
+}
+
+/* Zusätzliche Layoutklassen (aus vorherigen Versionen) */
+.header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.monthNav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.monthTitle {
+  font-size: 1.6rem;
+  font-weight: bold;
+}
+
+.menuLinks {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.optionsMenu {
+  margin-bottom: 12px;
+  padding: 12px;
+  background: var(--card-bg, #f9f9f9);
+  border: 1px solid var(--border, #ddd);
+  border-radius: 8px;
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.inputRow {
+  display: flex;
+  justify-content: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.addPersonContainer {
+  display: flex;
+  gap: 8px;
+  flex: 1;
+}
+
+.tableHeaderCell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.personCell {
+  position: relative;
+}
+
+.nameInline {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.attendanceCell {
+  text-align: center;
+  vertical-align: middle;
+}
+
+.attendanceCell input[type="checkbox"] {
+  transform: scale(1.2);
+}
+
+.hiddenRow {
+  opacity: 0.7;
+  background: #fff0f0;
+}
+
+.hiddenCell {
+  text-align: center;
+  font-style: italic;
+  color: #a00;
+}

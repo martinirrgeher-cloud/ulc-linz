@@ -23,18 +23,6 @@ body {
   padding: 0;
 }
 
-h1 {
-  font-size: 20px;
-  margin-bottom: 8px;
-  font-weight: 600;
-}
-
-label {
-  display: block;
-  margin-bottom: 4px;
-  font-size: 14px;
-}
-
 .container {
   max-width: 1200px;
   margin: 0 auto;
@@ -67,84 +55,33 @@ select {
 
 button {
   padding: 8px 10px;
+  border: 1px solid var(--border);
   border-radius: var(--radius);
-  border: none;
-  background: var(--primary);
-  color: #fff;
+  background: #fff;
   cursor: pointer;
-  font-size: 14px;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  transition: background 0.2s ease;
-}
-
-button:hover {
-  background: #0046d1;
 }
 
 button.ghost {
-  background: var(--primary-light);
-  color: var(--primary);
-}
-
-button.ghost:hover {
-  background: #d9e3ff;
-}
-
-button.icon-btn {
-  background: transparent;
-  color: var(--text);
-  padding: 4px;
-}
-
-button.icon-btn:hover {
-  background: #f3f4f6;
-  border-radius: var(--radius);
-}
-
-.input-inline {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.input-inline input {
-  min-width: 220px;
-}
-
-.input-inline button {
-  margin-left: 4px;
-}
-
-/* ============================
-   🧭 Steuerung / Bedienelemente
-============================ */
-.control-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.control-row {
-  display: flex;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 12px;
+  background: #fff;
 }
 
 .button-group {
   display: flex;
+  gap: 6px;
+}
+
+.control-row {
+  display: flex;
+  flex-wrap: wrap;
   gap: 8px;
+  margin: 8px 0 12px;
 }
 
-.kw-select {
-  padding: 6px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
+.center-row {
+  align-items: center;
 }
 
-.ghost {
+.icon-btn {
   padding: 6px 10px;
   font-size: 0.9rem;
 }
@@ -171,34 +108,35 @@ table {
   border-collapse: collapse;
   width: 100%;
   min-width: 400px;
+  /* table-layout: auto (Default) → wichtig, damit die Namensspalte wirklich nur so breit wie nötig ist */
 }
 
 th,
 td {
-  padding: 6px;
   border: 1px solid var(--border);
-  text-align: center;
+  padding: 8px;
+  font-size: 14px;
   vertical-align: top;
+  background: #fff;
 }
 
 th {
-  background: #fafafa;
-  font-weight: 600;
   position: sticky;
   top: 0;
-}
-
-th input[type="checkbox"] {
-  transform: scale(1.2);
-  cursor: pointer;
+  background: #fff;
+  z-index: 1;
 }
 
 .small {
   font-size: 12px;
-  color: #666;
+  color: var(--text-light);
 }
 
-/* ✅ Sticky Namensspalte */
+.training-table-container {
+  width: 100%;
+}
+
+/* Sticky erste Spalte */
 .sticky-col {
   position: sticky;
   left: 0;
@@ -209,7 +147,7 @@ th input[type="checkbox"] {
 
 /* Namensspalte so breit wie nötig */
 .name-col-auto {
-  width: auto !important;
+  width: 1% !important; /* so schmal wie möglich */
   max-width: none !important;
   overflow: visible !important;
   text-overflow: clip !important;
@@ -226,16 +164,6 @@ th input[type="checkbox"] {
   color: #6b7280;
 }
 
-.header-controls {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  justify-content: center;
-}
-
-/* ============================
-   📝 Namensbereich
-============================ */
 .name-cell {
   display: flex;
   flex-direction: column;
@@ -257,33 +185,9 @@ th input[type="checkbox"] {
 /* ============================
    🪄 Modale Dialoge
 ============================ */
-.modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 50;
-}
-
-.modal {
-  background: var(--card-bg);
-  padding: 16px;
-  border-radius: var(--radius);
-  max-width: 500px;
-  width: 100%;
-}
-
-.modal h3 {
-  margin-top: 0;
-  margin-bottom: 8px;
-  font-size: 16px;
-  font-weight: 600;
-}
 
 /* ============================
-   🟡 Notiz-Highlight
+   ✨ Aktive Notiz-Optik
 ============================ */
 .note-active {
   background: var(--primary) !important;

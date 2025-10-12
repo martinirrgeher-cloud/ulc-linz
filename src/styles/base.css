@@ -1,0 +1,43 @@
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: Inter, system-ui, Segoe UI, Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+a {
+  color: var(--primary);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* Buttons */
+button.btn {
+  appearance: none;
+  border: 1px solid var(--border);
+  background: white;
+  padding: 8px 14px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  font-size: 14px;
+}
+
+button.btn:focus {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+button.btn.primary {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+button.btn.primary:hover {
+  background: var(--primary-600);
+}

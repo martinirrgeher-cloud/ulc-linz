@@ -1,33 +1,44 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
-import { FiEdit2, FiFileText } from "react-icons/fi";
+import { FiEdit2, FiFileText, FiChevronDown, FiChevronUp } from "react-icons/fi";
 import { useTrainingData, Person } from "./hooks/useTrainingData";
 import { fmtISO, getSessionsForMonth, getMonthKey, getISOWeek } from "./utils/dateUtils";
-import { ROUTES } from "../../routes"; // 🆕 zentralisierte Routen
+import { ROUTES } from "../../routes";
+import styles from "./Kindertraining.module.css";
 
 export default function Kindertraining() {
   const { data, update } = useTrainingData();
-  const [editIndex, setEditIndex] = useState<number | null>(null);
   const [newName, setNewName] = useState("");
   const [searchInput, setSearchInput] = useState("");
-  const [search, setSearch] = useState("");
   const [columnState, setColumnState] = useState<Record<string, boolean>>({});
   const [sortMode, setSortMode] = useState<"firstName" | "lastName">("firstName");
-
-  // 🆕 Ansicht: Monat / Woche
   const [viewMode, setViewMode] = useState<"month" | "week">("month");
   const [selectedWeek, setSelectedWeek] = useState<number>(getISOWeek(new Date()));
+  const [showOptions, setShowOptions] = useState(false);
+  const [showHiddenPeople, setShowHiddenPeople] = useState(false);
+  const [activeMenuIndex, setActiveMenuIndex] = useState<number | null>(null);
 
-  // Sortiermodus & Ansicht aus localStorage laden
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Menü schließen bei Klick außerhalb
   useEffect(() => {
-    const stored = localStorage.getItem("training_sortMode");
-    if (stored === "firstName" || stored === "lastName") setSortMode(stored);
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setActiveMenuIndex(null);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
+  // Sortiermodus / Ansicht laden
+  useEffect(() => {
+    const storedSort = localStorage.getItem("training_sortMode");
+    if (storedSort === "firstName" || storedSort === "lastName") setSortMode(storedSort);
     const storedView = localStorage.getItem("training_viewMode");
     if (storedView === "month" || storedView === "week") setViewMode(storedView);
   }, []);
 
-  // speichern bei Änderung
   useEffect(() => {
     localStorage.setItem("training_sortMode", sortMode);
   }, [sortMode]);
@@ -36,12 +47,12 @@ export default function Kindertraining() {
     localStorage.setItem("training_viewMode", viewMode);
   }, [viewMode]);
 
-  // Monat & Wochentage
+  // Monat & Trainingstage
   const [monthStart, setMonthStart] = useState(
     new Date(new Date().getFullYear(), new Date().getMonth(), 1)
   );
   const currentMonthKey = getMonthKey(monthStart);
-  const selectedWeekdays = data.weekdaysByMonth?.[currentMonthKey] ?? [2];
+  const selectedWeekdays = data?.weekdaysByMonth?.[currentMonthKey] ?? [2];
 
   const allSessions = useMemo(
     () => getSessionsForMonth(monthStart, selectedWeekdays),
@@ -55,7 +66,6 @@ export default function Kindertraining() {
     return allSessions;
   }, [allSessions, viewMode, selectedWeek]);
 
-  // verfügbare Wochen im Monat für Dropdown
   const availableWeeks = useMemo(() => {
     const weeks = Array.from(new Set(allSessions.map((d) => getISOWeek(d)))).sort((a, b) => a - b);
     return weeks;
@@ -63,8 +73,9 @@ export default function Kindertraining() {
 
   // Personen sortieren
   const sortedPeople = useMemo(() => {
-    const active = data.people.filter((p) => p.active);
-    const inactive = data.people.filter((p) => !p.active);
+    const allPeople = data?.people ?? [];
+    const active = allPeople.filter((p) => !p.hidden);
+    const hidden = allPeople.filter((p) => p.hidden);
 
     const sortFunc = (a: Person, b: Person) => {
       const primA = sortMode === "firstName" ? a.firstName.toLowerCase() : a.lastName.toLowerCase();
@@ -74,13 +85,67 @@ export default function Kindertraining() {
       return primA.localeCompare(primB) || secA.localeCompare(secB);
     };
 
-    return [...active.sort(sortFunc), ...inactive.sort(sortFunc)];
-  }, [data.people, sortMode]);
+    return {
+      visible: active.sort(sortFunc),
+      hidden: hidden.sort(sortFunc)
+    };
+  }, [data?.people, sortMode]);
 
-  const visiblePeople = sortedPeople.filter((p) =>
-    `${p.firstName} ${p.lastName}`.toLowerCase().includes(search.toLowerCase())
+  const visiblePeople = sortedPeople.visible.filter((p) =>
+    `${p.firstName} ${p.lastName}`.toLowerCase().includes(searchInput.toLowerCase())
   );
 
+  // Menüaktionen
+  const renamePerson = (person: Person) => {
+    const val = prompt("Name ändern:", `${person.firstName} ${person.lastName}`);
+    if (val) {
+      const parts = val.trim().split(" ");
+      const firstName = parts[0] || "";
+      const lastName = parts.slice(1).join(" ");
+      update((prev) => ({
+        ...prev,
+        people: prev.people.map((p) =>
+          p === person ? { ...p, firstName, lastName } : p
+        ),
+      }));
+    }
+    setActiveMenuIndex(null);
+  };
+
+  const toggleHidden = (person: Person) => {
+    update((prev) => ({
+      ...prev,
+      people: prev.people.map((p) =>
+        p === person ? { ...p, hidden: !p.hidden } : p
+      ),
+    }));
+    setActiveMenuIndex(null);
+  };
+
+  const togglePaid = (person: Person) => {
+    update((prev) => ({
+      ...prev,
+      people: prev.people.map((p) =>
+        p === person ? { ...p, paid: !p.paid } : p
+      ),
+    }));
+    setActiveMenuIndex(null);
+  };
+
+  const setComment = (person: Person) => {
+    const val = prompt("Kommentar für " + person.firstName, person.comment ?? "");
+    if (val !== null) {
+      update((prev) => ({
+        ...prev,
+        people: prev.people.map((p) =>
+          p === person ? { ...p, comment: val.trim() } : p
+        ),
+      }));
+    }
+    setActiveMenuIndex(null);
+  };
+
+  // Anwesenheit
   const toggleAttendance = (dateISO: string, person: Person) => {
     update((prev) => {
       const records = { ...prev.records };
@@ -107,71 +172,84 @@ export default function Kindertraining() {
     const lastName = parts.slice(1).join(" ");
     update((prev) => ({
       ...prev,
-      people: [...prev.people, { firstName, lastName, active: true }],
+      people: [
+        ...(prev.people ?? []),
+        { firstName, lastName, hidden: false, paid: true, comment: "" },
+      ],
     }));
     setNewName("");
-  };
-
-  const renamePerson = (index: number, value: string) => {
-    const parts = value.trim().split(" ");
-    const firstName = parts[0] || "";
-    const lastName = parts.slice(1).join(" ");
-    update((prev) => ({
-      ...prev,
-      people: prev.people.map((p, i) =>
-        i === index ? { ...p, firstName, lastName } : p
-      ),
-    }));
-    setEditIndex(null);
-  };
-
-  const togglePersonActive = (person: Person) => {
-    update((prev) => ({
-      ...prev,
-      people: prev.people.map((p) =>
-        p === person ? { ...p, active: !p.active } : p
-      ),
-    }));
   };
 
   return (
     <div className="container">
       {/* Kopfzeile */}
-      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <button
-            className="ghost"
-            onClick={() =>
-              setMonthStart(new Date(monthStart.getFullYear(), monthStart.getMonth() - 1, 1))
-            }
-          >
-            ◀
-          </button>
-          <h1 style={{ fontSize: "1.6rem", fontWeight: "bold" }}>
+      <div className={styles.header}>
+        <div className={styles.monthNav}>
+          <button className="ghost" onClick={() =>
+            setMonthStart(new Date(monthStart.getFullYear(), monthStart.getMonth() - 1, 1))
+          }>◀</button>
+          <h1 className={styles.monthTitle}>
             Kindertraining –{" "}
             {monthStart.toLocaleDateString(undefined, { year: "numeric", month: "long" })}
           </h1>
-          <button
-            className="ghost"
-            onClick={() =>
-              setMonthStart(new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 1))
-            }
-          >
-            ▶
-          </button>
+          <button className="ghost" onClick={() =>
+            setMonthStart(new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 1))
+          }>▶</button>
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
+        <div className={styles.menuLinks}>
           <Link to={ROUTES.MENU} className="ghost">🏠 Hauptmenü</Link>
           <Link to={ROUTES.KINDERTRAINING_WOCHENTAGE} className="ghost">🗓️ Wochentage</Link>
           <Link to={ROUTES.KINDERTRAINING_STATISTIK} className="ghost">📊 Statistik</Link>
+          <button className="ghost" onClick={() => setShowOptions((prev) => !prev)}>
+            Zusatzoptionen {showOptions ? <FiChevronUp /> : <FiChevronDown />}
+          </button>
         </div>
       </div>
 
+      {showOptions && (
+        <div className={styles.optionsMenu}>
+          <div className="button-group">
+            <button className={`ghost ${sortMode === "firstName" ? "note-active" : ""}`}
+              onClick={() => setSortMode("firstName")}>Sortiere nach Vorname</button>
+            <button className={`ghost ${sortMode === "lastName" ? "note-active" : ""}`}
+              onClick={() => setSortMode("lastName")}>Sortiere nach Nachname</button>
+          </div>
+
+          <div className="button-group">
+            <button className={`ghost ${viewMode === "month" ? "note-active" : ""}`}
+              onClick={() => setViewMode("month")}>Monatsansicht</button>
+            <button className={`ghost ${viewMode === "week" ? "note-active" : ""}`}
+              onClick={() => setViewMode("week")}>Wochenansicht</button>
+
+            {viewMode === "week" && (
+              <select
+                value={selectedWeek}
+                onChange={(e) => setSelectedWeek(parseInt(e.target.value))}
+                className="kw-select"
+              >
+                {availableWeeks.map((kw) => (
+                  <option key={`kw-${kw}`} value={kw}>KW {kw}</option>
+                ))}
+              </select>
+            )}
+          </div>
+
+          {sortedPeople.hidden.length > 0 && (
+            <div className="button-group">
+              <button className="ghost" onClick={() => setShowHiddenPeople((prev) => !prev)}>
+                {showHiddenPeople
+                  ? "Ausgeblendete ausblenden"
+                  : `Ausgeblendete anzeigen (${sortedPeople.hidden.length})`}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Steuerung */}
       <div className="card control-panel">
-        {/* 🔍 Such- und Eingabefeld */}
-        
-          <div className="input-inline">
+        <div className={styles.inputRow}>
+          <div className={styles.addPersonContainer}>
             <input
               type="text"
               placeholder="Vor- und Nachname eingeben"
@@ -183,7 +261,7 @@ export default function Kindertraining() {
           </div>
         </div>
 
-        <div className="control-row">
+        <div className={styles.inputRow}>
           <div className="input-inline">
             <input
               type="text"
@@ -191,59 +269,12 @@ export default function Kindertraining() {
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
             />
-            <button onClick={() => setSearch(searchInput)}>Suchen</button>
-          </div>
-
-        {/* ↔️ Sortierung + Ansicht */}
-        <div className="control-row center-row">
-          <div className="button-group">
-            <button
-              className={`ghost ${sortMode === "firstName" ? "note-active" : ""}`}
-              onClick={() => setSortMode("firstName")}
-            >
-              Sortiere nach Vorname
-            </button>
-            <button
-              className={`ghost ${sortMode === "lastName" ? "note-active" : ""}`}
-              onClick={() => setSortMode("lastName")}
-            >
-              Sortiere nach Nachname
-            </button>
-          </div>
-
-          <div className="button-group">
-            <button
-              className={`ghost ${viewMode === "month" ? "note-active" : ""}`}
-              onClick={() => setViewMode("month")}
-            >
-              Monatsansicht
-            </button>
-            <button
-              className={`ghost ${viewMode === "week" ? "note-active" : ""}`}
-              onClick={() => setViewMode("week")}
-            >
-              Wochenansicht
-            </button>
-
-            {viewMode === "week" && (
-              <select
-                value={selectedWeek}
-                onChange={(e) => setSelectedWeek(parseInt(e.target.value))}
-                className="kw-select"
-              >
-                {availableWeeks.map((kw) => (
-                  <option key={kw} value={kw}>
-                    KW {kw}
-                  </option>
-                ))}
-              </select>
-            )}
           </div>
         </div>
       </div>
 
       {/* Tabelle */}
-      <div className="table-wrap card">
+      <div className="table-wrap card" ref={menuRef}>
         <div className="training-table-container">
           <table className="training-table">
             <thead>
@@ -251,12 +282,12 @@ export default function Kindertraining() {
                 <th className="sticky-col name-col-auto">Name</th>
                 {sessions.map((d) => {
                   const iso = fmtISO(d);
-                  const noteVal = data.notes?.[iso] || "";
+                  const noteVal = data?.notes?.[iso] || "";
                   const colActive = columnState[iso] !== false;
 
                   return (
-                    <th key={iso} className={!colActive ? "inactive-col" : ""}>
-                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                    <th key={`col-${iso}`} className={!colActive ? "inactive-col" : ""}>
+                      <div className={styles.tableHeaderCell}>
                         <input
                           type="checkbox"
                           checked={colActive}
@@ -288,48 +319,40 @@ export default function Kindertraining() {
             </thead>
             <tbody>
               {visiblePeople.map((p, index) => (
-                <tr
-                  key={`${p.firstName}-${p.lastName}-${index}`}
-                  className={p.active ? "" : "inactive-row"}
-                >
+                <tr key={`${p.firstName}-${p.lastName}-${index}`}>
                   <td
-                    className="sticky-col name-col-auto"
-                    title={`${p.firstName} ${p.lastName}`}
+                    className={`sticky-col name-col-auto ${styles.personCell} ${
+                      p.paid === false ? styles.nameUnpaid : ""
+                    } ${
+                      p.comment && p.comment.length > 0 ? styles.nameHasComment : ""
+                    }`}
                   >
-                    {editIndex === index ? (
-                      <div className="input-inline">
-                        <input
-                          autoFocus
-                          defaultValue={`${p.firstName} ${p.lastName}`}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter")
-                              renamePerson(index, (e.target as HTMLInputElement).value);
-                            if (e.key === "Escape") setEditIndex(null);
-                          }}
-                        />
-                        <button onClick={() => setEditIndex(null)}>✖</button>
-                      </div>
-                    ) : (
-                      <div className="name-cell">
-                        <div className="name-row">
-                          <strong>{p.firstName}</strong>
-                          <button
-                            className="icon-btn edit-btn"
-                            onClick={() => setEditIndex(index)}
-                          >
-                            <FiEdit2 />
-                          </button>
-                        </div>
-                        <div className="name-row">
-                          <span>{p.lastName}</span>
-                          <button
-                            className="icon-btn status-btn"
-                            onClick={() => togglePersonActive(p)}
-                            title={p.active ? "aktiv" : "inaktiv"}
-                          >
-                            {p.active ? "🟢" : "🟡"}
-                          </button>
-                        </div>
+                   <div className={styles.nameInline}>
+  <span><strong>{p.firstName}</strong> {p.lastName}</span>
+  <div className={styles.iconWrapper}>
+    {p.paid === false && <span className={styles.unpaidIcon}>🚫💶</span>}
+    <button
+      className="icon-btn edit-btn"
+      onClick={() => setActiveMenuIndex(index === activeMenuIndex ? null : index)}
+    >
+      <FiEdit2 />
+    </button>
+  </div>
+</div>
+
+                    {activeMenuIndex === index && (
+                      <div className={styles.personMenu}>
+                        <button onClick={() => renamePerson(p)}>✍️ Name ändern</button>
+                        <button onClick={() => toggleHidden(p)}>🚫 Ausblenden</button>
+                        <button onClick={() => togglePaid(p)}>
+                          {p.paid === false ? "💰 Als bezahlt markieren" : "❌ Als nicht bezahlt markieren"}
+                        </button>
+                        <button onClick={() => setComment(p)}>
+                          📝 {p.comment ? "Kommentar bearbeiten" : "Kommentar hinzufügen"}
+                        </button>
+                        {p.comment && p.comment.length > 0 && (
+                          <div className={styles.commentDisplay}>{p.comment}</div>
+                        )}
                       </div>
                     )}
                   </td>
@@ -338,9 +361,13 @@ export default function Kindertraining() {
                     const iso = fmtISO(d);
                     const colActive = columnState[iso] !== false;
                     const fullName = `${p.firstName} ${p.lastName}`.trim();
-                    const checked = !!data.records?.[iso]?.[fullName];
+                    const checked = !!data?.records?.[iso]?.[fullName];
+
                     return (
-                      <td key={iso} className={!colActive ? "inactive-col" : ""}>
+                      <td
+                        key={`cell-${iso}-${p.firstName}-${p.lastName}`}
+                        className={`${!colActive ? "inactive-col" : ""} ${styles.attendanceCell}`}
+                      >
                         {colActive && (
                           <input
                             type="checkbox"
@@ -354,6 +381,47 @@ export default function Kindertraining() {
                   })}
                 </tr>
               ))}
+
+              {/* Ausgeblendete Personen */}
+              {showHiddenPeople && sortedPeople.hidden.length > 0 && (
+                <>
+                  {sortedPeople.hidden.map((p, index) => (
+                    <tr
+                      key={`hidden-${p.firstName}-${p.lastName}-${index}`}
+                      className={styles.hiddenRow}
+                    >
+                      <td className={`sticky-col name-col-auto ${styles.personCell}`}>
+                        <div className={styles.nameInline}>
+                          <span><strong>{p.firstName}</strong> {p.lastName}</span>
+                          <button
+                            className="icon-btn edit-btn"
+                            onClick={() => setActiveMenuIndex(index + 10000)}
+                          >
+                            <FiEdit2 />
+                          </button>
+                        </div>
+                        {activeMenuIndex === index + 10000 && (
+                          <div className={styles.personMenu}>
+                            <button onClick={() => toggleHidden(p)}>👁️ Wieder einblenden</button>
+                            <button onClick={() => togglePaid(p)}>
+                              {p.paid === false ? "💰 Als bezahlt markieren" : "❌ Als nicht bezahlt markieren"}
+                            </button>
+                            <button onClick={() => setComment(p)}>
+                              📝 {p.comment ? "Kommentar bearbeiten" : "Kommentar hinzufügen"}
+                            </button>
+                            {p.comment && p.comment.length > 0 && (
+                              <div className={styles.commentDisplay}>{p.comment}</div>
+                            )}
+                          </div>
+                        )}
+                      </td>
+                      <td colSpan={sessions.length} className={styles.hiddenCell}>
+                        (ausgeblendet)
+                      </td>
+                    </tr>
+                  ))}
+                </>
+              )}
             </tbody>
           </table>
         </div>

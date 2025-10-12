@@ -1,3 +1,4 @@
+// src/pages/Login.tsx
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ROUTES } from "../routes";
@@ -35,7 +36,7 @@ export default function Login() {
     setLoading(true);
 
     try {
-      await ensureGoogleToken();
+      await ensureGoogleToken(); // Token sicherstellen
       const user = await validateUser(username, password);
       if (!user) {
         setError("❌ Benutzername oder Passwort ist ungültig");
