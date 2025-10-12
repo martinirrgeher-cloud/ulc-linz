@@ -1,0 +1,10 @@
+{
+  "users": [
+    {
+      "username": "martin",
+      "password": "admin",
+      "role": "admin",
+      "modules": ["Kindertraining", "U14", "Leistungsgruppe"]
+    }
+  ]
+}

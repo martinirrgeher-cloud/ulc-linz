@@ -1,0 +1,300 @@
+/* ============================
+   🎨 Variablen / Farben
+============================ */
+:root {
+  --primary: #0b5cff;
+  --primary-light: #eef2ff;
+  --text: #1f2937;
+  --text-light: #475569;
+  --background: #f7f8fb;
+  --card-bg: #ffffff;
+  --border: #e5e7eb;
+  --radius: 8px;
+}
+
+/* ============================
+   🧭 Basislayout
+============================ */
+body {
+  background: var(--background);
+  color: var(--text);
+  font-family: Inter, system-ui, Segoe UI, Roboto, "Helvetica Neue", Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+h1 {
+  font-size: 20px;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 14px;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.card {
+  background: var(--card-bg);
+  padding: 16px;
+  border-radius: var(--radius);
+  box-shadow: 0 6px 18px rgba(20, 23, 38, 0.06);
+  margin-bottom: 16px;
+}
+
+/* ============================
+   🧰 Inputfelder & Buttons
+============================ */
+input[type="text"],
+input[type="month"],
+textarea,
+select {
+  padding: 8px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  font-size: 14px;
+  width: 100%;
+  box-sizing: border-box;
+  outline: none;
+}
+
+button {
+  padding: 8px 10px;
+  border-radius: var(--radius);
+  border: none;
+  background: var(--primary);
+  color: #fff;
+  cursor: pointer;
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: background 0.2s ease;
+}
+
+button:hover {
+  background: #0046d1;
+}
+
+button.ghost {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+button.ghost:hover {
+  background: #d9e3ff;
+}
+
+button.icon-btn {
+  background: transparent;
+  color: var(--text);
+  padding: 4px;
+}
+
+button.icon-btn:hover {
+  background: #f3f4f6;
+  border-radius: var(--radius);
+}
+
+.input-inline {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.input-inline input {
+  min-width: 220px;
+}
+
+.input-inline button {
+  margin-left: 4px;
+}
+
+/* ============================
+   🧭 Steuerung / Bedienelemente
+============================ */
+.control-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.control-row {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.button-group {
+  display: flex;
+  gap: 8px;
+}
+
+.kw-select {
+  padding: 6px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+.ghost {
+  padding: 6px 10px;
+  font-size: 0.9rem;
+}
+
+.note-active {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+.ghost:not(.note-active):hover {
+  background: #f0f0f0;
+}
+
+/* ============================
+   📊 Tabelle
+============================ */
+.table-wrap {
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 400px;
+}
+
+th,
+td {
+  padding: 6px;
+  border: 1px solid var(--border);
+  text-align: center;
+  vertical-align: top;
+}
+
+th {
+  background: #fafafa;
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+}
+
+th input[type="checkbox"] {
+  transform: scale(1.2);
+  cursor: pointer;
+}
+
+.small {
+  font-size: 12px;
+  color: #666;
+}
+
+/* ✅ Sticky Namensspalte */
+.sticky-col {
+  position: sticky;
+  left: 0;
+  background: #fff;
+  z-index: 2;
+  text-align: left;
+}
+
+/* Namensspalte so breit wie nötig */
+.name-col-auto {
+  width: auto !important;
+  max-width: none !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  white-space: nowrap;
+}
+
+.inactive-col {
+  opacity: 0.45;
+  background-color: #f7f7f7;
+}
+
+.inactive-row {
+  background: #f0f0f0;
+  color: #6b7280;
+}
+
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+}
+
+/* ============================
+   📝 Namensbereich
+============================ */
+.name-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.name-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.edit-btn,
+.status-btn {
+  margin-left: 6px;
+}
+
+/* ============================
+   🪄 Modale Dialoge
+============================ */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+
+.modal {
+  background: var(--card-bg);
+  padding: 16px;
+  border-radius: var(--radius);
+  max-width: 500px;
+  width: 100%;
+}
+
+.modal h3 {
+  margin-top: 0;
+  margin-bottom: 8px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* ============================
+   🟡 Notiz-Highlight
+============================ */
+.note-active {
+  background: var(--primary) !important;
+  color: white !important;
+  border-radius: var(--radius);
+  border: 1px solid var(--primary);
+  box-shadow: 0 0 4px rgba(11, 92, 255, 0.6);
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.note-active:hover {
+  background: #0046d1 !important;
+  box-shadow: 0 0 6px rgba(11, 92, 255, 0.8);
+}
