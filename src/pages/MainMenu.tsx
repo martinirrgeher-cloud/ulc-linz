@@ -1,80 +1,71 @@
 // src/pages/MainMenu.tsx
 import { Link, useNavigate } from "react-router-dom";
 import { ROUTES } from "../routes";
-import { getCurrentUser, logout } from "../lib/authStore";
-import logo from "../assets/logo.png"; // Vereinslogo
+import { forceLogout } from "../lib/googleAuth";
+import { getCurrentUser, getGrantedModules, clearCurrentUser } from "../lib/userSession";
+import UserLogin from "./UserLogin";
 
-function hasModule(modules: string[] | undefined, name: string) {
-  return modules?.some((m) => m.toLowerCase() === name.toLowerCase()) ?? false;
-}
+const MODULES = [
+  { key: "KINDERTRAINING", label: "🏃 Kindertraining", route: ROUTES.KINDERTRAINING },
+  { key: "U12", label: "👶 U12", route: ROUTES.U12 },
+  { key: "U14", label: "🏃‍♂️ U14", route: ROUTES.U14 },
+  { key: "LEISTUNGSGRUPPE", label: "🏋️ Leistungsgruppe", route: ROUTES.LEISTUNGSGRUPPE },
+  { key: "STATISTIK", label: "📊 Statistik", route: ROUTES.STATISTIK },
+  { key: "EINSTELLUNGEN", label: "⚙️ Einstellungen", route: ROUTES.EINSTELLUNGEN },
+];
 
 export default function MainMenu() {
   const navigate = useNavigate();
   const user = getCurrentUser();
+  const granted = getGrantedModules();
 
-  const handleLogout = () => {
-    logout();
-    navigate(ROUTES.LOGIN);
-  };
-
-  if (!user) return null;
+  function handleLogoutAll() {
+    clearCurrentUser();
+    forceLogout(); // löscht auch Google Token und leitet auf /login
+  }
 
   return (
-    <div
-      className="container"
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: 12,
-        maxWidth: 400,
-        margin: "0 auto",
-      }}
-    >
-      {/* 🖼 Logo + Überschrift */}
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-        <img src={logo} alt="Vereinslogo" style={{ height: 80, objectFit: "contain" }} />
-        <h1 style={{ fontSize: "1.5rem", fontWeight: 600 }}>🏠 Modulübersicht</h1>
-      </div>
+    <div style={{ maxWidth: 900, margin: "0 auto", padding: "2rem" }}>
+      <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <h1>🏠 Hauptmenü</h1>
+        <div style={{ display: "flex", gap: "0.5rem" }}>
+          <button onClick={() => navigate(ROUTES.MENU)}>Neu laden</button>
+          <button onClick={handleLogoutAll}>Logout</button>
+        </div>
+      </header>
 
-      {/* 👤 Userinfo + Logout */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          padding: "4px 0",
-        }}
-      >
-        <span>
-          👤 {user.username} ({user.role})
-        </span>
-        <button
-          onClick={handleLogout}
-          style={{
-            background: "none",
-            border: "none",
-            color: "#444",
-            cursor: "pointer",
-            textDecoration: "underline",
-            fontSize: "0.9rem",
-          }}
-        >
-          Logout
-        </button>
-      </div>
+      {!user && (
+        <div style={{ marginTop: "1rem" }}>
+          <p>✅ Google-Login erfolgreich. Melde dich jetzt zusätzlich mit Benutzername & Passwort an, um deine Module freizuschalten.</p>
+          <UserLogin onLoginSuccess={() => navigate(ROUTES.MENU)} />
+        </div>
+      )}
 
-      {/* 📚 Modul-Links */}
-      <nav style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {hasModule(user.modules, "KINDERTRAINING") && (
-          <Link to={ROUTES.KINDERTRAINING}>🏃 Kindertraining</Link>
-        )}
-        {hasModule(user.modules, "U12") && <Link to={ROUTES.U12}>👶 U12</Link>}
-        {hasModule(user.modules, "U14") && <Link to={ROUTES.U14}>🏃‍♂️ U14</Link>}
-        {hasModule(user.modules, "LEISTUNGSGRUPPE") && (
-          <Link to={ROUTES.LEISTUNGSGRUPPE}>🏋️ Leistungsgruppe</Link>
-        )}
-        {user.role === "admin" && <div>⚙️ Adminbereich</div>}
-      </nav>
+      {user && (
+        <>
+          <section style={{ margin: "1rem 0" }}>
+            <p>Angemeldet als <strong>{user.username}</strong> ({user.role})</p>
+          </section>
+
+          <nav style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(240px,1fr))", gap: "0.75rem" }}>
+            {MODULES.filter(m => granted.includes(m.key)).map(m => (
+              <Link key={m.key} to={m.route} style={{ border: "1px solid #ddd", padding: "1rem", borderRadius: 12, textDecoration: "none" }}>
+                {m.label}
+              </Link>
+            ))}
+          </nav>
+
+          {granted.length === 0 && (
+            <p style={{ marginTop: "1rem" }}>Du hast noch keine Module freigeschaltet. Bitte prüfe deine Benutzerrechte in der <code>users.json</code> auf Google Drive.</p>
+          )}
+
+          {user.role === "admin" && (
+            <div style={{ marginTop: "1rem" }}>
+              <Link to={ROUTES.ADMIN}>🛠️ Adminbereich</Link>
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }

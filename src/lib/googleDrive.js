@@ -1,101 +1,107 @@
 // src/lib/googleDrive.js
-import { getAccessToken, clearAccessToken, signInWithGoogle } from "./googleAuth";
+import { getAccessToken } from "./googleAuth";
 
-const API_BASE = "https://www.googleapis.com/drive/v3";
-const UPLOAD_URL = "https://www.googleapis.com/upload/drive/v3/files";
-const DRIVE_FOLDER_ID = import.meta.env.VITE_GOOGLE_DRIVE_FOLDER_ID;
+const USERS_FILE_ID = import.meta.env.VITE_USERS_FILE_ID; // optional, empfohlen
 
-async function requireToken() {
+async function driveRequest(url, options = {}) {
   const token = getAccessToken();
-  if (!token) {
-    console.warn("⚠️ Kein Token vorhanden → Google Login");
-    await signInWithGoogle();
-    const newToken = getAccessToken();
-    if (!newToken) throw new Error("Kein Access Token vorhanden");
-    return newToken;
-  }
-  return token;
-}
-
-async function fetchWith401Retry(url, options = {}) {
-  const res = await fetch(url, options);
-  if (res.status === 401) {
-    console.warn("🔁 401 Unauthorized → Token löschen & neu einloggen");
-    clearAccessToken();
-    await signInWithGoogle();
-    const retryRes = await fetch(url, {
-      ...options,
-      headers: { ...options.headers, Authorization: `Bearer ${getAccessToken()}` },
-    });
-    return retryRes;
+  if (!token) throw new Error("Kein Access Token vorhanden");
+  const res = await fetch(url, {
+    ...options,
+    headers: { ...(options.headers || {}), Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`Drive API Fehler ${res.status}: ${text || res.statusText}`);
   }
   return res;
 }
 
-async function findFileIdByName(name) {
-  const token = await requireToken();
-  const url = `${API_BASE}/files?q='${DRIVE_FOLDER_ID}' in parents and name='${name}'&fields=files(id,name)`;
-  const resp = await fetchWith401Retry(url, { headers: { Authorization: `Bearer ${token}` } });
-  if (!resp.ok) throw new Error(`Drive-Suche fehlgeschlagen (${resp.status})`);
-  const data = await resp.json();
-  return data.files?.[0]?.id || null;
+/**
+ * JSON-Datei per ID laden
+ */
+export async function loadJsonById(fileId) {
+  const url = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`;
+  const res = await driveRequest(url);
+  return await res.json();
 }
 
-export async function loadJsonByName(name) {
-  const token = await requireToken();
-  const fileId = await findFileIdByName(name);
-  if (!fileId) return null;
-
-  const fileUrl = `${API_BASE}/files/${fileId}?alt=media`;
-  const fileResp = await fetchWith401Retry(fileUrl, { headers: { Authorization: `Bearer ${token}` } });
-  if (!fileResp.ok) throw new Error(`Drive-Load fehlgeschlagen (${fileResp.status})`);
-  return await fileResp.json();
-}
-
-export async function saveJsonByName(name, obj) {
-  const token = await requireToken();
-  const body = JSON.stringify(obj, null, 2);
-  const fileId = await findFileIdByName(name);
-
-  if (fileId) {
-    const patchUrl = `${UPLOAD_URL}/${fileId}?uploadType=media`;
-    const patch = await fetchWith401Retry(patchUrl, {
-      method: "PATCH",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body,
-    });
-    if (!patch.ok) throw new Error(`Drive-Update fehlgeschlagen (${patch.status})`);
-    return { created: false, id: fileId };
+/**
+ * JSON-Datei per Dateiname laden
+ */
+export async function loadJsonByName(filename) {
+  if (USERS_FILE_ID && filename === "users.json") {
+    try {
+      return await loadJsonById(USERS_FILE_ID);
+    } catch (e) {
+      console.warn(`Laden per ID fehlgeschlagen (${USERS_FILE_ID}) → Fallback Name`, e);
+    }
   }
 
-  // Create (multipart)
-  const metadata = { name, mimeType: "application/json", parents: [DRIVE_FOLDER_ID] };
-  const form = new FormData();
-  form.append("metadata", new Blob([JSON.stringify(metadata)], { type: "application/json" }));
-  form.append("file", new Blob([body], { type: "application/json" }));
+  const q = encodeURIComponent(`name='${filename}' and trashed=false`);
+  const listUrl = `https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name)`;
+  const listRes = await driveRequest(listUrl);
+  const listJson = await listRes.json();
 
-  const create = await fetchWith401Retry(`${UPLOAD_URL}?uploadType=multipart`, {
-    method: "POST",
+  if (!listJson.files || listJson.files.length === 0) {
+    console.warn(`⚠️ Datei '${filename}' nicht gefunden`);
+    throw new Error(`Datei '${filename}' nicht gefunden`);
+  }
+  return await loadJsonById(listJson.files[0].id);
+}
+
+/**
+ * JSON-Datei per Dateiname speichern (neu oder überschreiben)
+ */
+export async function saveJsonByName(filename, data) {
+  const token = getAccessToken();
+  if (!token) throw new Error("Kein Access Token vorhanden");
+
+  // Prüfen, ob Datei bereits existiert
+  const q = encodeURIComponent(`name='${filename}' and trashed=false`);
+  const listUrl = `https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id)`;
+  const listRes = await fetch(listUrl, {
     headers: { Authorization: `Bearer ${token}` },
-    body: form,
   });
-  if (!create.ok) throw new Error(`Drive-Erstellen fehlgeschlagen (${create.status})`);
-  const created = await create.json();
-  return { created: true, id: created.id };
-}
+  const listJson = await listRes.json();
 
-// deine Modul-Funktionen bleiben:
-export async function loadModuleData(moduleName) {
-  const file = `${moduleName.toLowerCase().replace("ü", "ue")}_data.json`;
-  console.log(`☁️ Lade Daten für Modul: ${moduleName} (${file})`);
-  return await loadJsonByName(file);
-}
+  let fileId = null;
+  if (listJson.files && listJson.files.length > 0) {
+    fileId = listJson.files[0].id;
+  }
 
-export async function saveModuleData(moduleName, data) {
-  const file = `${moduleName.toLowerCase().replace("ü", "ue")}_data.json`;
-  console.log(`💾 Speichere Daten für Modul: ${moduleName} (${file})`);
-  return await saveJsonByName(file, data);
+  const fileContent = new Blob([JSON.stringify(data, null, 2)], {
+    type: "application/json",
+  });
+
+  if (fileId) {
+    // ✅ Bestehende Datei überschreiben
+    const uploadUrl = `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`;
+    const res = await fetch(uploadUrl, {
+      method: "PATCH",
+      headers: { Authorization: `Bearer ${token}` },
+      body: fileContent,
+    });
+    if (!res.ok) throw new Error(`Fehler beim Speichern der Datei '${filename}'`);
+  } else {
+    // 🆕 Neue Datei anlegen
+    const metadata = { name: filename, mimeType: "application/json" };
+
+    const form = new FormData();
+    form.append(
+      "metadata",
+      new Blob([JSON.stringify(metadata)], { type: "application/json" })
+    );
+    form.append("file", fileContent);
+
+    const res = await fetch(
+      "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart",
+      {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: form,
+      }
+    );
+    if (!res.ok) throw new Error(`Fehler beim Anlegen der Datei '${filename}'`);
+  }
 }
