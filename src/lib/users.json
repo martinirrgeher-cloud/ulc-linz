@@ -1,0 +1,14 @@
+[
+  {
+    "username": "trainer1",
+    "password": "geheim123",
+    "modules": ["KINDERTRAINING", "U14", "STATISTIK"],
+    "role": "admin"
+  },
+  {
+    "username": "athlet1",
+    "password": "1234",
+    "modules": ["KINDERTRAINING"],
+    "role": "user"
+  }
+]
