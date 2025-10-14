@@ -1,152 +1,132 @@
-.personMenu {
-  position: absolute;
-  top: 50%;
-  left: 100%;
-  transform: translateY(-50%);
-  background: white;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-  z-index: 50;
+.container {
+  padding: 12px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 6px;
-  min-width: 240px;
+  gap: 12px;
 }
 
-.personMenu button {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 4px 6px;
+.headerBar {
+  position: sticky;
+  top: 0;
+  background: #fff;
+  padding: 8px 0;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #eee;
+  z-index: 5;
+}
+
+.headerLeft { display: flex; align-items: center; gap: 8px; }
+.headerRight { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+.optionsMenu { border: 1px solid #e0e0e0; background: #fff; border-radius: 8px; padding: 8px; }
+
+.controls { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.searchField {
+  max-width: 300px;
+  padding: 6px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+/* wichtig: Menü darf nicht abgeschnitten werden */
+.tableWrapper { overflow-x: auto; overflow-y: visible !important; -webkit-overflow-scrolling: touch; }
+
+.table { width: 100%; border-collapse: collapse; min-width: 720px; }
+.table th, .table td { border: 1px solid #eee; padding: 6px; text-align: center; vertical-align: middle; }
+
+.sticky-col {
+  position: sticky;
+  left: 0;
+  background: #fff;
+  z-index: 1 !important; /* Menü liegt darüber */
   text-align: left;
 }
 
-.personMenu button:hover {
-  background: #f0f0f0;
-  border-radius: 4px;
+.name-col-auto {
+  min-width: 80px !important;
+  max-width: 120px !important;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 
-/* Kommentarbereich unterhalb der Buttons */
-.commentDisplay {
-  display: block;                /* eigene Zeile */
-  width: 100%;
-  text-align: left;              /* linksbündig */
-  font-style: italic;
-  margin-top: 6px;               /* Abstand zu den Buttons */
-  padding-top: 6px;
-  padding-left: 2px;             /* leichter Einzug */
-  border-top: 1px solid #ddd;    /* dezente Trennlinie */
-  white-space: pre-wrap;         /* Zeilenumbrüche */
-  word-wrap: break-word;
-  font-size: 0.9rem;
-  color: #444;
-}
+.weekView .table { max-width: 850px; }
+.weekView .table th, .weekView .table td { padding: 4px; }
 
-/* Hintergrundfarben */
-.nameUnpaid {
-  background-color: #ffeaea !important; /* hellrot */
-}
+.dateHeader { position: relative; }
+.colNarrow { width: 1%; white-space: nowrap; }
+.colInactive { background: #f2f2f2; opacity: 0.6; }
 
-.nameHasComment {
-  background-color: #fff9d6 !important; /* hellgelb */
-}
+.dateHeaderInner { display: flex; flex-direction: column; gap: 4px; align-items: center; justify-content: flex-start; }
+.headerDayRow { display: flex; flex-direction: column; align-items: center; line-height: 1.1; }
+.headerWeekday { font-weight: 600; font-size: 0.85rem; }
+.headerDate { font-size: 0.85rem; opacity: 0.85; }
 
-/* Icon-Container für Stift + Euro */
-.iconWrapper {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
+.noteIcon { background: transparent; border: none; cursor: pointer; color: #bbb; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; }
+.noteIconActive { color: #0b5cff; }
 
-.unpaidIcon {
-  font-size: 1rem;
-  color: #c00;
-}
+.personCell { background: #fff; position: relative; }
+.nameInline { display: flex; align-items: center; justify-content: space-between; gap: 6px; width: 100%; }
 
-/* Zusätzliche Layoutklassen (aus vorherigen Versionen) */
-.header {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 12px;
-}
+.nameHasComment { background: #dbffe6 !important; }
+.euroIcon { color: #b00020; font-weight: 700; margin-right: 4px; }
 
-.monthNav {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.monthTitle {
-  font-size: 1.6rem;
-  font-weight: bold;
-}
-
-.menuLinks {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.optionsMenu {
-  margin-bottom: 12px;
-  padding: 12px;
-  background: var(--card-bg, #f9f9f9);
-  border: 1px solid var(--border, #ddd);
+/* Menü wird fest (fixed) rechts neben dem Stift positioniert – via CSS-Variablen */
+.personMenu {
+  position: fixed;
+  top: var(--menu-top, 0px);
+  left: var(--menu-left, 0px);
+  background: white;
+  border: 1px solid #ddd;
   border-radius: 8px;
-  display: flex;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.inputRow {
-  display: flex;
-  justify-content: flex-start;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.addPersonContainer {
-  display: flex;
-  gap: 8px;
-  flex: 1;
-}
-
-.tableHeaderCell {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  padding: 8px;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 4px;
+  gap: 6px;
+  max-width: 90vw;
+  max-height: 60vh;
+  overflow-y: auto;
+  overflow-x: auto;
+  word-wrap: break-word;
+  z-index: 9999 !important;
 }
 
-.personCell {
-  position: relative;
+.personMenu button { text-align: left; }
+.personMenu button:hover { background: #f0f0f0; border-radius: 4px; }
+
+.attendanceCell input[type="checkbox"] { transform: scale(1.2); cursor: pointer; }
+
+.ghost { background: #f5f5f5; border: 1px solid #e5e5e5; border-radius: 6px; padding: 6px 8px; cursor: pointer; }
+.icon-btn { background: transparent; border: 1px solid #ddd; border-radius: 6px; padding: 4px 6px; cursor: pointer; }
+.icon-btn.edit-btn { border-style: dashed; }
+.button-group { display: flex; gap: 6px; flex-wrap: wrap; }
+.kw-select { padding: 4px; }
+.note-active { background: #0b5cff !important; color: #fff !important; border-color: #0b5cff !important; }
+
+.hiddenNamesContainer { margin-top: 20px; padding: 10px; background: #f5f5f5; border-radius: 8px; }
+.hiddenNamesContainer ul { list-style: none; padding-left: 0; }
+.hiddenNamesContainer li { display: flex; justify-content: space-between; margin-bottom: 4px; }
+
+.commentPreview {
+  background: #f5f5f5;
+  border-radius: 6px;
+  padding: 6px 8px;
+  margin: 6px 0;
+  font-size: 0.9rem;
+  color: #333;
+  word-break: break-word;
+  white-space: pre-wrap;
+  text-align: left;
+  width: 100%;
+  box-sizing: border-box;
 }
 
-.nameInline {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-}
-
-.attendanceCell {
-  text-align: center;
-  vertical-align: middle;
-}
-
-.attendanceCell input[type="checkbox"] {
-  transform: scale(1.2);
-}
-
-.hiddenRow {
-  opacity: 0.7;
-  background: #fff0f0;
-}
-
-.hiddenCell {
-  text-align: center;
-  font-style: italic;
-  color: #a00;
+@media (max-width: 640px) {
+  .table { min-width: 560px; }
+  .name-col-auto { min-width: 80px; max-width: 100px; }
+  .headerRight { gap: 6px; }
+  .weekView .table { max-width: 100%; }
 }

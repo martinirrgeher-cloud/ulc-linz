@@ -2,31 +2,39 @@ import { Link } from "react-router-dom";
 import { useTrainingData } from "./hooks/useTrainingData";
 import { useState, useMemo, useRef, useEffect } from "react";
 import { Chart } from "chart.js/auto";
+import styles from "./Kindertraining.module.css";
 
 export default function Statistik() {
-  const { data } = useTrainingData();
+  const { data, update } = useTrainingData();
+  const [statsTab, setStatsTab] = useState<"person" | "day">("day");
 
-  const [statsStartMonth, setStatsStartMonth] = useState<string>(() => {
+  // 🧭 hiddenDays persistieren
+  const [hiddenDays, setHiddenDays] = useState<string[]>(data.hiddenDays ?? []);
+  useEffect(() => {
+    if (JSON.stringify(data.hiddenDays) !== JSON.stringify(hiddenDays)) {
+      setHiddenDays(data.hiddenDays ?? []);
+    }
+  }, [data.hiddenDays]);
+
+  const [statsStartMonth, setStatsStartMonth] = useState(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   });
-  const [statsEndMonth, setStatsEndMonth] = useState<string>(() => {
+  const [statsEndMonth, setStatsEndMonth] = useState(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   });
-  const [statsTab, setStatsTab] = useState<"person" | "day">("person");
 
   const startDate = new Date(statsStartMonth + "-01");
   const endDate = new Date(statsEndMonth + "-01");
   endDate.setMonth(endDate.getMonth() + 1);
   endDate.setDate(0);
 
-  const filteredRecords = Object.entries(data.records).filter(([date]) => {
+  const visibleRecords = Object.entries(data.records).filter(([date]) => {
     const d = new Date(date);
-    return d >= startDate && d <= endDate;
+    return d >= startDate && d <= endDate && !hiddenDays.includes(date);
   });
 
-  // Monate im Zeitraum
   const monthsInRange: string[] = useMemo(() => {
     const arr: string[] = [];
     const t = new Date(startDate);
@@ -38,18 +46,20 @@ export default function Statistik() {
     return arr;
   }, [statsStartMonth, statsEndMonth]);
 
-  // Statistik pro Person (Gesamt + je Monat)
+  // 📊 Statistik pro Person
   const statsPerPerson = useMemo(() => {
     const byPerson: Record<string, Record<string, number>> = {};
     data.people.forEach((p) => (byPerson[`${p.firstName} ${p.lastName}`.trim()] = {}));
-    filteredRecords.forEach(([date, day]: any) => {
+    visibleRecords.forEach(([date, day]: any) => {
       const mKey = date.slice(0, 7);
       Object.entries(day).forEach(([name, checked]) => {
-        if (checked) byPerson[name][mKey] = (byPerson[name][mKey] || 0) + 1;
+        if (!checked) return;
+        byPerson[name] = byPerson[name] || {};
+        byPerson[name][mKey] = (byPerson[name][mKey] || 0) + 1;
       });
     });
     return byPerson;
-  }, [data, statsStartMonth, statsEndMonth]);
+  }, [data.people, visibleRecords]);
 
   const totalsPerPerson = useMemo(() => {
     const totals: Record<string, number> = {};
@@ -61,10 +71,10 @@ export default function Statistik() {
 
   const maxTotal = useMemo(() => Math.max(0, ...Object.values(totalsPerPerson)), [totalsPerPerson]);
 
-  // Statistik pro Tag (+ Notiz)
+  // 📅 Statistik pro Tag
   const statsPerDay = useMemo(() => {
     const result: { date: string; count: number; note?: string }[] = [];
-    filteredRecords.forEach(([date, day]: any) => {
+    visibleRecords.forEach(([date, day]: any) => {
       result.push({
         date,
         count: Object.values(day).filter(Boolean).length,
@@ -72,9 +82,9 @@ export default function Statistik() {
       });
     });
     return result.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  }, [data, statsStartMonth, statsEndMonth]);
+  }, [visibleRecords, data.notes]);
 
-  // Chart.js für Tagesansicht
+  // 📈 Chart
   const chartRef = useRef<HTMLCanvasElement | null>(null);
   const chartInstance = useRef<Chart | null>(null);
   useEffect(() => {
@@ -88,48 +98,58 @@ export default function Statistik() {
           labels,
           datasets: [{ label: "Teilnehmer pro Training", data: values, backgroundColor: "#0b5cff" }],
         },
-        options: { responsive: true, plugins: { legend: { display: false } } },
+        options: { responsive: true, maintainAspectRatio: false },
       });
     }
+    return () => {
+      if (chartInstance.current) chartInstance.current.destroy();
+      chartInstance.current = null;
+    };
   }, [statsTab, statsPerDay]);
 
+  // 🧭 Ausblenden speichern
+  const hideDay = (date: string) => {
+    const updated = [...new Set([...hiddenDays, date])];
+    setHiddenDays(updated);
+    update((d) => ({ ...d, hiddenDays: updated }));
+  };
+
+  const restoreDay = (date: string) => {
+    const updated = hiddenDays.filter((d) => d !== date);
+    setHiddenDays(updated);
+    update((d) => ({ ...d, hiddenDays: updated }));
+  };
+
   return (
-    <div className="container">
-      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
-        <h1>📊 Statistik</h1>
-        <Link to="/kindertraining" className="ghost">⬅️ Zurück</Link>
-      </div>
+    <div className={styles.container}>
+      <div className={styles.statistikHeader}>
+        <Link to="/kindertraining">← Zurück</Link>
 
-      {/* Zeitraum */}
-      <div className="card" style={{ marginBottom: 12 }}>
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-          <div>
-            <label>Von Monat:</label>
-            <input type="month" value={statsStartMonth} onChange={(e) => setStatsStartMonth(e.target.value)} />
-          </div>
-          <div>
-            <label>Bis Monat:</label>
-            <input type="month" value={statsEndMonth} onChange={(e) => setStatsEndMonth(e.target.value)} />
-          </div>
+        <div className={styles.statistikDateFilter}>
+          <label>Start:</label>
+          <input type="month" value={statsStartMonth} onChange={(e) => setStatsStartMonth(e.target.value)} />
+          <label>Ende:</label>
+          <input type="month" value={statsEndMonth} onChange={(e) => setStatsEndMonth(e.target.value)} />
         </div>
-        <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-          <button className={`ghost ${statsTab === "person" ? "note-active" : ""}`} onClick={() => setStatsTab("person")}>
-            👤 pro Person
+
+        <div className={styles.statistikTabs}>
+          <button onClick={() => setStatsTab("person")} className={statsTab === "person" ? "note-active" : ""}>
+            Pro Person
           </button>
-          <button className={`ghost ${statsTab === "day" ? "note-active" : ""}`} onClick={() => setStatsTab("day")}>
-            📅 pro Tag
+          <button onClick={() => setStatsTab("day")} className={statsTab === "day" ? "note-active" : ""}>
+            Pro Tag
           </button>
         </div>
       </div>
 
-      {/* Ansicht pro Person: Gesamt + je Monat, ⭐ für Bestwert */}
+      {/* 📊 PRO PERSON */}
       {statsTab === "person" && (
-        <div className="card" style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%" }}>
+        <div className={styles.tableWrapper}>
+          <table className={styles.table}>
             <thead>
               <tr>
-                <th>Name</th>
-                <th>Gesamt</th>
+                <th className={styles.nameColSmall}>Name</th>
+                <th>∑</th>
                 {monthsInRange.map((m) => (
                   <th key={m}>{m}</th>
                 ))}
@@ -140,7 +160,7 @@ export default function Statistik() {
                 .sort((a, b) => (totalsPerPerson[b] || 0) - (totalsPerPerson[a] || 0))
                 .map((name) => (
                   <tr key={name}>
-                    <td>
+                    <td className={styles.nameColSmall}>
                       {name} {totalsPerPerson[name] === maxTotal && maxTotal > 0 ? "⭐" : ""}
                     </td>
                     <td>{totalsPerPerson[name] || 0}</td>
@@ -154,46 +174,55 @@ export default function Statistik() {
         </div>
       )}
 
-      {/* Ansicht pro Tag: inkl. Notizen */}
+      {/* 📅 PRO TAG */}
       {statsTab === "day" && (
-        <div className="card">
-          <table style={{ width: "100%" }}>
-            <thead>
-              <tr>
-                <th>Datum</th>
-                <th>Teilnehmer</th>
-              </tr>
-            </thead>
-            <tbody>
-              {statsPerDay.map(({ date, count, note }) => (
-                <tr key={date}>
-                  <td>
-                    {date}
-                    {note && (
-                      <div
-                        style={{
-                          fontSize: 12,
-                          color: "#555",
-                          background: "#f0f4ff",
-                          padding: "6px 8px",
-                          marginTop: 6,
-                          borderRadius: 6,
-                          border: "1px solid #d7e2ff",
-                          lineHeight: 1.35,
-                        }}
-                      >
-                        📝 {note}
-                      </div>
-                    )}
-                  </td>
-                  <td>{count}</td>
+        <div>
+          <div className={styles.tableWrapper}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th>Datum</th>
+                  <th>∑</th>
+                  <th style={{ textAlign: "left" }}>Notiz</th>
+                  <th></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-          <div style={{ marginTop: 20 }}>
+              </thead>
+              <tbody>
+                {statsPerDay.map(({ date, note, count }) => (
+                  <tr key={date}>
+                    <td>{date}</td>
+                    <td>{count}</td>
+                    <td style={{ textAlign: "left" }}>
+                      {note || <span style={{ opacity: 0.6 }}>(keine Notiz)</span>}
+                    </td>
+                    <td>
+                      <button onClick={() => hideDay(date)} title="Training ausblenden">
+                        👁️‍🗨️
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div style={{ marginTop: 20, height: 280 }}>
             <canvas ref={chartRef}></canvas>
           </div>
+
+          {hiddenDays.length > 0 && (
+            <div style={{ marginTop: 20 }}>
+              <h4>Ausgeblendete Trainings:</h4>
+              <ul>
+                {hiddenDays.sort().map((d) => (
+                  <li key={d} style={{ display: "flex", justifyContent: "space-between", maxWidth: "300px" }}>
+                    <span>{d}</span>
+                    <button onClick={() => restoreDay(d)}>➕ Einblenden</button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       )}
     </div>

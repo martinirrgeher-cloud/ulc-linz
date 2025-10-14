@@ -1,64 +1,79 @@
-import { useEffect, useState } from "react";
-import { loadTrainingState, saveTrainingState } from "../../../lib/training/kindertrainingData";
+import { useState, useEffect, useCallback } from "react";
+import { loadJsonByName, saveJsonByName } from "../../../lib/googleDrive";
 
+// 🧭 Datenstruktur für Personen
 export interface Person {
   firstName: string;
   lastName: string;
   active: boolean;
+  paid?: boolean;
+  comment?: string;
 }
 
+// 🧭 Datenstruktur für das Training
 export interface TrainingData {
   people: Person[];
-  records: Record<string, Record<string, boolean>>;
-  notes: Record<string, string>;
-  weekdaysByMonth?: Record<string, number[]>; // 🆕 persistierte Wochentage pro Monat
+  records: Record<string, Record<string, boolean>>; // Anwesenheiten
+  notes: Record<string, string>;                     // Notizen zu einzelnen Tagen
+  weekdaysByMonth?: Record<string, number[]>;        // Wochentage pro Monat (optional)
+  hiddenDays?: string[];                             // ausgeblendete Trainings (für Statistik)
 }
 
+// 📁 Name der zentralen JSON-Datei auf Google Drive
+const FILE_NAME = "kindertraining_data.json";
+
+// 🧭 Hook zum zentralen Lesen/Schreiben auf Google Drive
 export function useTrainingData() {
   const [data, setData] = useState<TrainingData>({
     people: [],
     records: {},
     notes: {},
     weekdaysByMonth: {},
+    hiddenDays: [],
   });
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const loaded = await loadTrainingState();
-        if (loaded) {
-          let people = loaded.people || [];
-          // Migration: name -> first/last
-          people = people.map((p: any) => {
-            if (p.firstName !== undefined && p.lastName !== undefined) return p;
-            const parts = (p.name || "").trim().split(" ");
-            return {
-              firstName: parts[0] || "",
-              lastName: parts.slice(1).join(" "),
-              active: p.active ?? true,
-            };
-          });
+  const [loading, setLoading] = useState(true);
 
+  // 🪄 Daten beim Start laden
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const remoteData = await loadJsonByName(FILE_NAME);
+        if (remoteData) {
+          // Falls Felder in alten Versionen fehlen, mit Defaults zusammenführen
           setData({
-            people,
-            records: loaded.records || {},
-            notes: loaded.notes || {},
-            weekdaysByMonth: loaded.weekdaysByMonth || {},
+            people: remoteData.people ?? [],
+            records: remoteData.records ?? {},
+            notes: remoteData.notes ?? {},
+            weekdaysByMonth: remoteData.weekdaysByMonth ?? {},
+            hiddenDays: remoteData.hiddenDays ?? [],
           });
+        } else {
+          console.warn(`ℹ️ Keine bestehende Datei ${FILE_NAME} gefunden – leere Daten verwendet.`);
         }
-      } catch (e) {
-        console.error("❌ Fehler beim Laden der Trainingsdaten:", e);
+      } catch (err) {
+        console.error("❌ Fehler beim Laden der Trainingsdaten von Google Drive:", err);
+      } finally {
+        setLoading(false);
       }
-    })();
+    }
+
+    fetchData();
   }, []);
 
-  const update = (updater: (prev: TrainingData) => TrainingData) => {
-    setData((prev) => {
-      const next = updater(prev);
-      saveTrainingState(next);
-      return next;
-    });
-  };
+  // 🧭 Update-Funktion: Änderungen anwenden & sofort auf Google Drive speichern
+  const update = useCallback(
+    (updater: (prev: TrainingData) => TrainingData) => {
+      setData((prev) => {
+        const updated = updater(prev);
+        saveJsonByName(FILE_NAME, updated).catch((err) =>
+          console.error("❌ Fehler beim Speichern auf Google Drive:", err)
+        );
+        return updated;
+      });
+    },
+    []
+  );
 
-  return { data, update };
+  return { data, update, loading };
 }
