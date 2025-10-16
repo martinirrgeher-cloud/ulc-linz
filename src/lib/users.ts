@@ -1,5 +1,5 @@
 // src/lib/users.ts
-import { loadJsonByName } from "./googleDrive";
+import { loadJsonByName } from "../lib/googleDrive";
 
 export interface UserData {
   username: string;
@@ -9,36 +9,26 @@ export interface UserData {
 }
 
 function isUserData(x: any): x is UserData {
-  return (
-    x &&
-    typeof x.username === "string" &&
-    typeof x.password === "string" &&
-    Array.isArray(x.modules) &&
-    x.modules.every((m: any) => typeof m === "string")
-  );
+  return !!x && typeof x.username === "string" && typeof x.password === "string" && Array.isArray(x.modules);
 }
 
 export async function loadUsers(): Promise<UserData[]> {
-  let data: any;
-  try {
-    data = await loadJsonByName("users.json");
-  } catch (err: any) {
-    console.error(`users.json konnte nicht geladen werden: ${err?.message || err}`);
-    throw new Error("users.json nicht ladbar (siehe Konsole).");
+  const data = await loadJsonByName("users.json");
+  if (!data) throw new Error("users.json nicht gefunden");
+
+  // Direkt mit dem Ergebnis arbeiten, kein JSON.parse()
+  if (Array.isArray(data)) {
+    return (data as any[]).filter(isUserData);
   }
-  if (!Array.isArray(data)) {
-    console.error("users.json hat kein erwartetes Format (Array). Tatsächlicher Typ:", typeof data, data);
-    throw new Error("users.json hat kein erwartetes Format (Array).");
+  if (Array.isArray((data as any).users)) {
+    return (data as any).users.filter(isUserData);
   }
-  const invalid = data.filter((u) => !isUserData(u));
-  if (invalid.length > 0) {
-    console.error("Ungültige Benutzerobjekte in users.json:", invalid);
-    throw new Error("users.json enthält ungültige Benutzerobjekte (siehe Konsole).");
-  }
-  return data as UserData[];
+
+  console.error("users.json hat kein erwartetes Format:", data);
+  throw new Error("users.json hat kein erwartetes Format (Array oder {users:[]}).");
 }
 
 export async function validateUser(username: string, password: string): Promise<UserData | null> {
   const users = await loadUsers();
-  return users.find((u) => u.username === username && u.password === password) || null;
+  return users.find(u => u.username === username && u.password === password) || null;
 }

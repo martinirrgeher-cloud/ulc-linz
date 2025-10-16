@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
-import { FiEdit2, FiChevronDown, FiChevronUp, FiFileText } from "react-icons/fi";
+import { Link, useNavigate } from "react-router-dom";
+import { FiEdit2, FiChevronDown, FiChevronUp, FiFileText, FiArrowLeft } from "react-icons/fi";
 import { useTrainingData, Person } from "./hooks/useTrainingData";
 import { fmtISO, getMonthKey, getSessionsForMonth, getISOWeek } from "./utils/dateUtils";
 import styles from "./Kindertraining.module.css";
@@ -9,6 +9,7 @@ type SortMode = "firstName" | "lastName";
 type ViewMode = "month" | "week";
 
 export default function Kindertraining() {
+  const navigate = useNavigate();
   const { data, update } = useTrainingData();
 
   const [monthStart, setMonthStart] = useState(
@@ -206,10 +207,8 @@ export default function Kindertraining() {
   const weekdayShort = (d: Date) =>
     d.toLocaleDateString(undefined, { weekday: "short" });
 
-  // Menüposition per CSS-Variablen setzen (rechts neben dem Stift)
   const openMenuAtButton = (btn: HTMLElement) => {
     const rect = btn.getBoundingClientRect();
-    // rechts neben dem Stift + kleiner Abstand
     document.documentElement.style.setProperty("--menu-top", `${rect.bottom}px`);
     document.documentElement.style.setProperty("--menu-left", `${rect.right + 8}px`);
   };
@@ -219,6 +218,16 @@ export default function Kindertraining() {
       {/* Kopf */}
       <div className={styles.headerBar}>
         <div className={styles.headerLeft}>
+          {/* 🔙 Zurück-Button */}
+          <button
+            className="ghost"
+            onClick={() => navigate("/")}
+            title="Zurück zur Modulübersicht"
+          >
+            <FiArrowLeft size={20} />
+          </button>
+
+          {/* Monat Navigation */}
           <button
             onClick={() =>
               setMonthStart(new Date(monthStart.getFullYear(), monthStart.getMonth() - 1, 1))
@@ -226,7 +235,7 @@ export default function Kindertraining() {
           >
             ◀
           </button>
-        <strong>
+          <strong>
             {monthStart.toLocaleDateString(undefined, { year: "numeric", month: "long" })}
           </strong>
           <button
@@ -299,7 +308,9 @@ export default function Kindertraining() {
           {hiddenPeople.length > 0 && (
             <div style={{ marginTop: 14 }}>
               <button className="ghost" onClick={() => setShowHiddenNames((s) => !s)}>
-                {showHiddenNames ? "Ausgeblendete Namen ausblenden" : "Ausgeblendete Namen einblenden"}
+                {showHiddenNames
+                  ? "Ausgeblendete Namen ausblenden"
+                  : "Ausgeblendete Namen einblenden"}
               </button>
             </div>
           )}
@@ -348,9 +359,14 @@ export default function Kindertraining() {
                         title="Tag aktiv/inaktiv"
                       />
                       <div className={styles.headerDayRow}>
-                        <div className={styles.headerWeekday}>{weekdayShort(d)}</div>
+                        <div className={styles.headerWeekday}>
+                          {weekdayShort(d)}
+                        </div>
                         <div className={styles.headerDate}>
-                          {d.toLocaleDateString(undefined, { day: "2-digit", month: "2-digit" })}
+                          {d.toLocaleDateString(undefined, {
+                            day: "2-digit",
+                            month: "2-digit",
+                          })}
                         </div>
                       </div>
                       <button
@@ -393,7 +409,9 @@ export default function Kindertraining() {
                       </span>
 
                       <button
-                        className={`icon-btn edit-btn ${activeMenuIndex === index ? "note-active" : ""}`}
+                        className={`icon-btn edit-btn ${
+                          activeMenuIndex === index ? "note-active" : ""
+                        }`}
                         onClick={(e) => {
                           openMenuAtButton(e.currentTarget as HTMLElement);
                           setActiveMenuIndex((cur) => (cur === index ? null : index));

@@ -2,8 +2,9 @@
 import { Link, useNavigate } from "react-router-dom";
 import { ROUTES } from "../routes";
 import { forceLogout } from "../lib/googleAuth";
-import { getCurrentUser, getGrantedModules, clearCurrentUser } from "../lib/userSession";
-import UserLogin from "./UserLogin";
+import { getCurrentUser, clearCurrentUser, getGrantedModules } from "../lib/userSession";
+import logo from "../assets/logo.png";
+import styles from "./MainMenu.module.css";
 
 const MODULES = [
   { key: "KINDERTRAINING", label: "🏃 Kindertraining", route: ROUTES.KINDERTRAINING },
@@ -12,60 +13,62 @@ const MODULES = [
   { key: "LEISTUNGSGRUPPE", label: "🏋️ Leistungsgruppe", route: ROUTES.LEISTUNGSGRUPPE },
   { key: "STATISTIK", label: "📊 Statistik", route: ROUTES.STATISTIK },
   { key: "EINSTELLUNGEN", label: "⚙️ Einstellungen", route: ROUTES.EINSTELLUNGEN },
+  { key: "ADMIN", label: "🛡️ Admin", route: ROUTES.ADMIN },
 ];
 
 export default function MainMenu() {
-  const navigate = useNavigate();
+  const nav = useNavigate();
   const user = getCurrentUser();
   const granted = getGrantedModules();
+  const isAdmin = user?.role === "admin";
 
-  function handleLogoutAll() {
+  const visible = isAdmin
+    ? MODULES
+    : MODULES.filter((m) => granted.includes(m.key));
+
+  function handleLogout() {
     clearCurrentUser();
-    forceLogout(); // löscht auch Google Token und leitet auf /login
+    forceLogout();
+    nav(ROUTES.LOGIN, { replace: true });
   }
 
   return (
-    <div style={{ maxWidth: 900, margin: "0 auto", padding: "2rem" }}>
-      <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h1>🏠 Hauptmenü</h1>
-        <div style={{ display: "flex", gap: "0.5rem" }}>
-          <button onClick={() => navigate(ROUTES.MENU)}>Neu laden</button>
-          <button onClick={handleLogoutAll}>Logout</button>
-        </div>
+    <div className={styles.container}>
+      {/* 🧭 Header mit Logo und Userbox */}
+      <header className={styles.header}>
+        <img src={logo} alt="ULC Linz" className={styles.logo} />
+
+        {user && (
+          <div className={styles.userBox}>
+            <span className={styles.username}>
+              {user.username} ({user.role})
+            </span>
+            <button onClick={handleLogout} className={styles.logoutButton}>
+              Abmelden
+            </button>
+          </div>
+        )}
       </header>
 
-      {!user && (
-        <div style={{ marginTop: "1rem" }}>
-          <p>✅ Google-Login erfolgreich. Melde dich jetzt zusätzlich mit Benutzername & Passwort an, um deine Module freizuschalten.</p>
-          <UserLogin onLoginSuccess={() => navigate(ROUTES.MENU)} />
-        </div>
-      )}
+      {/* 🧭 Hauptbereich mit Modulen */}
+      <main className={styles.main}>
+  <h1 className={styles.title}>Module</h1>
 
-      {user && (
-        <>
-          <section style={{ margin: "1rem 0" }}>
-            <p>Angemeldet als <strong>{user.username}</strong> ({user.role})</p>
-          </section>
+  <div className={styles.moduleList}>
+    {visible.map((m) => (
+      <Link key={m.key} to={m.route} className={styles.moduleCard}>
+        <div className={styles.moduleIcon}>{m.label.split(" ")[0]}</div>
+        <div className={styles.moduleTitle}>{m.label.replace(/^[^\s]+\s*/, "")}</div>
+      </Link>
+    ))}
+  </div>
 
-          <nav style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(240px,1fr))", gap: "0.75rem" }}>
-            {MODULES.filter(m => granted.includes(m.key)).map(m => (
-              <Link key={m.key} to={m.route} style={{ border: "1px solid #ddd", padding: "1rem", borderRadius: 12, textDecoration: "none" }}>
-                {m.label}
-              </Link>
-            ))}
-          </nav>
-
-          {granted.length === 0 && (
-            <p style={{ marginTop: "1rem" }}>Du hast noch keine Module freigeschaltet. Bitte prüfe deine Benutzerrechte in der <code>users.json</code> auf Google Drive.</p>
-          )}
-
-          {user.role === "admin" && (
-            <div style={{ marginTop: "1rem" }}>
-              <Link to={ROUTES.ADMIN}>🛠️ Adminbereich</Link>
-            </div>
-          )}
-        </>
-      )}
+  {!isAdmin && granted.length === 0 && (
+    <p className={styles.warning}>
+      Du hast noch keine Benutzerrechte in der <code>users.json</code>.
+    </p>
+  )}
+</main>
     </div>
   );
 }
