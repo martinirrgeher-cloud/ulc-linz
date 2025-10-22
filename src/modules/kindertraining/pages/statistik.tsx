@@ -1,18 +1,31 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { requireEnv } from "@/lib/requireEnv";
 
+interface AttendanceEntry {
+  name: string;
+  attendance: Record<string, boolean>;
+}
+
+interface WeekMeta {
+  dayNotes: Record<string, string>;
+}
+
+interface TrainingData {
+  personsByWeek: Record<string, AttendanceEntry[]>;
+  weekMeta: Record<string, WeekMeta>;
+}
 
 export default function Statistik() {
   const [mode, setMode] = useState<"perChild" | "perTraining">("perChild");
-  const [trainingData, setTrainingData] = useState<any>(null);
+  const [trainingData, setTrainingData] = useState<TrainingData | null>(null);
   const navigate = useNavigate();
 
-  // 🟡 Daten aus Google Drive laden
   useEffect(() => {
     const fetchData = async () => {
       try {
         const token = localStorage.getItem("google_access_token");
-        const fileId = import.meta.env.VITE_DRIVE_KINDERTRAINING_FILE_ID;
+        const fileId = requireEnv("VITE_DRIVE_KINDERTRAINING_FILE_ID");
 
         const res = await fetch(
           `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
@@ -23,7 +36,7 @@ export default function Statistik() {
           }
         );
         if (!res.ok) throw new Error(`Fehler beim Laden: ${res.status}`);
-        const data = await res.json();
+        const data: TrainingData = await res.json();
         setTrainingData(data);
       } catch (err) {
         console.error("Fehler beim Laden der Statistikdaten", err);
@@ -33,13 +46,12 @@ export default function Statistik() {
     fetchData();
   }, []);
 
-  // 🧒 Auswertung: Teilnahmen pro Kind
   const attendancePerChild = useMemo(() => {
     if (!trainingData) return [];
     const counts: Record<string, number> = {};
 
-    Object.values(trainingData.personsByWeek || {}).forEach((week: any) => {
-      week.forEach((entry: any) => {
+    Object.values(trainingData.personsByWeek || {}).forEach((week) => {
+      week.forEach((entry) => {
         const attendedDays = Object.values(entry.attendance).filter(Boolean).length;
         counts[entry.name] = (counts[entry.name] ?? 0) + attendedDays;
       });
@@ -50,13 +62,12 @@ export default function Statistik() {
       .sort((a, b) => b.count - a.count);
   }, [trainingData]);
 
-  // 📅 Auswertung: Trainingsübersicht
   const attendancePerTraining = useMemo(() => {
     if (!trainingData) return [];
     const map: Record<string, { sum: number; note: string }> = {};
 
     Object.entries(trainingData.personsByWeek || {}).forEach(([_, weekEntries]) => {
-      (weekEntries as any[]).forEach((entry) => {
+      weekEntries.forEach((entry) => {
         Object.entries(entry.attendance).forEach(([day, present]) => {
           if (present) {
             if (!map[day]) map[day] = { sum: 0, note: "" };
@@ -66,7 +77,7 @@ export default function Statistik() {
       });
     });
 
-    Object.entries(trainingData.weekMeta || {}).forEach(([_, meta]: any) => {
+    Object.entries(trainingData.weekMeta || {}).forEach(([_, meta]) => {
       Object.entries(meta.dayNotes || {}).forEach(([day, note]) => {
         if (!map[day]) map[day] = { sum: 0, note };
         else map[day].note = note;
@@ -80,7 +91,6 @@ export default function Statistik() {
 
   return (
     <div className="statistics-page">
-      {/* 📌 Sticky Header */}
       <div className="stats-header-sticky">
         <button className="back-btn" onClick={() => navigate("/kindertraining")}>
           &lt;
