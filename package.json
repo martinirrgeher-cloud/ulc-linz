@@ -16,6 +16,7 @@
     "react-router-dom": "^6.26.2"
   },
   "devDependencies": {
+    "@types/google.accounts": "^0.0.18",
     "@types/node": "^22.7.5",
     "@types/react": "^18.3.5",
     "@types/react-dom": "^18.3.0",

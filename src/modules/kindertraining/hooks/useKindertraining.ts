@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { downloadJson, overwriteJsonContent } from "@/lib/drive/DriveClient";
 import { loadPersonen, savePersonen, type KTPerson } from "../lib/kindertrainingPersonenDrive";
+import { requireEnv } from "@/lib/requireEnv";
+
 
 export type AttendanceByDay = Record<string, boolean>;
 

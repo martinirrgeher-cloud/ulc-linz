@@ -3,8 +3,8 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'
 import './index.css'
-import "./assets/styles/GlobalStyles.css";
-import { requireEnv } from "@/lib/requireEnv"
+import "./assets/styles/GlobalStyles.css"
+import { requireEnv } from "@/lib/requireEnv";
 
 // 🛑 Frühzeitige Prüfung – bricht sofort mit klarer Meldung ab, falls ENV fehlt
 [

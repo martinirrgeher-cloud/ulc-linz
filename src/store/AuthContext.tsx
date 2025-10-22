@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react'
-import { downloadJson } from '@/lib/DriveClient'
+import { downloadJson } from '@/lib/drive/DriveClient'
 import useTokenRefresh from '@/hooks/useTokenRefresh'
 import {
   loadFromStorage, saveToStorage, clearStorage,

@@ -1,7 +1,8 @@
+/// <reference types="google.accounts" />
 // src/lib/googleAuth.ts
 // Google Identity Services (GIS) access token handling – single source of truth
 
-import { requireEnv } from "@/lib/requireEnv"
+import { requireEnv } from "@/lib/requireEnv";
 
 const GOOGLE_CLIENT_ID = requireEnv("VITE_GOOGLE_CLIENT_ID");
 
