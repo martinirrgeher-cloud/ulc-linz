@@ -1,0 +1,255 @@
+/* ============================
+   🎨 Zentrale Styles für ULC Linz App
+   ============================ */
+
+/* Grundlayout */
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background-color: #f7f7f7;
+  color: #222;
+}
+
+.container {
+  max-width: 600px;
+  margin: 0 auto;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ============================
+   🔹 Header
+   ============================ */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background-color: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.userBox {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.username {
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.logoutButton {
+  background-color: #e53935;
+  color: #fff;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.logoutButton:hover {
+  background-color: #c62828;
+}
+
+.switchButton {
+  background-color: #6c757d;
+  color: #fff;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.switchButton:hover {
+  background-color: #5a6268;
+}
+
+/* ============================
+   🧭 Module
+   ============================ */
+.moduleTitle {
+  text-align: center;
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-top: 20px;
+  margin-bottom: 12px;
+}
+
+.moduleList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+  padding: 0 16px 24px;
+}
+
+/* Modulkarte */
+.moduleCard {
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  transition: transform 0.15s ease;
+  cursor: pointer;
+}
+
+.moduleCard:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+}
+
+.moduleLabel {
+  font-size: 1rem;
+  font-weight: 500;
+  text-align: center;
+}
+
+/* .moduleIcon entfernt */
+
+.noModules {
+  text-align: center;
+  color: #777;
+  font-size: 0.9rem;
+  padding: 20px;
+}
+
+/* ---- Merged from src/styles/global.css (v9) ---- */
+
+/* ============================
+   ⚙️ Settings Bar Styles
+============================ */
+.settings-bar {
+  background: var(--card-bg, #fff);
+  border: 1px solid var(--border, #ddd);
+  padding: 1rem;
+  margin-bottom: 1rem;
+  border-radius: var(--radius, 8px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.settings-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: .5rem;
+}
+
+.settings-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.settings-close {
+  border: none;
+  background: transparent;
+  font-size: 1rem;
+  cursor: pointer;
+  padding: .25rem .5rem;
+  line-height: 1;
+}
+
+.modal-section { margin-bottom: .75rem; }
+.modal-label { display: block; font-weight: 600; margin-bottom: .25rem; }
+
+.day-checkbox-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: .5rem;
+}
+.day-checkbox-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .25rem;
+  padding: .25rem .35rem;
+  border: 1px solid var(--border, #ddd);
+  border-radius: 6px;
+  background: var(--card-bg, #fff);
+}
+.day-label { font-size: .85rem; }
+
+/* ============================
+   📋 Kindertraining — Tabelle
+============================ */
+.person-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.person-table th, .person-table td {
+  padding: 8px 10px; border-bottom: 1px solid #e5e5e5; vertical-align: top;
+}
+.person-table thead th { background: #f8f8f8; font-weight: 600; }
+
+/* Name-Spalte mit klickbarem Namen */
+.name-cell .name-button {
+  background: none; border: none; padding: 0; cursor: pointer; font: inherit; color: inherit; text-align: left;
+}
+.name-cell .note-indicator {
+  margin-left: 6px; opacity: .75; font-size: .85rem;
+}
+.name-highlight-with-note {
+  background: rgba(120, 200, 120, .2);
+  border-radius: 6px;
+  padding: 2px 4px;
+}
+
+/* Inline-Menü direkt unter der geklickten Zeile */
+.person-menu-row td { padding-top: 0; background: #fafafa; }
+.person-menu-inline { padding: 10px; border: 1px dashed #d0d0d0; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,.05) inset; }
+.person-menu-inline .menu-row { display:flex; gap:6px; margin-bottom:6px; flex-wrap: wrap; }
+.person-menu-inline input[type="text"],
+.person-menu-inline textarea {
+  flex:1; padding:6px; border:1px solid #ccc; border-radius:4px; min-width: 220px;
+}
+.person-menu-inline button {
+  padding:6px 10px; border:none; background:#eee; cursor:pointer; border-radius:4px; transition: background .2s;
+}
+.person-menu-inline button:hover { background:#ddd; }
+.person-menu-inline .delete-btn { background:#c62828; color:#fff; }
+.person-menu-inline .delete-btn:hover { background:#a71d1d; }
+
+/* Datumsspalte: Inaktiv-Checkbox + Notizfeld */
+.day-header {
+  display: flex;
+  flex-direction: column;
+  gap: .35rem;
+}
+.day-header .date-line {
+  display:flex; align-items:center; justify-content: space-between; gap:.5rem; font-weight:600;
+}
+.day-header .row-note {
+  width: 100%;
+}
+.day-header .row-note textarea {
+  width: 100%; min-height: 46px; resize: vertical; padding: 6px; border: 1px solid #ccc; border-radius: 6px;
+}
+
+/* Modul-Header */
+.module-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  margin: .5rem 0 1rem 0;
+}
+.module-header .left { display:flex; align-items:center; gap:.5rem; }
+.module-header .right { display:flex; align-items:center; gap:.5rem; }
+.search-input {
+  padding: 6px 10px; border: 1px solid #ccc; border-radius: 8px;
+  min-width: 180px;
+}
+.primary-btn { padding: 6px 10px; border-radius: 8px; border:1px solid #ddd; background:#f6f6f6; cursor:pointer; }
+.primary-btn:hover { background:#eee; }
