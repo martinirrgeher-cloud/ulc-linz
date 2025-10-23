@@ -1,13 +1,11 @@
+
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/store/AuthContext';
 
 export default function RequireAuth({ children }: { children: JSX.Element }) {
-  const { loading, googleToken, user } = useAuth();
+  const { token, user } = useAuth();
 
-  if (loading) return null; // oder Spinner
-
-  // 1) Kein Google-Login? -> Login1
-  if (!googleToken) return <Navigate to="/login" replace />;
+  if (!token) return <Navigate to="/login1" replace />;
 
   // 2) Google ok, aber kein interner User? -> Login2
   if (!user) return <Navigate to="/login2" replace />;
