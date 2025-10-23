@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { getAccessToken, silentRefreshIfNeeded } from "@/lib/googleAuth";
 
-export function useKindertraining() {
+export function useKindertraining(currentWeek?: string) {
   const [personen, setPersonen] = useState<any[]>([]);
   const [training, setTraining] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
@@ -23,19 +23,13 @@ export function useKindertraining() {
         }
 
         let token = getAccessToken();
-        if (!token) {
-          token = await silentRefreshIfNeeded();
-        }
-        if (!token) {
-          throw new Error("Kein gültiger Google Token vorhanden");
-        }
+        if (!token) token = await silentRefreshIfNeeded();
+        if (!token) throw new Error("Kein gültiger Google Token vorhanden");
 
         // 📥 Personenliste laden
         const personenRes = await fetch(
           `https://www.googleapis.com/drive/v3/files/${personenId}?alt=media`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
+          { headers: { Authorization: `Bearer ${token}` } }
         );
         if (!personenRes.ok) throw new Error("Fehler beim Laden der Personenliste");
         const personenJson = await personenRes.json();
@@ -44,12 +38,12 @@ export function useKindertraining() {
         // 📥 Trainingsdaten laden
         const trainingRes = await fetch(
           `https://www.googleapis.com/drive/v3/files/${trainingId}?alt=media`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
+          { headers: { Authorization: `Bearer ${token}` } }
         );
         if (!trainingRes.ok) throw new Error("Fehler beim Laden der Trainingsdaten");
         const trainingJson = await trainingRes.json();
+
+        // Optional: filter nach currentWeek, falls nötig
         setTraining(trainingJson);
       } catch (err: any) {
         console.error("Fehler beim Laden der Kindertraining-Daten:", err);
@@ -60,7 +54,7 @@ export function useKindertraining() {
     };
 
     loadData();
-  }, []);
+  }, [currentWeek]);
 
   return { personen, training, loading, error };
 }

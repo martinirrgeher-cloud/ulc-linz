@@ -15,24 +15,32 @@ export default function Kindertraining() {
   const [newName, setNewName] = useState("");
   const [openPerson, setOpenPerson] = useState<string | null>(null);
 
-  const {
-    loading,
-    persons,
-    settings,
-    weekMeta,
-    toggleAttendance,
-    setPaid,
-    setInactive,
-    setGeneralNote,
-    addPerson,
-    renamePerson,
-    deletePerson,
-    setDayInactive,
-    setDayNote,
-    getAttendanceChecked,
-    updateSettings,
-  } = useKindertraining(currentWeek);
+  const { loading, personen, training, error } = useKindertraining(currentWeek);
 
+  // 📅 Trainings-Tage basierend auf den aktiven Tagen aus __settings__
+  const activeDays = training?.__settings__?.activeDays || ["Dienstag"];
+  const trainingDays = getDatesForWeekdays(activeDays, currentWeek);
+
+  // 📊 Trainingsdaten dieser Woche
+  const trainingWeekData = training?.personsByWeek?.[currentWeek] ?? [];
+  const inactiveDays = training?.weekMeta?.[currentWeek]?.inactiveDays ?? {};
+  const dayNotes = training?.weekMeta?.[currentWeek]?.dayNotes ?? {};
+
+  // ✅ Attendance prüfen
+  const getAttendanceChecked = (personName: string, day: string) => {
+    const entry = trainingWeekData.find((p: any) => p.name === personName);
+    return entry?.attendance?.[day] ?? false;
+  };
+
+  // 🔍 Personen filtern
+  const filteredPersons = useMemo(() => {
+    const q = searchTerm.toLowerCase();
+    return trainingWeekData.filter((p: any) =>
+      p.name.toLowerCase().includes(q)
+    );
+  }, [trainingWeekData, searchTerm]);
+
+  // ⏪ Wochen wechseln
   function shiftWeek(direction: number) {
     const [yearStr, weekStr] = currentWeek.split("-KW");
     let year = parseInt(yearStr);
@@ -49,19 +57,10 @@ export default function Kindertraining() {
     setCurrentWeek(`${year}-KW${week.toString().padStart(2, "0")}`);
   }
 
-  const trainingDays = getDatesForWeekdays(
-    settings?.activeDays?.length ? settings.activeDays : ["Dienstag"],
-    currentWeek
-  );
-
-  const filteredPersons = useMemo(() => {
-  const q = searchTerm.toLowerCase();
-  return persons?.filter((p) => p.name.toLowerCase().includes(q)) ?? [];
-}, [persons, searchTerm]);
-
+  // ➕ Person hinzufügen (Platzhalter – speichern später wieder aktivieren)
   const handleAddPerson = () => {
     if (newName.trim()) {
-      addPerson(newName.trim());
+      console.log("Neue Person hinzufügen:", newName);
       setNewName("");
     }
   };
@@ -76,73 +75,63 @@ export default function Kindertraining() {
         onBack={() => (window.location.href = "/dashboard")}
       />
 
-      {/* Suche + Statistik */}
-     
-{/* Suche + Statistik */}
-<div className="kt-topbar">
-  <div className="kt-topbar-left">
-    <input
-      type="text"
-      placeholder="Name suchen..."
-      value={searchTerm}
-      onChange={(e) => setSearchTerm(e.target.value)}
-      className="kt-input"
-    />
-  </div>
- 
-</div>
+      <div className="kt-topbar">
+        <input
+          type="text"
+          placeholder="Name suchen..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="kt-input"
+        />
+      </div>
 
-{/* Person hinzufügen */}
-<div className="kt-addbar">
-  <div className="kt-addbar-left">
-    <input
-      type="text"
-      className="kt-input"
-      placeholder="Neuen Namen eingeben..."
-      value={newName}
-      onChange={(e) => setNewName(e.target.value)}
-      onKeyUp={(e) => {
-        if (e.key === "Enter") handleAddPerson();
-      }}
-    />
-  </div>
-  <div className="kt-addbar-right">
-    <button className="header-btn kt-action-btn" onClick={handleAddPerson}>
-      ➕ Hinzufügen
-    </button>
-  </div>
-</div>
-
-
-
-      
+      <div className="kt-addbar">
+        <div className="kt-addbar-left">
+          <input
+            type="text"
+            className="kt-input"
+            placeholder="Neuen Namen eingeben..."
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            onKeyUp={(e) => {
+              if (e.key === "Enter") handleAddPerson();
+            }}
+          />
+        </div>
+        <div className="kt-addbar-right">
+          <button className="header-btn kt-action-btn" onClick={handleAddPerson}>
+            ➕ Hinzufügen
+          </button>
+        </div>
+      </div>
 
       {loading && <div>⏳ Lade…</div>}
+      {error && <div style={{ color: "red" }}>{error}</div>}
 
       <PersonList
         persons={filteredPersons}
         days={trainingDays}
-        inactiveDays={weekMeta?.[currentWeek]?.inactiveDays ?? {}}
-        dayNotes={weekMeta?.[currentWeek]?.dayNotes ?? {}}
-        toggleAttendance={toggleAttendance}
+        inactiveDays={inactiveDays}
+        dayNotes={dayNotes}
+        toggleAttendance={() => {}}
         openPerson={openPerson}
         setOpenPerson={setOpenPerson}
-        deletePerson={deletePerson}
-        renamePerson={renamePerson}
-        setPaid={setPaid}
-        setInactive={setInactive}
-        setDayInactive={setDayInactive}
-        setDayNote={setDayNote}
+        deletePerson={() => {}}
+        renamePerson={() => {}}
+        setPaid={() => {}}
+        setInactive={() => {}}
+        setDayInactive={() => {}}
+        setDayNote={() => {}}
         getAttendanceChecked={getAttendanceChecked}
-        setGeneralNote={setGeneralNote}
-        settings={settings}
+        setGeneralNote={() => {}}
+        settings={training?.__settings__}
       />
 
       {showSettings && (
         <SettingsOverlay
-          settings={settings}
+          settings={training?.__settings__}
           onClose={() => setShowSettings(false)}
-          onSettingsChange={(s) => updateSettings(s)}
+          onSettingsChange={() => {}}
         />
       )}
     </div>
