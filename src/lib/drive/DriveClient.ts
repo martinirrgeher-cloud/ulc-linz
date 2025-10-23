@@ -1,65 +1,83 @@
-import { getAccessToken as getToken } from "@/lib/googleAuth";
-import { requireEnv } from "@/lib/requireEnv";
+import { getAccessToken, silentRefreshIfNeeded, clearStorage } from "@/lib/googleAuth";
 
+/**
+ * Führt einen Google Drive API Request mit Tokenprüfung und automatischem Logout bei Fehlern aus.
+ */
+export async function driveFetch(url: string, options: RequestInit = {}): Promise<Response> {
+  // Token ggf. still verlängern
+  const refreshed = await silentRefreshIfNeeded();
+  if (!refreshed) {
+    clearStorage();
+    window.location.href = "/login1";
+    throw new Error("Token ungültig");
+  }
 
-const DRIVE_FILES_API = "https://www.googleapis.com/drive/v3/files";
-const DRIVE_UPLOAD_API = "https://www.googleapis.com/upload/drive/v3/files";
+  // Token aus Storage holen
+  const token = getAccessToken();
+  if (!token) {
+    window.location.href = "/login1";
+    throw new Error("Kein Token vorhanden");
+  }
 
-// Optional: prüft beim Laden ob ENV vorhanden sind (wirft sonst Fehler)
-requireEnv("VITE_DRIVE_KINDERTRAINING_FILE_ID");
-requireEnv("VITE_DRIVE_KINDERTRAINING_PERSONEN_FILE_ID");
+  // Request ausführen
+  const res = await fetch(url, {
+    ...options,
+    headers: {
+      ...(options.headers || {}),
+      Authorization: `Bearer ${token}`,
+    },
+  });
 
-async function authHeader(): Promise<HeadersInit> {
-  const token = getToken();
-  if (!token) throw new Error("Kein Google-Token (Login 1 erforderlich).");
-  return { Authorization: `Bearer ${token}` };
+  // Token ist abgelaufen oder nicht mehr gültig → Logout erzwingen
+  if (res.status === 401) {
+    clearStorage();
+    window.location.href = "/login1";
+  }
+
+  return res;
 }
 
+/**
+ * Lädt eine JSON-Datei direkt von Google Drive (per File-ID).
+ * Nutzt automatisch das Tokenhandling von driveFetch.
+ */
 export async function downloadJson(fileId: string): Promise<any> {
-  const hdr = await authHeader();
-  const res = await fetch(
-    `${DRIVE_FILES_API}/${encodeURIComponent(fileId)}?alt=media`,
-    { headers: { ...hdr } }
-  );
+  const res = await driveFetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`);
   if (!res.ok) {
-    const t = await res.text().catch(() => "");
-    throw new Error(`downloadJson fehlgeschlagen (${res.status}): ${t}`);
+    throw new Error(`Fehler beim Laden der Datei ${fileId}`);
   }
   return res.json();
 }
 
+/**
+ * Überschreibt den Inhalt einer bestehenden JSON-Datei auf Google Drive.
+ * Die Datei muss dem authentifizierten User gehören oder für die App freigegeben sein.
+ */
 export async function overwriteJsonContent(fileId: string, data: any): Promise<void> {
-  const hdr = await authHeader();
+  const boundary = "xxxxxxxxxx";
   const metadata = { name: fileId };
+  const body =
+    `--${boundary}\r\n` +
+    `Content-Type: application/json; charset=UTF-8\r\n\r\n` +
+    JSON.stringify(metadata) + `\r\n` +
+    `--${boundary}\r\n` +
+    `Content-Type: application/json\r\n\r\n` +
+    JSON.stringify(data) + `\r\n` +
+    `--${boundary}--`;
 
-  const res = await fetch(
-    `${DRIVE_UPLOAD_API}/${encodeURIComponent(fileId)}?uploadType=multipart`,
+  const res = await driveFetch(
+    `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart`,
     {
       method: "PATCH",
-      headers: { ...hdr },
-      body: createMultipartBody(metadata, data),
+      headers: {
+        "Content-Type": `multipart/related; boundary=${boundary}`,
+      },
+      body,
     }
   );
 
   if (!res.ok) {
-    const t = await res.text().catch(() => "");
-    throw new Error(`overwriteJsonContent fehlgeschlagen (${res.status}): ${t}`);
+    const txt = await res.text();
+    throw new Error(`Fehler beim Überschreiben der Datei ${fileId}: ${txt}`);
   }
-}
-
-function createMultipartBody(metadata: any, data: any): Blob {
-  const boundary = "-------314159265358979323846";
-  const delimiter = `\r\n--${boundary}\r\n`;
-  const close_delim = `\r\n--${boundary}--`;
-
-  const body =
-    delimiter +
-    "Content-Type: application/json; charset=UTF-8\r\n\r\n" +
-    JSON.stringify(metadata) +
-    delimiter +
-    "Content-Type: application/json\r\n\r\n" +
-    JSON.stringify(data) +
-    close_delim;
-
-  return new Blob([body], { type: `multipart/related; boundary="${boundary}"` });
 }

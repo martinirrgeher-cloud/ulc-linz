@@ -1,35 +1,30 @@
-// src/lib/users.ts
-import { getAccessToken } from './googleAuth'
+import { getAccessToken } from "@/lib/googleAuth";
 
-const USERS_FILE_ID = import.meta.env.VITE_USERS_FILE_ID as string
+const USERS_FILE_ID = import.meta.env.VITE_USERS_FILE_ID;
 
-/**
- * Lädt die Benutzerliste von Google Drive (users.json)
- * Erwartete Struktur:
- * {
- *   "users": [
- *     { "username": "admin", "password": "admin", "modules": [...] },
- *     ...
- *   ]
- * }
- */
-export async function fetchUsers(): Promise<any[]> {
-  const token = getAccessToken()
-  if (!token) throw new Error('Kein Google Token – bitte neu anmelden.')
+export async function fetchUsersAndLogin(username: string, password: string) {
+  const token = getAccessToken();
+  if (!token) return null;
 
-  const url = `https://www.googleapis.com/drive/v3/files/${USERS_FILE_ID}?alt=media`
-  const res = await fetch(url, {
-    headers: { Authorization: `Bearer ${token}` },
-  })
+  const res = await fetch(`https://www.googleapis.com/drive/v3/files/${USERS_FILE_ID}?alt=media`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  if (!res.ok) throw new Error("Fehler beim Laden der users.json");
 
-  if (!res.ok) {
-    throw new Error(`Fehler beim Laden der Benutzerdaten (${res.status})`)
+  const json = await res.json();
+
+  // ✅ korrekt auf das users-Array zugreifen
+  const users = Array.isArray(json) ? json : json.users;
+
+  if (!Array.isArray(users)) {
+    console.error("users.json hat ein ungültiges Format", json);
+    return null;
   }
 
-  const json = await res.json()
-  if (!json || !Array.isArray(json.users)) {
-    throw new Error('Ungültige Struktur in users.json')
-  }
+  // ✅ Benutzername & Passwort prüfen
+  const user = users.find(
+    (u: any) => u.username === username && u.password === password
+  );
 
-  return json.users
+  return user || null;
 }

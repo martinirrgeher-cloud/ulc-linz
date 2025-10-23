@@ -1,8 +1,6 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
-
-
 interface AttendanceEntry {
   name: string;
   attendance: Record<string, boolean>;
@@ -26,7 +24,12 @@ export default function Statistik() {
     const fetchData = async () => {
       try {
         const token = localStorage.getItem("google_access_token");
-        const fileId = requireEnv("VITE_DRIVE_KINDERTRAINING_FILE_ID");
+        const fileId = import.meta.env.VITE_DRIVE_KINDERTRAINING_FILE_ID;
+
+        if (!fileId) {
+          console.error("Fehlende ENV Variable: VITE_DRIVE_KINDERTRAINING_FILE_ID");
+          return;
+        }
 
         const res = await fetch(
           `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,

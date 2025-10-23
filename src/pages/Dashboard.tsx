@@ -1,44 +1,42 @@
 // src/pages/Dashboard.tsx
-import { useNavigate } from 'react-router-dom'
-import { clearStorage } from '../lib/googleAuth'
-import '../assets/styles/GlobalStyles.css'
+import React from "react";
+import { useNavigate } from "react-router-dom";
+import { clearStorage } from "@/lib/googleAuth";
+import { useAuth } from "@/store/AuthContext";
+import "../assets/styles/GlobalStyles.css";
 
 export default function Dashboard() {
-  const nav = useNavigate()
-  const user = JSON.parse(localStorage.getItem('user') || 'null')
-  const modules = user?.modules || []
+  const nav = useNavigate();
+  const { user, logout } = useAuth();
+  const modules = user?.modules || [];
 
   // ➖ Kompletter Logout (Google & User)
   const handleLogoutGoogle = () => {
-    clearStorage()
-    localStorage.removeItem('user')
-    nav('/login1', { replace: true })
-  }
+    logout();
+    nav("/login1", { replace: true });
+  };
 
   // 🔁 Nur Benutzer wechseln (Token bleibt erhalten)
   const handleLogoutUser = () => {
-    const token = localStorage.getItem('google_access_token')
-    localStorage.clear()
-    if (token) localStorage.setItem('google_access_token', token)
-    nav('/login2', { replace: true })
-  }
+    nav("/login2", { replace: true });
+  };
 
   // 🧭 Navigation zu Modulen
   const handleModuleClick = (moduleName: string) => {
     switch (moduleName) {
-      case 'KINDERTRAINING':
-        nav('/kindertraining')
-        break
-      case 'LEISTUNGSGRUPPE':
-        nav('/leistungsgruppe')
-        break
-      case 'STATISTIK':
-        nav('/statistik')
-        break
+      case "KINDERTRAINING":
+        nav("/kindertraining");
+        break;
+      case "LEISTUNGSGRUPPE":
+        nav("/leistungsgruppe");
+        break;
+      case "STATISTIK":
+        nav("/statistik");
+        break;
       default:
-        console.warn(`Unbekanntes Modul: ${moduleName}`)
+        console.warn(`Unbekanntes Modul: ${moduleName}`);
     }
-  }
+  };
 
   return (
     <div className="container">
@@ -49,7 +47,7 @@ export default function Dashboard() {
         </button>
 
         <div className="userBox">
-          <span className="username">{user?.username || 'Unbekannt'}</span>
+          <span className="username">{user?.username || "Unbekannt"}</span>
           <button onClick={handleLogoutGoogle} className="logoutButton">
             Logout
           </button>
@@ -66,7 +64,7 @@ export default function Dashboard() {
               key={m}
               className="moduleCard"
               onClick={() => handleModuleClick(m)}
-              style={{ cursor: 'pointer' }}
+              style={{ cursor: "pointer" }}
             >
               <div className="moduleLabel">{m}</div>
             </div>
@@ -78,5 +76,5 @@ export default function Dashboard() {
         </div>
       )}
     </div>
-  )
+  );
 }

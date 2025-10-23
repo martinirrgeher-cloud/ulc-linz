@@ -1,89 +1,91 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react'
-import { downloadJson } from '@/lib/drive/DriveClient'
-import useTokenRefresh from '@/hooks/useTokenRefresh'
-import {
-  loadFromStorage, saveToStorage, clearStorage,
-  getAccessToken, signInWithGooglePopup, signOutGoogle,
-  tokenExpired, getStoredUser
-} from '@/lib/googleAuth'
+import React, { createContext, useContext, useEffect, useState } from "react";
+import { getAccessToken, silentRefreshIfNeeded, clearStorage, requestAccessToken } from "@/lib/googleAuth";
+import { fetchUsersAndLogin } from "@/lib/users";
+import { useNavigate } from "react-router-dom";
 
-type User = { username: string }
-type AuthState = { googleToken: string | null; user: User | null }
-
-type AuthContextType = {
-  state: AuthState
-  loginGoogle: () => Promise<void>
-  login2: (username: string, password: string) => Promise<void>
-  logout: () => Promise<void>
-  switchUser: () => Promise<void>
+interface User {
+  username: string;
+  role: string;
+  modules: string[];
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined)
+interface AuthContextType {
+  token: string | null;
+  user: User | null;
+  loginGoogle: () => Promise<void>;
+  loginUser: (username: string, password: string) => Promise<boolean>;
+  logout: () => void;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [state, setState] = useState<AuthState>(() => {
-    const s = loadFromStorage()
-    return { googleToken: s.googleToken, user: s.user }
-  })
+  const [token, setToken] = useState<string | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const navigate = useNavigate();
 
-  // Silent refresh heartbeat
-  useTokenRefresh()
-
-  // Auto-Login2 (persistenter Benutzer): Wenn User vorhanden und Token gültig → direkt angemeldet
   useEffect(() => {
-    const storedUser = getStoredUser()
-    if (!state.user && storedUser && getAccessToken() && !tokenExpired()) {
-      setState(s => ({ ...s, user: storedUser }))
-    }
-  }, [])
+    const t = getAccessToken();
+    if (t) setToken(t);
+  }, []);
 
-  const loginGoogle = async () => {
-    const token = await signInWithGooglePopup()
-    setState(s => ({ ...s, googleToken: token }))
-  }
-
-  const login2 = async (username: string, password: string) => {
-    const usersFileId = import.meta.env.VITE_USERS_FILE_ID as string | undefined
-    let valid = false
-
-    if (usersFileId) {
-      const users = await downloadJson(usersFileId)
-      const u = Array.isArray(users) ? users.find((x: any) => x.username === username) : users?.users?.find((x: any) => x.username === username)
-      if (u && typeof u.password === 'string') valid = u.password === password
+  async function ensureValidToken() {
+    const refreshed = await silentRefreshIfNeeded();
+    if (refreshed) {
+      const t = getAccessToken();
+      if (t) setToken(t);
     } else {
-      // DEV: jedes nicht-leere Passwort zulassen
-      const DEV = import.meta.env.VITE_DEV_BYPASS === '1'
-      if (DEV) valid = password.length > 0
+      handleLogout();
     }
-
-    if (!valid) throw new Error('Benutzername oder Passwort ist falsch.')
-
-    const user = { username }
-    const newState = { googleToken: getAccessToken(), user }
-    setState(newState); saveToStorage({ ...loadFromStorage(), ...newState })
   }
 
-  const logout = async () => {
-    await signOutGoogle()
-    setState({ googleToken: null, user: null })
-    clearStorage()
-    window.location.assign('/login1')
+  function handleLogout() {
+    clearStorage();
+    setToken(null);
+    setUser(null);
+    navigate("/login1");
   }
 
-  const switchUser = async () => {
-    // Nur User löschen (Token behalten) → zurück zu Login2
-    const token = getAccessToken()
-    setState({ googleToken: token, user: null })
-    saveToStorage({ ...loadFromStorage(), googleToken: token, user: null })
-    window.location.assign('/login2')
+  async function loginGoogle() {
+    await requestAccessToken();
+    const t = getAccessToken();
+    if (t) {
+      setToken(t);
+      navigate("/login2");
+    }
   }
 
-  const value = useMemo(() => ({ state, loginGoogle, login2, logout, switchUser }), [state])
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+ async function loginUser(username: string, password: string) {
+  const loggedInUser = await fetchUsersAndLogin(username, password);
+  if (loggedInUser) {
+    setUser(loggedInUser);
+    navigate("/dashboard");  // ✅ statt "/"
+    return true;
+  }
+  return false;
 }
+
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (token) ensureValidToken();
+    }, 15 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [token]);
+
+  const value: AuthContextType = {
+    token,
+    user,
+    loginGoogle,
+    loginUser,
+    logout: handleLogout,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};
 
 export const useAuth = () => {
-  const ctx = useContext(AuthContext)
-  if (!ctx) throw new Error('useAuth must be used within AuthProvider')
-  return ctx
-}
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
+  return ctx;
+};
