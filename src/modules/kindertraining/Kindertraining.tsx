@@ -25,8 +25,7 @@ export default function Kindertraining() {
   const [displayPersons, setDisplayPersons] = useState<WeekEntry[]>([]);
 
  const { training, loading, updatePersonsForWeek, updateSettings, updateWeekMeta } = useKindertraining();
-const personen = training.persons;
-
+const personen = training?.personsByWeek?.[currentWeek] ?? [];
 
   // 📅 aktive Trainingstage
   const activeDays = training?.__settings__?.activeDays || ["Dienstag"];
@@ -218,7 +217,7 @@ const personen = training.persons;
       </div>
 
       {loading && <div>⏳ Lade…</div>}
-      {error && <div style={{ color: "red" }}>{error}</div>}
+      
 
       <PersonList
         persons={filteredPersons}
