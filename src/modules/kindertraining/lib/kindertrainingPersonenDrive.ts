@@ -2,11 +2,13 @@ import { downloadJson, overwriteJsonContent } from "@/lib/drive/DriveClient";
 
 const PERSONEN_FILE_ID = import.meta.env.VITE_DRIVE_KINDERTRAINING_PERSONEN_FILE_ID as string;
 
-export type KTPerson = {
+export interface KTPerson {
   name: string;
-  paid: boolean;
-  inactive: boolean;
-  generalNote?: string;
+  inactive?: boolean;
+  notPaid?: boolean;                       // 💰 steuert das €-Symbol
+  note?: string;                           // ✏️ Notiz im Popup
+  attendance?: Record<string, boolean>;    // Teilnahme je ISO-Tag
+  paid?: boolean;                          // optional (Kompatibilität)
 };
 
 function stripWrongFields(raw: any): KTPerson[] {

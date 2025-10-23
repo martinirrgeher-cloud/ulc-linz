@@ -1,60 +1,109 @@
 import { useEffect, useState } from "react";
-import { getAccessToken, silentRefreshIfNeeded } from "@/lib/googleAuth";
+import { downloadJson, overwriteJsonContent } from "@/lib/drive/DriveClient";
+import type { KTPerson } from "../lib/kindertrainingPersonenDrive";
 
-export function useKindertraining(currentWeek?: string) {
-  const [personen, setPersonen] = useState<any[]>([]);
-  const [training, setTraining] = useState<any | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+// 🆕 Typen exportieren — wichtig für andere Komponenten
+export type DayKey = string;
 
+export type KTSettings = {
+  sortOrder: "vorname" | "nachname";
+  activeDays: string[];
+  showInactive: boolean;
+};
+
+export interface TrainingData {
+  personsByWeek: Record<string, KTPerson[]>;
+  __settings__?: KTSettings;
+  weekMeta?: Record<
+    string,
+    {
+      inactiveDays?: Record<string, boolean>;
+      dayNotes?: Record<string, string>;
+    }
+  >;
+}
+
+// Standard-Einstellungen, falls noch keine vorhanden
+const defaultSettings: KTSettings = {
+  sortOrder: "vorname",
+  activeDays: ["Dienstag"],
+  showInactive: false,
+};
+
+export function useKindertraining() {
+  const [training, setTraining] = useState<TrainingData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const fileId = import.meta.env.VITE_DRIVE_KINDERTRAINING_FILE_ID;
+
+  // Daten laden
   useEffect(() => {
-    const loadData = async () => {
+    const load = async () => {
       try {
-        setLoading(true);
-        setError(null);
-
-        const trainingId = import.meta.env.VITE_DRIVE_KINDERTRAINING_FILE_ID;
-        const personenId = import.meta.env.VITE_DRIVE_KINDERTRAINING_PERSONEN_FILE_ID;
-
-        if (!trainingId || !personenId) {
-          throw new Error(
-            "VITE_DRIVE_KINDERTRAINING_FILE_ID oder VITE_DRIVE_KINDERTRAINING_PERSONEN_FILE_ID fehlt!"
-          );
+        const data = await downloadJson(fileId);
+        // Sicherstellen, dass Settings existieren
+        if (!data.__settings__) {
+          data.__settings__ = defaultSettings;
         }
-
-        let token = getAccessToken();
-        if (!token) token = await silentRefreshIfNeeded();
-        if (!token) throw new Error("Kein gültiger Google Token vorhanden");
-
-        // 📥 Personenliste laden
-        const personenRes = await fetch(
-          `https://www.googleapis.com/drive/v3/files/${personenId}?alt=media`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        if (!personenRes.ok) throw new Error("Fehler beim Laden der Personenliste");
-        const personenJson = await personenRes.json();
-        setPersonen(personenJson);
-
-        // 📥 Trainingsdaten laden
-        const trainingRes = await fetch(
-          `https://www.googleapis.com/drive/v3/files/${trainingId}?alt=media`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        if (!trainingRes.ok) throw new Error("Fehler beim Laden der Trainingsdaten");
-        const trainingJson = await trainingRes.json();
-
-        // Optional: filter nach currentWeek, falls nötig
-        setTraining(trainingJson);
-      } catch (err: any) {
-        console.error("Fehler beim Laden der Kindertraining-Daten:", err);
-        setError(err.message || "Unbekannter Fehler");
+        setTraining(data);
+      } catch (err) {
+        console.error("❌ Fehler beim Laden der Trainingsdaten:", err);
       } finally {
         setLoading(false);
       }
     };
+    load();
+  }, [fileId]);
 
-    loadData();
-  }, [currentWeek]);
+  const save = async (updated: TrainingData) => {
+    try {
+      await overwriteJsonContent(fileId, updated);
+      setTraining(updated);
+    } catch (err) {
+      console.error("❌ Fehler beim Speichern der Trainingsdaten:", err);
+    }
+  };
 
-  return { personen, training, loading, error };
+  // Personen aktualisieren
+  const updatePersonsForWeek = (week: string, persons: KTPerson[]) => {
+    if (!training) return;
+    const updated = { ...training };
+    updated.personsByWeek = { ...updated.personsByWeek, [week]: persons };
+    save(updated);
+  };
+
+  // Einstellungen aktualisieren
+  const updateSettings = (newSettings: Partial<KTSettings>) => {
+    if (!training) return;
+    const updated = {
+      ...training,
+      __settings__: { ...training.__settings__, ...newSettings },
+    };
+    save(updated);
+  };
+
+  // Meta-Daten für Woche (Notizen, Inaktivierungen)
+  const updateWeekMeta = (
+    week: string,
+    updater: (meta: NonNullable<TrainingData["weekMeta"]>[string]) => void
+  ) => {
+    if (!training) return;
+    const updated = { ...training };
+    updated.weekMeta = { ...updated.weekMeta };
+    const currentMeta = updated.weekMeta[week] || {
+      inactiveDays: {},
+      dayNotes: {},
+    };
+    updater(currentMeta);
+    updated.weekMeta[week] = currentMeta;
+    save(updated);
+  };
+
+  return {
+    training,
+    loading,
+    updatePersonsForWeek,
+    updateSettings,
+    updateWeekMeta,
+  };
 }
