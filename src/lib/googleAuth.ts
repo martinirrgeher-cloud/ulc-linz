@@ -107,3 +107,16 @@ export async function initGoogleAuth() {
 
   tokenClient.requestAccessToken();
 }
+
+// Token & Ablaufzeit aus Storage laden
+export function loadFromStorage() {
+  const token = localStorage.getItem("google_access_token");
+  const expiry = localStorage.getItem("google_access_expiry");
+  if (!token || !expiry) return null;
+  return { token, expiry: parseInt(expiry, 10) };
+}
+
+// Ablauf prüfen
+export function tokenExpired(expiry: number) {
+  return Date.now() > expiry;
+}
