@@ -24,7 +24,9 @@ export default function Kindertraining() {
   const [openPerson, setOpenPerson] = useState<string | null>(null);
   const [displayPersons, setDisplayPersons] = useState<WeekEntry[]>([]);
 
-  const { loading, personen, training, error } = useKindertraining(currentWeek);
+ const { training, loading, updatePersonsForWeek, updateSettings, updateWeekMeta } = useKindertraining();
+const personen = training.persons;
+
 
   // 📅 aktive Trainingstage
   const activeDays = training?.__settings__?.activeDays || ["Dienstag"];
