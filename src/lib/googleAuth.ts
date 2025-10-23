@@ -1,85 +1,109 @@
-/// <reference types="google.accounts" />
-const STORAGE_TOKEN = "google_access_token";
-const STORAGE_EXP = "google_access_expiry";
-const SCOPES = "https://www.googleapis.com/auth/drive";
-let tokenClient: google.accounts.oauth2.TokenClient | null = null;
-let accessToken: string | null = null;
-let expiry: number | null = null;
+/**
+ * Google OAuth Helper – finale stabile Version
+ * Enthält:
+ *  - loadGoogleScript()
+ *  - getAccessToken()
+ *  - clearStorage()
+ *  - silentRefreshIfNeeded()
+ *  - initGoogleAuth()
+ */
 
-export function loadFromStorage() {
-  const t = localStorage.getItem(STORAGE_TOKEN);
-  const e = localStorage.getItem(STORAGE_EXP);
-  if (t && e) {
-    accessToken = t;
-    expiry = parseInt(e, 10);
-  }
-}
-
-export function getAccessToken(): string | null {
-  if (!accessToken || !expiry) loadFromStorage();
-  return accessToken;
-}
-
-export function clearStorage() {
-  localStorage.removeItem(STORAGE_TOKEN);
-  localStorage.removeItem(STORAGE_EXP);
-  accessToken = null;
-  expiry = null;
-}
-
-export function initGoogleAuth() {
-  if (!(window as any).google) return;
-  if (tokenClient) return;
-  tokenClient = google.accounts.oauth2.initTokenClient({
-    client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID as string,
-    scope: SCOPES,
-    callback: () => {}
-  });
-}
-
-export function requestAccessToken({ prompt = "consent" as "none" | "consent" } = {}): Promise<void> {
+function loadGoogleScript(): Promise<void> {
   return new Promise((resolve, reject) => {
-    if (!window.google) {
-      reject(new Error("Google API nicht geladen."));
-      return;
-    }
-    if (!tokenClient) initGoogleAuth();
-    if (!tokenClient) {
-      reject(new Error("TokenClient nicht initialisiert."));
-      return;
-    }
-    tokenClient.callback = (resp: google.accounts.oauth2.TokenResponse) => {
-      if (resp && (resp as any).error) {
-        reject(new Error((resp as any).error_description || "Tokenfehler."));
-        return;
-      }
-      const token = (resp as any).access_token as string;
-      const expiresIn = Number((resp as any).expires_in || 3600);
-      const expMs = Date.now() + Math.max(0, expiresIn - 5) * 1000;
-      accessToken = token;
-      expiry = expMs;
-      localStorage.setItem(STORAGE_TOKEN, token);
-      localStorage.setItem(STORAGE_EXP, String(expMs));
+    // Wenn Script bereits geladen ist → nichts tun
+    if (window.google) {
       resolve();
-    };
-    tokenClient.requestAccessToken({ prompt });
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = "https://accounts.google.com/gsi/client";
+    script.async = true;
+    script.defer = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject("Fehler beim Laden des Google OAuth Scripts");
+    document.head.appendChild(script);
   });
 }
 
-export function tokenExpired(): boolean {
-  if (!expiry) return true;
-  return Date.now() >= (expiry - 60000);
+/**
+ * Zugriffstoken aus LocalStorage holen
+ */
+export function getAccessToken(): string | null {
+  return localStorage.getItem("google_access_token");
 }
 
-export async function silentRefreshIfNeeded(): Promise<boolean> {
-  loadFromStorage();
-  if (!accessToken || tokenExpired()) {
-    try {
-      await requestAccessToken({ prompt: "none" });
-      return true;
-    } catch {
-      return false;
-    }
+/**
+ * Token & Ablaufzeit löschen
+ */
+export function clearStorage() {
+  localStorage.removeItem("google_access_token");
+  localStorage.removeItem("google_access_expiry");
+}
+
+/**
+ * Token still erneuern, wenn nötig
+ */
+export async function silentRefreshIfNeeded(): Promise<string | null> {
+  const expiry = localStorage.getItem("google_access_expiry");
+  const token = localStorage.getItem("google_access_token");
+
+  // kein Token vorhanden
+  if (!token || !expiry) return null;
+
+  const expiresAt = Number(expiry);
+  const now = Date.now();
+
+  // noch gültig (mindestens 1 Minute)
+  if (now + 60_000 < expiresAt) {
+    return token;
   }
-  return true;
+
+  // still erneuern
+  await loadGoogleScript();
+
+  return new Promise((resolve, reject) => {
+    const tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+      scope: "https://www.googleapis.com/auth/drive.readonly",
+      callback: (resp: any) => {
+        if (resp.access_token) {
+          const newExpiry = Date.now() + resp.expires_in * 1000;
+          localStorage.setItem("google_access_token", resp.access_token);
+          localStorage.setItem("google_access_expiry", String(newExpiry));
+          resolve(resp.access_token);
+        } else {
+          clearStorage();
+          reject("Token Refresh fehlgeschlagen");
+        }
+      },
+    });
+
+    tokenClient.requestAccessToken();
+  });
+}
+
+/**
+ * Initialer Google Login Flow
+ */
+export async function initGoogleAuth() {
+  await loadGoogleScript();
+
+  const tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+    scope: "https://www.googleapis.com/auth/drive.readonly",
+    callback: () => {},
+  });
+
+  (tokenClient as any).callback = (resp: any) => {
+    if (resp.access_token) {
+      const expiresAt = Date.now() + resp.expires_in * 1000;
+      localStorage.setItem("google_access_token", resp.access_token);
+      localStorage.setItem("google_access_expiry", String(expiresAt));
+    } else {
+      console.error("Google Auth fehlgeschlagen", resp);
+    }
+  };
+
+  tokenClient.requestAccessToken();
 }

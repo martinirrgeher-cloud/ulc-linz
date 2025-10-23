@@ -5,7 +5,7 @@ import Login1 from "@/pages/Login1";
 import Login2 from "@/pages/Login2";
 import Dashboard from "@/pages/Dashboard";
 import Kindertraining from "@/modules/kindertraining/Kindertraining";
-import Statistik from "@/modules/kindertraining/pages/Statistik";
+import Statistik from "@/modules/kindertraining/pages/statistik";
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { token, user } = useAuth();

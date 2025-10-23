@@ -1,11 +1,9 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
-import { getAccessToken, silentRefreshIfNeeded, clearStorage, requestAccessToken } from "@/lib/googleAuth";
-import { fetchUsersAndLogin } from "@/lib/users";
+import React, { createContext, useContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { initGoogleAuth, getAccessToken } from "@/lib/googleAuth";
 
 interface User {
   username: string;
-  role: string;
   modules: string[];
 }
 
@@ -15,70 +13,93 @@ interface AuthContextType {
   loginGoogle: () => Promise<void>;
   loginUser: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
+  switchUser: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [token, setToken] = useState<string | null>(null);
+  const [token, setToken] = useState<string | null>(localStorage.getItem("google_access_token"));
   const [user, setUser] = useState<User | null>(null);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const t = getAccessToken();
-    if (t) setToken(t);
-  }, []);
-
-  async function ensureValidToken() {
-    const refreshed = await silentRefreshIfNeeded();
-    if (refreshed) {
-      const t = getAccessToken();
-      if (t) setToken(t);
-    } else {
-      handleLogout();
-    }
-  }
-
-  function handleLogout() {
-    clearStorage();
+  const logout = () => {
+    localStorage.removeItem("google_access_token");
     setToken(null);
     setUser(null);
     navigate("/login1");
-  }
+  };
 
-  async function loginGoogle() {
-    await requestAccessToken();
-    const t = getAccessToken();
-    if (t) {
-      setToken(t);
-      navigate("/login2");
+  const switchUser = () => {
+    setUser(null);
+    navigate("/login2");
+  };
+
+  const loginGoogle = async () => {
+    try {
+      await initGoogleAuth();
+      const newToken = getAccessToken();
+      if (newToken) {
+        setToken(newToken);
+        navigate("/login2");
+      } else {
+        console.error("Kein Token erhalten");
+      }
+    } catch (err) {
+      console.error("Fehler beim Google Login", err);
     }
-  }
+  };
 
- async function loginUser(username: string, password: string) {
-  const loggedInUser = await fetchUsersAndLogin(username, password);
-  if (loggedInUser) {
-    setUser(loggedInUser);
-    navigate("/dashboard");  // ✅ statt "/"
-    return true;
-  }
-  return false;
-}
+  const loginUser = async (username: string, password: string) => {
+    try {
+      const accessToken = getAccessToken();
+      if (!accessToken) {
+        console.error("Kein Google Token vorhanden.");
+        return false;
+      }
 
+      const fileId = import.meta.env.VITE_DRIVE_USERS_FILE_ID; // 🔸 .env prüfen!
+      const response = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+
+      if (!response.ok) {
+        console.error("Fehler beim Laden der users.json");
+        return false;
+      }
+
+      const json = await response.json();
+      const foundUser = json.users.find(
+        (u: any) => u.username === username && u.password === password
+      );
+
+      if (!foundUser) {
+        console.error("Ungültige Anmeldedaten");
+        return false;
+      }
+
+      // ✅ Benutzer setzen und weiterleiten
+      setUser(foundUser);
+      navigate("/dashboard");
+      return true;
+    } catch (err) {
+      console.error("Fehler beim Login 2:", err);
+      return false;
+    }
+  };
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      if (token) ensureValidToken();
-    }, 15 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, [token]);
+    const storedToken = getAccessToken();
+    if (storedToken) setToken(storedToken);
+  }, []);
 
   const value: AuthContextType = {
     token,
     user,
     loginGoogle,
     loginUser,
-    logout: handleLogout,
+    logout,
+    switchUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -86,6 +107,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
 export const useAuth = () => {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
+  if (!ctx) throw new Error("useAuth must be used within an AuthProvider");
   return ctx;
 };
