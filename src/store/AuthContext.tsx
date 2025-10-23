@@ -40,9 +40,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await initGoogleAuth();
       const newToken = getAccessToken();
       if (newToken) {
-        setToken(newToken);
-        navigate("/login2");
-      } else {
+  localStorage.setItem("google_access_token", newToken);
+  setToken(newToken);
+  navigate("/login2");
+} else {
         console.error("Kein Token erhalten");
       }
     } catch (err) {

@@ -1,21 +1,17 @@
-import { Navigate, useLocation } from "react-router-dom";
-import { getAccessToken, loadFromStorage, tokenExpired } from "../lib/googleAuth";
+import { Navigate } from 'react-router-dom';
+import { useAuth } from '@/store/AuthContext';
 
-/**
- * Schützt private Routen:
- * - gültiger Google Access Token (Login 1)
- * - oder gespeicherter Benutzer (Login 2 → aktuell optional)
- *
- * Wenn beides fehlt → automatische Umleitung auf Login 1
- */
 export default function RequireAuth({ children }: { children: JSX.Element }) {
-  const location = useLocation();
-  const stored = loadFromStorage();
-  const token = getAccessToken();
+  const { loading, googleToken, user } = useAuth();
 
-  if (!token || (stored && tokenExpired(stored.expiry))) {
-    return <Navigate to="/login1" state={{ from: location }} replace />;
-  }
+  if (loading) return null; // oder Spinner
 
+  // 1) Kein Google-Login? -> Login1
+  if (!googleToken) return <Navigate to="/login" replace />;
+
+  // 2) Google ok, aber kein interner User? -> Login2
+  if (!user) return <Navigate to="/login2" replace />;
+
+  // 3) Alles ok -> Seite zeigen
   return children;
 }
