@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { downloadJson, overwriteJsonContent } from "@/lib/drive/DriveClient";
 import { loadPersonen, savePersonen, type KTPerson } from "../lib/kindertrainingPersonenDrive";
-import { requireEnv } from "@/lib/requireEnv";
 
 
 export type AttendanceByDay = Record<string, boolean>;
@@ -34,7 +33,7 @@ type TrainingData = {
 
 import { requireEnv } from "@/lib/requireEnv";
 
-const TRAINING_FILE_ID = requireEnv("VITE_DRIVE_KINDERTRAINING_FILE_ID");
+const TRAINING_FILE_ID = import.meta.env.VITE_DRIVE_KINDERTRAINING_FILE_ID;
 
 function normalizeName(n: string): string {
   return (n || "").trim();

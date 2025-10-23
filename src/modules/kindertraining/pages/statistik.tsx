@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { requireEnv } from "@/lib/requireEnv";
+
 
 
 interface AttendanceEntry {
