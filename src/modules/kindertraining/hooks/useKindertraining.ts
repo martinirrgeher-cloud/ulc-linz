@@ -6,6 +6,9 @@ import { requireEnv } from "@/lib/requireEnv";
 
 export type AttendanceByDay = Record<string, boolean>;
 
+export type DayKey = string; // oder dein tatsächlicher Typ
+
+
 export type PersonWeekRow = {
   name: string;
   attendance: AttendanceByDay;
