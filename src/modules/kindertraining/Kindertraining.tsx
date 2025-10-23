@@ -10,7 +10,7 @@ import { overwriteJsonContent } from "@/lib/drive/DriveClient";
 
 type WeekEntry = {
   name: string;
-  attendance: Record<string, boolean>;
+  attendance?: Record<string, boolean>;
   note?: string;
   notPaid?: boolean;
   inactive?: boolean;
@@ -88,7 +88,7 @@ const personen = training?.personsByWeek?.[currentWeek] ?? [];
     setDisplayPersons((prev) => {
       const updated = prev.map((p) => {
         if (p.name === personName) {
-          const att = { ...p.attendance };
+          const att = { ...(p.attendance ?? {}) };
           att[day] = !att[day];
           return { ...p, attendance: att };
         }
