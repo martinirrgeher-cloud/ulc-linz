@@ -23,7 +23,7 @@ interface AuthContextType {
   loginGoogle: () => Promise<void>;
   loginUser: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
-  switchUser?: (newUser: User) => void;
+  switchUser?: (newUser?: User) => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -37,7 +37,7 @@ const AuthContext = createContext<AuthContextType>({
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
-  const switchUser = (newUser: User) => {setUser(newUser);};
+  const switchUser = (newUser?: User) => {setUser(newUser || null);};
   const navigate = useNavigate();
 
   // ----------------------------------
