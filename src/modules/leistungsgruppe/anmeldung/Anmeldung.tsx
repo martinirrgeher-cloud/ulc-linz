@@ -78,13 +78,13 @@ export default function Anmeldung() {
       {/* Tagesliste */}
       <div className="tage-liste">
         {tage.map((datum) => {
-          const d = new Date(datum);
+          const d = new Date(datum.date);
           const wochentag = d.toLocaleDateString("de-DE", { weekday: "long" });
-          const status = selectedAthletId ? getStatus(selectedAthletId, datum) : "?";
-          const notiz = selectedAthletId ? notizen[`${selectedAthletId}_${datum}`] || "" : "";
+          const status = selectedAthletId ? getStatus(selectedAthletId, datum.date) : "?";
+          const notiz = selectedAthletId ? notizen[`${selectedAthletId}_${datum.date}`] || "" : "";
 
           return (
-            <div key={datum} className="tag-row">
+            <div key={datum.date} className="tag-row">
               <div className="tag-label">
                 {wochentag} ({d.toLocaleDateString("de-DE")})
               </div>
@@ -96,7 +96,7 @@ export default function Anmeldung() {
                   disabled={!selectedAthlet}
                   onClick={() =>
                     selectedAthletId &&
-                    setStatus(selectedAthletId, datum, cycleStatus(status) as any)
+                    setStatus(selectedAthletId, datum.date, cycleStatus(status) as any)
                   }
                 >
                   {status === "Ja" ? "✅" : status === "Nein" ? "❌" : "?"}
@@ -105,7 +105,7 @@ export default function Anmeldung() {
                 <button
                   className={`notiz-button ${notiz ? "filled" : ""}`}
                   disabled={!selectedAthlet}
-                  onClick={() => setActiveNotizTag(datum)}
+                  onClick={() => setActiveNotizTag(datum.date)}
                 >
                   📝
                 </button>

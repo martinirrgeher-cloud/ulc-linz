@@ -1,98 +1,169 @@
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { downloadJson, uploadJson } from "@/lib/drive/DriveClient";
 
-// ISO-Kalenderwoche (Montag als Wochenbeginn)
-const getISOWeek = (date: Date): number => {
-  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-  const day = d.getUTCDay() || 7;
-  d.setUTCDate(d.getUTCDate() + 4 - day);
-  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-  return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
-};
+type DayStatus = "YES" | "NO" | "MAYBE" | null;
 
-// Liefert die 7 Datums-Strings (YYYY-MM-DD) der ISO-Woche, beginnend am Montag
-const getDatesOfWeek = (week: number, year: number): string[] => {
-  const jan4 = new Date(Date.UTC(year, 0, 4));
-  const jan4Day = jan4.getUTCDay() || 7;
-  const mondayOfWeek1 = new Date(jan4);
-  mondayOfWeek1.setUTCDate(jan4.getUTCDate() - (jan4Day - 1));
+interface DriveShape {
+  statuses?: Record<string, DayStatus>;
+  notes?: Record<string, string>;
+}
 
-  const monday = new Date(mondayOfWeek1);
-  monday.setUTCDate(mondayOfWeek1.getUTCDate() + (week - 1) * 7);
+const FILE_ID = import.meta.env.VITE_DRIVE_LG_ANMELDUNG_FILE_ID as string;
+const DEBOUNCE_MS = 300;
 
-  const days: string[] = [];
+// Kalenderfunktionen
+function startOfISOWeek(d: Date): Date {
+  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const day = (date.getUTCDay() + 6) % 7;
+  date.setUTCDate(date.getUTCDate() - day);
+  return new Date(date);
+}
+function toIsoDate(d: Date): string {
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(d.getUTCDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+function formatDateLabel(d: Date): string {
+  const dd = String(d.getUTCDate()).padStart(2, "0");
+  const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const yyyy = d.getUTCFullYear();
+  return `${dd}.${mm}.${yyyy}`;
+}
+const WEEKDAYS_MON_FIRST = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
+function getDaysOfWeek(startDate: Date) {
+  const start = startOfISOWeek(startDate);
+  const out = [];
   for (let i = 0; i < 7; i++) {
-    const d = new Date(monday);
-    d.setUTCDate(monday.getUTCDate() + i);
-    days.push(d.toISOString().split("T")[0]);
+    const d = new Date(start);
+    d.setUTCDate(start.getUTCDate() + i);
+    out.push({
+      date: toIsoDate(d),
+      dateLabel: formatDateLabel(d),
+      weekday: WEEKDAYS_MON_FIRST[i],
+    });
   }
-  return days;
-};
-
-// Ermittelt die Anzahl ISO-Wochen eines Jahres
-const getISOWeeksInYear = (year: number): number => {
-  const dec28 = new Date(Date.UTC(year, 11, 28));
-  return getISOWeek(dec28);
-};
+  return out;
+}
+function getISOWeekYear(d: Date) {
+  const date = startOfISOWeek(d);
+  return date.getUTCFullYear();
+}
+function getISOWeekNumber(d: Date) {
+  const date = startOfISOWeek(d);
+  const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+  const diffDays = Math.floor((Number(date) - Number(yearStart)) / 86400000);
+  return Math.floor(diffDays / 7) + 1;
+}
+function addWeeks(d: Date, weeks: number) {
+  const nd = new Date(d);
+  nd.setUTCDate(nd.getUTCDate() + 7 * weeks);
+  return nd;
+}
 
 export function useAnmeldung() {
-  const today = new Date();
-  const [kw, setKw] = useState(getISOWeek(today));
-  const [jahr, setJahr] = useState(today.getFullYear());
-  const [tage, setTage] = useState<string[]>([]);
-  const [anmeldungen, setAnmeldungen] = useState<Record<string, any>>({});
-  const [notizen, setNotizen] = useState<Record<string, string>>({});
+  const [baseDate, setBaseDate] = useState<Date>(() => new Date());
+  const [driveData, setDriveData] = useState<DriveShape>({ statuses: {}, notes: {} });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
+  const saveTimer = useRef<number | null>(null);
+  const lastSavedRef = useRef<string>("");
+
+  const jahr = useMemo(() => getISOWeekYear(baseDate), [baseDate]);
+  const kw = useMemo(() => getISOWeekNumber(baseDate), [baseDate]);
+  const tage = useMemo(() => getDaysOfWeek(baseDate), [baseDate]);
+
+  // Laden
   useEffect(() => {
-    setTage(getDatesOfWeek(kw, jahr));
-  }, [kw, jahr]);
+    let mounted = true;
+    (async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const json = await downloadJson(FILE_ID);
+        if (mounted) {
+          setDriveData({
+            statuses: (json?.statuses ?? {}) as Record<string, DayStatus>,
+            notes: (json?.notes ?? {}) as Record<string, string>,
+          });
+          lastSavedRef.current = JSON.stringify(json ?? {});
+        }
+      } catch (e: any) {
+        if (mounted) setError(e?.message ?? "Fehler beim Laden der Anmeldung");
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
 
-  const nextWeek = () => {
-    const maxWeeks = getISOWeeksInYear(jahr);
-    if (kw < maxWeeks) {
-      setKw(kw + 1);
-    } else {
-      setKw(1);
-      setJahr(jahr + 1);
-    }
-  };
+  const debouncedSave = useCallback((data: DriveShape) => {
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = window.setTimeout(async () => {
+      setSaving(true);
+      setError(null);
+      try {
+        await uploadJson(FILE_ID, data);
+        lastSavedRef.current = JSON.stringify(data);
+      } catch (e: any) {
+        setError(e?.message ?? "Fehler beim Speichern");
+        try {
+          setDriveData(JSON.parse(lastSavedRef.current));
+        } catch {}
+      } finally {
+        setSaving(false);
+      }
+    }, DEBOUNCE_MS);
+  }, []);
 
-  const prevWeek = () => {
-    if (kw > 1) {
-      setKw(kw - 1);
-    } else {
-      const prevYear = jahr - 1;
-      setJahr(prevYear);
-      setKw(getISOWeeksInYear(prevYear));
-    }
-  };
+  // Status-Funktionen
+  const getStatus = useCallback((athletId: string, isoDate: string): DayStatus => {
+    const key = `${athletId}_${isoDate}`;
+    return (driveData.statuses ?? {})[key] ?? null;
+  }, [driveData.statuses]);
 
-  const getStatus = (athletId: string, datum: string) => {
-    return anmeldungen[`${athletId}_${datum}`] || "?";
-  };
+  const setStatus = useCallback((athletId: string, isoDate: string, status: DayStatus) => {
+    const key = `${athletId}_${isoDate}`;
+    const updated: DriveShape = {
+      statuses: { ...(driveData.statuses ?? {}), [key]: status },
+      notes: { ...(driveData.notes ?? {}) },
+    };
+    // Optimistic Update
+    setDriveData(updated);
+    debouncedSave(updated);
+  }, [driveData.statuses, driveData.notes, debouncedSave]);
 
-  const setStatus = (athletId: string, datum: string, status: "?" | "Ja" | "Nein") => {
-    setAnmeldungen((prev) => ({
-      ...prev,
-      [`${athletId}_${datum}`]: status,
-    }));
-  };
+  // Notiz-Funktionen
+  const notizen = useMemo(() => (driveData.notes ?? {}), [driveData.notes]);
 
-  const setNotiz = (athletId: string, datum: string, text: string) => {
-    setNotizen((prev) => ({
-      ...prev,
-      [`${athletId}_${datum}`]: text,
-    }));
-  };
+  const setNotiz = useCallback((athletId: string, isoDate: string | null, value: string) => {
+    if (!isoDate) return;
+    const key = `${athletId}_${isoDate}`;
+    const updated: DriveShape = {
+      statuses: { ...(driveData.statuses ?? {}) },
+      notes: { ...(driveData.notes ?? {}), [key]: value },
+    };
+    setDriveData(updated);
+    debouncedSave(updated);
+  }, [driveData.statuses, driveData.notes, debouncedSave]);
+
+  const nextWeek = useCallback(() => setBaseDate(d => addWeeks(d, +1)), []);
+  const prevWeek = useCallback(() => setBaseDate(d => addWeeks(d, -1)), []);
 
   return {
+    tage,
     kw,
     jahr,
-    tage,
     getStatus,
     setStatus,
     notizen,
     setNotiz,
     nextWeek,
     prevWeek,
+    loading,
+    saving,
+    error,
   };
 }
