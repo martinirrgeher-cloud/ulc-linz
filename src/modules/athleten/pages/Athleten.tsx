@@ -8,7 +8,15 @@ import { v4 as uuidv4 } from "uuid";
 
 export default function AthletenPage() {
   const navigate = useNavigate();
-  const { loading, error, athletes: rawAthletes = [], addAthlete, updateAthlete, removeAthlete, reload } = useAthleten();
+  const {
+    loading,
+    error,
+    athletes: rawAthletes = [],
+    addAthlete,
+    updateAthlete,
+    removeAthlete,
+    reload
+  } = useAthleten();
 
   // 🧭 Fallback → nie undefined
   const athletes = Array.isArray(rawAthletes) ? rawAthletes : [];
@@ -18,8 +26,8 @@ export default function AthletenPage() {
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   const sortedAthletes = useMemo(() => {
-    const active = athletes.filter(a => (a as any).active !== false);
-    const inactive = athletes.filter(a => (a as any).active === false);
+    const active = athletes.filter((a) => (a as any).active !== false);
+    const inactive = athletes.filter((a) => (a as any).active === false);
 
     active.sort((a, b) => sortName(a, b, sortBy));
     inactive.sort((a, b) => sortName(a, b, sortBy));
@@ -32,19 +40,29 @@ export default function AthletenPage() {
       {/* 🧭 Header */}
       <div className={styles.headerRow}>
         <div className={styles.headerLeft}>
-          <button className={styles.iconBtn} onClick={() => navigate("/dashboard")}>🏠</button>
+          <button
+            className={styles.iconBtn}
+            onClick={() => navigate("/dashboard")}
+          >
+            🏠
+          </button>
           <h1 className={styles.pageTitle}>Athleten</h1>
         </div>
         <div className={styles.headerRight}>
           <div className={styles.settingsWrapper}>
-            <button className={styles.iconBtn} onClick={() => setSettingsOpen(o => !o)}>⚙️</button>
+            <button
+              className={styles.iconBtn}
+              onClick={() => setSettingsOpen((o) => !o)}
+            >
+              ⚙️
+            </button>
             {settingsOpen && (
               <div className={styles.settingsMenu}>
                 <label className={styles.settingsRow}>
                   <input
                     type="checkbox"
                     checked={showInactive}
-                    onChange={() => setShowInactive(v => !v)}
+                    onChange={() => setShowInactive((v) => !v)}
                   />
                   Inaktive Athleten anzeigen
                 </label>
@@ -52,7 +70,9 @@ export default function AthletenPage() {
                   Sortierung:
                   <select
                     value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value as "vor" | "nach")}
+                    onChange={(e) =>
+                      setSortBy(e.target.value as "vor" | "nach")
+                    }
                   >
                     <option value="vor">Vorname</option>
                     <option value="nach">Nachname</option>
@@ -70,7 +90,17 @@ export default function AthletenPage() {
           <AthleteList
             athletes={sortedAthletes}
             onCreate={async (data) => {
-              await addAthlete({ ...data, id: uuidv4(), active: true });
+              await addAthlete({
+                id: uuidv4(),
+                name: data.name ?? "",                        // ✅ Pflichtfeld abgesichert
+                geburtsjahr: data.geburtsjahr ?? 0,           // ✅ Pflichtfeld abgesichert
+                leistungsgruppe: data.leistungsgruppe ?? "",  // ✅ Pflichtfeld abgesichert
+                info: data.info ?? "",                        // ✅ Pflichtfeld abgesichert
+                anmeldung: [],
+                plaene: [],
+                feedback: [],
+                active: true
+              });
               await reload();
             }}
             onEdit={async (id, patch) => {
@@ -99,7 +129,9 @@ export default function AthletenPage() {
 function sortName(a: Athlete, b: Athlete, sortBy: "vor" | "nach") {
   const nameA = a.name.trim();
   const nameB = b.name.trim();
-  const keyA = sortBy === "nach" ? nameA.split(" ").slice(-1)[0] : nameA.split(" ")[0];
-  const keyB = sortBy === "nach" ? nameB.split(" ").slice(-1)[0] : nameB.split(" ")[0];
+  const keyA =
+    sortBy === "nach" ? nameA.split(" ").slice(-1)[0] : nameA.split(" ")[0];
+  const keyB =
+    sortBy === "nach" ? nameB.split(" ").slice(-1)[0] : nameB.split(" ")[0];
   return keyA.localeCompare(keyB, "de");
 }
