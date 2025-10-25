@@ -1,6 +1,6 @@
 
-import { Navigate } from 'react-router-dom';
-import { useAuth } from '@/store/AuthContext';
+import { Navigate } from "react-router-dom";
+import { useAuth } from "@/store/AuthContext";
 import { ReactElement } from "react";
 
 type Props = {
@@ -8,14 +8,16 @@ type Props = {
   modules?: string[];
 };
 
-export default function RequireAuth({ children }: { children: JSX.Element }) {
-  const { token, user } = useAuth();
+export default function RequireAuth({ children, modules }: Props) {
+  const { user } = useAuth();
 
-  if (!token) return <Navigate to="/login1" replace />;
+  if (!user) {
+    return <Navigate to="/login2" replace />;
+  }
 
-  // 2) Google ok, aber kein interner User? -> Login2
-  if (!user) return <Navigate to="/login2" replace />;
+  if (modules && !modules.some((m) => user.modules?.includes(m))) {
+    return <Navigate to="/unauthorized" replace />;
+  }
 
-  // 3) Alles ok -> Seite zeigen
   return children;
 }

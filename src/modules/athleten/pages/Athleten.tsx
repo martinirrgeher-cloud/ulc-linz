@@ -5,6 +5,7 @@ import AthleteList from "../components/AthleteList";
 import { useAthleten } from "../hooks/useAthleten";
 import { Athlete } from "../types/athleten";
 
+
 export default function AthletenPage() {
   const navigate = useNavigate();
   const { loading, error, athletes: rawAthletes = [], addAthlete, updateAthlete, removeAthlete, reload } = useAthleten();

@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import styles from "../Athleten.module.css";
-import { Athlete } from "../types/athleten";
+import { Athlete } from "../hooks/useAthleten";
 import AthleteForm from "./AthleteForm";
 
 interface Props {
