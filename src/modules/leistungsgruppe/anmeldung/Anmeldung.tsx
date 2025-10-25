@@ -5,6 +5,20 @@ import { useAthleten } from "@/modules/athleten/hooks/useAthleten";
 import { useAnmeldung } from "./hooks/useAnmeldung";
 import "./styles/Anmeldung.css"; // ⬅️ normaler CSS Import
 
+type DisplayStatus = "Ja" | "Nein" | "?" | null;
+
+const toDisplayStatus = (status: "YES" | "NO" | "MAYBE" | null): DisplayStatus => {
+  if (status === "YES") return "Ja";
+  if (status === "NO") return "Nein";
+  return "?";
+};
+
+const toInternalStatus = (display: DisplayStatus): "YES" | "NO" | "MAYBE" => {
+  if (display === "Ja") return "YES";
+  if (display === "Nein") return "NO";
+  return "MAYBE";
+};
+
 export default function Anmeldung() {
   const navigate = useNavigate();
   const { athletes = [], loading: loadingAthleten, error: errorAthleten } = useAthleten();
@@ -28,7 +42,7 @@ export default function Anmeldung() {
 
   const selectedAthlet = athletes.find((a) => a.id === selectedAthletId);
 
-  const cycleStatus = (current: "?" | "Ja" | "Nein" | null) => {
+  const cycleStatus = (current: DisplayStatus) => {
     if (current === "?") return "Ja";
     if (current === "Ja") return "Nein";
     return "?";
@@ -80,7 +94,8 @@ export default function Anmeldung() {
         {tage.map((datum) => {
           const d = new Date(datum.date);
           const wochentag = d.toLocaleDateString("de-DE", { weekday: "long" });
-          const status = selectedAthletId ? getStatus(selectedAthletId, datum.date) : "?";
+          const rawStatus = selectedAthletId ? getStatus(selectedAthletId, datum.date) : null;
+          const displayStatus = toDisplayStatus(rawStatus);
           const notiz = selectedAthletId ? notizen[`${selectedAthletId}_${datum.date}`] || "" : "";
 
           return (
@@ -91,15 +106,19 @@ export default function Anmeldung() {
               <div className="tag-actions">
                 <button
                   className={`status-button ${
-                    status === "Ja" ? "green" : status === "Nein" ? "red" : ""
+                    displayStatus === "Ja" ? "green" : displayStatus === "Nein" ? "red" : ""
                   }`}
                   disabled={!selectedAthlet}
                   onClick={() =>
                     selectedAthletId &&
-                    setStatus(selectedAthletId, datum.date, cycleStatus(status) as any)
+                    setStatus(
+                      selectedAthletId,
+                      datum.date,
+                      toInternalStatus(cycleStatus(displayStatus))
+                    )
                   }
                 >
-                  {status === "Ja" ? "✅" : status === "Nein" ? "❌" : "?"}
+                  {displayStatus === "Ja" ? "✅" : displayStatus === "Nein" ? "❌" : "?"}
                 </button>
 
                 <button
