@@ -1,5 +1,5 @@
 import React from "react";
-import styles from "../styles/Anmeldung.css";
+import "../styles/Anmeldung.css";
 import { DayEntry } from "../types";
 
 type Props = {
@@ -15,24 +15,24 @@ export const TagRow: React.FC<Props> = ({ day, idx, openNoteIdx, onCycleStatus, 
   const symbol = day.status === "YES" ? "✅" : day.status === "NO" ? "❌" : "❓";
 
   return (
-    <div className={styles.row}>
-      <div className={styles.rowHeader}>
-        <div className={styles.weekday}>{day.weekday}</div>
-        <div className={styles.date}>{day.dateLabel}</div>
+    <div className="row">
+      <div className="rowHeader">
+        <div className="weekday">{day.weekday}</div>
+        <div className="date">{day.dateLabel}</div>
       </div>
-      <div className={styles.rowContent}>
+      <div className="rowContent">
         <button
-          className={`${styles.statusBtn} ${
-            day.status === "YES" ? styles.statusYes :
-            day.status === "NO" ? styles.statusNo :
-            styles.statusMaybe
+          className={`statusBtn ${
+            day.status === "YES" ? "statusYes" :
+            day.status === "NO" ? "statusNo" :
+            "statusMaybe"
           }`}
           onClick={() => onCycleStatus(idx)}
         >
           {symbol}
         </button>
         <button
-          className={`${styles.noteIcon} ${day.note ? styles.noteActive : ""}`}
+          className={`noteIcon ${day.note ? "noteActive" : ""}`}
           onClick={() => onToggleNote(idx)}
           title="Notiz"
         >
@@ -41,7 +41,7 @@ export const TagRow: React.FC<Props> = ({ day, idx, openNoteIdx, onCycleStatus, 
       </div>
       {openNoteIdx === idx && (
         <textarea
-          className={styles.noteField}
+          className="noteField"
           value={day.note}
           onChange={(e) => onChangeNote(idx, e.target.value)}
         />

@@ -1,5 +1,5 @@
 import React from "react";
-import styles from "../styles/Anmeldung.css";
+import "../styles/Anmeldung.css";
 
 type Props = {
   value: string;
@@ -10,7 +10,7 @@ type Props = {
 export const NotizField: React.FC<Props> = ({ value, onChange, placeholder }) => {
   return (
     <textarea
-      className={styles.note}
+      className="note"
       placeholder={placeholder ?? "Zusatzinfo / Notiz…"}
       value={value}
       onChange={(e) => onChange(e.target.value)}
