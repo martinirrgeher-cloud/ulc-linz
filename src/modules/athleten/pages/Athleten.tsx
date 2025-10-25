@@ -4,7 +4,7 @@ import styles from "../Athleten.module.css";
 import AthleteList from "../components/AthleteList";
 import { useAthleten } from "../hooks/useAthleten";
 import { Athlete } from "../types/athleten";
-
+import { v4 as uuidv4 } from "uuid";
 
 export default function AthletenPage() {
   const navigate = useNavigate();
@@ -70,7 +70,7 @@ export default function AthletenPage() {
           <AthleteList
             athletes={sortedAthletes}
             onCreate={async (data) => {
-              await addAthlete({ ...data, active: true });
+              await addAthlete({ ...data, id: uuidv4(), active: true });
               await reload();
             }}
             onEdit={async (id, patch) => {

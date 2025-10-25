@@ -3,7 +3,6 @@ import { downloadJson, uploadJson } from "@/lib/drive/DriveClient";
 
 const FILE_ID = import.meta.env.VITE_DRIVE_ATHLETEN_FILE_ID as string;
 
-// ✅ Typdefinition ergänzt
 export interface Athlete {
   id: string;
   name: string;
@@ -44,7 +43,6 @@ export function useAthleten() {
     }
   };
 
-  // ✅ Funktionen ergänzt
   const addAthlete = async (athlet: Athlete) => {
     const updated = [...athletes, athlet];
     await uploadJson(FILE_ID, updated);
@@ -52,8 +50,11 @@ export function useAthleten() {
     setFiltered(updated);
   };
 
-  const updateAthlete = async (athlet: Athlete) => {
-    const updated = athletes.map((a) => (a.id === athlet.id ? athlet : a));
+  // ✅ Signatur angepasst → unterstützt ID und Patch (Partial)
+  const updateAthlete = async (id: string, patch: Partial<Athlete>) => {
+    const updated = athletes.map((a) =>
+      a.id === id ? { ...a, ...patch } : a
+    );
     await uploadJson(FILE_ID, updated);
     setAthletes(updated);
     setFiltered(updated);
@@ -77,7 +78,7 @@ export function useAthleten() {
     error,
     reload,
     addAthlete,
-    updateAthlete,
+    updateAthlete, // ✅ angepasste Signatur
     removeAthlete,
   };
 }
