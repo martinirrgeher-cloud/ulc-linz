@@ -1,114 +1,120 @@
+// src/store/AuthContext.tsx
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { initGoogleAuth, getAccessToken, validateGoogleToken } from "@/lib/googleAuth";
+import {
+  initGoogleAuth,
+  loginGoogle as googleLogin,
+  getAccessToken,
+  validateGoogleToken,
+  logoutGoogle,
+  clearStorage,
+} from "@/lib/googleAuth";
+import { fetchUsersAndLogin } from "@/lib/users";
+
+interface User {
+  username: string;
+  password: string;
+  modules?: string[];
+}
 
 interface AuthContextType {
+  user: User | null;
   token: string | null;
-  user: any;
   loginGoogle: () => Promise<void>;
   loginUser: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
-  switchUser: () => void;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextType>({
+  user: null,
+  token: null,
+  loginGoogle: async () => {},
+  loginUser: async () => false,
+  logout: () => {},
+});
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
-  const [user, setUser] = useState<any>(null);
   const navigate = useNavigate();
 
-  // 🔸 Token beim Start prüfen
-  useEffect(() => {
-    const storedToken = localStorage.getItem("google_access_token");
-    if (storedToken) {
-      validateGoogleToken(storedToken)
-        .then((valid) => {
-          if (valid) {
-            setToken(storedToken);
-            navigate("/login2");
-          } else {
-            localStorage.removeItem("google_access_token");
-            setToken(null);
-            navigate("/login1");
-          }
-        })
-        .catch(() => {
-          localStorage.removeItem("google_access_token");
-          setToken(null);
-          navigate("/login1");
-        });
-    } else {
-      navigate("/login1");
-    }
-  }, [navigate]);
-
+  // ----------------------------------
+  // Google Login (Popup)
+  // ----------------------------------
   const loginGoogle = async () => {
-    try {
-      await initGoogleAuth();
-      const newToken = getAccessToken();
-      if (newToken) {
-        const valid = await validateGoogleToken(newToken);
-        if (valid) {
-          localStorage.setItem("google_access_token", newToken);
-          setToken(newToken);
-          navigate("/login2");
-        } else {
-          localStorage.removeItem("google_access_token");
-          setToken(null);
-          navigate("/login1");
-        }
-      } else {
-        console.error("Kein Token erhalten");
-      }
-    } catch (err) {
-      console.error("Fehler beim Google Login", err);
+    await initGoogleAuth();
+    await googleLogin();
+    const newToken = getAccessToken();
+    if (newToken) {
+      setToken(newToken);
+      navigate("/login2");
+    } else {
+      console.error("❌ Kein Token erhalten.");
     }
   };
 
-  const loginUser = async (username: string, password: string) => {
+  // ----------------------------------
+  // Login 2 → Benutzerdatei laden
+  // ----------------------------------
+  const loginUser = async (username: string, password: string): Promise<boolean> => {
     try {
-      const response = await fetch("/users.json");
-      const users = await response.json();
-      const foundUser = users.find(
-        (u: any) => u.username === username && u.password === password
-      );
-      if (!foundUser) {
+      const user = await fetchUsersAndLogin(username, password);
+      if (user) {
+        console.log("✅ Login erfolgreich für Benutzer:", user.username);
+        setUser(user);
+        navigate("/dashboard"); // nach Login zur Hauptseite
+        return true;
+      } else {
+        console.warn("⚠️ Benutzername oder Passwort ungültig.");
         return false;
       }
-
-      setUser(foundUser);
-      navigate("/dashboard");
-      return true;
     } catch (err) {
-      console.error("Fehler beim Login 2:", err);
+      console.error("❌ Fehler beim Login 2:", err);
       return false;
     }
   };
 
+  // ----------------------------------
+  // Token beim Start validieren
+  // ----------------------------------
+  useEffect(() => {
+    const checkToken = async () => {
+      const storedToken = getAccessToken();
+      if (storedToken) {
+        const valid = await validateGoogleToken(storedToken);
+        if (valid) {
+          setToken(storedToken);
+        } else {
+          clearStorage();
+        }
+      }
+    };
+    checkToken();
+  }, []);
+
+  // ----------------------------------
+  // Logout
+  // ----------------------------------
   const logout = () => {
-    localStorage.removeItem("google_access_token");
+    logoutGoogle();
     setToken(null);
     setUser(null);
     navigate("/login1");
   };
 
-  const switchUser = () => {
-    setUser(null);
-    navigate("/login2");
-  };
-
   return (
-    <AuthContext.Provider value={{ token, user, loginGoogle, loginUser, logout, switchUser }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        token,
+        loginGoogle,
+        loginUser,
+        logout,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
 };
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error("useAuth muss innerhalb eines AuthProviders verwendet werden");
-  }
-  return context;
-};
+export const useAuth = () => useContext(AuthContext);

@@ -16,6 +16,8 @@
     "react-router-dom": "^6.26.2"
   },
   "devDependencies": {
+    "@types/gapi": "^0.0.47",
+    "@types/gapi.auth2": "^0.0.61",
     "@types/google.accounts": "^0.0.18",
     "@types/node": "^22.7.5",
     "@types/react": "^18.3.5",

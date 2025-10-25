@@ -3,9 +3,9 @@ import { loadFromStorage, tokenExpired, silentRefreshIfNeeded, getAccessToken } 
 export async function fetchWithAuth(input: RequestInfo | URL, init: RequestInit = {}) {
   const stored = loadFromStorage();
 
-  if (!stored || tokenExpired(stored.expiry)) {
-    await silentRefreshIfNeeded();
-  }
+  if (!stored || tokenExpired()) {
+  await silentRefreshIfNeeded();
+}
 
   const token = getAccessToken();
   const headers = new Headers(init.headers || {});
