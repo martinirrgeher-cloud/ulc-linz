@@ -4,8 +4,11 @@ import { useAuth, AuthProvider } from "@/store/AuthContext";
 import Login1 from "@/pages/Login1";
 import Login2 from "@/pages/Login2";
 import Dashboard from "@/pages/Dashboard";
+import RequireAuth from "@/components/RequireAuth";
 import Kindertraining from "@/modules/kindertraining/Kindertraining";
 import Statistik from "@/modules/kindertraining/pages/statistik";
+import Anmeldung from "@/modules/leistungsgruppe/anmeldung/Anmeldung";
+import AthletenPage from "@/modules/athleten/pages/Athleten";
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { token, user } = useAuth();
@@ -48,6 +51,23 @@ export default function App() {
   }
 />
 
+<Route
+  path="/leistungsgruppe/anmeldung"
+  element={
+    <PrivateRoute>
+      <Anmeldung />
+    </PrivateRoute>
+  }
+/>
+
+<Route
+  path="/athleten"
+  element={
+    <RequireAuth modules={['ADMIN','KINDERTRAINING','LEISTUNGSGRUPPE']}>
+      <AthletenPage />
+    </RequireAuth>
+  }
+/>
 
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
         </Routes>

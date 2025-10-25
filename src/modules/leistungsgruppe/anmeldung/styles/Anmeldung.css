@@ -1,0 +1,138 @@
+.anmeldung-container {
+  padding: 1rem;
+  max-width: 450px;
+  margin: 0 auto;
+  font-family: system-ui, sans-serif;
+}
+
+.anmeldung-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.8rem;
+}
+
+.anmeldung-header h1 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.icon-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.3rem;
+  display: flex;
+  align-items: center;
+}
+
+.kalender-nav {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  margin: 0.5rem 0 1rem 0;
+  font-weight: 500;
+}
+
+.nav-button {
+  background: #eee;
+  border: 1px solid #ccc;
+  padding: 0.3rem 0.7rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.athlet-dropdown {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.athlet-dropdown select {
+  flex: 1;
+  padding: 0.3rem;
+}
+
+.tage-liste {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.tag-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.4rem 0.5rem;
+  border-bottom: 1px solid #eee;
+}
+
+.tag-label {
+  flex: 1;
+  min-width: 160px;
+}
+
+.tag-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.status-button,
+.notiz-button {
+  width: 38px;
+  height: 38px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 18px;
+  border: 1px solid #ccc;
+  background: #eee;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.status-button.green {
+  background: #2ecc71;
+  color: #fff;
+}
+
+.status-button.red {
+  background: #e74c3c;
+  color: #fff;
+}
+
+.notiz-button.filled {
+  background: #3498db;
+  color: white;
+}
+
+.notiz-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.notiz-content {
+  background: #fff;
+  padding: 1rem;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 400px;
+}
+
+.notiz-content textarea {
+  width: 100%;
+  min-height: 120px;
+}
+
+.modal-actions {
+  margin-top: 0.5rem;
+  text-align: right;
+}

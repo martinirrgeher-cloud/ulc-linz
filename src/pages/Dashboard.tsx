@@ -33,6 +33,13 @@ export default function Dashboard() {
       case "STATISTIK":
         nav("/statistik");
         break;
+      case "LEISTUNGSGRUPPE-ANMELDUNG":
+        nav("/leistungsgruppe/anmeldung");
+        break;
+      case "ATHLETEN":
+        nav("/athleten");
+        break;
+
       default:
         console.warn(`Unbekanntes Modul: ${moduleName}`);
     }

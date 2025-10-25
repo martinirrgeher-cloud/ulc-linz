@@ -81,3 +81,11 @@ export async function overwriteJsonContent(fileId: string, data: any): Promise<v
     throw new Error(`Fehler beim Überschreiben der Datei ${fileId}: ${txt}`);
   }
 }
+/**
+ * Schreibt JSON-Inhalt in eine bestehende Drive-Datei.
+ * Thin-Wrapper um overwriteJsonContent für Kompatibilität mit neuen Modulen.
+ */
+export async function uploadJson(fileId: string, data: any): Promise<void> {
+  await overwriteJsonContent(fileId, data);
+}
+
