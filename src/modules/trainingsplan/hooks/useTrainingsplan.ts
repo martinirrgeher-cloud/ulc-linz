@@ -24,7 +24,7 @@ export interface DayPlan {
 }
 
 export interface Trainingsplan {
-  key: string;
+  key: WeekKey; // ✅ angepasst
   version: number;
   updatedAt: string;
   days: Record<ISOWeekDay, DayPlan>;
@@ -83,7 +83,7 @@ function makeEmptyWeek(isoWeek: number, year: number): Trainingsplan {
     days[key] = { dateISO: `${yyyy}-${mm}-${dd}`, items: [] };
   }
   return {
-    key: `kw${isoWeek}_${year}`,
+    key: { isoWeek, year }, // ✅ geändert von string auf WeekKey
     version: 1,
     updatedAt: new Date().toISOString(),
     days,
@@ -156,7 +156,7 @@ export default function useTrainingsplan(initial?: WeekKey) {
     // Metadaten aktualisieren
     const updatedPlan: Trainingsplan = {
       ...nextPlan,
-      key: `kw${week.isoWeek}_${week.year}`,
+      key: { isoWeek: week.isoWeek, year: week.year }, // ✅ WeekKey statt string
       version: (nextPlan.version ?? 0) + 1,
       updatedAt: new Date().toISOString(),
     };
