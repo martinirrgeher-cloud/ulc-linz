@@ -434,9 +434,11 @@
 
 /* Responsive Anpassung */
 @media (max-width: 600px) {
-  .menuRowItem input[type="text"] {.kt-person-table-co
+  .menuRowItem input[type="text"] {
     width: 100%;
   }
+}
+
   .menuRowItem.actions {
     flex-direction: column;
     gap: 8px;
