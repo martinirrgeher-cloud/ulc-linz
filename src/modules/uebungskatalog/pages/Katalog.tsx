@@ -110,7 +110,11 @@ export default function Katalog() {
       {(showDetails || selectedUnter || (selectedHaupt && untergruppen.length === 0)) && (
         <div className="uebungskatalog-grid-uebungen">
           {gefiltert.map((u) => (
-            <UebungCard key={u.id} uebung={u} />
+            <UebungCard
+  key={u.id}
+  uebung={u}
+  onClick={(id) => console.log("Übung geklickt:", id)}
+/>
           ))}
           {!gefiltert.length && <p>Keine Übungen gefunden.</p>}
         </div>

@@ -1,5 +1,14 @@
-import { UebungCard } from "./UebungCard";
-import { Uebung } from "../hooks/useUebungen";
+import UebungCard from "./UebungCard";
+
+interface Uebung {
+  id: string;
+  name: string;
+  hauptgruppe: string;
+  untergruppe: string;
+  difficulty: number;
+  mediaUrl?: string;
+  mediaType?: string;
+}
 
 interface Props {
   hauptgruppe: string;
@@ -15,7 +24,11 @@ export function GruppeSection({ hauptgruppe, unterMap }: Props) {
           <h3 className="untergruppe-title">{untergruppe}</h3>
           <div className="uebung-grid">
             {uebungen.map((u) => (
-              <UebungCard key={u.id} uebung={u} />
+              <UebungCard
+                key={u.id}
+                uebung={u}
+                onClick={(id) => console.log("Übung geklickt:", id)}
+              />
             ))}
           </div>
         </div>
