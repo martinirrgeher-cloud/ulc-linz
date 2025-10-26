@@ -9,6 +9,9 @@ import Kindertraining from "@/modules/kindertraining/Kindertraining";
 import Statistik from "@/modules/kindertraining/pages/statistik";
 import Anmeldung from "@/modules/leistungsgruppe/anmeldung/Anmeldung";
 import AthletenPage from "@/modules/athleten/pages/Athleten";
+import UebungHinzufuegen from "@/modules/uebungspflege/pages/UebungHinzufuegen";
+import Katalog from "@/modules/uebungskatalog/pages/Katalog";
+
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { token, user } = useAuth();
@@ -68,6 +71,25 @@ export default function App() {
     </RequireAuth>
   }
 />
+
+<Route
+  path="/uebungspflege"
+  element={
+    <PrivateRoute requiredModules={["UEBUNGS_PFLEGE"]}>
+      <UebungHinzufuegen />
+    </PrivateRoute>
+  }
+/>
+<Route
+  path="/uebungskatalog"
+  element={
+    <PrivateRoute requiredModules={["UEBUNGSKATALOG"]}>
+      <Katalog />
+    </PrivateRoute>
+  }
+/>
+
+
 
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
         </Routes>

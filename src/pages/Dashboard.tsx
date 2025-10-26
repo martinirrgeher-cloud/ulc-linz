@@ -39,6 +39,12 @@ export default function Dashboard() {
       case "ATHLETEN":
         nav("/athleten");
         break;
+      case "UEBUNGSKATALOG":
+  nav("/uebungskatalog");
+  break;
+case "UEBUNGS_PFLEGE":
+  nav("/uebungspflege");
+  break;
 
       default:
         console.warn(`Unbekanntes Modul: ${moduleName}`);
