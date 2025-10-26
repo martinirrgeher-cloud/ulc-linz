@@ -84,7 +84,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const checkToken = async () => {
       const storedToken = getAccessToken();
       if (storedToken) {
-        const valid = await validateGoogleToken(storedToken);
+        const valid = await validateGoogleToken();
         if (valid) {
           setToken(storedToken);
         } else {
