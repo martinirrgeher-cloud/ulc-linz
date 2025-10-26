@@ -1,128 +1,100 @@
-// src/lib/googleAuth.ts
-
 let tokenClient: google.accounts.oauth2.TokenClient | null = null;
 
-/**
- * Initialisiert den Google OAuth Token Client.
- * Gibt ein Promise zurück, damit Login1.tsx .then() nutzen kann.
- */
+const TOKEN_KEY = "google_token";
+
+export function getAccessToken(): string | null {
+  return localStorage.getItem(TOKEN_KEY);
+}
+
+function setAccessToken(token: string) {
+  localStorage.setItem(TOKEN_KEY, token);
+}
+
+export function clearStorage() {
+  localStorage.removeItem(TOKEN_KEY);
+}
+
+/** Google Identity Services initialisieren */
 export function initGoogleAuth(): Promise<void> {
   return new Promise((resolve, reject) => {
     try {
       if (!tokenClient) {
-        console.log("[GIS] Client ID aus ENV:", import.meta.env.VITE_GOOGLE_CLIENT_ID);
-
         tokenClient = google.accounts.oauth2.initTokenClient({
           client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
-          scope: "email profile openid https://www.googleapis.com/auth/drive.readonly",
-          callback: (response) => {
-            console.log("🔐 Access Token erhalten:", response.access_token);
-            localStorage.setItem("google_token", response.access_token);
-            // ⚠️ callback wird beim Login überschrieben
-          },
-        });
-
-        console.log("[GIS] Popup init erfolgreich.");
+          scope: "https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file openid email profile",
+          callback: () => {},
+        } as any);
       }
-
       resolve();
     } catch (err) {
-      console.error("❌ Fehler bei initGoogleAuth:", err);
       reject(err);
     }
   });
 }
 
-/**
- * Startet den Google Login Popup und gibt ein Promise zurück,
- * das erst nach erfolgreicher Token-Übergabe aufgelöst wird.
- */
+/** Login-Popup starten und Token speichern */
 export function loginGoogle(): Promise<void> {
   return new Promise((resolve, reject) => {
-    if (!tokenClient) {
-      console.warn("[GIS] Token Client fehlte — wird initialisiert");
-      initGoogleAuth().then(() => loginGoogle().then(resolve).catch(reject));
-      return;
-    }
+    if (!tokenClient) return reject(new Error("TokenClient nicht initialisiert"));
 
-    console.log("[GIS] Google Login Button geklickt (Popup)");
-
-    tokenClient!.callback = (response) => {
-      if (response && response.access_token) {
-        console.log("🔐 Access Token erhalten:", response.access_token);
-        localStorage.setItem("google_token", response.access_token);
-        resolve();
-      } else {
-        console.error("❌ Kein Access Token erhalten.");
-        reject(new Error("Kein Access Token erhalten"));
+    (tokenClient as any).callback = (resp: google.accounts.oauth2.TokenResponse) => {
+      try {
+        if (resp && resp.access_token) {
+          setAccessToken(resp.access_token);
+          resolve();
+        } else {
+          reject(new Error("Kein Access Token erhalten"));
+        }
+      } catch (e) {
+        reject(e);
       }
     };
 
-    tokenClient!.requestAccessToken({ prompt: "select_account" });
+    (tokenClient as any).requestAccessToken({ prompt: "consent" });
   });
 }
 
-/**
- * Liefert den gespeicherten Access Token zurück.
- */
-export function getAccessToken(): string | null {
-  return localStorage.getItem("google_token");
+/** Optional: Token validieren */
+export async function validateGoogleToken(): Promise<boolean> {
+  return !!getAccessToken();
 }
 
-/**
- * Prüft, ob ein Token vorhanden und gültig ist.
- */
-export async function validateGoogleToken(token: string | null): Promise<boolean> {
-  if (!token) return false;
-
-  try {
-    const res = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    if (res.ok) {
-      const data = await res.json();
-      console.log("✅ Token gültig für Benutzer:", data.email);
-      return true;
-    } else {
-      console.warn("⚠️ Token ungültig oder abgelaufen.");
-      clearStorage();
-      return false;
-    }
-  } catch (err) {
-    console.error("❌ Fehler bei der Tokenvalidierung:", err);
-    clearStorage();
-    return false;
-  }
-}
-
-/**
- * Löscht Token & lokale Daten.
- */
-export function clearStorage() {
-  localStorage.removeItem("google_token");
-}
-
-/**
- * Meldet den User ab und deaktiviert Google Auto-Select.
- */
+/** Logout */
 export function logoutGoogle() {
   clearStorage();
   try {
-    google.accounts.id.disableAutoSelect();
-    console.log("👋 Google Auto-Login deaktiviert.");
+    (google.accounts.id as any)?.disableAutoSelect?.();
   } catch (err) {
-    console.warn("⚠️ Konnte Auto-Select nicht deaktivieren:", err);
+    console.warn("Auto-Select konnte nicht deaktiviert werden:", err);
   }
 }
 
+/** Silent Refresh (ohne Popup) */
+export async function refreshAccessToken(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (!tokenClient) return reject(new Error("TokenClient nicht initialisiert"));
+
+    (tokenClient as any).callback = (resp: google.accounts.oauth2.TokenResponse) => {
+      if (resp && resp.access_token) {
+        setAccessToken(resp.access_token);
+        resolve();
+      } else {
+        reject(new Error("Silent refresh: kein Token erhalten"));
+      }
+    };
+
+    (tokenClient as any).requestAccessToken({ prompt: "" });
+  });
+}
+
+/** Best-effort: nur versuchen, wenn bereits ein Token existiert */
 export async function silentRefreshIfNeeded(): Promise<void> {
   const token = getAccessToken();
   if (!token) return;
   try {
     await refreshAccessToken();
-    console.log("[GoogleAuth] Silent refresh erfolgreich");
+    console.log("[GIS] Silent refresh erfolgreich");
   } catch (err) {
-    console.warn("[GoogleAuth] Silent refresh fehlgeschlagen", err);
+    console.warn("[GIS] Silent refresh fehlgeschlagen", err);
   }
 }

@@ -13,6 +13,11 @@ import UebungHinzufuegen from "@/modules/uebungspflege/pages/UebungHinzufuegen";
 import Katalog from "@/modules/uebungskatalog/pages/Katalog";
 import Trainingsplan from "@/modules/trainingsplan/pages/Trainingsplan";
 
+/**
+ * Standard-Login-Schutz — sorgt dafür, dass:
+ * - kein Zugriff ohne Token
+ * - bei Login1 / Login2 korrekt weitergeleitet wird
+ */
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { token, user } = useAuth();
   if (!token) return <Navigate to="/login1" replace />;
@@ -25,9 +30,11 @@ export default function App() {
     <Router>
       <AuthProvider>
         <Routes>
+          {/* Loginrouten */}
           <Route path="/login1" element={<Login1 />} />
           <Route path="/login2" element={<Login2 />} />
 
+          {/* Dashboard */}
           <Route
             path="/dashboard"
             element={
@@ -37,6 +44,7 @@ export default function App() {
             }
           />
 
+          {/* Kindertraining */}
           <Route
             path="/kindertraining"
             element={
@@ -45,7 +53,6 @@ export default function App() {
               </PrivateRoute>
             }
           />
-
           <Route
             path="/kindertraining/statistik"
             element={
@@ -55,6 +62,7 @@ export default function App() {
             }
           />
 
+          {/* Leistungsgruppe */}
           <Route
             path="/leistungsgruppe/anmeldung"
             element={
@@ -64,18 +72,25 @@ export default function App() {
             }
           />
 
-<Route path="/trainingsplan" element={<PrivateRoute requiredModules={["LEISTUNGSGRUPPE"]}><Trainingsplan /></PrivateRoute>} />
-
-
+          {/* ⚡ Trainingsplan: Zugriff nur für LEISTUNGSGRUPPE */}
           <Route
-            path="/athleten"
+            path="/trainingsplan"
             element={
-              <RequireAuth requiredModules={["ADMIN", "LEISTUNGSGRUPPE"]}>
-                <AthletenPage />
+              <RequireAuth requiredModules={["TRAININGSPLAN"]}>
+                <Trainingsplan />
               </RequireAuth>
             }
           />
 
+          {/* ⚡ Nur für bestimmte Rollen */}
+          <Route
+            path="/athleten"
+            element={
+              <RequireAuth requiredModules={["ATHLETEN"]}>
+                <AthletenPage />
+              </RequireAuth>
+            }
+          />
           <Route
             path="/uebungspflege"
             element={
@@ -84,7 +99,6 @@ export default function App() {
               </RequireAuth>
             }
           />
-
           <Route
             path="/uebungskatalog"
             element={
@@ -94,6 +108,7 @@ export default function App() {
             }
           />
 
+          {/* Standardweiterleitung */}
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </AuthProvider>
