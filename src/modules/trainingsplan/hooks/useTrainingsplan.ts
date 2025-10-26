@@ -1,10 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import DriveClient from "@/lib/drive/DriveClient";
 
-/**
- * Types – nutze deine bestehenden Types, falls vorhanden.
- * Hier sind sie lokal nochmals definiert, um den Hook vollständig zu liefern.
- */
 export type ISOWeekDay = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
 
 export interface WeekKey {
@@ -23,32 +19,33 @@ export interface PlanItem {
 }
 
 export interface DayPlan {
-  dateISO: string;          // YYYY-MM-DD
+  dateISO: string;
   items: PlanItem[];
 }
 
 export interface Trainingsplan {
+  key: string;
+  version: number;
+  updatedAt: string;
   days: Record<ISOWeekDay, DayPlan>;
 }
 
-/** ISO-Kalender: Montag als 1..7 */
+/** Hilfsfunktionen **/
+function pad2(n: number) { return n.toString().padStart(2, "0"); }
+
 function getISODay(d: Date): number {
-  const day = d.getDay(); // 0..6 So..Sa
-  return day === 0 ? 7 : day; // 1..7 Mo..So
+  const day = d.getDay();
+  return day === 0 ? 7 : day;
 }
 
-/** ISO-KW einer Datumskomponente berechnen */
 function getISOWeek(d0: Date): number {
   const d = new Date(Date.UTC(d0.getFullYear(), d0.getMonth(), d0.getDate()));
-  // Donnerstag der aktuellen Woche finden (ISO-Definition)
   const day = d.getUTCDay() || 7;
   d.setUTCDate(d.getUTCDate() + 4 - day);
   const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-  const weekNo = Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
-  return weekNo;
+  return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
 }
 
-/** ISO-KW-Jahr eines Datums */
 function getISOWeekYear(d0: Date): number {
   const d = new Date(Date.UTC(d0.getFullYear(), d0.getMonth(), d0.getDate()));
   const day = d.getUTCDay() || 7;
@@ -56,19 +53,14 @@ function getISOWeekYear(d0: Date): number {
   return d.getUTCFullYear();
 }
 
-/** Montag (ISO) einer gegebenen ISO-Woche/Jahr berechnen */
 function getMondayOfISOWeek(isoWeek: number, year: number): Date {
-  // Algorithmus: den Donnerstag der ISO-Woche bestimmen, dann zurück zum Montag
-  const simple = new Date(Date.UTC(year, 0, 4 + (isoWeek - 1) * 7)); // Do der ISO-Woche
+  const simple = new Date(Date.UTC(year, 0, 4 + (isoWeek - 1) * 7));
   const day = simple.getUTCDay() || 7;
   const monday = new Date(simple);
-  monday.setUTCDate(simple.getUTCDate() - (day - 1)); // zurück bis Montag
+  monday.setUTCDate(simple.getUTCDate() - (day - 1));
   return monday;
 }
 
-function pad2(n: number) { return n.toString().padStart(2, "0"); }
-
-/** leeren Wochenplan für gegebene ISO-Woche generieren (mit korrekten Datumsangaben) */
 function makeEmptyWeek(isoWeek: number, year: number): Trainingsplan {
   const labels: ISOWeekDay[] = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
   const monday = getMondayOfISOWeek(isoWeek, year);
@@ -90,7 +82,12 @@ function makeEmptyWeek(isoWeek: number, year: number): Trainingsplan {
     const key = labels[i];
     days[key] = { dateISO: `${yyyy}-${mm}-${dd}`, items: [] };
   }
-  return { days };
+  return {
+    key: `kw${isoWeek}_${year}`,
+    version: 1,
+    updatedAt: new Date().toISOString(),
+    days,
+  };
 }
 
 export default function useTrainingsplan(initial?: WeekKey) {
@@ -123,7 +120,6 @@ export default function useTrainingsplan(initial?: WeekKey) {
         const json = await drive.downloadJson(file.id);
         setPlan(json as Trainingsplan);
       } else {
-        // neue Datei mit leerem Plan anlegen (keine Dummys – produktiver Startzustand)
         const empty = makeEmptyWeek(week.isoWeek, week.year);
         await drive.createJsonInFolder(folderId, filename, empty);
         setPlan(empty);
@@ -139,7 +135,6 @@ export default function useTrainingsplan(initial?: WeekKey) {
 
   const goPrevWeek = useCallback(() => {
     setWeek((w) => {
-      // ISO: Jahrwechsel beachten
       const prev = new Date(getMondayOfISOWeek(w.isoWeek, w.year));
       prev.setUTCDate(prev.getUTCDate() - 7);
       return { isoWeek: getISOWeek(prev), year: getISOWeekYear(prev) };
@@ -154,30 +149,26 @@ export default function useTrainingsplan(initial?: WeekKey) {
     });
   }, []);
 
-  /**
-   * Speichert den Plan. Signatur kompatibel zu deinem PlanEditor:
-   * savePlan(athletId, kw, jahr, nextPlan)
-   * - athletId wird aktuell nicht zur Dateiauswahl benötigt, bleibt aber für API-Kompatibilität erhalten.
-   * - kw/jahr werden gegen die aktuelle Woche validiert (Warnung bei Abweichung).
-   */
   const savePlan = useCallback(async (athletId: string, kw: number, jahr: number, nextPlan: Trainingsplan) => {
     if (!folderId) throw new Error("VITE_DRIVE_TRAININGSPLAN_FOLDER_ID ist nicht gesetzt");
     if (!nextPlan || !nextPlan.days) throw new Error("Ungültiger Plan (missing days)");
 
-    // falls kw/jahr vom Editor abweichen, speichern wir in die angezeigte Woche
-    if (kw !== week.isoWeek || jahr !== week.year) {
-      console.warn("[Trainingsplan] savePlan: KW/Jahr weichen ab. Es wird in die aktuelle Ansicht gespeichert:", week);
-    }
+    // Metadaten aktualisieren
+    const updatedPlan: Trainingsplan = {
+      ...nextPlan,
+      key: `kw${week.isoWeek}_${week.year}`,
+      version: (nextPlan.version ?? 0) + 1,
+      updatedAt: new Date().toISOString(),
+    };
 
     const file = await drive.findFileInFolderByName(folderId, filename);
     if (!file) {
-      // Wenn Datei nicht existiert, erstellen wir sie
-      await drive.createJsonInFolder(folderId, filename, nextPlan);
-      setPlan(nextPlan);
+      await drive.createJsonInFolder(folderId, filename, updatedPlan);
+      setPlan(updatedPlan);
       return;
     }
-    await drive.updateJson(file.id, nextPlan);
-    setPlan(nextPlan);
+    await drive.updateJson(file.id, updatedPlan);
+    setPlan(updatedPlan);
   }, [drive, folderId, filename, week]);
 
   return { week, plan, loading, error, goPrevWeek, goNextWeek, savePlan, reload };
