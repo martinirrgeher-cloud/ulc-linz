@@ -1,6 +1,6 @@
 import TagesPlan from "./TagesPlan";
 import styles from "../styles/Trainingsplan.module.css";
-import { useTrainingsplan } from "../hooks/useTrainingsplan";
+import useTrainingsplan from "../hooks/useTrainingsplan";
 
 export default function PlanEditor({ plan, athletId, kw, jahr }: any) {
   const { savePlan } = useTrainingsplan();
