@@ -1,201 +1,117 @@
 // src/lib/googleAuth.ts
-// → stabile Version mit Google OAuth Popup Login (ohne One-Tap Prompt)
 
-declare global {
-  interface Window {
-    google?: any;
-  }
-}
+let tokenClient: google.accounts.oauth2.TokenClient | null = null;
 
-let gisInitialized = false;
-let tokenClient: any = null;
+/**
+ * Initialisiert den Google OAuth Token Client.
+ * Gibt ein Promise zurück, damit Login1.tsx .then() nutzen kann.
+ */
+export function initGoogleAuth(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    try {
+      if (!tokenClient) {
+        console.log("[GIS] Client ID aus ENV:", import.meta.env.VITE_GOOGLE_CLIENT_ID);
 
-// =========================================================
-// Hilfsfunktionen
-// =========================================================
-function log(...args: any[]) {
-  console.log("[GIS]", ...args);
-}
+        tokenClient = google.accounts.oauth2.initTokenClient({
+          client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+          scope: "email profile openid https://www.googleapis.com/auth/drive.readonly",
+          callback: (response) => {
+            console.log("🔐 Access Token erhalten:", response.access_token);
+            localStorage.setItem("google_token", response.access_token);
+            // ⚠️ callback wird beim Login überschrieben
+          },
+        });
 
-function delay(ms: number) {
-  return new Promise((r) => setTimeout(r, ms));
-}
-
-function decodeJwt(token: string): any | null {
-  try {
-    const parts = token.split(".");
-    if (parts.length !== 3) return null;
-    const payload = parts[1]
-      .replace(/-/g, "+")
-      .replace(/_/g, "/")
-      .padEnd(Math.ceil(parts[1].length / 4) * 4, "=");
-    const json = atob(payload);
-    return JSON.parse(json);
-  } catch {
-    return null;
-  }
-}
-
-function getJwtExp(token: string): number | null {
-  const data = decodeJwt(token);
-  return data && typeof data.exp === "number" ? data.exp : null;
-}
-
-function nowEpoch(): number {
-  return Math.floor(Date.now() / 1000);
-}
-
-async function ensureGisScriptLoaded(): Promise<void> {
-  const src = "https://accounts.google.com/gsi/client";
-  let tag = document.querySelector<HTMLScriptElement>(`script[src="${src}"]`);
-  if (tag) return;
-
-  log("GIS-Script nicht im DOM → lade nach…");
-  tag = document.createElement("script");
-  tag.src = src;
-  tag.async = true;
-  tag.defer = true;
-
-  await new Promise<void>((resolve, reject) => {
-    tag!.onload = () => resolve();
-    tag!.onerror = () => reject(new Error("GIS-Script konnte nicht geladen werden"));
-    document.head.appendChild(tag!);
-  });
-}
-
-// =========================================================
-// Initialisierung
-// =========================================================
-export async function initGoogleAuth(): Promise<void> {
-  if (gisInitialized) return;
-
-  await ensureGisScriptLoaded();
-
-  // Warten bis GIS geladen ist
-  const timeoutMs = 5000;
-  const pollMs = 100;
-  let waited = 0;
-
-  log("Client ID aus ENV:", import.meta.env.VITE_GOOGLE_CLIENT_ID);
-
-  while (!(window.google && window.google.accounts && window.google.accounts.oauth2)) {
-    await delay(pollMs);
-    waited += pollMs;
-    if (waited >= timeoutMs) {
-      throw new Error("GIS nicht verfügbar (oauth2 API kam nicht).");
-    }
-  }
-
-  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-  if (!clientId) {
-    throw new Error("VITE_GOOGLE_CLIENT_ID fehlt oder ist leer (.env prüfen!)");
-  }
-
-  tokenClient = window.google.accounts.oauth2.initTokenClient({
-    client_id: clientId,
-    scope: "openid email profile",
-    callback: (response: any) => {
-      log("Popup Callback:", response);
-      if (response && response.access_token) {
-        localStorage.setItem("google_access_token", response.access_token);
+        console.log("[GIS] Popup init erfolgreich.");
       }
-    },
-  });
 
-  gisInitialized = true;
-  log("GIS Popup init erfolgreich.");
+      resolve();
+    } catch (err) {
+      console.error("❌ Fehler bei initGoogleAuth:", err);
+      reject(err);
+    }
+  });
 }
 
-// =========================================================
-// Login via Popup
-// =========================================================
-export async function loginGoogle(): Promise<void> {
-  if (!gisInitialized) {
-    await initGoogleAuth();
-  }
-
-  log("Google Login Button geklickt (Popup)");
-
-  if (!tokenClient) {
-    console.error("Token Client nicht initialisiert");
-    return;
-  }
-
-  tokenClient.requestAccessToken();
-
-  // aktiv warten, bis Token gespeichert ist
-  const maxWait = 10000;
-  const interval = 100;
-  let waited = 0;
-
-  while (waited < maxWait) {
-    const tok = getAccessToken();
-    if (tok) {
-      log("Access Token angekommen.");
+/**
+ * Startet den Google Login Popup und gibt ein Promise zurück,
+ * das erst nach erfolgreicher Token-Übergabe aufgelöst wird.
+ */
+export function loginGoogle(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (!tokenClient) {
+      console.warn("[GIS] Token Client fehlte — wird initialisiert");
+      initGoogleAuth().then(() => loginGoogle().then(resolve).catch(reject));
       return;
     }
-    await delay(interval);
-    waited += interval;
-  }
 
-  console.error("Kein Token erhalten");
+    console.log("[GIS] Google Login Button geklickt (Popup)");
+
+    tokenClient!.callback = (response) => {
+      if (response && response.access_token) {
+        console.log("🔐 Access Token erhalten:", response.access_token);
+        localStorage.setItem("google_token", response.access_token);
+        resolve();
+      } else {
+        console.error("❌ Kein Access Token erhalten.");
+        reject(new Error("Kein Access Token erhalten"));
+      }
+    };
+
+    tokenClient!.requestAccessToken({ prompt: "select_account" });
+  });
 }
 
-// =========================================================
-// Tokenprüfung / Logout
-// =========================================================
-export async function validateGoogleToken(token: string): Promise<boolean> {
+/**
+ * Liefert den gespeicherten Access Token zurück.
+ */
+export function getAccessToken(): string | null {
+  return localStorage.getItem("google_token");
+}
+
+/**
+ * Prüft, ob ein Token vorhanden und gültig ist.
+ */
+export async function validateGoogleToken(token: string | null): Promise<boolean> {
+  if (!token) return false;
+
   try {
-    const res = await fetch(
-      `https://www.googleapis.com/oauth2/v3/tokeninfo?access_token=${encodeURIComponent(token)}`
-    );
-    return res.ok;
-  } catch {
+    const res = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      console.log("✅ Token gültig für Benutzer:", data.email);
+      return true;
+    } else {
+      console.warn("⚠️ Token ungültig oder abgelaufen.");
+      clearStorage();
+      return false;
+    }
+  } catch (err) {
+    console.error("❌ Fehler bei der Tokenvalidierung:", err);
+    clearStorage();
     return false;
   }
 }
 
-export function logoutGoogle(): void {
+/**
+ * Löscht Token & lokale Daten.
+ */
+export function clearStorage() {
+  localStorage.removeItem("google_token");
+}
+
+/**
+ * Meldet den User ab und deaktiviert Google Auto-Select.
+ */
+export function logoutGoogle() {
+  clearStorage();
   try {
-    if (window.google?.accounts?.id) {
-      window.google.accounts.id.disableAutoSelect();
-    }
-  } catch {
-    // ignore
-  } finally {
-    clearStorage();
+    google.accounts.id.disableAutoSelect();
+    console.log("👋 Google Auto-Login deaktiviert.");
+  } catch (err) {
+    console.warn("⚠️ Konnte Auto-Select nicht deaktivieren:", err);
   }
-}
-
-// Alias für Kompatibilität
-export const signOutGoogle = logoutGoogle;
-
-// =========================================================
-// Abwärtskompatible Exporte
-// =========================================================
-export function getAccessToken(): string | null {
-  return loadFromStorage();
-}
-
-export function loadFromStorage(): string | null {
-  return localStorage.getItem("google_access_token");
-}
-
-export function clearStorage(): void {
-  localStorage.removeItem("google_access_token");
-}
-
-export function tokenExpired(): boolean {
-  const token = loadFromStorage();
-  if (!token) return true;
-  const exp = getJwtExp(token);
-  if (exp === null) return false; // Access Tokens haben oft kein exp → dann OK
-  return exp <= nowEpoch();
-}
-
-export async function silentRefreshIfNeeded(): Promise<string | null> {
-  const token = loadFromStorage();
-  if (!token) return null;
-  if (tokenExpired()) return null;
-  return token;
 }

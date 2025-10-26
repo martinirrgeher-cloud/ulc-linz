@@ -11,6 +11,7 @@ import Anmeldung from "@/modules/leistungsgruppe/anmeldung/Anmeldung";
 import AthletenPage from "@/modules/athleten/pages/Athleten";
 import UebungHinzufuegen from "@/modules/uebungspflege/pages/UebungHinzufuegen";
 import Katalog from "@/modules/uebungskatalog/pages/Katalog";
+import Trainingsplan from "@/modules/trainingsplan/pages/Trainingsplan";
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { token, user } = useAuth();
@@ -62,6 +63,9 @@ export default function App() {
               </PrivateRoute>
             }
           />
+
+<Route path="/trainingsplan" element={<PrivateRoute requiredModules={["LEISTUNGSGRUPPE"]}><Trainingsplan /></PrivateRoute>} />
+
 
           <Route
             path="/athleten"

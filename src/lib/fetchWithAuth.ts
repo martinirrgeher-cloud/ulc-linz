@@ -1,21 +1,29 @@
-import { loadFromStorage, tokenExpired, silentRefreshIfNeeded, getAccessToken } from "@/lib/googleAuth";
+// src/lib/fetchWithAuth.ts
 
-export async function fetchWithAuth(input: RequestInfo | URL, init: RequestInit = {}) {
-  const stored = loadFromStorage();
+import { getAccessToken } from "./googleAuth";
 
-  if (!stored || tokenExpired()) {
-  await silentRefreshIfNeeded();
-}
-
+/**
+ * Führt einen Fetch mit Google OAuth Token aus.
+ * Falls kein Token vorhanden ist → sauberer Fehler statt Google 403.
+ */
+export async function fetchWithAuth(url: string) {
   const token = getAccessToken();
-  const headers = new Headers(init.headers || {});
-  if (token) headers.set("Authorization", `Bearer ${token}`);
 
-  const resp = await fetch(input, { ...init, headers });
-
-  if (resp.status === 401) {
-    console.warn("401 Unauthorized – Token ungültig oder abgelaufen");
+  if (!token) {
+    console.error("❌ Kein Google Token vorhanden – nicht authentifiziert.");
+    throw new Error("Kein Token – bitte erneut bei Login 1 anmelden.");
   }
 
-  return resp;
+  const res = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!res.ok) {
+    console.error(`❌ Fehler beim Laden der Datei: ${res.status} ${res.statusText}`);
+    throw new Error(`Fehler beim Laden der Datei (Status: ${res.status})`);
+  }
+
+  return res;
 }

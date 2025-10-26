@@ -47,6 +47,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await initGoogleAuth();
     await googleLogin();
     const newToken = getAccessToken();
+    console.log("🚀 Token nach Login:", newToken);
     if (newToken) {
       setToken(newToken);
       navigate("/login2");
@@ -121,3 +122,5 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 };
 
 export const useAuth = () => useContext(AuthContext);
+
+export default AuthContext;

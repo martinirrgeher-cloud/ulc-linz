@@ -10,6 +10,17 @@ export default function Dashboard() {
   const { user, logout } = useAuth();
   const modules = user?.modules || [];
 
+  // 🏷️ Sprechende Modulnamen
+  const moduleLabels: Record<string, string> = {
+    KINDERTRAINING: "Kindertraining",
+    STATISTIK: "Statistik",
+    "LEISTUNGSGRUPPE-ANMELDUNG": "Anmeldung",
+    ATHLETEN: "Athleten",
+    UEBUNGSKATALOG: "Übungskatalog",
+    UEBUNGS_PFLEGE: "Übungen erstellen",
+    TRAININGSPLAN: "Trainingsplanung"
+  };
+
   // ➖ Kompletter Logout (Google & User)
   const handleLogoutGoogle = () => {
     logout();
@@ -37,12 +48,14 @@ export default function Dashboard() {
         nav("/athleten");
         break;
       case "UEBUNGSKATALOG":
-  nav("/uebungskatalog");
-  break;
-case "UEBUNGS_PFLEGE":
-  nav("/uebungspflege");
-  break;
-
+        nav("/uebungskatalog");
+        break;
+      case "UEBUNGS_PFLEGE":
+        nav("/uebungspflege");
+        break;
+      case "TRAININGSPLAN":
+        nav("/trainingsplan");
+        break;
       default:
         console.warn(`Unbekanntes Modul: ${moduleName}`);
     }
@@ -76,7 +89,7 @@ case "UEBUNGS_PFLEGE":
               onClick={() => handleModuleClick(m)}
               style={{ cursor: "pointer" }}
             >
-              <div className="moduleLabel">{m}</div>
+              <div className="moduleLabel">{moduleLabels[m] || m}</div>
             </div>
           ))}
         </div>

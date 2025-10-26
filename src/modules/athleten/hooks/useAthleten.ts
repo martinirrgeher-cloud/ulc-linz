@@ -82,3 +82,6 @@ export function useAthleten() {
     removeAthlete,
   };
 }
+
+export default useAthleten;
+
