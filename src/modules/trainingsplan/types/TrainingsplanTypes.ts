@@ -27,7 +27,7 @@ export type WeekDays = Record<ISOWeekDay, DayPlan>;
 
 export interface Trainingsplan {
   key: WeekKey;
-  version: 1;                // Schema-Version für zukünftige Migrationspfade
+  version: number;                // Schema-Version für zukünftige Migrationspfade
   updatedAt: string;         // ISO-Zeitstempel
   days: WeekDays;            // Mo–So
 }
