@@ -66,7 +66,7 @@ export default function App() {
           <Route
             path="/athleten"
             element={
-              <RequireAuth requiredModules={["ADMIN", "KINDERTRAINING", "LEISTUNGSGRUPPE"]}>
+              <RequireAuth requiredModules={["ADMIN", "LEISTUNGSGRUPPE"]}>
                 <AthletenPage />
               </RequireAuth>
             }

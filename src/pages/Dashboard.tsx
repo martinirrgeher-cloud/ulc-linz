@@ -27,9 +27,6 @@ export default function Dashboard() {
       case "KINDERTRAINING":
         nav("/kindertraining");
         break;
-      case "LEISTUNGSGRUPPE":
-        nav("/leistungsgruppe");
-        break;
       case "STATISTIK":
         nav("/statistik");
         break;

@@ -4,6 +4,8 @@ import ReactDOM from 'react-dom/client'
 import App from './App'
 import './index.css'
 import "./assets/styles/GlobalStyles.css"
+import "./modules/uebungskatalog/styles/Uebungskatalog.css";
+
 
 // ✅ Optional: einfache ENV-Check-Ausgabe im Log
 const requiredEnvVars = [
