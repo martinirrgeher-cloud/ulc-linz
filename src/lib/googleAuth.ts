@@ -115,3 +115,14 @@ export function logoutGoogle() {
     console.warn("⚠️ Konnte Auto-Select nicht deaktivieren:", err);
   }
 }
+
+export async function silentRefreshIfNeeded(): Promise<void> {
+  const token = getAccessToken();
+  if (!token) return;
+  try {
+    await refreshAccessToken();
+    console.log("[GoogleAuth] Silent refresh erfolgreich");
+  } catch (err) {
+    console.warn("[GoogleAuth] Silent refresh fehlgeschlagen", err);
+  }
+}

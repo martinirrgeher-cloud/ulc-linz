@@ -75,7 +75,7 @@ function requireEnv(name: string): string {
 const FOLDER_ID_ENV = "VITE_DRIVE_TRAININGSPLAN_FOLDER_ID";
 
 // ---------- Hook ----------
-export interface UseTrainingsplan {
+export interface useTrainingsplan {
   week: WeekKey;
   plan?: Trainingsplan;
   load: LoadState;
@@ -92,7 +92,7 @@ export interface UseTrainingsplan {
   copyFromPreviousWeek: () => Promise<void>;
 }
 
-export default function useTrainingsplan(): UseTrainingsplan {
+export default function useTrainingsplan(): useTrainingsplan {
   const [week, setWeek] = useState<WeekKey>(() => currentISOWeek());
   const [plan, setPlan] = useState<Trainingsplan>();
   const [load, setLoad] = useState<LoadState>({ loading: true });
