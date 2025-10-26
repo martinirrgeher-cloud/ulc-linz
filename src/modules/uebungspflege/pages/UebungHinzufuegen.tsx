@@ -59,7 +59,7 @@ export default function UebungHinzufuegen() {
     try {
       const result = await uploadMedia(file);
       setMediaUrl(result.url);
-      etMediaType(result.type as "" | "video" | "image");
+      setMediaType(result.type as "" | "video" | "image");
       setMediaName(result.name || file.name);
       setMediaId(result.id);
       return result;

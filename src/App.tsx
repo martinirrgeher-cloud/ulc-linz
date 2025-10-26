@@ -12,7 +12,6 @@ import AthletenPage from "@/modules/athleten/pages/Athleten";
 import UebungHinzufuegen from "@/modules/uebungspflege/pages/UebungHinzufuegen";
 import Katalog from "@/modules/uebungskatalog/pages/Katalog";
 
-
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { token, user } = useAuth();
   if (!token) return <Navigate to="/login1" replace />;
@@ -45,51 +44,51 @@ export default function App() {
               </PrivateRoute>
             }
           />
-<Route
-  path="/kindertraining/statistik"
-  element={
-    <PrivateRoute>
-      <Statistik />
-    </PrivateRoute>
-  }
-/>
 
-<Route
-  path="/leistungsgruppe/anmeldung"
-  element={
-    <PrivateRoute>
-      <Anmeldung />
-    </PrivateRoute>
-  }
-/>
+          <Route
+            path="/kindertraining/statistik"
+            element={
+              <PrivateRoute>
+                <Statistik />
+              </PrivateRoute>
+            }
+          />
 
-<Route
-  path="/athleten"
-  element={
-    <RequireAuth modules={['ADMIN','KINDERTRAINING','LEISTUNGSGRUPPE']}>
-      <AthletenPage />
-    </RequireAuth>
-  }
-/>
+          <Route
+            path="/leistungsgruppe/anmeldung"
+            element={
+              <PrivateRoute>
+                <Anmeldung />
+              </PrivateRoute>
+            }
+          />
 
-<Route
-  path="/uebungspflege"
-  element={
-    <PrivateRoute requiredModules={["UEBUNGS_PFLEGE"]}>
-      <UebungHinzufuegen />
-    </PrivateRoute>
-  }
-/>
-<Route
-  path="/uebungskatalog"
-  element={
-    <PrivateRoute requiredModules={["UEBUNGSKATALOG"]}>
-      <Katalog />
-    </PrivateRoute>
-  }
-/>
+          <Route
+            path="/athleten"
+            element={
+              <RequireAuth requiredModules={["ADMIN", "KINDERTRAINING", "LEISTUNGSGRUPPE"]}>
+                <AthletenPage />
+              </RequireAuth>
+            }
+          />
 
+          <Route
+            path="/uebungspflege"
+            element={
+              <RequireAuth requiredModules={["UEBUNGS_PFLEGE"]}>
+                <UebungHinzufuegen />
+              </RequireAuth>
+            }
+          />
 
+          <Route
+            path="/uebungskatalog"
+            element={
+              <RequireAuth requiredModules={["UEBUNGSKATALOG"]}>
+                <Katalog />
+              </RequireAuth>
+            }
+          />
 
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
         </Routes>
