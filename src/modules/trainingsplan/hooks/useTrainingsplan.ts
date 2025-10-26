@@ -1,30 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import DriveClient from "@/lib/drive/DriveClient";
+import type { ExerciseRef, WeekKey } from "../types/TrainingsplanTypes";
 
 export type ISOWeekDay = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
 
-export interface WeekKey {
-  isoWeek: number;
-  year: number;
-}
-
-export interface PlanItem {
-  id: string;
-  name: string;
-  wiederholungen?: number;
-  distanz?: string;
-  dauerSek?: number;
-  stern?: number;
-  notiz?: string;
-}
-
 export interface DayPlan {
   dateISO: string;
-  items: PlanItem[];
+  items: ExerciseRef[];
 }
 
 export interface Trainingsplan {
-  key: WeekKey; // ✅ angepasst
+  key: WeekKey;
   version: number;
   updatedAt: string;
   days: Record<ISOWeekDay, DayPlan>;
@@ -32,11 +18,6 @@ export interface Trainingsplan {
 
 /** Hilfsfunktionen **/
 function pad2(n: number) { return n.toString().padStart(2, "0"); }
-
-function getISODay(d: Date): number {
-  const day = d.getDay();
-  return day === 0 ? 7 : day;
-}
 
 function getISOWeek(d0: Date): number {
   const d = new Date(Date.UTC(d0.getFullYear(), d0.getMonth(), d0.getDate()));
@@ -83,7 +64,7 @@ function makeEmptyWeek(isoWeek: number, year: number): Trainingsplan {
     days[key] = { dateISO: `${yyyy}-${mm}-${dd}`, items: [] };
   }
   return {
-    key: { isoWeek, year }, // ✅ geändert von string auf WeekKey
+    key: { isoWeek, year },
     version: 1,
     updatedAt: new Date().toISOString(),
     days,
@@ -153,10 +134,9 @@ export default function useTrainingsplan(initial?: WeekKey) {
     if (!folderId) throw new Error("VITE_DRIVE_TRAININGSPLAN_FOLDER_ID ist nicht gesetzt");
     if (!nextPlan || !nextPlan.days) throw new Error("Ungültiger Plan (missing days)");
 
-    // Metadaten aktualisieren
     const updatedPlan: Trainingsplan = {
       ...nextPlan,
-      key: { isoWeek: week.isoWeek, year: week.year }, // ✅ WeekKey statt string
+      key: { isoWeek: week.isoWeek, year: week.year },
       version: (nextPlan.version ?? 0) + 1,
       updatedAt: new Date().toISOString(),
     };
