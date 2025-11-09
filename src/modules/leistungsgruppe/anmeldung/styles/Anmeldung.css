@@ -1,138 +1,144 @@
-.anmeldung-container {
-  padding: 1rem;
-  max-width: 450px;
-  margin: 0 auto;
-  font-family: system-ui, sans-serif;
-}
-
-.anmeldung-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.8rem;
-}
-
-.anmeldung-header h1 {
-  font-size: 1.5rem;
-  font-weight: 600;
-  margin: 0;
-}
-
-.icon-button {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0.3rem;
-  display: flex;
-  align-items: center;
-}
-
-.kalender-nav {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 1rem;
-  margin: 0.5rem 0 1rem 0;
-  font-weight: 500;
-}
-
-.nav-button {
-  background: #eee;
-  border: 1px solid #ccc;
-  padding: 0.3rem 0.7rem;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.athlet-dropdown {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-}
-
 .athlet-dropdown select {
   flex: 1;
-  padding: 0.3rem;
-}
-
-.tage-liste {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-}
-
-.tag-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.4rem 0.5rem;
-  border-bottom: 1px solid #eee;
-}
-
-.tag-label {
-  flex: 1;
-  min-width: 160px;
-}
-
-.tag-actions {
-  display: flex;
-  gap: 0.4rem;
-}
-
-.status-button,
-.notiz-button {
-  width: 38px;
-  height: 38px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-size: 18px;
-  border: 1px solid #ccc;
-  background: #eee;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background 0.2s ease;
-}
-
-.status-button.green {
-  background: #2ecc71;
-  color: #fff;
-}
-
-.status-button.red {
-  background: #e74c3c;
-  color: #fff;
-}
-
-.notiz-button.filled {
-  background: #3498db;
-  color: white;
-}
-
-.notiz-modal {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.4);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.notiz-content {
+  padding: 0.42rem 0.5rem;
+  border: 1px solid #cfcfcf;
+  border-radius: 6px;
   background: #fff;
-  padding: 1rem;
-  border-radius: 8px;
-  width: 90%;
-  max-width: 400px;
+  font-family: inherit; /* <--- sorgt für gleiche Schriftart */
+  font-size: 1rem;      /* optional: vereinheitlicht Größe */
 }
+
+.copyweek-button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.copyweek-button:not(:disabled):hover {
+  background: #e3e3e3;
+}
+
+/* Dezentere, weichere Buttons */
+.status-button,
+
+
+.status-button:disabled,
+.notiz-button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+/* Pastellfarben */
+
+.notiz-button
+
+/* Modal beibehalten */
 
 .notiz-content textarea {
   width: 100%;
   min-height: 120px;
+  border: 1px solid #dadada;
+  border-radius: 8px;
+  padding: 0.6rem;
 }
 
-.modal-actions {
-  margin-top: 0.5rem;
-  text-align: right;
+/* Kleinere Status-Meldungen */
+.anmeldung-loading,
+
+/* === Anmeldung: Verbesserungen === */
+.anm-container { padding: 8px; }
+.anm-toolbar { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; gap:8px; }
+.anm-nav { display:flex; align-items:center; gap:8px; }
+.anm-week { font-weight:600; }
+.anm-btn { padding:6px 10px; border:1px solid #ddd; border-radius:8px; background:#fff; cursor:pointer; }
+.anm-btn.primary { background:#111; color:#fff; border-color:#111; }
+
+
+.chip
+.chip
+.chip
+.day-weekday { color:#666; font-size:.85rem; }
+.day-label { font-size:.85rem; }
+.dot
+.dot
+.dot
+.status-btn.is-active
+.status-btn.is-active
+.status-btn.is-active
+
+.note-indicator { margin-left:.25rem; font-size:.9rem; opacity:.7; }
+
+.note-text { width:100%; min-height:60px; padding:6px; border:1px solid #ddd; border-radius:6px; }
+.note-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:6px; }
+
+.anm-info, .anm-error { padding:8px; }
+
+/* === Anmeldung: Einzelauswahl-Layout (Tage als Zeilen) === */
+.anm-picker label { display:flex; align-items:center; gap:8px; }
+.anm-select { padding:6px 10px; border:1px solid #ddd; border-radius:8px; }
+.anm-list-rows { display:flex; flex-direction:column; gap:8px; }
+.anm-row { display:flex; align-items:center; justify-content:space-between; padding:8px 0; border-bottom:1px solid #f1f1f1; }
+.anm-row-left { display:flex; align-items:baseline; gap:8px; }
+.anm-row-right { display:flex; align-items:center; gap:8px; }
+
+/* === Anmeldung: größere Schrift, Einzelauswahl, Cycle-Button & Overlay === */
+.anm-lg { font-size: 1.08rem; }
+.anm-select { padding: 8px 12px; border-radius: 10px; border: 1px solid #ddd; }
+.anm-list-rows { display:flex; flex-direction:column; gap:10px; }
+.anm-row { display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid #f0f0f0; }
+
+.status-cycle {
+  min-width: 108px;
+  min-height: 48px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid #d7d7d7;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 1.05rem;
+  background: #fff;
+  box-shadow: 0 1px 0 rgba(0,0,0,.03);
 }
+.status-cycle:hover { box-shadow: 0 2px 0 rgba(0,0,0,.05); }
+.status-cycle.yes { background:#eaf6ea; border-color:#cce6cc; }
+.status-cycle.no { background:#fdeeee; border-color:#f4caca; }
+.status-cycle.maybe { background:#f3f3ff; border-color:#dcdcff; }
+
+.note-icon {
+  margin-left: 8px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: 1px solid #e0e0e0;
+  background: #fff;
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.note-icon.filled {
+  background: #eef5ff;
+  border-color: #c9dfff;
+  color: #0b6bcb;
+}
+.note-icon:hover { box-shadow: 0 1px 0 rgba(0,0,0,.05); }
+
+
+
+.anm-btn.ghost { background: transparent; border: 1px solid #ddd; border-radius: 10px; padding: 8px 12px; }
+.note-indicator { margin-left:6px; font-size:1.1rem; opacity:.75; }
+
+/* Overlay */
+.note-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.35);
+  display: flex; align-items: center; justify-content: center; z-index: 50;
+}
+.note-card {
+  width: min(720px, 92vw);
+  background: #fff; border-radius: 14px; padding: 16px; box-shadow: 0 10px 30px rgba(0,0,0,.2);
+}
+.note-title { font-weight: 700; margin-bottom: 10px; }
+.note-text.lg { width: 100%; min-height: 140px; padding: 10px; border: 1px solid #ddd; border-radius: 10px; font-size: 1rem; }
+.note-actions { display:flex; gap:10px; justify-content: flex-end; margin-top: 10px; }
+
+
+
+.day-label, .day-weekday { font-size: 1.15rem; }

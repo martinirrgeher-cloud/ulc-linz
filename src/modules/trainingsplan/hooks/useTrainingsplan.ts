@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import DriveClient from "@/lib/drive/DriveClient";
+import DriveClient from "@/modules/trainingsplan/services/TrainingsplanStore";
 import type { ExerciseRef, WeekKey } from "../types/TrainingsplanTypes";
 
 export type ISOWeekDay = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";

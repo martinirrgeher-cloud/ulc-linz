@@ -1,12 +1,9 @@
-interface Props {
-  title: string;
-  onClick: () => void;
-}
+import React from "react";
 
-export function KategorieKachel({ title, onClick }: Props) {
+export function KategorieKachel({ title, onClick }:{ title:string; onClick:()=>void }) {
   return (
     <div className="kategorie-kachel" onClick={onClick}>
-      <span>{title}</span>
+      {title}
     </div>
   );
 }

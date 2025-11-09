@@ -1,0 +1,96 @@
+/* Athleten styling */
+.kt-container { padding: 10px; }
+.kt-list-header { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+.kt-row { display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding:8px; cursor:pointer; }
+.kt-row:hover { background:#fafafa; }
+.kt-name { font-weight:600; }
+.kt-chip { font-size:12px; border:1px solid #ddd; padding:2px 6px; border-radius:10px; }
+.kt-input, .kt-textarea { font-family:inherit; padding:8px; border:1px solid #ddd; border-radius:8px; }
+.kt-btn { border:1px solid #ddd; border-radius:8px; background:#fff; padding:6px 10px; cursor:pointer; }
+.kt-btn.primary { background:#000; color:#fff; }
+.kt-modal-backdrop { position:fixed; inset:0; background:rgba(0,0,0,0.4); display:flex; align-items:center; justify-content:center; z-index:1000; }
+.kt-modal { background:#fff; border-radius:12px; padding:16px; width:min(500px,90vw); max-height:90vh; overflow:auto; }
+.kt-modal-title { font-weight:700; margin-bottom:10px; }
+.kt-toggle { width:40px; height:22px; border-radius:20px; background:#ccc; position:relative; cursor:pointer; transition:background .3s; }
+.kt-toggle.on { background:#000; }
+.kt-knob { width:18px; height:18px; border-radius:50%; background:#fff; position:absolute; top:2px; left:2px; transition:left .3s; }
+.kt-toggle.on .kt-knob { left:20px; }
+
+/* --- Fix: Label immer über dem Eingabefeld anzeigen --- */
+.kt-field {
+  display: flex;
+  flex-direction: column; /* sorgt für vertikale Anordnung */
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+
+.kt-left { display: flex; flex-direction: column; gap: 4px; }
+.kt-right { text-align: right; display: flex; flex-direction: column; gap: 4px; align-items: end; }
+.kt-name { font-weight: 600; }
+.kt-sub { font-size: 12px; color: #666; }
+.kt-meta { font-size: 12px; color: #444; }
+.kt-chip { font-size: 11px; padding: 2px 8px; border-radius: 999px; background: #f1f1f1; color: #333; }
+.kt-chip.danger { background: #fde7e7; color: #a11; }
+
+
+.kt-field label {
+  margin-bottom: 4px;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+/* === Athleten: kompakte Filterleiste & dezente Controls === */
+.kt-toolbar--compact {
+  padding: 6px 0;
+  border-bottom: 1px solid #ececec;
+  margin-bottom: 8px;
+}
+.kt-filter {
+  display: inline-flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  color: #666;
+  font-size: 0.9rem;
+}
+.kt-field--sm > span {
+  font-size: 0.85rem;
+  color: #777;
+}
+.kt-select-sm {
+  padding: 4px 8px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 0.9rem;
+}
+/* Chip-Style für Inaktive-Checkbox */
+.kt-chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid #e2e2e2;
+  background: #fafafa;
+  cursor: pointer;
+  user-select: none;
+}
+.kt-chip input {
+  accent-color: #0b6bcb;
+}
+.kt-chip.is-active {
+  background: #eef6ff;
+  border-color: #cfe7ff;
+}
+.kt-chip span {
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.kt-btn.primary:disabled { opacity: .5; cursor: not-allowed; }
+.kt-input.is-invalid { border-color: #d33; }
+.req { color: #d33; font-weight: 700; }
+.kt-error-text { color: #b00; font-size: 12px; margin-top: 4px; }
+

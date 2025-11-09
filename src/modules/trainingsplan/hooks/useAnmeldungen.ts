@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { parseISO, getISOWeek, getISOWeekYear, format } from "date-fns";
 import { ISOWeekDay } from "../types/TrainingsplanTypes";
-import DriveClient from "@/lib/drive/DriveClient";
+import DriveClient from "@/lib/drive/DriveClientCore";
 
 const cache = new Map<string, { ja: any[]; nein: any[] }>();
 

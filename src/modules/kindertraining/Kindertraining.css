@@ -1,500 +1,69 @@
-/* ==============================================
-   🧑‍🏫 Kindertraining – einheitliches Tabellenlayout
-   ============================================== */
-
-.kt-wrapper {
-  padding: 8px;
-  background: #fff;
-  font-family: "Inter", Arial, sans-serif;
-  color: #111827;
-}
-
-/* ===========================
-   Tabelle
-=========================== */
-.kt-personlist .kt-table {
-  width: 100%;
-  border-collapse: collapse;
-  background: #fff;
-  border-radius: 10px;
-  box-shadow: 0 6px 18px rgba(20, 23, 38, 0.06);
-  overflow: hidden;
-  margin-top: 16px;
-}
-
-.kt-personlist .kt-table th,
-.kt-personlist .kt-table td {
-  border-bottom: 1px solid #e5e7eb;
-  text-align: center;
-  vertical-align: middle;
-  padding: 8px;
-}
-
-.kt-personlist .kt-table th {
-  background: #f9fafb;
-  font-weight: 600;
-  color: #374151;
-  position: sticky;
-  top: 0;
-  z-index: 2;
-}
-
-/* ===========================
-   Namensspalte
-=========================== */
-.nameCol {
-  text-align: left;
-  width: 1%;
-  white-space: nowrap;
-}
-
-.kt-personlist .kt-table th.nameCol,
-.kt-personlist .kt-table td.nameCol {
-  min-width: 100px;
-  max-width: 180px;
-}
-
-/* ===========================
-   Datumsspalten
-=========================== */
-.kt-personlist .kt-table th.dateHeader {
-  text-align: center;
-  vertical-align: middle;
-  min-width: 60px;
-  max-width: 70px;
-  padding: 6px;
-}
-
-.kt-personlist .kt-table th.dateHeader div {
-  display: block;
-  line-height: 1.2;
-  white-space: nowrap;
-}
-.dayLabel {
-  font-size: 0.85rem;
-  font-weight: 500;
-  color: #4b5563;
-}
-
-.dayCell {
-  text-align: center;
-  width: 60px;
-  min-width: 60px;
-  max-width: 70px;
-  padding: 4px;
-}
-
-.kt-personlist input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
-  cursor: pointer;
-}
-
-/* ===========================
-   Personenzeilen
-=========================== */
-.personRow {
-  transition: background 0.2s ease;
-}
-
-.personRow:hover {
-  background: #f9fafb;
-}
-
-.inactivePersonRow {
-  background: #f3f4f6;
-  color: #9ca3af;
-}
-
-.kt-person-table-container {
-  max-height: 60vh;        /* oder eine passende Höhe für dein Layout */
-  overflow-y: auto;
-}
-
-.kt-person-table thead th {
-  position: sticky;
-  top: 0;
-  background: white;
-  z-index: 2;
-  padding: 6px;
-  border-bottom: 2px solid #ccc;
-}
-
-
-/* ===========================
-   Name + € Symbol
-=========================== */
-.nameButton {
-  background: none;
-  border: none;
-  font-size: 1rem;
-  font-weight: 500;
-  color: #111827;
-  cursor: pointer;
-  display: inline-flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 6px;
-  white-space: nowrap;
-}
-
-.nameButton:hover {
-  text-decoration: underline;
-}
-
-.euroIcon {
-  font-size: 0.9rem;
-  color: #b91c1c;
-  line-height: 1;
-}
-
-/* ===========================
-   Notiz- und Aktivierungsbuttons im Header
-=========================== */
-.note-btn,
-.dateToggle {
-  padding: 4px 6px;
-  font-size: 0.85rem;
-  background: #fff;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.note-btn:hover,
-.dateToggle:hover {
-  background: #f3f4f6;
-}
-
-.note-btn.has-note {
-  background: #fef9c3;
-  color: #92400e;
-}
-
-.dateToggle[aria-pressed="true"] {
-  background: #fee2e2;
-  color: #b91c1c;
-}
-
-.disabled-col-header {
-  background: #f1f5f9 !important;
-  color: #94a3b8 !important;
-}
-
-.disabled-cell {
-  background: #f8fafc;
-  color: #94a3b8;
-}
-
-/* Ausgegraute Spalten */
-.dayCell.disabled {
-  background-color: #f3f4f6;
-  color: #9ca3af;
-}
-
-.disabled-col-header {
-  background-color: #e5e7eb;
-  color: #6b7280;
-}
-
-/* ===========================
-   Personen-Menü (Popup unter Name)
-=========================== */
-.menuRow {
-  background: #f9fafb;
-}
-
-.menuRow .menuRowBox {
-  padding: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.menuRow .menuRowItem {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-/* Notizfeld im Personenmenü */
-.personMenuWide textarea {
-  font-family: inherit;        /* gleiche Schriftart wie Umgebung */
-  font-size: inherit;          /* gleiche Schriftgröße */
-  line-height: 1.4;
-  width: 100%;
-  padding: 6px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  resize: vertical;           /* erlaubt Größe anpassen */
-}
-
-.personMenuWide button {
-  background: #fff;
-  border: 1px solid #d1d5db;
-  padding: 6px 10px;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.personMenuWide button:hover {
-  background: #f3f4f6;
-}
-
-.personMenuWide .dangerBtn {
-  color: #b91c1c;
-  border-color: #b91c1c;
-}
-
-.personMenuWide .dangerBtn:hover {
-  background: #fee2e2;
-}
-
-.personMenuWide .closeBtn {
-  color: #374151;
-}
-
-/* ===========================
-   Personen-Menü
-=========================== */
-
-/* Popup Layout */
-.personMenuWide {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 8px;
-}
-
-/* Zeilen */
-.personMenuRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-/* 1. Zeile */
-.personMenuRow.header input {
-  flex: 1;
-}
-
-.personMenuRow.header .closeBtn {
-  background: none;
-  border: none;
-  font-size: 1.2rem;
-  cursor: pointer;
-}
-
-/* 2. Zeile */
-.personMenuRow.note textarea {
-  flex: 1;
-  font-family: inherit;
-  font-size: inherit;
-  padding: 6px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-}
-
-/* 3. Zeile */
-.personMenuRow.actions {
-  justify-content: space-between;
-}
-
-.personMenuRow.actions .action-left,
-.personMenuRow.actions .action-center,
-.personMenuRow.actions .action-right {
-  flex: 1;
-  display: flex;
-  justify-content: center;
-}
-
-.personMenuRow.actions .action-left {
-  justify-content: flex-start;
-}
-
-.personMenuRow.actions .action-right {
-  justify-content: flex-end;
-}
-
-.inactiveBtn.active {
-  background-color: #f0f0f0;
-}
-
-.dangerBtn {
-  background: #e53935;
-  color: white;
-  border: none;
-  padding: 6px 10px;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-
-
-
-
-/* ===========================
-   Notiz-Popup
-=========================== */
-.note-popup {
-  position: fixed;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.5);
-}
-
-.note-popup .note-card {
-  background: #fff;
-  padding: 16px;
-  border-radius: 10px;
-  width: 92%;
-  max-width: 520px;
-}
-
-/* ===========================
-   Personen-Popup Menü
-=========================== */
-
-.menuRow {
-  background: #f9fafb;
-}
-
-.personMenuWide {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 12px;
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
-}
-
-/* Zeilen im Menü */
-.menuRowItem.actions {
-  display: flex;
-  justify-content: flex-end;  /* oder space-between, wenn du sie auseinanderziehen willst */
-  gap: 12px;
-}
-
-.menuRowItem label {
-  font-size: 0.9rem;
-  color: #374151;
-  white-space: nowrap;
-}
-
-.menuRowItem input[type="text"] {
-  flex: 1;
-  min-width: 120px;
-  padding: 6px 8px;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 0.9rem;
-}
-
-/* Buttons im Menü */
-.personMenuWide button {
-  background: #ffffff;
-  border: 1px solid #d1d5db;
-  padding: 6px 10px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 0.9rem;
-}
-
-.personMenuWide button:hover {
-  background: #f3f4f6;
-}
-
-/* Gefahr-Button */
-.personMenuWide .dangerBtn {
-  color: #b91c1c;
-  border-color: #b91c1c;
-}
-
-.personMenuWide .dangerBtn:hover {
-  background: #fee2e2;
-}
-
-/* Schließen-Button */
-.personMenuWide .closeBtn {
-  color: #374151;
-}
-
-/* letzte Zeile: Aktionen nebeneinander */
-.menuRowItem.actions {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 4px;
-}
-
-/* Responsive Anpassung */
-@media (max-width: 600px) {
-  .menuRowItem input[type="text"] {
-    width: 100%;
-  }
-}
-
-  .menuRowItem.actions {
-    flex-direction: column;
-    gap: 8px;
-  }
-}
-
-/* Topbar Layout */
-/* Topbar Layout – immer eine Zeile */
-.kt-topbar {
-  display: grid;
-  grid-template-columns: 1fr auto; /* links flexibel, rechts so breit wie nötig */
-  align-items: center;
-  gap: 8px;
-  margin: 8px 0;
-  /* kein flex-wrap mehr */
-}
-
-.kt-topbar-left { min-width: 0; } /* verhindert, dass das Input die rechte Spalte verdrängt */
-
-.kt-input {
-  width: 70%;      /* füllt die 1fr-Spalte */
-  max-width: none;  /* kein künstliches Schrumpfen mehr */
-  padding: 6px 10px;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-}
-
-/* falls .header-btn irgendwo als block/100% definiert ist → hier übersteuern */
-.kt-topbar-right .header-btn {
-  display: inline-flex;
-  width: auto;
-  white-space: nowrap; /* Button-Text nicht umbrechen */
-}
-
-/* ===========================
-   Responsive
-=========================== */
-@media (max-width: 600px) {
-  .kt-personlist .kt-table th,
-  .kt-personlist .kt-table td {
-    padding: 6px;
-    font-size: 0.85rem;
-  }
-
-  .kt-personlist .kt-table th.nameCol,
-  .kt-personlist .kt-table td.nameCol {
-    min-width: 80px;
-  }
-
-  .kt-personlist .kt-table th.dateHeader,
-  .dayCell {
-    min-width: 45px;
-    max-width: 60px;
-  }
-
-  .nameButton {
-    font-size: 0.9rem;
-  }
+/* DEBUG: falls nötig aktivieren, um CSS-Ladung zu prüfen */
+/* html body { outline: 2px solid lime; } */
+
+.kindertraining.kt-shell { padding: 12px; margin: 0 auto; max-width: 1100px; }
+.kt-card { background:#fff; border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,.08); padding:12px; }
+
+/* Header (3 Zeilen) */
+.kt-header { display: grid; gap: 10px; margin-bottom: 8px; }
+.kt-header__row { display: flex; align-items: center; gap: 12px; }
+.kt-header__row--center { justify-content: center; }
+.kt-kw { display: inline-flex; align-items: baseline; gap: 8px; font-size: 22px; font-weight: 700; }
+.kt-kw__year { color:#334155; } .kt-kw__sep { opacity: .5; } .kt-kw__num { color: #0f172a; }
+
+/* Controls */
+.kt-field { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.kt-label { font-size: 13px; color:#334155; }
+.kt-select { padding: 6px 8px; border:1px solid #cbd5e1; border-radius:8px; background:#fff; }
+.kt-days { display: flex; flex-wrap: wrap; gap: 8px; }
+.kt-switch { position: relative; display: inline-flex; align-items: center; }
+.kt-switch input { position:absolute; opacity:0; pointer-events:none; }
+.kt-switch__pill { padding: 6px 10px; border-radius: 999px; border:1px solid #cbd5e1; background:#fff; font-size:13px; cursor:pointer; }
+.kt-switch.is-on .kt-switch__pill { background:#0ea5e9; border-color:#0ea5e9; color:#fff; }
+.kt-switch--ghost .kt-switch__pill { background:transparent; }
+
+/* Suche / Buttons */
+.kt-toolbar { display:flex; gap:8px; align-items:center; margin: 8px 0 12px; }
+.kt-input { padding: 8px 10px; border:1px solid #cbd5e1; border-radius:8px; background:#fff; }
+.kt-input--search { flex: 1; min-width: 160px; }
+.kt-btn { padding: 6px 12px; border-radius: 8px; border:1px solid #cbd5e1; background:#fff; cursor:pointer; }
+.kt-btn--primary { background:#111827; color:#fff; border-color:#111827; }
+
+/* Tabelle */
+.kt-table { width: 100%; border-radius: 10px; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.06); overflow: hidden; }
+.kt-row { display: flex; align-items: center; border-top: 1px solid #f1f5f9; }
+.kt-row:first-child { border-top: 0; }
+.kt-row--head { background: #f8fafc; font-weight: 600; }
+.kt-col { padding: 8px 10px; display: flex; align-items: center; gap: 8px; }
+.kt-col--name { min-width: 220px; max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
+.kt-col--day { flex: 1 1 0; justify-content: center; }
+.kt-row.is-inactive { opacity: .6; }
+
+/* Checkboxen */
+.kt-check { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; }
+.kt-check input { position: absolute; opacity: 0; pointer-events: none; }
+.kt-check__box { width: 18px; height: 18px; border-radius: 4px; border: 2px solid #cbd5e1; background: #fff; display: inline-block; }
+.kt-check input:checked + .kt-check__box { background: #0ea5e9; border-color:#0ea5e9; box-shadow: inset 0 0 0 3px #fff; }
+
+/* Day-Header */
+.kt-dayhead { display:flex; flex-direction: column; align-items:center; gap:6px; width:100%; }
+.kt-dayhead__date { font-weight: 600; font-size: 13px; }
+.kt-icon-note { background: transparent; border: none; cursor: pointer; font-size: 16px; line-height: 1; }
+
+/* Modals */
+.kt-modal__backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.35); display: flex; align-items: center; justify-content: center; z-index: 60; }
+.kt-modal { width: min(560px, 92vw); background: #fff; border-radius: 12px; box-shadow: 0 18px 48px rgba(0,0,0,.2); overflow: hidden; }
+.kt-modal__header, .kt-modal__footer { padding: 12px 14px; display: flex; align-items: center; gap: 10px; }
+.kt-modal__header { justify-content: space-between; border-bottom: 1px solid #e2e8f0; }
+.kt-modal__footer { justify-content: flex-end; border-top: 1px solid #e2e8f0; }
+.kt-modal__title { font-weight: 700; }
+.kt-modal__close { background: transparent; border: none; font-size: 22px; cursor: pointer; line-height: 1; }
+.kt-modal__body { padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+.kt-rowline { display: flex; align-items: center; gap: 10px; }
+.kt-textarea { min-height: 120px; border:1px solid #cbd5e1; border-radius: 8px; padding: 8px; font: inherit; }
+
+@media (max-width: 720px) {
+  .kindertraining.kt-shell { padding: 8px; }
+  .kt-col--name { min-width: 180px; max-width: 180px; }
+  .kt-check__box { width: 16px; height: 16px; }
 }

@@ -1,0 +1,12 @@
+.app-logo-container {
+  display: flex;
+  justify-content: center;
+  margin: 20px 0 10px;
+}
+
+.app-logo {
+  max-width: 90%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}

@@ -1,169 +1,91 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { downloadJson, uploadJson } from "@/lib/drive/DriveClient";
+// src/modules/leistungsgruppe/anmeldung/hooks/useAnmeldung.ts
+import { useCallback, useEffect, useMemo, useState } from "react";
+import type { DayStatus } from "../services/AnmeldungStore";
+import { loadAnmeldung, saveAnmeldung } from "../services/AnmeldungStore";
+import { loadAthleten } from "@/modules/athleten/services/AthletenStore";
+import { startOfISOWeek } from "../utils/weekUtils";
 
-type DayStatus = "YES" | "NO" | "MAYBE" | null;
-
-interface DriveShape {
-  statuses?: Record<string, DayStatus>;
-  notes?: Record<string, string>;
-}
-
-const FILE_ID = import.meta.env.VITE_DRIVE_LG_ANMELDUNG_FILE_ID as string;
-const DEBOUNCE_MS = 300;
-
-// Kalenderfunktionen
-function startOfISOWeek(d: Date): Date {
-  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-  const day = (date.getUTCDay() + 6) % 7;
-  date.setUTCDate(date.getUTCDate() - day);
-  return new Date(date);
-}
-function toIsoDate(d: Date): string {
-  const y = d.getUTCFullYear();
-  const m = String(d.getUTCMonth() + 1).padStart(2, "0");
-  const day = String(d.getUTCDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
-function formatDateLabel(d: Date): string {
-  const dd = String(d.getUTCDate()).padStart(2, "0");
-  const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
-  const yyyy = d.getUTCFullYear();
-  return `${dd}.${mm}.${yyyy}`;
-}
-const WEEKDAYS_MON_FIRST = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
-function getDaysOfWeek(startDate: Date) {
-  const start = startOfISOWeek(startDate);
-  const out = [];
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(start);
-    d.setUTCDate(start.getUTCDate() + i);
-    out.push({
-      date: toIsoDate(d),
-      dateLabel: formatDateLabel(d),
-      weekday: WEEKDAYS_MON_FIRST[i],
-    });
-  }
-  return out;
-}
-function getISOWeekYear(d: Date) {
-  const date = startOfISOWeek(d);
-  return date.getUTCFullYear();
-}
-function getISOWeekNumber(d: Date) {
-  const date = startOfISOWeek(d);
-  const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
-  const diffDays = Math.floor((Number(date) - Number(yearStart)) / 86400000);
-  return Math.floor(diffDays / 7) + 1;
-}
-function addWeeks(d: Date, weeks: number) {
-  const nd = new Date(d);
-  nd.setUTCDate(nd.getUTCDate() + 7 * weeks);
-  return nd;
-}
+type Athlete = {
+  id: string;
+  firstName?: string;
+  lastName?: string;
+  name?: string;
+  active?: boolean;
+  altersklasse?: string;
+  geburtsjahr?: number;
+  info?: string;
+};
 
 export function useAnmeldung() {
-  const [baseDate, setBaseDate] = useState<Date>(() => new Date());
-  const [driveData, setDriveData] = useState<DriveShape>({ statuses: {}, notes: {} });
+  const [athletes, setAthletes] = useState<Athlete[]>([]);
+  const [statuses, setStatuses] = useState<Record<string, DayStatus>>({});
+  const [notes, setNotes] = useState<Record<string, string>>({});
+  const [weekStart, setWeekStart] = useState<Date>(() => startOfISOWeek(new Date()));
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const saveTimer = useRef<number | null>(null);
-  const lastSavedRef = useRef<string>("");
-
-  const jahr = useMemo(() => getISOWeekYear(baseDate), [baseDate]);
-  const kw = useMemo(() => getISOWeekNumber(baseDate), [baseDate]);
-  const tage = useMemo(() => getDaysOfWeek(baseDate), [baseDate]);
-
-  // Laden
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const json = await downloadJson(FILE_ID);
-        if (mounted) {
-          setDriveData({
-            statuses: (json?.statuses ?? {}) as Record<string, DayStatus>,
-            notes: (json?.notes ?? {}) as Record<string, string>,
-          });
-          lastSavedRef.current = JSON.stringify(json ?? {});
-        }
-      } catch (e: any) {
-        if (mounted) setError(e?.message ?? "Fehler beim Laden der Anmeldung");
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    })();
-    return () => { mounted = false; };
+  const loadAll = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [ath, anm] = await Promise.all([loadAthleten(), loadAnmeldung()]);
+      setAthletes(ath.filter(a => a.active !== false));
+      setStatuses(anm.statuses || {});
+      setNotes(anm.notes || {});
+    } catch (e: any) {
+      setError(e?.message || "Laden fehlgeschlagen");
+      console.error("useAnmeldung load error", e);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  const debouncedSave = useCallback((data: DriveShape) => {
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = window.setTimeout(async () => {
-      setSaving(true);
-      setError(null);
-      try {
-        await uploadJson(FILE_ID, data);
-        lastSavedRef.current = JSON.stringify(data);
-      } catch (e: any) {
-        setError(e?.message ?? "Fehler beim Speichern");
-        try {
-          setDriveData(JSON.parse(lastSavedRef.current));
-        } catch {}
-      } finally {
-        setSaving(false);
-      }
-    }, DEBOUNCE_MS);
+  useEffect(() => { loadAll(); }, [loadAll]);
+
+  const persist = useCallback(async (nextStatuses: Record<string, DayStatus>, nextNotes: Record<string, string>) => {
+    try {
+      await saveAnmeldung({ statuses: nextStatuses, notes: nextNotes });
+    } catch (e: any) {
+      console.error("Speichern fehlgeschlagen", e);
+      setError(e?.message || "Speichern fehlgeschlagen");
+    }
   }, []);
 
-  // Status-Funktionen
-  const getStatus = useCallback((athletId: string, isoDate: string): DayStatus => {
-    const key = `${athletId}_${isoDate}`;
-    return (driveData.statuses ?? {})[key] ?? null;
-  }, [driveData.statuses]);
+  const setStatus = useCallback((athleteId: string, isoDate: string, s: DayStatus) => {
+    setStatuses(prev => {
+      const next = { ...prev };
+      const key = `${athleteId}:${isoDate}`;
+      if (s === null) delete next[key];
+      else next[key] = s;
+      // persist with current notes
+      // we don't await here to keep UI snappy
+      persist(next, notes);
+      return next;
+    });
+  }, [notes, persist]);
 
-  const setStatus = useCallback((athletId: string, isoDate: string, status: DayStatus) => {
-    const key = `${athletId}_${isoDate}`;
-    const updated: DriveShape = {
-      statuses: { ...(driveData.statuses ?? {}), [key]: status },
-      notes: { ...(driveData.notes ?? {}) },
-    };
-    // Optimistic Update
-    setDriveData(updated);
-    debouncedSave(updated);
-  }, [driveData.statuses, driveData.notes, debouncedSave]);
-
-  // Notiz-Funktionen
-  const notizen = useMemo(() => (driveData.notes ?? {}), [driveData.notes]);
-
-  const setNotiz = useCallback((athletId: string, isoDate: string | null, value: string) => {
-    if (!isoDate) return;
-    const key = `${athletId}_${isoDate}`;
-    const updated: DriveShape = {
-      statuses: { ...(driveData.statuses ?? {}) },
-      notes: { ...(driveData.notes ?? {}), [key]: value },
-    };
-    setDriveData(updated);
-    debouncedSave(updated);
-  }, [driveData.statuses, driveData.notes, debouncedSave]);
-
-  const nextWeek = useCallback(() => setBaseDate(d => addWeeks(d, +1)), []);
-  const prevWeek = useCallback(() => setBaseDate(d => addWeeks(d, -1)), []);
+  const setNote = useCallback((athleteId: string, isoDate: string, text: string) => {
+    setNotes(prev => {
+      const next = { ...prev };
+      const key = `${athleteId}:${isoDate}`;
+      if (!text) delete next[key];
+      else next[key] = text;
+      // persist with current statuses
+      persist(statuses, next);
+      return next;
+    });
+  }, [statuses, persist]);
 
   return {
-    tage,
-    kw,
-    jahr,
-    getStatus,
+    athletes,
+    statuses,
+    notes,
+    weekStart,
+    setWeekStart,
     setStatus,
-    notizen,
-    setNotiz,
-    nextWeek,
-    prevWeek,
+    setNote,
     loading,
-    saving,
     error,
+    reload: loadAll,
   };
 }

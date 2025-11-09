@@ -1,71 +1,96 @@
-import React, { useEffect, useState } from "react";
-import styles from "../Athleten.module.css";
-import { Athlete } from "../types/athleten";
+// src/modules/athleten/components/AthleteForm.tsx
+import { useEffect, useMemo, useState } from "react";
+import type { Athlete } from "../types/athleten";
 
-interface Props {
-  initial?: Partial<Athlete>;
+export default function AthleteForm({ value, onChange, onSave, onCancel }: {
+  value: Athlete;
+  onChange: (a: Athlete) => void;
+  onSave: () => void;
   onCancel: () => void;
-  onSave: (athlete: Omit<Athlete, "id"> & { id?: string }) => void;
-}
+}) {
+  const [local, setLocal] = useState<Athlete>(value);
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  useEffect(() => { setLocal(value); setTouched({}); }, [value]);
 
-export default function AthleteForm({ initial, onCancel, onSave }: Props) {
-  const [name, setName] = useState(initial?.name ?? "");
-  const [geburtsjahr, setGeburtsjahr] = useState<number | undefined>(initial?.geburtsjahr);
-  const [leistungsgruppe, setLeistungsgruppe] = useState(initial?.leistungsgruppe ?? "");
-  const [info, setInfo] = useState(initial?.info ?? "");
+  const firstNameOk = (local.firstName || "").trim().length > 0;
+  const lastNameOk  = (local.lastName  || "").trim().length > 0;
 
-  useEffect(() => {
-    setName(initial?.name ?? "");
-    setGeburtsjahr(initial?.geburtsjahr);
-    setLeistungsgruppe(initial?.leistungsgruppe ?? "");
-    setInfo(initial?.info ?? "");
-  }, [initial]);
+  const canSave = useMemo(() => firstNameOk && lastNameOk, [firstNameOk, lastNameOk]);
 
-  const canSave = name.trim().length >= 2;
+  const onSaveClick = () => {
+    if (!canSave) return;
+    const first = (local.firstName || "").trim();
+    const last  = (local.lastName  || "").trim();
+    const updated: Athlete = { ...local, name: `${first} ${last}`.trim() };
+    onChange(updated);
+    onSave();
+  };
 
   return (
-    <div className={styles.formWrap}>
-      <div className={styles.formRow}>
-        <label>Name</label>
-        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Vor- und Nachname" />
-      </div>
-      <div className={styles.formRow}>
-        <label>Geburtsjahr</label>
+    <div className="kt-form">
+      <div className="kt-field toggle">
+        <label>Aktiv</label>
         <input
-          type="number"
-          value={geburtsjahr ?? ""}
-          onChange={(e) => setGeburtsjahr(e.target.value ? parseInt(e.target.value, 10) : undefined)}
-          placeholder="z.B. 2010"
+          type="checkbox"
+          checked={local.active !== false}
+          onChange={e => setLocal({ ...local, active: e.target.checked })}
         />
       </div>
-      <div className={styles.formRow}>
-        <label>Leistungsgruppe</label>
-        <input value={leistungsgruppe} onChange={(e) => setLeistungsgruppe(e.target.value)} placeholder="z.B. U14, U16, LG" />
+
+      <div className="kt-field">
+        <label>Vorname <span className="req">*</span></label>
+        <input
+          className={`kt-input ${touched.firstName && !firstNameOk ? "is-invalid" : ""}`}
+          value={local.firstName || ""}
+          onBlur={() => setTouched({ ...touched, firstName: true })}
+          onChange={e => setLocal({ ...local, firstName: e.target.value })}
+        />
+        {touched.firstName && !firstNameOk && <div className="kt-error-text">Vorname ist erforderlich.</div>}
       </div>
-      <div className={styles.formRow}>
+
+      <div className="kt-field">
+        <label>Nachname <span className="req">*</span></label>
+        <input
+          className={`kt-input ${touched.lastName && !lastNameOk ? "is-invalid" : ""}`}
+          value={local.lastName || ""}
+          onBlur={() => setTouched({ ...touched, lastName: true })}
+          onChange={e => setLocal({ ...local, lastName: e.target.value })}
+        />
+        {touched.lastName && !lastNameOk && <div className="kt-error-text">Nachname ist erforderlich.</div>}
+      </div>
+
+      <div className="kt-field">
+        <label>Geburtsjahr</label>
+        <input
+          className="kt-input"
+          type="number"
+          value={local.geburtsjahr ?? ""}
+          onChange={e => setLocal({ ...local, geburtsjahr: e.target.value ? Number(e.target.value) : undefined })}
+        />
+      </div>
+
+      <div className="kt-field">
+        <label>Altersklasse</label>
+        <input
+          className="kt-input"
+          value={local.altersklasse ?? ""}
+          onChange={e => setLocal({ ...local, altersklasse: e.target.value })}
+        />
+      </div>
+
+      <div className="kt-field">
         <label>Info</label>
-        <textarea value={info} onChange={(e) => setInfo(e.target.value)} placeholder="Besonderheiten, Kontakt, etc." />
+        <textarea
+          className="kt-textarea"
+          value={local.info ?? ""}
+          onChange={e => setLocal({ ...local, info: e.target.value })}
+        />
       </div>
-      <div className={styles.formActions}>
-        <button className={styles.secondaryBtn} onClick={onCancel}>Abbrechen</button>
-        <button
-          className={styles.primaryBtn}
-          disabled={!canSave}
-          onClick={() =>
-            onSave({
-              id: (initial && "id" in initial) ? (initial as Athlete).id : undefined,
-              name: name.trim(),
-              geburtsjahr,
-              leistungsgruppe: leistungsgruppe.trim() || undefined,
-              info: info.trim() || undefined,
-              anmeldung: initial?.anmeldung ?? [],
-              plaene: initial?.plaene ?? [],
-              feedback: initial?.feedback ?? []
-            })
-          }
-        >
-          Speichern
-        </button>
+
+      <div className="kt-row actions">
+        <button className="kt-btn" onClick={onCancel}>Abbrechen</button>
+        <div className="spacer" />
+        <button className="kt-btn primary" disabled={!canSave} onClick={onSaveClick}>Speichern</button>
       </div>
     </div>
   );

@@ -1,107 +1,91 @@
-import React, { useMemo, useState } from "react";
-import styles from "../Athleten.module.css";
-import { Athlete } from "../hooks/useAthleten";
+// src/modules/athleten/components/AthleteList.tsx
+import { useState, useMemo } from "react";
+import type { Athlete } from "../types/athleten";
 import AthleteForm from "./AthleteForm";
+import Modal from "./Modal";
 
-interface Props {
-  athletes: Athlete[];
-  onCreate: (draft?: Partial<Athlete>) => void;
-  onEdit: (id: string, patch: Partial<Athlete>) => void;
-  onDelete: (id: string) => void;
-  filterPlaceholder?: string;
-}
-
-export default function AthleteList({ athletes, onCreate, onEdit, onDelete, filterPlaceholder = "Athlet suchen..." }: Props) {
+export default function AthleteList({
+  items, onAdd, onUpdate, createEmptyAthlete, sortMode = "VORNAME"
+}: {
+  items: Athlete[] | undefined;
+  onAdd: (a: Athlete) => void;
+  onUpdate: (a: Athlete) => void;
+  createEmptyAthlete: () => Athlete;
+  sortMode?: "VORNAME" | "NACHNAME" | "JAHR_AUF" | "JAHR_AB";
+}) {
+  const [editing, setEditing] = useState<Athlete | null>(null);
+  const [creating, setCreating] = useState<Athlete | null>(null);
   const [q, setQ] = useState("");
-  const [creating, setCreating] = useState(false);
-  const [openId, setOpenId] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
+    const list = items || [];
+    if (!q.trim()) return list;
     const s = q.trim().toLowerCase();
-    if (!s) return athletes;
-    return athletes.filter(a =>
-      a.name.toLowerCase().includes(s) ||
-      (a.leistungsgruppe ?? "").toLowerCase().includes(s)
-    );
-  }, [q, athletes]);
+    return list.filter((a) => {
+      const fn = (a.firstName || "").toLowerCase();
+      const ln = (a.lastName || "").toLowerCase();
+      const name = (a.name || "").toLowerCase();
+      const ak = (a.altersklasse || "").toLowerCase();
+      const info = (a.info || "").toLowerCase();
+      return fn.includes(s) || ln.includes(s) || name.includes(s) || ak.includes(s) || info.includes(s);
+    });
+  }, [items, q]);
+
+  // Reihenfolge kommt vom Hook (keine weitere Sortierung hier)
+  const list = filtered;
 
   return (
-    <div className={styles.listWrap}>
-      <div className={styles.listHeader}>
-        <div className={styles.listHeaderInner}>
-          <input
-            className={styles.searchInput}
-            placeholder={filterPlaceholder}
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-          />
-          <button className={styles.primaryBtn} onClick={() => setCreating(v => !v)}>
-            + Athlet
-          </button>
-
-          {creating && (
-            <div className={styles.createMenuDropdown}>
-              <h3>Neuer Athlet</h3>
-              <AthleteForm
-                onCancel={() => setCreating(false)}
-                onSave={(data) => {
-                  onCreate(data);
-                  setCreating(false);
-                }}
-              />
-            </div>
-          )}
-        </div>
+    <div>
+      <div className="kt-list-header">
+        <input
+          className="kt-input"
+          placeholder="Suchen…"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+        />
+        <button className="kt-btn primary" onClick={() => setCreating(createEmptyAthlete())}>
+          + Neuer Athlet
+        </button>
       </div>
 
-      <ul className={styles.athleteList}>
-        {filtered.map(a => (
-          <li
-            key={a.id}
-            className={`${styles.athleteItem} ${a.active === false ? styles.inactiveRow : ""}`}
-          >
-            <div
-              className={styles.athleteRowTop}
-              onClick={() => setOpenId(openId === a.id ? null : a.id)}
-            >
-              <div className={styles.athleteName}>{a.name}</div>
-              <div className={styles.athleteMeta}>
-                {a.geburtsjahr ? `JG ${a.geburtsjahr}` : "—"} · {a.leistungsgruppe ?? "—"}
-              </div>
+      <div>
+        {list.map((a) => (
+          <div className="kt-row" key={a.id} onClick={() => setEditing(a)}>
+            <div className="kt-left">
+              <div className="kt-name">{a.name || `${a.firstName || ""} ${a.lastName || ""}`.trim()}</div>
+              {a.info ? <div className="kt-sub">{a.info}</div> : null}
             </div>
-
-            {openId === a.id && (
-              <div className={styles.editMenuDropdown}>
-                <AthleteForm
-                  key={a.id}
-                  initial={a}
-                  onCancel={() => setOpenId(null)}
-                  onSave={(patch) => {
-                    onEdit(a.id, patch);
-                    setOpenId(null);
-                  }}
-                />
-                <div className={styles.formRow}>
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={a.active === false}
-                      onChange={(e) =>
-                        onEdit(a.id, { active: e.target.checked ? false : true })
-                      }
-                    />
-                    Inaktiv
-                  </label>
-                </div>
+            <div className="kt-right">
+              <div className="kt-meta">
+                {a.altersklasse || ""}{a.geburtsjahr ? ` • ${a.geburtsjahr}` : ""}
               </div>
-            )}
-          </li>
+              {a.active === false ? <div className="kt-chip danger">inaktiv</div> : null}
+            </div>
+          </div>
         ))}
+      </div>
 
-        {filtered.length === 0 && (
-          <li className={styles.emptyState}>Keine Treffer.</li>
+      <Modal open={!!editing} onClose={() => setEditing(null)} title="Athlet bearbeiten">
+        {editing && (
+          <AthleteForm
+            value={editing}
+            onChange={(patch) => onUpdate(patch)}
+            onSave={() => setEditing(null)}
+            onCancel={() => setEditing(null)}
+          />
         )}
-      </ul>
+      </Modal>
+
+      <Modal open={!!creating} onClose={() => setCreating(null)} title="Neuer Athlet">
+        {creating && (
+          <AthleteForm
+            value={creating}
+            onChange={(a) => onAdd(a)}
+            onSave={() => setCreating(null)}
+            onCancel={() => setCreating(null)}
+          />
+        )}
+      </Modal>
     </div>
   );
 }

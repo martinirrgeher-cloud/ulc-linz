@@ -1,4 +1,4 @@
-import { getAccessToken } from "@/lib/googleAuth";
+import { getValidAccessToken } from "@/lib/googleAuth";
 
 // ✅ Laufzeitprüfung direkt beim Laden der Datei
 const USERS_FILE_ID = import.meta.env.VITE_USERS_FILE_ID;
@@ -17,7 +17,7 @@ if (!USERS_FILE_ID) {
  * @returns user-Objekt oder null bei Fehler
  */
 export async function fetchUsersAndLogin(username: string, password: string) {
-  const token = getAccessToken();
+  const token = getValidAccessToken();
 
   if (!token) {
     console.error("❌ Kein Google-Token vorhanden. Login 1 wurde vermutlich nicht durchgeführt.");

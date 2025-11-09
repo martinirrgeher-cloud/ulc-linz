@@ -8,7 +8,7 @@ import type {
   LoadState,
   SaveState,
 } from "../types/TrainingsplanTypes";
-import DriveClient from "@/lib/drive/DriveClient";
+import DriveClient from "@/lib/drive/DriveClientCore";
 
 // ---------- ISO-Woche Utils (ohne externe Abhängigkeiten) ----------
 function toDateOnlyISO(d: Date): string {

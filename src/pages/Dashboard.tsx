@@ -1,103 +1,39 @@
-// src/pages/Dashboard.tsx
-import React from "react";
+import React, { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { clearStorage } from "@/lib/googleAuth";
+import AppShell from "@/components/AppShell";
+import { MODULES, AppModule } from "@/modules/registry";
 import { useAuth } from "@/store/AuthContext";
-import "../assets/styles/GlobalStyles.css";
+import logo from "@/assets/logo.png";
 
 export default function Dashboard() {
   const nav = useNavigate();
-  const { user, logout } = useAuth();
-  const modules = user?.modules || [];
+  const { user } = useAuth();
 
-  // 🏷️ Sprechende Modulnamen
-  const moduleLabels: Record<string, string> = {
-    KINDERTRAINING: "Kindertraining",
-    STATISTIK: "Statistik",
-    "LEISTUNGSGRUPPE-ANMELDUNG": "Anmeldung",
-    ATHLETEN: "Athleten",
-    UEBUNGSKATALOG: "Übungskatalog",
-    UEBUNGS_PFLEGE: "Übungen erstellen",
-    TRAININGSPLAN: "Trainingsplanung"
-  };
+  const visibleModules: AppModule[] = useMemo(() => {
+    if (!user?.modules?.length) return MODULES;
+    return MODULES.filter(m => user.modules.includes(m.key));
+  }, [user]);
 
-  // ➖ Kompletter Logout (Google & User)
-  const handleLogoutGoogle = () => {
-    logout();
-    nav("/login1", { replace: true });
-  };
-
-  // 🔁 Nur Benutzer wechseln (Token bleibt erhalten)
-  const handleLogoutUser = () => {
-    nav("/login2", { replace: true });
-  };
-
-  // 🧭 Navigation zu Modulen
-  const handleModuleClick = (moduleName: string) => {
-    switch (moduleName) {
-      case "KINDERTRAINING":
-        nav("/kindertraining");
-        break;
-      case "STATISTIK":
-        nav("/statistik");
-        break;
-      case "LEISTUNGSGRUPPE-ANMELDUNG":
-        nav("/leistungsgruppe/anmeldung");
-        break;
-      case "ATHLETEN":
-        nav("/athleten");
-        break;
-      case "UEBUNGSKATALOG":
-        nav("/uebungskatalog");
-        break;
-      case "UEBUNGS_PFLEGE":
-        nav("/uebungspflege");
-        break;
-      case "TRAININGSPLAN":
-        nav("/trainingsplan");
-        break;
-      default:
-        console.warn(`Unbekanntes Modul: ${moduleName}`);
-    }
-  };
+  const Logo = <img src={logo} alt="Logo" className="dashboard-logo" />;
 
   return (
-    <div className="container">
-      {/* 🧭 Kopfzeile */}
-      <header className="header">
-        <button onClick={handleLogoutUser} className="switchButton">
-          Benutzer wechseln
-        </button>
-
-        <div className="userBox">
-          <span className="username">{user?.username || "Unbekannt"}</span>
-          <button onClick={handleLogoutGoogle} className="logoutButton">
-            Logout
-          </button>
-        </div>
-      </header>
-
-      {/* 📌 Module */}
-      <div className="moduleTitle">Freigeschaltete Module</div>
-
-      {modules.length > 0 ? (
-        <div className="moduleList">
-          {modules.map((m: string) => (
-            <div
-              key={m}
-              className="moduleCard"
-              onClick={() => handleModuleClick(m)}
-              style={{ cursor: "pointer" }}
-            >
-              <div className="moduleLabel">{moduleLabels[m] || m}</div>
+    <AppShell title="Hauptmenü" showHome={false} showSettings leftSlot={Logo}>
+      <div className="kachel-grid">
+        {visibleModules.map(m => (
+          <button
+            key={m.key}
+            className="kachel"
+            onClick={() => nav(m.route)}
+            aria-label={m.title}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              {m.icon}
+              <h3 className="kachel__title">{m.title}</h3>
             </div>
-          ))}
-        </div>
-      ) : (
-        <div className="noModules">
-          Für diesen Benutzer sind keine Module freigeschaltet.
-        </div>
-      )}
-    </div>
+            {m.description && <p className="kachel__desc">{m.description}</p>}
+          </button>
+        ))}
+      </div>
+    </AppShell>
   );
 }

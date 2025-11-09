@@ -1,32 +1,35 @@
-import React from "react";
-import type { DayKey } from "../hooks/useKindertraining";
+
+import React, { useState, useEffect } from "react";
 
 type Props = {
-  person: string;
-  day: DayKey;
-  text: string;
-  setText: (t: string) => void;
-  onSave: () => void;
+  isOpen: boolean;
   onClose: () => void;
+  initialText?: string;
+  onSave: (text: string) => void;
+  title?: string;
 };
 
-export default function NotePopup({ day, text, setText, onSave, onClose }: Props) {
+export default function NotePopup({ isOpen, onClose, initialText='', onSave, title='Notiz' }: Props){
+  const [value, setValue] = useState(initialText || '');
+  useEffect(()=>{ setValue(initialText || ''); }, [initialText, isOpen]);
+
+  if(!isOpen) return null;
   return (
-    <div className="note-popup">
-      <div className="note-card">
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <strong>Notiz für {day}</strong>
-          <button onClick={onClose}>✖</button>
+    <div className="kt-modal-backdrop" onClick={onClose}>
+      <div className="kt-modal" onClick={e=>e.stopPropagation()}>
+        <div className="kt-modal-header">
+          <div>{title}</div>
+          <button className="kt-icon-btn" onClick={onClose}>✕</button>
         </div>
-        <textarea
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          rows={5}
-          style={{ width: "100%", marginTop: "0.5rem" }}
-        />
-        <div style={{ marginTop: "0.5rem", display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
-          <button onClick={onSave}>Speichern</button>
-          <button onClick={onClose}>Abbrechen</button>
+        <div className="kt-modal-body">
+          <textarea
+            style={{minHeight:120, width:'100%', border:'1px solid #e5e7eb', borderRadius:10, padding:10}}
+            value={value} onChange={e=>setValue(e.target.value)}
+          />
+          <div style={{display:'flex', gap:8, justifyContent:'flex-end'}}>
+            <button className="kt-btn" onClick={onClose}>Abbrechen</button>
+            <button className="kt-btn kt-btn--primary" onClick={()=>{ onSave(value); onClose(); }}>Speichern</button>
+          </div>
         </div>
       </div>
     </div>

@@ -1,100 +1,143 @@
-let tokenClient: google.accounts.oauth2.TokenClient | null = null;
+// src/lib/googleAuth.ts
+/* Google Identity & Token Handling (FULL DRIVE SCOPE) */
+type GoogleToken = {
+  access_token: string;
+  expires_in: number;
+  scope: string;
+  token_type: string;
+  expires_at: number; // epoch ms
+};
 
-const TOKEN_KEY = "google_token";
-
-export function getAccessToken(): string | null {
-  return localStorage.getItem(TOKEN_KEY);
+const STORAGE_KEY = "google_token_v2";
+// ✅ NEW: check if token has any Google Drive scope
+function hasDriveScope(t: { scope?: string | string[] } | null): boolean {
+  const s = Array.isArray(t?.scope) ? t!.scope.join(" ") : String(t?.scope || "");
+  return /\bhttps:\/\/www\.googleapis\.com\/auth\/drive(\.[a-z]+)?\b/.test(s);
 }
 
-function setAccessToken(token: string) {
-  localStorage.setItem(TOKEN_KEY, token);
+// IMPORTANT: request FULL DRIVE scope to write any existing file
+const SCOPES = [
+  "https://www.googleapis.com/auth/drive",
+  // If you also use picker: "https://www.googleapis.com/auth/drive.file" could be added,
+  // but DRIVE includes it already.
+].join(" ");
+
+declare global {
+  interface Window {
+    google?: any;
+  }
 }
 
-export function clearStorage() {
-  localStorage.removeItem(TOKEN_KEY);
+export function getStoredToken(): GoogleToken | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const t = JSON.parse(raw) as GoogleToken;
+    if (!t?.access_token) return null;
+    return t;
+  } catch {
+    return null;
+  }
 }
 
-/** Google Identity Services initialisieren */
-export function initGoogleAuth(): Promise<void> {
+function saveToken(t: Omit<GoogleToken, "expires_at"> & { expires_in: number }) {
+  const expires_at = Date.now() + (t.expires_in - 30) * 1000; // 30s safety
+  const full: GoogleToken = { ...t, expires_at };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(full));
+  return full;
+}
+
+export function clearStoredToken() {
+  localStorage.removeItem(STORAGE_KEY);
+}
+
+export function isGoogleTokenValid(): boolean {
+  const t = getStoredToken();
+  if (!t) return false;
+  if (t.expires_at && t.expires_at <= Date.now()) return false;
+  if (!hasDriveScope(t)) return false;
+  return true;
+}
+
+
+export async function getValidAccessToken(): Promise<string> {
+  if (isGoogleTokenValid()) return getStoredToken()!.access_token;
+  await getAccessTokenSilent().catch(() => getAccessTokenInteractive());
+  const t = getStoredToken();
+  if (!t) throw new Error("Kein Google-Token verfügbar.");
+  return t.access_token;
+}
+
+let tokenClient: any | null = null;
+
+function initTokenClient() {
+  if (tokenClient) return tokenClient;
+  if (!window.google?.accounts?.oauth2) {
+    throw new Error("Google Identity Services nicht geladen");
+  }
+  tokenClient = window.google.accounts.oauth2.initTokenClient({
+    client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+    scope: SCOPES,
+    callback: (resp: any) => {
+      if (resp?.error) {
+        console.error("GIS error", resp.error);
+        return;
+      }
+      if (resp?.access_token) {
+        saveToken({
+          access_token: resp.access_token,
+          expires_in: resp.expires_in || 3600,
+          scope: resp.scope || SCOPES,
+          token_type: "Bearer",
+        });
+      }
+    },
+  });
+  return tokenClient;
+}
+
+export async function getAccessTokenSilent(): Promise<void> {
+  initTokenClient();
   return new Promise((resolve, reject) => {
     try {
-      if (!tokenClient) {
-        tokenClient = google.accounts.oauth2.initTokenClient({
-          client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
-          scope: "https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file openid email profile",
-          callback: () => {},
-        } as any);
-      }
-      resolve();
-    } catch (err) {
-      reject(err);
+      tokenClient!.requestAccessToken({ prompt: "" });
+      // We don't get a direct promise; poll briefly for storage write
+      const t0 = Date.now();
+      const iv = setInterval(() => {
+        const t = getStoredToken();
+        if (t?.access_token) { clearInterval(iv); resolve(); }
+        else if (Date.now() - t0 > 3500) { clearInterval(iv); reject(new Error("Silent-Token fehlgeschlagen")); }
+      }, 100);
+    } catch (e) {
+      reject(e);
     }
   });
 }
 
-/** Login-Popup starten und Token speichern */
-export function loginGoogle(): Promise<void> {
+export async function getAccessTokenInteractive(): Promise<void> {
+  initTokenClient();
   return new Promise((resolve, reject) => {
-    if (!tokenClient) return reject(new Error("TokenClient nicht initialisiert"));
-
-    (tokenClient as any).callback = (resp: google.accounts.oauth2.TokenResponse) => {
-      try {
-        if (resp && resp.access_token) {
-          setAccessToken(resp.access_token);
-          resolve();
-        } else {
-          reject(new Error("Kein Access Token erhalten"));
-        }
-      } catch (e) {
-        reject(e);
-      }
-    };
-
-    (tokenClient as any).requestAccessToken({ prompt: "consent" });
+    try {
+      tokenClient!.requestAccessToken({ prompt: "consent" });
+      const t0 = Date.now();
+      const iv = setInterval(() => {
+        const t = getStoredToken();
+        if (t?.access_token) { clearInterval(iv); resolve(); }
+        else if (Date.now() - t0 > 120000) { clearInterval(iv); reject(new Error("Popup-Login abgebrochen")); }
+      }, 150);
+    } catch (e) {
+      reject(e);
+    }
   });
 }
 
-/** Optional: Token validieren */
-export async function validateGoogleToken(): Promise<boolean> {
-  return !!getAccessToken();
-}
-
-/** Logout */
-export function logoutGoogle() {
-  clearStorage();
+export async function revokeAndClear(): Promise<void> {
   try {
-    (google.accounts.id as any)?.disableAutoSelect?.();
-  } catch (err) {
-    console.warn("Auto-Select konnte nicht deaktiviert werden:", err);
-  }
-}
-
-/** Silent Refresh (ohne Popup) */
-export async function refreshAccessToken(): Promise<void> {
-  return new Promise((resolve, reject) => {
-    if (!tokenClient) return reject(new Error("TokenClient nicht initialisiert"));
-
-    (tokenClient as any).callback = (resp: google.accounts.oauth2.TokenResponse) => {
-      if (resp && resp.access_token) {
-        setAccessToken(resp.access_token);
-        resolve();
-      } else {
-        reject(new Error("Silent refresh: kein Token erhalten"));
-      }
-    };
-
-    (tokenClient as any).requestAccessToken({ prompt: "" });
-  });
-}
-
-/** Best-effort: nur versuchen, wenn bereits ein Token existiert */
-export async function silentRefreshIfNeeded(): Promise<void> {
-  const token = getAccessToken();
-  if (!token) return;
-  try {
-    await refreshAccessToken();
-    console.log("[GIS] Silent refresh erfolgreich");
-  } catch (err) {
-    console.warn("[GIS] Silent refresh fehlgeschlagen", err);
+    const t = getStoredToken();
+    if (t?.access_token && window.google?.accounts?.oauth2?.revoke) {
+      await window.google.accounts.oauth2.revoke(t.access_token, () => {});
+    }
+  } finally {
+    clearStoredToken();
   }
 }

@@ -1,87 +1,129 @@
-import { useEffect, useState } from "react";
-import { downloadJson, uploadJson } from "@/lib/drive/DriveClient";
+// src/modules/athleten/hooks/useAthleten.ts
+import { useCallback, useEffect, useMemo, useState } from "react";
+import type { Athlete } from "../types/athleten";
+import { loadAthleten, saveAthleten } from "@/modules/athleten/services/AthletenStore";
 
-const FILE_ID = import.meta.env.VITE_DRIVE_ATHLETEN_FILE_ID as string;
+type SortMode = "NACHNAME" | "VORNAME" | "JAHR_AUF" | "JAHR_AB";
 
-export interface Athlete {
-  id: string;
-  name: string;
-  geburtsjahr: number;
-  leistungsgruppe: string;
-  info: string;
-  anmeldung: any[];
-  plaene: any[];
-  feedback: any[];
-  active: boolean;
-}
-
+/**
+ * Hook für Athletenliste mit lokaler Sortierung & Inaktiv-Filter
+ */
 export function useAthleten() {
-  const [athletes, setAthletes] = useState<Athlete[]>([]);
-  const [filtered, setFiltered] = useState<Athlete[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [athleten, setAthleten] = useState<Athlete[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const reload = async () => {
+  const [sortMode, setSortModeState] = useState<SortMode>(() => {
     try {
-      setLoading(true);
-      const data = await downloadJson(FILE_ID);
-      if (Array.isArray(data)) {
-        setAthletes(data);
-        setFiltered(data);
-      } else if (data?.athleten) {
-        setAthletes(data.athleten);
-        setFiltered(data.athleten);
-      } else {
-        setAthletes([]);
-        setFiltered([]);
-      }
-    } catch (err) {
-      console.error("Fehler beim Laden der Athleten:", err);
-      setError("Fehler beim Laden");
+      const s = localStorage.getItem("ATHLETEN_SORT") as SortMode | null;
+      if (s === "NACHNAME" || s === "VORNAME" || s === "JAHR_AUF" || s === "JAHR_AB") return s;
+    } catch {}
+    return "NACHNAME";
+  });
+
+  const [showInactive, setShowInactive] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem("ATHLETEN_SHOW_INACTIVE") === "1";
+    } catch {}
+    return false;
+  });
+
+  const getYear = (a: Athlete) => {
+    const y = (a as any)?.geburtsjahr;
+    return typeof y === "number" ? y : Number(y) || 0;
+  };
+
+  const sortFn = useMemo(() => {
+    const cmpText = (a: string, b: string) =>
+      (a || "").localeCompare(b || "", "de", { sensitivity: "base" });
+    if (sortMode === "NACHNAME") {
+      return (a: Athlete, b: Athlete) =>
+        cmpText(a.lastName || a.name || "", b.lastName || b.name || "");
+    }
+    if (sortMode === "VORNAME") {
+      return (a: Athlete, b: Athlete) =>
+        cmpText(a.firstName || "", b.firstName || "");
+    }
+    if (sortMode === "JAHR_AUF") {
+      return (a: Athlete, b: Athlete) => {
+        const ay = getYear(a), by = getYear(b);
+        return (ay - by) || cmpText(a.lastName || a.name || "", b.lastName || b.name || "");
+      };
+    }
+    // JAHR_AB
+    return (a: Athlete, b: Athlete) => {
+      const ay = getYear(a), by = getYear(b);
+      return (by - ay) || cmpText(a.lastName || a.name || "", b.lastName || b.name || "");
+    };
+  }, [sortMode]);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await loadAthleten();
+      setAthleten(data.slice().sort(sortFn));
+    } catch (e: any) {
+      setError(e?.message || "Fehler beim Laden");
     } finally {
       setLoading(false);
     }
-  };
-
-  const addAthlete = async (athlet: Athlete) => {
-    const updated = [...athletes, athlet];
-    await uploadJson(FILE_ID, updated);
-    setAthletes(updated);
-    setFiltered(updated);
-  };
-
-  // ✅ Signatur angepasst → unterstützt ID und Patch (Partial)
-  const updateAthlete = async (id: string, patch: Partial<Athlete>) => {
-    const updated = athletes.map((a) =>
-      a.id === id ? { ...a, ...patch } : a
-    );
-    await uploadJson(FILE_ID, updated);
-    setAthletes(updated);
-    setFiltered(updated);
-  };
-
-  const removeAthlete = async (id: string) => {
-    const updated = athletes.filter((a) => a.id !== id);
-    await uploadJson(FILE_ID, updated);
-    setAthletes(updated);
-    setFiltered(updated);
-  };
+  }, [sortFn]);
 
   useEffect(() => {
-    reload();
-  }, []);
+    load();
+  }, [load]);
+
+  const setSortMode = (m: SortMode) => {
+    setSortModeState(m);
+    try { localStorage.setItem("ATHLETEN_SORT", m); } catch {}
+    setAthleten((arr) => arr.slice().sort(
+      m === "NACHNAME"
+        ? (a, b) => (a.lastName || a.name || "").localeCompare(b.lastName || b.name || "", "de", { sensitivity: "base" })
+        : m === "VORNAME"
+          ? (a, b) => (a.firstName || "").localeCompare(b.firstName || "", "de", { sensitivity: "base" })
+          : m === "JAHR_AUF"
+            ? ((a, b) => {
+                const ay = getYear(a), by = getYear(b);
+                return (ay - by) || (a.lastName || a.name || "").localeCompare(b.lastName || b.name || "", "de", { sensitivity: "base" });
+              })
+            : ((a, b) => {
+                const ay = getYear(a), by = getYear(b);
+                return (by - ay) || (a.lastName || a.name || "").localeCompare(b.lastName || b.name || "", "de", { sensitivity: "base" });
+              })
+    ));
+  };
+
+  const setShowInactiveWrapped = (v: boolean) => {
+    setShowInactive(v);
+    try { localStorage.setItem("ATHLETEN_SHOW_INACTIVE", v ? "1" : "0"); } catch {}
+  };
+
+  const add = useCallback(async (neu: Athlete) => {
+    if (!neu.id && typeof crypto !== "undefined" && "randomUUID" in crypto) {
+      neu = { ...neu, id: (crypto as any).randomUUID() as string };
+    }
+    const next = [...athleten, neu];
+    setAthleten(next.slice().sort(sortFn));
+    await saveAthleten(next);
+  }, [athleten, sortFn]);
+
+  const update = useCallback(async (patch: Athlete) => {
+    const next = athleten.map((a) => (a.id === patch.id ? { ...a, ...patch } : a));
+    setAthleten(next.slice().sort(sortFn));
+    await saveAthleten(next);
+  }, [athleten, sortFn]);
 
   return {
-    athletes,
-    filtered,
     loading,
     error,
-    reload,
-    addAthlete,
-    updateAthlete, // ✅ angepasste Signatur
-    removeAthlete,
+    athleten: showInactive ? athleten : athleten.filter((a) => a.active !== false),
+    add,
+    update,
+    sortMode,
+    setSortMode,
+    showInactive,
+    setShowInactive: setShowInactiveWrapped,
+    reload: load,
   };
 }
-
-export default useAthleten;
-
