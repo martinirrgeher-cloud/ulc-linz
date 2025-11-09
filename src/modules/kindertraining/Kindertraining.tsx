@@ -19,7 +19,7 @@ export default function Kindertraining() {
   // Ableitung: Inaktive Tage aus dem Wochenzustand
   const baseInactiveDays = useMemo(() => {
     const out: Record<string, boolean> = {};
-    (activeDaysForWeek || []).forEach(d => { if (d?.disabled && d.dateStr) out[d.dateStr] = true; });
+    (activeDaysForWeek || []).forEach((d: { disabled?: boolean; dateStr?: string }) => { if (d?.disabled && d.dateStr) out[d.dateStr] = true; });
     return out;
   }, [activeDaysForWeek]);
 
@@ -58,7 +58,7 @@ export default function Kindertraining() {
   // Entfernt alle Haken eines Tages (für saubere inaktive Spalten)
   const clearAttendanceForDate = useCallback((dateStr: string) => {
     try {
-      persons.forEach((p) => {
+      persons.forEach((p: { id?: string }) => {
         const pid = p.id as string;
         const isChecked = !!getAttendanceById(pid, dateStr);
         if (isChecked) {
