@@ -47,3 +47,22 @@
   .ex-row-3-inline > :nth-child(2) { grid-column: 1 / 2; }
   .ex-row-3-inline > :nth-child(3) { grid-column: 2 / 3; align-self: start; }
 }
+
+
+/* === Level-Select kompakt: zeigt "★" wenn leer, Liste zeigt weiterhin "alle Level" === */
+.ex-select--level.is-empty {
+  width: auto;
+  min-width: 40px;
+  padding-inline: 12px;
+  color: transparent;            /* Text im geschlossenen Zustand ausblenden */
+  text-shadow: 0 0 0 currentColor; /* verhindert Layout-Shift in manchen Browsern */
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23222"><path d="M12 .587l3.668 7.431 8.207 1.193-5.938 5.79 1.402 8.169L12 18.896l-7.339 3.874 1.402-8.169L.125 9.211l8.207-1.193z"/></svg>");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 14px 14px;
+}
+/* Beim Öffnen zeigt die Optionsliste "alle Level" normal an */
+
+/* Close-Button im Modal über Videos zuverlässig klickbar */
+.ex-modal-content { position: relative; }
+.ex-modal-close { z-index: 5; pointer-events: auto; }
