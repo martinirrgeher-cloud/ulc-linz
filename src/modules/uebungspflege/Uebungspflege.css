@@ -94,3 +94,30 @@
 .toggle-switch.on .knob{
   transform: translateX(18px) !important;        /* 36 - 16 - 2px (Ränder) */
 }
+
+/* ===== Breiten-Fix: nichts breiter als der Content/Header ===== */
+:root { --ex-unit-min: 88px; --ex-unit-max: 160px; }
+
+.ex-panel, .ex-panel * { box-sizing: border-box; max-width: 100%; }
+
+/* Alle Form-Controls auf Containerbreite clampen */
+.input, select.input, textarea.input { width: 100%; max-width: 100%; }
+
+/* Haupt-/Untergruppe: Selects auf Containerbreite (Plus-Icon nimmt nur Rest) */
+.ex-field--haupt .input,
+.ex-field--unter .input { width: 100%; }
+
+/* Menge + Einheit in einer Zeile, Menge bekommt den Platz */
+.ex-row-2 { 
+  display: grid;
+  grid-template-columns: 1fr minmax(var(--ex-unit-min), var(--ex-unit-max));
+  gap: 8px;
+  width: 100%;
+}
+
+/* Beschreibung: nie breiter als der Container */
+.ex-field--desc textarea.input { width: 100%; max-width: 100%; }
+
+/* Sicherheit: kein horizontales Scrollen im Modul */
+.uebungspflege, .uebungspflege * { max-width: 100%; overflow-x: hidden; }
+
