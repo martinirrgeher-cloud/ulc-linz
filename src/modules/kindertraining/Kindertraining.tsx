@@ -105,23 +105,11 @@ export default function Kindertraining() {
           showInactive={!!showInactive}
           onToggleShowInactive={(v) => setShowInactive?.(!!v)}
           search={search}
-          onSearch={setSearchLocal}
+          onSearch={setSearchLocal} onAdd={handleNewAthlete}
         />
 
-        <div className="kt-toolbar slim">
-          <input
-            className="kt-input kt-input--search"
-            placeholder="Suche Name..."
-            value={search}
-            onChange={(e) => setSearchLocal(e.target.value)}
-          />
-          <button className="kt-btn kt-btn--primary" onClick={handleNewAthlete}>
-            Neuer Athlet
-          </button>
-        </div>
-
         <div className="kt-list">
-          <PersonList
+          <PersonList sortOrder={sortOrder}
             persons={personsFiltered}
             visibleDays={visibleDays}
             getAttendanceById={getAttendanceById}

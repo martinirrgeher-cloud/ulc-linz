@@ -1,104 +1,113 @@
-import React, { useState, useRef, useEffect } from "react";
+// src/modules/kindertraining/components/KTHeader.tsx
+import React from "react";
 
-type DayToggle = { key: "mon"|"tue"|"wed"|"thu"|"fri"|"sat"|"sun"; name: string; visible: boolean };
+type DayToggle = { key: string; name: string; visible: boolean };
 
-export default function KTHeader(props: {
-  year: number;
+type Props = {
+  // Kalender
   weekNumber: number;
+  year: number;
   onPrevWeek: () => void;
   onNextWeek: () => void;
-  dayToggles: DayToggle[];
-  onToggleDay: (key: DayToggle["key"] | string, next: boolean) => void;
-  sortOrder: "vorname" | "nachname";
-  onChangeSort: (order: "vorname" | "nachname") => void;
-  showInactive: boolean;
-  onToggleShowInactive: (val: boolean) => void;
+
+  // Suche + Add
   search?: string;
   onSearch?: (q: string) => void;
-}) {
-  const {
-    year, weekNumber, onPrevWeek, onNextWeek,
-    dayToggles, onToggleDay,
-    sortOrder, onChangeSort,
-    showInactive, onToggleShowInactive,
-  } = props;
+  onAdd?: () => void;
 
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement | null>(null);
+  // Sortierung + Aktiv-Toggle
+  sortOrder: "vorname" | "nachname";
+  onChangeSort: (v: "vorname" | "nachname") => void;
+  showInactive: boolean; // true = auch Inaktive
+  onToggleShowInactive: (value: boolean) => void;
 
-  useEffect(() => {
-    const h = (e: MouseEvent) => {
-      if (!ref.current) return;
-      if (!ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener("click", h);
-    return () => document.removeEventListener("click", h);
-  }, []);
+  // Tage
+  dayToggles: DayToggle[];
+  onToggleDay: (key: string, visible: boolean) => void;
+};
 
-  const label = dayToggles.filter(d => d.visible).map(d => d.name).join(", ") || "Tage wählen";
-
+export default function KTHeader(props: Props) {
   return (
-    <header className="kt-header">
-      <div className="kt-header__left">
-        <button className="kt-btn" onClick={onPrevWeek} aria-label="Vorherige Woche">◀</button>
-        <div className="kt-header__title">{year} – KW {String(weekNumber).padStart(2, "0")}</div>
-        <button className="kt-btn" onClick={onNextWeek} aria-label="Nächste Woche">▶</button>
+    <header className="kt-header kt-header--sticky" aria-label="Kindertraining Kopf">
+      {/* Zeile 1: Kalender */}
+      <div className="kt-row kt-row--cal">
+        <button className="kt-nav" onClick={props.onPrevWeek} aria-label="Vorige Woche">‹</button>
+        <div className="kt-cal-label">KW {String(props.weekNumber).padStart(2, "0")} – {props.year}</div>
+        <button className="kt-nav" onClick={props.onNextWeek} aria-label="Nächste Woche">›</button>
       </div>
 
-      <div className="kt-header__right" style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-        <div className="kt-dropdown" ref={ref}>
-          <button className="kt-input" onClick={() => setOpen(v => !v)} style={{ minWidth: 160, textAlign: "left" }}>
-            {label}
-          </button>
-          {open && (
-            <div className="kt-menu">
-              {dayToggles.map(d => (
-                <label key={d.key} className="kt-menu-item">
+      {/* Zeile 2: Suche + Neuer Athlet */}
+      <div className="kt-row kt-row--searchadd">
+        <input
+          className="kt-input kt-input--search"
+          placeholder="Suche Name..."
+          value={props.search ?? ""}
+          onChange={(e) => props.onSearch?.(e.target.value)}
+        />
+        <button
+          className="btn btn--icon"
+          title="Neuer Athlet"
+          aria-label="Neuer Athlet"
+          onClick={props.onAdd}
+          type="button"
+        >
+          +
+        </button>
+      </div>
+
+      {/* Zeile 3: Sort, Trainingstage (größer), Toggle ganz rechts */}
+      <div className="kt-row kt-row--filters">
+        <div className="kt-flex-left">
+          <label className="kt-field">
+            <span className="kt-label">Sortieren</span>
+            <select
+              className="kt-select"
+              value={props.sortOrder}
+              onChange={(e) => props.onChangeSort(e.target.value as "vorname" | "nachname")}
+            >
+              <option value="vorname">Vorname</option>
+              <option value="nachname">Nachname</option>
+            </select>
+          </label>
+
+          <div className="kt-days">
+            <button
+              className="kt-days__btn kt-lg"
+              type="button"
+              aria-haspopup="listbox"
+              aria-expanded="false"
+              title="Trainingstage auswählen"
+            >
+              Trainingstage
+            </button>
+            <div className="kt-days__menu" role="listbox">
+              {props.dayToggles.map((d) => (
+                <label key={d.key} className="kt-days__item">
                   <input
                     type="checkbox"
                     checked={!!d.visible}
-                    onChange={(e) => onToggleDay(d.key, e.target.checked)}
+                    onChange={(e) => props.onToggleDay(d.key, e.target.checked)}
                   />
-                  {d.name}
+                  <span>{d.name}</span>
                 </label>
               ))}
             </div>
-          )}
+          </div>
         </div>
 
-        <label style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13 }}>
-          Sortierung
-          <select
-            className="kt-input"
-            value={sortOrder}
-            onChange={(e) => onChangeSort(e.target.value as "vorname" | "nachname")}
+        <div className="kt-actions-right">
+          <button
+            type="button"
+            className={`toggle-switch ${!props.showInactive ? "on" : "off"}`}
+            onClick={() => props.onToggleShowInactive(!props.showInactive)}
+            aria-pressed={!props.showInactive}
+            aria-label={!props.showInactive ? "Nur aktive" : "Auch inaktive"}
+            title={!props.showInactive ? "Nur aktive" : "Auch inaktive"}
           >
-            <option value="vorname">Vorname</option>
-            <option value="nachname">Nachname</option>
-          </select>
-        </label>
-
-        <label style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13 }}>
-          <input
-            type="checkbox"
-            checked={!showInactive}
-            onChange={(e) => onToggleShowInactive(!e.target.checked)}
-          />
-          Nur aktive
-        </label>
+            <span className="knob" />
+          </button>
+        </div>
       </div>
-
-      <style>
-        {`
-          .kt-header { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:8px 0; }
-          .kt-header__left { display:flex; align-items:center; gap:8px; }
-          .kt-header__title { font-weight:600; font-size:16px; }
-          .kt-dropdown { position: relative; }
-          .kt-menu { position:absolute; z-index:40; right:0; margin-top:4px; background:#fff; border:1px solid #e5e7eb; border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,.08); min-width: 160px; padding:6px; }
-          .kt-menu-item { display:flex; align-items:center; gap:8px; padding:6px 8px; font-size:13px; }
-          .kt-menu-item:hover { background:#f8fafc; }
-        `}
-      </style>
     </header>
   );
 }
