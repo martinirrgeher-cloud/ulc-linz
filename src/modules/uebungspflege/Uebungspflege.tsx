@@ -351,7 +351,7 @@ export default function Uebungspflege() {
             </label>
 
             {/* Beschreibung: gleiche Schriftart */}
-            <label>
+            <label className="ex-field ex-field--desc">
               Beschreibung
               <textarea
                 className="input"

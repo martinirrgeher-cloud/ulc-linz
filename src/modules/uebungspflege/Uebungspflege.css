@@ -42,3 +42,28 @@
 .ex-info { padding:8px; }
 .ex-error { padding:8px; background:#fdeeee; border:1px solid #f4caca; border-radius:10px; }
 .ex-muted { color:#666; }
+
+
+/* === Layout-Optimierungen (2025-11-09) === */
+
+/* Gruppen-Zeilen: Selects nutzen die verfügbare Breite minus fester "Neu"-Button */
+.ex-field-row { display:flex; flex-direction:column; gap:6px; }
+.ex-field-row--group .row, .ex-field-row--subgroup .row { display:flex; gap:8px; align-items:center; }
+.ex-field-row--group .row .input, .ex-field-row--subgroup .row .input { flex: 1 1 auto; }
+.ex-field-row--group .row .btn, .ex-field-row--subgroup .row .btn { flex: 0 0 auto; white-space:nowrap; }
+
+/* Falls das Markup keine .row hat, erzwingen wir Flex direkt über das label-Kind */
+.ex-field-row--group > .input, .ex-field-row--subgroup > .input { width: 100%; }
+.ex-field-row--group > .btn, .ex-field-row--subgroup > .btn { margin-left: 8px; }
+
+/* Menge/Einheit: Menge maximal breit, Einheit kompakt rechts */
+.ex-row-amount { grid-template-columns: 1fr minmax(96px, 180px) !important; }
+.ex-row-amount input.input[type="number"], .ex-row-amount input.input[type="text"] { width: 100%; }
+.ex-row-amount select.input { width: 100%; }
+
+/* Beschreibung: an Maximalbreite des Containers binden */
+.ex-field--desc textarea.input { width: 100%; max-width: 100%; }
+
+@media (max-width: 480px) {
+  .ex-row-amount { grid-template-columns: 1fr minmax(88px, 140px) !important; }
+}
