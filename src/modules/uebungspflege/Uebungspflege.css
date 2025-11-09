@@ -67,3 +67,35 @@
 @media (max-width: 480px) {
   .ex-row-amount { grid-template-columns: 1fr minmax(88px, 140px) !important; }
 }
+
+
+/* === Übungspflege UI-Optimierungen (2025-11-09) === */
+
+/* Zweizeiliger Header */
+.ex-header { display:flex; flex-direction:column; gap:6px; margin-bottom:10px; }
+.ex-header-row1 { font-size: 18px; font-weight: 700; }
+.ex-header-row2 { display:flex; align-items:center; gap:8px; flex-wrap: wrap; }
+
+/* Höhe der Eingaben reduzieren */
+.input, select.input, textarea.input {
+  padding: 6px 10px;
+  min-height: 32px;
+  font-size: 0.95rem;
+}
+
+/* Haupt-/Untergruppe auf 75% der Bildschirmbreite begrenzen */
+.ex-field--haupt .input, .ex-field--unter .input {
+  width: 75vw;
+  max-width: 100%;
+}
+
+/* Beschreibung 80% der Bildschirmbreite */
+.ex-field--desc textarea.input {
+  width: 80vw;
+  max-width: 100%;
+}
+
+/* Mobile Feinschliff */
+@media (max-width: 480px) {
+  .input, select.input, textarea.input { padding: 6px 8px; min-height: 30px; }
+}

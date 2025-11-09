@@ -222,19 +222,13 @@ export default function Uebungspflege() {
           padding: 12,
         }}
       >
-        <header style={{ display: "flex", gap: 8, alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 600 }}>{sel?.id === "NEW" ? "Neue Übung" : "Übung bearbeiten"}</h2>
-          <div style={{ display: "flex", gap: 8 }}>
+        
+        <header className="ex-header">
+        <h3 style={{ margin: "8px 0" }}>Neue Übung</h3>
+
+          
+          <div className="ex-header-row2">
             <button className="btn" type="button" onClick={onClear}>Maske leeren</button>
-            {/* Aktiv/Inaktiv Toggle */}
-            <label className="toggle" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-              <input
-                type="checkbox"
-                checked={!!sel?.active}
-                onChange={(e) => setSel(s => s ? { ...s, active: e.target.checked } : s)}
-              />
-              Aktiv
-            </label>
             <button
               className="btn btn--primary"
               type="button"
@@ -244,8 +238,17 @@ export default function Uebungspflege() {
             >
               Speichern
             </button>
+            <label className="toggle" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <input
+                type="checkbox"
+                checked={!!sel?.active}
+                onChange={(e) => setSel(s => s ? { ...s, active: e.target.checked } : s)}
+              />
+              aktiv
+            </label>
           </div>
         </header>
+
 
         {/* Einspaltig: Name -> Hauptgruppe -> Untergruppe -> Menge/Einheit -> Schwierigkeit -> Beschreibung */}
         <form onSubmit={(e) => { e.preventDefault(); onSave(); }}>
@@ -337,16 +340,6 @@ export default function Uebungspflege() {
               Schwierigkeit*
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <Stars value={sel?.difficulty ?? 1} onChange={(v) => setSel(s => s ? { ...s, difficulty: v } : s)} />
-                <input
-                  className="input"
-                  type="number"
-                  min={1}
-                  max={5}
-                  value={sel?.difficulty ?? 1}
-                  onChange={(e) => setSel((s) => (s ? { ...s, difficulty: Number(e.target.value) } : s))}
-                  style={{ width: 70 }}
-                  required
-                />
               </div>
             </label>
 
