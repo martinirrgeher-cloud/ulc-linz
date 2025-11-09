@@ -142,3 +142,21 @@
 
 
 .day-label, .day-weekday { font-size: 1.15rem; }
+
+/* === Overrides (2025-11-09) === */
+/* Stack: Athlet zuerst, darunter Kalender */
+.anm-toolbar { display: flex; flex-direction: column; gap: 8px; }
+.anm-picker { order: 1; }
+.anm-nav { order: 2; }
+
+/* Schlankere Tageszeilen */
+.anm-row { padding: 4px 0 !important; }
+.status-cycle { min-height: 36px !important; min-width: 40px !important; padding: 6px 10px !important; }
+.anm-row-right .note-icon { min-height: 32px !important; }
+
+/* Default Schrift in Notiz-Textarea angleichen */
+.note-text, .note-text.lg, textarea.note-text { font-family: inherit !important; font-size: 1rem; line-height: 1.35; }
+
+/* Intensiveres Blau bei vorhandener Notiz */
+.note-icon.filled { background: #e0efff !important; border-color: #9cc3ff !important; color: #0a5fb4 !important; }
+

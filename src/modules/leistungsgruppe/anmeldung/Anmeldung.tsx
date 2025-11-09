@@ -72,11 +72,6 @@ export default function AnmeldungPage() {
   return (
     <div className="anm-container anm-lg">
       <div className="anm-toolbar">
-        <div className="anm-nav">
-          <button className="anm-btn" onClick={() => gotoWeek(-1)}>◀</button>
-          <div className="anm-week">{weekLabel}</div>
-          <button className="anm-btn" onClick={() => gotoWeek(+1)}>▶</button>
-        </div>
         <div className="anm-picker">
           <label>
             <span>Athlet</span>
@@ -98,7 +93,12 @@ export default function AnmeldungPage() {
             </select>
           </label>
         </div>
-      </div>
+      <div className="anm-nav">
+          <button className="anm-btn" onClick={() => gotoWeek(-1)}>◀</button>
+          <div className="anm-week">{weekLabel}</div>
+          <button className="anm-btn" onClick={() => gotoWeek(+1)}>▶</button>
+        </div>
+        </div>
 
       {!selected && <div className="anm-info">Kein Athlet ausgewählt.</div>}
 
@@ -106,7 +106,7 @@ export default function AnmeldungPage() {
         <div className="anm-list-rows">
           {days.map(d => {
             const key = `${selected.id}:${d.isoDate}`;
-            const s: Status = statusesSafe[key] ?? "MAYBE"; // Default „?“
+            const s: Status = statusesSafe[key] ?? "NO"; // Default „?“
             const hasNote = Boolean(notesSafe[key]);
             return (
               <div className="anm-row" key={d.isoDate}>
@@ -117,7 +117,7 @@ export default function AnmeldungPage() {
                 <div className="anm-row-right">
                   <button
                     className={`status-cycle ${s === "YES" ? "yes" : s === "NO" ? "no" : "maybe"}`}
-                    onClick={() => setStatus(selected.id!, d.isoDate, nextStatus(statusesSafe[key] ?? "MAYBE"))}
+                    onClick={() => setStatus(selected.id!, d.isoDate, nextStatus(statusesSafe[key] ?? "NO"))}
                     title="Status wechseln"
                   >
                     {statusLabel(s)}
