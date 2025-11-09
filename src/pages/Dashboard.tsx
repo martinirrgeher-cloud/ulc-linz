@@ -1,39 +1,27 @@
-import React, { useMemo } from "react";
-import { useNavigate } from "react-router-dom";
-import AppShell from "@/components/AppShell";
-import { MODULES, AppModule } from "@/modules/registry";
+import React from "react";
 import { useAuth } from "@/store/AuthContext";
-import logo from "@/assets/logo.png";
+
+const MODULES = [
+  { key: "KINDERTRAINING", label: "Kindertraining", to: "/kindertraining" },
+  { key: "LEISTUNGSGRUPPE-ANMELDUNG", label: "Leistungsgruppe Anmeldung", to: "/leistungsgruppe/anmeldung" },
+  { key: "UEBUNGSKATALOG", label: "Übungskatalog", to: "/uebungskatalog" },
+  { key: "UEBUNGSPFLEGE", label: "Übungspflege", to: "/uebungspflege" },
+  { key: "ATHLETEN", label: "Athleten", to: "/athleten" },
+];
 
 export default function Dashboard() {
-  const nav = useNavigate();
   const { user } = useAuth();
-
-  const visibleModules: AppModule[] = useMemo(() => {
-    if (!user?.modules?.length) return MODULES;
-    return MODULES.filter(m => user.modules.includes(m.key));
-  }, [user]);
-
-  const Logo = <img src={logo} alt="Logo" className="dashboard-logo" />;
-
+  const allowed = MODULES.filter(m => (user?.modules ?? []).includes(m.key));
   return (
-    <AppShell title="Hauptmenü" showHome={false} showSettings leftSlot={Logo}>
-      <div className="kachel-grid">
-        {visibleModules.map(m => (
-          <button
-            key={m.key}
-            className="kachel"
-            onClick={() => nav(m.route)}
-            aria-label={m.title}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              {m.icon}
-              <h3 className="kachel__title">{m.title}</h3>
-            </div>
-            {m.description && <p className="kachel__desc">{m.description}</p>}
-          </button>
+    <div className="p-4">
+      <h1 className="text-xl font-semibold mb-4">Module</h1>
+      <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        {allowed.map(m => (
+          <li key={m.key}>
+            <a className="block rounded-xl border p-3 hover:shadow" href={m.to}>{m.label}</a>
+          </li>
         ))}
-      </div>
-    </AppShell>
+      </ul>
+    </div>
   );
 }
