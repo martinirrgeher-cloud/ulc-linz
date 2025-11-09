@@ -52,7 +52,13 @@ export default function AthleteList({
         {list.map((a) => (
           <div className="kt-row" key={a.id} onClick={() => setEditing(a)}>
             <div className="kt-left">
-              <div className="kt-name">{a.name || `${a.firstName || ""} ${a.lastName || ""}`.trim()}</div>
+              <div className="kt-name">
+  {(
+    sortMode === "NACHNAME"
+      ? `${a.lastName || ""} ${a.firstName || ""}`.trim()
+      : (a.name || `${a.firstName || ""} ${a.lastName || ""}`.trim())
+  )}
+</div>
               {a.info ? <div className="kt-sub">{a.info}</div> : null}
             </div>
             <div className="kt-right">
