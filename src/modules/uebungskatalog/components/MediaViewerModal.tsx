@@ -13,6 +13,11 @@ type Props = {
 };
 
 function MediaViewerModalImpl({ open, onClose, name, fileId, url, type }: Props) {
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", h);
+    return () => document.removeEventListener("keydown", h);
+  }, [onClose]);
   const [mode, setMode] = useState<"loading"|"iframe"|"blob"|"error">("loading");
   const [src, setSrc] = useState("");
   const [msg, setMsg] = useState("");

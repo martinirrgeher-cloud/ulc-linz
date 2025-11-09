@@ -102,7 +102,7 @@ export default function UebungskatalogPage() {
           <input className="ex-input flex1" placeholder="Suchen…" value={q} onChange={e=>setQ(e.target.value)} />
           <label className="ex-toggle ml-auto">
             <input type="checkbox" checked={onlyWithMedia} onChange={e=>setOnlyWithMedia(e.target.checked)} />
-            nur mit Medien
+            mit Medien
           </label>
         </div>
         <div className="ex-row-3-inline">
@@ -115,7 +115,7 @@ export default function UebungskatalogPage() {
             {Array.from(new Set((haupt ? all.filter(e=>e.hauptgruppe===haupt) : all).map(e => e.untergruppe).filter(Boolean))).sort((a,b)=>a.localeCompare(b,"de",{sensitivity:"base"})).map(u => <option key={u} value={u}>{u}</option>)}
           </select>
           <select className="ex-select" value={String(difficulty ?? "")} onChange={e=>setDifficulty(e.target.value? Number(e.target.value): null)}>
-            <option value="">alle Level</option>
+            <option value="">★</option>
             {[1,2,3,4,5].map(n=> <option key={n} value={n}>{n} ★</option>)}
           </select>
         </div>
