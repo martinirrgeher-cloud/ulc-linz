@@ -1,5 +1,6 @@
 import React from "react";
 import AppHeader from "./AppHeader";
+import "./AppShell.css";
 
 type Props = {
   title: string;
@@ -10,6 +11,11 @@ type Props = {
   leftSlot?: React.ReactNode;
 };
 
+/**
+ * AppShell
+ * - Kein zusätzlicher Spacer unter dem Header
+ * - Content startet direkt ohne oberen Abstand
+ */
 export default function AppShell({
   title,
   children,
@@ -27,6 +33,7 @@ export default function AppShell({
         rightSlot={rightSlot}
         leftSlot={leftSlot}
       />
+      {/* Kein Spacer hier! */}
       <main className="app-content" role="main">
         {children}
       </main>

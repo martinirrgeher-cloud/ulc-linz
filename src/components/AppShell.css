@@ -1,0 +1,17 @@
+/* Entfernt überflüssigen Abstand unter dem Header global */
+.app-shell .app-content {
+  padding-top: 0 !important;
+  margin-top: 0 !important;
+}
+
+/* Falls das erste Kind (z.B. h1/h2/section) noch default margin-top hat */
+.app-shell .app-content > :first-child {
+  margin-top: 0 !important;
+}
+
+/* Legacy: alte Spacer-Klasse, falls noch im Markup vorhanden */
+.app-header-spacer {
+  height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
