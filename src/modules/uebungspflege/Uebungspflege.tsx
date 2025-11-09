@@ -11,6 +11,8 @@ import { toPreviewIframeUrl } from "@/modules/uebungspflege/services/mediaUrl";
 import { loadHauptgruppen, loadUntergruppen, addHauptgruppe, addUntergruppe } from "@/modules/uebungspflege/services/groups";
 import { loadEinheiten } from "@/modules/uebungspflege/services/units";
 import Stars from "@/modules/uebungspflege/components/Stars";
+import { Save, Eraser, Plus } from "lucide-react";
+import "./Uebungspflege.css";
 import "@/modules/uebungspflege/services/authToken"; // Token-Provider
 
 type Filter = { q: string; onlyActive: boolean };
@@ -223,31 +225,39 @@ export default function Uebungspflege() {
         }}
       >
         
-        <header className="ex-header">
-        <h3 style={{ margin: "8px 0" }}>Neue Übung</h3>
+        
+       <header className="ex-header ex-header--one">
+  <div className="ex-header-line">
+    <h3 className="ex-title">Neue Übung</h3>
+    <div className="ex-actions-inline">
+      <button className="btn btn--icon" type="button" onClick={onClear} title="Maske leeren" aria-label="Maske leeren">
+        <Eraser size={18} />
+      </button>
+      <button
+        className="btn btn--icon btn--primary-soft"
+        type="button"
+        onClick={onSave}
+        disabled={busy || !valid}
+        title={!valid ? "Alle Pflichtfelder (ohne Beschreibung) müssen befüllt sein" : "Speichern"}
+        aria-label="Speichern"
+      >
+        <Save size={18} />
+      </button>
+      <button
+        type="button"
+        className={`toggle-switch ${sel?.active ? "on" : "off"}`}
+        onClick={() => setSel(s => s ? { ...s, active: !s.active } : s)}
+        aria-pressed={!!sel?.active}
+        aria-label={sel?.active ? "Aktiv" : "Inaktiv"}
+        title={sel?.active ? "Aktiv" : "Inaktiv"}
+      >
+        <span className="knob" />
+      </button>
+    </div>
+  </div>
+</header>
 
-          
-          <div className="ex-header-row2">
-            <button className="btn" type="button" onClick={onClear}>Maske leeren</button>
-            <button
-              className="btn btn--primary"
-              type="button"
-              onClick={onSave}
-              disabled={busy || !valid}
-              title={!valid ? "Alle Pflichtfelder (ohne Beschreibung) müssen befüllt sein" : "Speichern"}
-            >
-              Speichern
-            </button>
-            <label className="toggle" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-              <input
-                type="checkbox"
-                checked={!!sel?.active}
-                onChange={(e) => setSel(s => s ? { ...s, active: e.target.checked } : s)}
-              />
-              aktiv
-            </label>
-          </div>
-        </header>
+
 
 
         {/* Einspaltig: Name -> Hauptgruppe -> Untergruppe -> Menge/Einheit -> Schwierigkeit -> Beschreibung */}
@@ -271,7 +281,7 @@ export default function Uebungspflege() {
             {/* Hauptgruppe */}
             <div>
               <label style={{ display: "block" }}>
-                Hauptgruppe*
+                Hauptgruppe* <button className="btn btn--icon btn--tiny" type="button" onClick={() => openModal('haupt')} title="Neue Hauptgruppe" aria-label="Neue Hauptgruppe"><Plus size={16} /></button>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 8, alignItems: "end" }}>
                   <select
                     className="input"
@@ -282,7 +292,7 @@ export default function Uebungspflege() {
                     <option value="" disabled>Bitte wählen…</option>
                     {hgSorted.map((g) => <option key={g} value={g}>{g}</option>)}
                   </select>
-                  <button className="btn" type="button" onClick={() => openModal('haupt')}>+ Neu</button>
+                  
                 </div>
               </label>
             </div>
@@ -290,7 +300,7 @@ export default function Uebungspflege() {
             {/* Untergruppe */}
             <div>
               <label style={{ display: "block" }}>
-                Untergruppe*
+                Untergruppe* <button className="btn btn--icon btn--tiny" type="button" onClick={() => openModal('unter')} title="Neue Untergruppe" aria-label="Neue Untergruppe"><Plus size={16} /></button>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 8, alignItems: "end" }}>
                   <select
                     className="input"
@@ -301,7 +311,7 @@ export default function Uebungspflege() {
                     <option value="" disabled>Bitte wählen…</option>
                     {ugSorted.map((g) => <option key={g} value={g}>{g}</option>)}
                   </select>
-                  <button className="btn" type="button" onClick={() => openModal('unter')}>+ Neu</button>
+                  
                 </div>
               </label>
             </div>
