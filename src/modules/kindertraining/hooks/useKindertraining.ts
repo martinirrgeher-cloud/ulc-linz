@@ -151,18 +151,21 @@ export function useKindertraining() {
     return [...list].sort((a,b) => ln(a.name).localeCompare(ln(b.name), "de"));
   }, [state.persons, state.settings.showInactive, state.settings.sortOrder]);
 
-  const activeDaysForWeek = useMemo(() => {
-    const keysSet = new Set(state.settings.activeDays);
-    const dates = state.dates;
-    return dates.map((dateStr, idx) => ({
-      idx,
-      key: KEYS[idx],
-      name: NAMES_DE[idx],
-      dateStr,
-      visible: keysSet.has(KEYS[idx]),
-      disabled: false,
-    }));
-  }, [state.dates, state.settings.activeDays]);
+  
+const activeDaysForWeek = useMemo(() => {
+  const keysSet = new Set(state.settings.activeDays);
+  const dates = state.dates;
+  const inactive = state.week?.inactiveDays || {};
+  return dates.map((dateStr, idx) => ({
+    idx,
+    key: KEYS[idx],
+    name: NAMES_DE[idx],
+    dateStr,
+    visible: keysSet.has(KEYS[idx]),
+    disabled: !!inactive[dateStr],
+  }));
+}, [state.dates, state.settings.activeDays, state.week?.inactiveDays]);
+
 
   return {
     persons: visiblePersons,

@@ -1,3 +1,4 @@
+// src/modules/kindertraining/components/NamePopup.tsx
 import React, { useEffect, useState } from "react";
 
 type Person = { id?: string; name: string; inactive?: boolean; paid?: boolean; generalNote?: string };
@@ -13,80 +14,105 @@ export default function NamePopup(props: {
   const { mode, isOpen, onClose, onCreate, onSaveEdit, person } = props;
   const [name, setName] = useState(person?.name || "");
   const [inactive, setInactive] = useState<boolean>(!!person?.inactive);
-  const [paid, setPaid] = useState<boolean>(!!person?.paid);
+  const [unpaid, setUnpaid] = useState<boolean>(person?.paid === false); // UI: "nicht bezahlt"
   const [generalNote, setGeneralNote] = useState<string>(person?.generalNote || "");
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     setName(person?.name || "");
     setInactive(!!person?.inactive);
-    setPaid(!!person?.paid);
+    setUnpaid(person?.paid === false);
     setGeneralNote(person?.generalNote || "");
+    setBusy(false);
   }, [person, isOpen]);
 
   if (!isOpen) return null;
 
-  const save = async () => {
-    if (mode === "create" && onCreate) {
-      await onCreate(name.trim());
-      onClose();
-      return;
-    }
-    if (mode === "edit" && onSaveEdit) {
-      await onSaveEdit({ name: name.trim(), inactive, paid, generalNote });
-      onClose();
+  const save = () => {
+    if (busy) return;
+    setBusy(true);
+
+    // Popup sofort schließen (optimistic)
+    onClose();
+
+    // Save im Hintergrund
+    try {
+      if (mode === "create" && onCreate) {
+        setTimeout(() => { onCreate(name.trim()); }, 0);
+        return;
+      }
+      if (mode === "edit" && onSaveEdit) {
+        const patch = { name: name.trim(), inactive, paid: !unpaid, generalNote };
+        setTimeout(() => { onSaveEdit(patch); }, 0);
+      }
+    } catch {
+      /* optional: Toast im Parent */
     }
   };
 
   return (
-    <div style={backdropStyle}>
-      <div style={modalStyle}>
-        <div style={headerStyle}>
-          <div style={{ fontWeight: 600 }}>{mode === "create" ? "Neuer Athlet" : "Athlet bearbeiten"}</div>
-          <button style={closeBtnStyle} onClick={onClose} aria-label="Schließen">×</button>
+    <div className="athlete-modal" role="dialog" aria-modal="true" aria-label={mode === "create" ? "Neuer Athlet" : "Athlet bearbeiten"}>
+      <div className="content">
+        <div className="kt-modal__header">
+          <div className="kt-modal__title">{mode === "create" ? "Neuer Athlet" : "Athlet bearbeiten"}</div>
+          <button className="btn btn--icon" onClick={onClose} aria-label="Schließen">×</button>
         </div>
 
-        <div style={bodyStyle}>
-          <label style={rowStyle}>
-            <span style={labelStyle}>Name</span>
-            <input style={inputStyle} value={name} onChange={e => setName(e.target.value)} />
+        <div className="kt-modal__body">
+          <label className="kt-modal__row">
+            <span className="kt-modal__label">Name</span>
+            <input className="kt-modal__input" value={name} onChange={e => setName(e.target.value)} />
           </label>
 
           {mode === "edit" && (
             <>
-              <label style={rowStyle}>
-                <span style={labelStyle}>Inaktiv</span>
-                <input type="checkbox" checked={inactive} onChange={e => setInactive(e.target.checked)} />
+              <label className="kt-modal__row">
+                <span className="kt-modal__label">nicht bezahlt</span>
+                <label className="kt-check kt-check--neutral">
+                  <input
+                    type="checkbox"
+                    checked={unpaid}
+                    onChange={e => setUnpaid(e.target.checked)}
+                  />
+                  <span className="kt-check__box" aria-hidden="true" />
+                </label>
               </label>
-              <label style={rowStyle}>
-                <span style={labelStyle}>Bezahlt</span>
-                <input type="checkbox" checked={paid} onChange={e => setPaid(e.target.checked)} />
-              </label>
-              <label style={rowStyle}>
-                <span style={labelStyle}>Notiz</span>
-                <textarea style={textareaStyle} value={generalNote} onChange={e => setGeneralNote(e.target.value)} />
+
+              <label className="kt-modal__row">
+                <span className="kt-modal__label">Notiz</span>
+                <textarea
+                  className="kt-modal__textarea"
+                  value={generalNote}
+                  onChange={e => setGeneralNote(e.target.value)}
+                />
               </label>
             </>
           )}
         </div>
 
-        <div style={footerStyle}>
-          <button onClick={onClose}>Abbrechen</button>
-          <button onClick={save}>Speichern</button>
+        <div className="kt-modal__footer">
+          {/* Toggle NUR bei Bearbeiten sichtbar */}
+          {mode === "edit" && (
+            <div className="kt-modal__footer-left">
+              <button
+                type="button"
+                className={`toggle-switch ${!inactive ? "on" : "off"}`}
+                onClick={() => setInactive(v => !v)}
+                aria-pressed={!inactive}
+                aria-label={!inactive ? "Aktiv" : "Inaktiv"}
+                title={!inactive ? "Aktiv" : "Inaktiv"}
+              >
+                <span className="knob" />
+              </button>
+            </div>
+          )}
+
+          <div className="kt-modal__footer-actions">
+            <button className="btn" onClick={onClose} disabled={busy}>Abbrechen</button>
+            <button className="btn btn--primary-soft" onClick={save} disabled={busy}>Speichern</button>
+          </div>
         </div>
       </div>
     </div>
   );
 }
-
-// Inline styles
-const backdropStyle: React.CSSProperties = { position: "fixed", inset: 0, background: "rgba(0,0,0,.3)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50 };
-const modalStyle: React.CSSProperties = { background: "#fff", borderRadius: 12, width: "min(520px, 92vw)", boxShadow: "0 16px 40px rgba(0,0,0,.16)" };
-const headerStyle: React.CSSProperties = { padding: "12px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 };
-const bodyStyle: React.CSSProperties = { padding: "8px 16px 4px", display: "flex", flexDirection: "column", gap: 10 };
-const footerStyle: React.CSSProperties = { padding: "12px 16px", display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8 };
-const rowStyle: React.CSSProperties = { display: "flex", alignItems: "center", gap: 10 };
-const labelStyle: React.CSSProperties = { width: 120, fontSize: 14, color: "#334155" };
-const inputStyle: React.CSSProperties = { flex: 1 };
-const textareaStyle: React.CSSProperties = { flex: 1, minHeight: 80, fontFamily: "inherit", fontSize: 14 };
-const closeBtnStyle: React.CSSProperties = { background: "transparent", border: "none", fontSize: 18, cursor: "pointer", lineHeight: 1 };
-export {};

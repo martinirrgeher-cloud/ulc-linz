@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 
 type Props = {
@@ -14,21 +13,27 @@ export default function NotePopup({ isOpen, onClose, initialText='', onSave, tit
   useEffect(()=>{ setValue(initialText || ''); }, [initialText, isOpen]);
 
   if(!isOpen) return null;
+
   return (
-    <div className="kt-modal-backdrop" onClick={onClose}>
-      <div className="kt-modal" onClick={e=>e.stopPropagation()}>
-        <div className="kt-modal-header">
-          <div>{title}</div>
-          <button className="kt-icon-btn" onClick={onClose}>✕</button>
+    <div className="note-popup" role="dialog" aria-modal="true" aria-label={title}>
+      <div className="content">
+        <div className="kt-modal__header">
+          <div className="kt-modal__title">{title}</div>
+          <button className="btn btn--icon" onClick={onClose} aria-label="Schließen">×</button>
         </div>
-        <div className="kt-modal-body">
+        <div className="kt-modal__body">
           <textarea
-            style={{minHeight:120, width:'100%', border:'1px solid #e5e7eb', borderRadius:10, padding:10}}
-            value={value} onChange={e=>setValue(e.target.value)}
+            className="kt-modal__textarea"
+            value={value}
+            onChange={e=>setValue(e.target.value)}
+            placeholder="Notiz eingeben…"
           />
-          <div style={{display:'flex', gap:8, justifyContent:'flex-end'}}>
-            <button className="kt-btn" onClick={onClose}>Abbrechen</button>
-            <button className="kt-btn kt-btn--primary" onClick={()=>{ onSave(value); onClose(); }}>Speichern</button>
+        </div>
+        <div className="kt-modal__footer">
+          <div/>
+          <div className="kt-modal__footer-actions">
+            <button className="btn" onClick={onClose}>Abbrechen</button>
+            <button className="btn btn--primary-soft" onClick={()=>{ onSave(value); onClose(); }}>Speichern</button>
           </div>
         </div>
       </div>

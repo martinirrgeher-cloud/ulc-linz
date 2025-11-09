@@ -1,113 +1,82 @@
-/* DEBUG: falls nötig aktivieren, um CSS-Ladung zu prüfen */
-/* html body { outline: 2px solid lime; } */
+/* =========================
+   Kindertraining – konsolidierte Styles
+   (Header sticky, Suche/Add, Filter, Trainingstage, Tabelle, Overlays)
+   ========================= */
 
-.kindertraining.kt-shell { padding: 12px; margin: 0 auto; max-width: 1100px; }
-.kt-card { background:#fff; border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,.08); padding:12px; }
-
-/* Header (3 Zeilen) */
-.kt-header { display: grid; gap: 10px; margin-bottom: 8px; }
-.kt-header__row { display: flex; align-items: center; gap: 12px; }
-.kt-header__row--center { justify-content: center; }
-.kt-kw { display: inline-flex; align-items: baseline; gap: 8px; font-size: 22px; font-weight: 700; }
-.kt-kw__year { color:#334155; } .kt-kw__sep { opacity: .5; } .kt-kw__num { color: #0f172a; }
-
-/* Controls */
-.kt-field { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.kt-label { font-size: 13px; color:#334155; }
-.kt-select { padding: 6px 8px; border:1px solid #cbd5e1; border-radius:8px; background:#fff; }
-.kt-days { display: flex; flex-wrap: wrap; gap: 8px; }
-.kt-switch { position: relative; display: inline-flex; align-items: center; }
-.kt-switch input { position:absolute; opacity:0; pointer-events:none; }
-.kt-switch__pill { padding: 6px 10px; border-radius: 999px; border:1px solid #cbd5e1; background:#fff; font-size:13px; cursor:pointer; }
-.kt-switch.is-on .kt-switch__pill { background:#0ea5e9; border-color:#0ea5e9; color:#fff; }
-.kt-switch--ghost .kt-switch__pill { background:transparent; }
-
-/* Suche / Buttons */
-.kt-toolbar { display:flex; gap:8px; align-items:center; margin: 8px 0 12px; }
-.kt-input { padding: 8px 10px; border:1px solid #cbd5e1; border-radius:8px; background:#fff; }
-.kt-input--search { flex: 1; min-width: 160px; }
-.kt-btn { padding: 6px 12px; border-radius: 8px; border:1px solid #cbd5e1; background:#fff; cursor:pointer; }
-.kt-btn--primary { background:#111827; color:#fff; border-color:#111827; }
-
-/* Tabelle */
-.kt-table { width: 100%; border-radius: 10px; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.06); overflow: hidden; }
-.kt-row { display: flex; align-items: center; border-top: 1px solid #f1f5f9; }
-.kt-row:first-child { border-top: 0; }
-.kt-row--head { background: #f8fafc; font-weight: 600; }
-.kt-col { padding: 8px 10px; display: flex; align-items: center; gap: 8px; }
-.kt-col--name { min-width: 220px; max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
-.kt-col--day { flex: 1 1 0; justify-content: center; }
-.kt-row.is-inactive { opacity: .6; }
-
-/* Checkboxen */
-.kt-check { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; }
-.kt-check input { position: absolute; opacity: 0; pointer-events: none; }
-.kt-check__box { width: 18px; height: 18px; border-radius: 4px; border: 2px solid #cbd5e1; background: #fff; display: inline-block; }
-.kt-check input:checked + .kt-check__box { background: #0ea5e9; border-color:#0ea5e9; box-shadow: inset 0 0 0 3px #fff; }
-
-/* Day-Header */
-.kt-dayhead { display:flex; flex-direction: column; align-items:center; gap:6px; width:100%; }
-.kt-dayhead__date { font-weight: 600; font-size: 13px; }
-.kt-icon-note { background: transparent; border: none; cursor: pointer; font-size: 16px; line-height: 1; }
-
-/* Modals */
-.kt-modal__backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.35); display: flex; align-items: center; justify-content: center; z-index: 60; }
-.kt-modal { width: min(560px, 92vw); background: #fff; border-radius: 12px; box-shadow: 0 18px 48px rgba(0,0,0,.2); overflow: hidden; }
-.kt-modal__header, .kt-modal__footer { padding: 12px 14px; display: flex; align-items: center; gap: 10px; }
-.kt-modal__header { justify-content: space-between; border-bottom: 1px solid #e2e8f0; }
-.kt-modal__footer { justify-content: flex-end; border-top: 1px solid #e2e8f0; }
-.kt-modal__title { font-weight: 700; }
-.kt-modal__close { background: transparent; border: none; font-size: 22px; cursor: pointer; line-height: 1; }
-.kt-modal__body { padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
-.kt-rowline { display: flex; align-items: center; gap: 10px; }
-.kt-textarea { min-height: 120px; border:1px solid #cbd5e1; border-radius: 8px; padding: 8px; font: inherit; }
-
-@media (max-width: 720px) {
-  .kindertraining.kt-shell { padding: 8px; }
-  .kt-col--name { min-width: 180px; max-width: 180px; }
-  .kt-check__box { width: 16px; height: 16px; }
+/* --- Container Safety (nie breiter als Content/Header) --- */
+.kindertraining, .kindertraining * {
+  box-sizing: border-box;
+  max-width: 100%;
 }
 
-
-/* === Sticky Kopf === */
+/* =========================
+   Kopf (sticky)
+   ========================= */
 .kt-header--sticky {
   position: sticky;
-  top: 0; /* falls Global-Header fix ist, ggf. top anpassen */
+  top: 0;               /* falls Global-Header fixed ist, ggf. anpassen */
   z-index: 20;
   background: #fff;
   box-shadow: 0 2px 8px rgba(0,0,0,.04);
-  padding-bottom: 8px;
+  padding: 8px 0 10px;
 }
-.kt-row { display: flex; align-items: center; gap: 8px; }
-.kt-row--cal { justify-content: center; }
-.kt-row--searchadd { justify-content: space-between; }
-.kt-row--filters { gap: 12px; flex-wrap: wrap; }
 
-.kt-nav { border: 1px solid #ddd; background:#fff; border-radius:8px; width:36px; height:32px; }
-.kt-cal-label { font-weight:600; }
-
-.kt-input--search { flex: 1 1 auto; }
-.btn.btn--icon { width: 36px; height: 32px; border:1px solid #ddd; border-radius: 8px; background:#fff; }
-
-/* Toggle wie Übungspflege (kompakt) */
-.toggle-switch { position: relative; width: 36px; height: 18px; border-radius:999px; border:1px solid #f2a3a3; background:#ffd6d6; }
-.toggle-switch .knob { position:absolute; top:1px; left:1px; width:16px; height:16px; border-radius:50%; background:#fff; border:1px solid #bfbfbf; transform: translateX(0); transition: transform .2s; }
-.toggle-switch.on { background:#c9f2d8; border-color:#7bd39d; }
-.toggle-switch.on .knob { transform: translateX(18px); }
-
-/* Tage-Dropdown */
-.kt-days { position: relative; }
-.kt-days__btn { border:1px solid #ddd; background:#fff; border-radius:8px; padding:6px 10px; }
-.kt-days__menu { position:absolute; top: calc(100% + 6px); left:0; background:#fff; border:1px solid #e5e7eb; border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.08); padding:8px; display:none; z-index:30; min-width: 160px; }
-.kt-days:hover .kt-days__menu { display:block; } /* quick UX; optional Klick-Logik später */
-.kt-days__item { display:flex; align-items:center; gap:8px; padding:4px 6px; }
-
-/* Sicherheit: Kopf passt in den Content */
-.kindertraining, .kindertraining * { max-width: 100%; box-sizing: border-box; }
-
-/* === Kopf/Filter: Toggle rechts, Trainingstage größer === */
-.kt-row--filters {
+/* generische Reihen */
+.kt-row {
   display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Zeile 1: Kalender */
+.kt-row--cal {
+  justify-content: center;
+}
+
+.kt-nav {
+  width: 36px;
+  height: 32px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+}
+.kt-cal-label {
+  font-weight: 600;
+  padding: 0 10px;
+}
+
+/* Zeile 2: Suche + Add */
+.kt-row--searchadd {
+  justify-content: space-between;
+}
+.kt-input--search {
+  flex: 1 1 auto;
+  min-width: 140px;
+  padding: 6px 10px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  outline: none;
+}
+.kt-input--search:focus {
+  border-color: #b9d4ff;
+  box-shadow: 0 0 0 3px rgba(66,153,225,.2);
+}
+
+.btn.btn--icon {
+  width: 36px;
+  height: 32px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+/* Zeile 3: Filter (Sort, Trainingstage, Toggle rechts) */
+.kt-row--filters {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
@@ -125,65 +94,58 @@
   gap: 8px;
   flex: 0 0 auto;
 }
-.kt-days__btn.kt-lg {
-  padding: 8px 12px;
-  font-size: 1rem;
+
+.kt-field {
+  display: grid;
+  gap: 4px;
+}
+.kt-label {
+  font-size: 0.8rem;
+  opacity: 0.85;
+}
+.kt-select {
+  padding: 6px 10px;
   border: 1px solid #ddd;
   border-radius: 8px;
   background: #fff;
 }
 
-/* === Datumskopf: 04.11 + Wochentag darunter, Checkbox oben === */
-.kt-dayhead {
-  display: grid;
-  grid-template-rows: auto auto;
-  justify-items: center;
-  align-items: center;
-  gap: 2px;
-}
-.kt-dayhead__date {
-  display: grid;
-  grid-template-rows: auto auto;
-  justify-items: center;
-  line-height: 1.1;
-}
-.kt-dayhead__ddmm { font-weight: 600; }
-.kt-dayhead__weekday { font-size: 0.8rem; opacity: .8; }
-
-/* === Checkbox-Styling: dezente grüne Haken === */
-.kt-check {
-  appearance: none;
-  width: 16px;
-  height: 16px;
-  border: 1px solid #b9dfc6;
-  border-radius: 4px;
+/* Trainingstage Dropdown */
+.kt-days { position: relative; }
+.kt-days__btn {
+  border: 1px solid #ddd;
   background: #fff;
-  position: relative;
+  border-radius: 8px;
+  padding: 6px 10px;
   cursor: pointer;
 }
-.kt-check:checked {
-  background: #dff4e7;
-  border-color: #7bd39d;
+.kt-days__btn.kt-lg {
+  padding: 8px 12px;
+  font-size: 1rem;
 }
-.kt-check:checked::after {
-  content: "";
+.kt-days__menu {
   position: absolute;
-  left: 4px;
-  top: 1px;
-  width: 5px;
-  height: 9px;
-  border: 2px solid #36a56c;
-  border-top: 0;
-  border-left: 0;
-  transform: rotate(45deg);
+  top: calc(100% + 6px);
+  left: 0;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.08);
+  padding: 8px;
+  display: none;
+  z-index: 30;
+  min-width: 160px;
+}
+/* simple UX: bei Hover zeigen – kann auf Klick umgestellt werden */
+.kt-days:hover .kt-days__menu { display: block; }
+.kt-days__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
 }
 
-/* Falls deine Teilnahme-Checkboxen eigene Klassen haben, gib ihnen zusätzlich .kt-check */
-.participation input[type="checkbox"] { /* Beispiel-Container */
-  accent-color: #36a56c; /* fallback */
-}
-
-/* === Toggle wie in Übungspflege (kompakt, intensiv) === */
+/* Toggle (kompakt, ident Übungspflege) */
 .toggle-switch {
   position: relative;
   width: 36px;
@@ -214,8 +176,94 @@
   transform: translateX(18px);
 }
 
-/* === Overlays für Notiz-Popup und „Athlet bearbeiten“ === */
-/* Greift auch dann, wenn die Komponenten bisher ohne Styles sind */
+/* =========================
+   Tabelle
+   ========================= */
+.kt-table {
+  width: 100%;
+  overflow-x: auto;
+}
+.kt-row--head {
+  font-size: 0.95rem;
+  font-weight: 600;
+  border-bottom: 1px solid #ececec;
+  padding: 6px 0;
+}
+.kt-row:not(.kt-row--head) {
+  border-bottom: 1px solid #f3f4f6;
+}
+.kt-col {
+  padding: 6px 8px;
+}
+.kt-col--name {
+  min-width: 220px;
+  max-width: 220px;
+  cursor: pointer;
+}
+
+/* Tag-Header (Datum + Wochentag + Checkbox oben) */
+.kt-dayhead {
+  display: grid;
+  grid-template-rows: auto auto;
+  justify-items: center;
+  align-items: center;
+  gap: 2px;
+}
+.kt-dayhead__date {
+  display: grid;
+  grid-template-rows: auto auto;
+  justify-items: center;
+  line-height: 1.1;
+}
+.kt-dayhead__ddmm { font-weight: 600; }
+.kt-dayhead__weekday { font-size: 0.8rem; opacity: .8; }
+
+/* Teilnahme-Checkboxen: dezente grüne Haken */
+.kt-check {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+}
+.kt-check > input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  border: 1px solid #b9dfc6;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+}
+.kt-check > input[type="checkbox"]:checked {
+  background: #dff4e7;
+  border-color: #7bd39d;
+}
+.kt-check__box {
+  pointer-events: none;
+  position: absolute;
+  width: 18px;
+  height: 18px;
+}
+.kt-check > input[type="checkbox"]:checked + .kt-check__box::after {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 2px;
+  width: 5px;
+  height: 9px;
+  border: 2px solid #36a56c;
+  border-top: 0;
+  border-left: 0;
+  transform: rotate(45deg);
+}
+.kt-col--day.is-disabled { opacity: .45; pointer-events: none; }
+
+/* =========================
+   Overlays (Notiz, Athlet bearbeiten)
+   ========================= */
 .note-popup, .athlete-modal, .kt-modal, .ex-modal {
   position: fixed;
   inset: 0;
@@ -237,6 +285,172 @@
   padding: 16px;
 }
 
-/* Sicherheit: Modul nie breiter als Content/Header */
-.kindertraining, .kindertraining * { max-width: 100%; box-sizing: border-box; }
+/* kleine Helfer */
+.is-inactive { opacity: .6; }
 
+/* === Height harmonization (search, + button, sort select, Trainingstage) === */
+:root { --kt-ctl-h: 40px; }
+
+.kt-input--search { min-height: var(--kt-ctl-h); padding: 8px 12px; }
+.btn.btn--icon { width: var(--kt-ctl-h); height: var(--kt-ctl-h); }
+.kt-select { height: var(--kt-ctl-h); }
+.kt-days__btn.kt-lg { height: var(--kt-ctl-h); display: inline-flex; align-items: center; }
+
+
+/* Hide explicit 'Sortieren' label to save space */
+.kt-field .kt-label { display: none; }
+
+/* ===== Modal Footer Layout with left-aligned toggle ===== */
+.kt-modal__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 12px;
+}
+.kt-modal__footer-left { display: inline-flex; align-items: center; gap: 8px; }
+.kt-modal__footer-actions { display: inline-flex; align-items: center; gap: 8px; }
+
+/* ===== Compact toggle (reuse from header) already exists; ensure here for modal too ===== */
+.toggle-switch {
+  position: relative;
+  width: 36px;
+  height: 18px;
+  border-radius: 999px;
+  border: 1px solid #f2a3a3;
+  background: #ffd6d6;
+  transition: background .2s, border-color .2s;
+  padding: 0;
+}
+.toggle-switch .knob {
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  border: 1px solid #bfbfbf;
+  transform: translateX(0);
+  transition: transform .2s ease;
+}
+.toggle-switch.on {
+  background: #c9f2d8;
+  border-color: #7bd39d;
+}
+.toggle-switch.on .knob { transform: translateX(18px); }
+
+/* ===== Name icons (€, ✎) ===== */
+.kt-icon {
+  display: inline-block;
+  margin: 0 6px;
+  font-size: 0.95rem;
+  line-height: 1;
+  vertical-align: baseline;
+}
+.kt-icon--euro { color: #136f3d; margin-right: 6px; margin-left: 0; }
+.kt-icon--note { color: #465a77; margin-left: 6px; margin-right: 0; }
+
+/* ===== NotePopup generic classes (if used) ===== */
+.kt-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.45);
+  display: grid;
+  place-items: center;
+  z-index: 999;
+}
+.kt-modal {
+  background: #fff;
+  max-width: min(680px, 92vw);
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 16px 40px rgba(0,0,0,.18);
+  padding: 16px;
+}
+.kt-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.kt-modal-body { display: grid; gap: 10px; }
+.kt-icon-btn {
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  border-radius: 8px;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+.kt-btn {
+  border: 1px solid #ddd;
+  background: #fff;
+  border-radius: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+.kt-btn--primary {
+  border-color: #d8e6f7;
+  background: #f7fbff;
+}
+.kt-btn--primary:hover { background: #eef6ff; }
+
+/* Modal-Innenlayout (Name/Athlet-Dialog) */
+.kt-modal__header{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px}
+.kt-modal__title{font-size:1.05rem;font-weight:600}
+.kt-modal__body{display:grid;gap:10px}
+.kt-modal__row{display:grid;grid-template-columns:140px 1fr;align-items:center;gap:10px}
+@media (max-width:520px){.kt-modal__row{grid-template-columns:1fr;gap:6px}}
+.kt-modal__label{font-size:.9rem;opacity:.9}
+.kt-modal__input,.kt-modal__textarea{border:1px solid #ddd;border-radius:8px;padding:8px 10px;width:100%;outline:none;background:#fff}
+.kt-modal__input:focus,.kt-modal__textarea:focus{border-color:#b9d4ff;box-shadow:0 0 0 3px rgba(66,153,225,.2)}
+.kt-modal__textarea{min-height:100px;resize:vertical}
+
+/* Primär-Button im Dialog (sanft) */
+.btn.btn--primary-soft{border:1px solid #d8e6f7;background:#f7fbff;border-radius:8px;padding:8px 12px}
+.btn.btn--primary-soft:hover{background:#eef6ff}
+
+.kt-check--neutral > input[type="checkbox"] {
+  border-color: #cfcfcf;
+}
+.kt-check--neutral > input[type="checkbox"]:checked {
+  background: #f5f5f5;
+  border-color: #cfcfcf;
+}
+.kt-check--neutral > input[type="checkbox"]:checked + .kt-check__box::after {
+  border-color: #666; /* dezenter Haken */
+}
+
+:root { --kt-name-col: 220px; --kt-day-col: 56px; }
+
+.kt-row { display: flex; }
+.kt-col--name {
+  flex: 0 0 var(--kt-name-col);
+  min-width: var(--kt-name-col);
+  max-width: var(--kt-name-col);
+}
+.kt-col--day {
+  flex: 0 0 var(--kt-day-col);
+  min-width: var(--kt-day-col);
+  max-width: var(--kt-day-col);
+  text-align: center;
+}
+
+.kt-icon-note {
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  border-radius: 8px;
+  padding: 4px 6px;
+  line-height: 1;
+  cursor: pointer;
+}
+.kt-icon-note:hover { background: #f7f7f7; }
+
+/* Einheitliche Schrift für Dialogfelder */
+.kt-modal__input,
+.kt-modal__textarea {
+  font-family: inherit;
+  font-size: 1rem;
+}

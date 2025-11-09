@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useCallback } from "react";
 import "./Kindertraining.css";
 import KTHeader from "./components/KTHeader";
 import PersonList from "./components/PersonList";
@@ -16,6 +16,21 @@ export default function Kindertraining() {
     getDayNote, setNote,
     sortOrder, setSortOrder, showInactive, setShowInactive, setActiveDaysForWeek,
   } = useKindertraining() as any;
+  // Ableitung: Inaktive Tage aus dem Wochenzustand
+  const baseInactiveDays = useMemo(() => {
+    const out: Record<string, boolean> = {};
+    (activeDaysForWeek || []).forEach(d => { if (d?.disabled && d.dateStr) out[d.dateStr] = true; });
+    return out;
+  }, [activeDaysForWeek]);
+
+  // UI-Layer: sofortige Reaktion ohne Roundtrip
+  const [uiInactiveDays, setUiInactiveDays] = useState<Record<string, boolean>>({});
+
+  // Merge: Quelle + UI
+  const mergedInactiveDays = useMemo(
+    () => ({ ...(baseInactiveDays || {}), ...(uiInactiveDays || {}) }),
+    [baseInactiveDays, uiInactiveDays]
+  );
 
   const personsSafe: PType[] = Array.isArray(persons) ? (persons as PType[]) : [];
   const daysSafe: any[] = Array.isArray(activeDaysForWeek) ? activeDaysForWeek : [];
@@ -39,7 +54,27 @@ export default function Kindertraining() {
     return m;
   }, [daysSafe]);
 
-  const [createOpen, setCreateOpen] = useState(false);
+  
+  // Entfernt alle Haken eines Tages (für saubere inaktive Spalten)
+  const clearAttendanceForDate = useCallback((dateStr: string) => {
+    try {
+      persons.forEach((p) => {
+        const pid = p.id as string;
+        const isChecked = !!getAttendanceById(pid, dateStr);
+        if (isChecked) {
+          toggleAttendanceById(pid, dateStr); // toggelt auf false
+        }
+      });
+    } catch {}
+  }, [persons, getAttendanceById, toggleAttendanceById]);
+
+  // Wrapper: setzt Tag inaktiv/aktiv und räumt bei inaktiv die Spalte auf
+  const handleSetInactiveForDate = useCallback((dateStr: string, inactive: boolean) => { setUiInactiveDays(prev => ({...prev, [dateStr]: inactive}));
+    setInactiveForDate?.(dateStr, inactive);
+    if (inactive) clearAttendanceForDate(dateStr);
+  }, [setInactiveForDate, clearAttendanceForDate]);
+
+const [createOpen, setCreateOpen] = useState(false);
   const [editPerson, setEditPerson] = useState<PType | null>(null);
   const [dayNoteDate, setDayNoteDate] = useState<string | null>(null);
 
@@ -116,8 +151,8 @@ export default function Kindertraining() {
             toggleAttendanceById={toggleAttendanceById}
             onClickName={handleClickName}
             nameColWidth={nameColWidth}
-            inactiveDays={inactiveDays}
-            setInactiveForDate={(d, val) => setInactiveForDate?.(d, val)}
+            inactiveDays={mergedInactiveDays}
+            setInactiveForDate={handleSetInactiveForDate}
             onOpenDayNote={(d) => setDayNoteDate(d)}
           />
         </div>

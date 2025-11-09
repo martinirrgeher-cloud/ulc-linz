@@ -4,24 +4,20 @@ import React from "react";
 type DayToggle = { key: string; name: string; visible: boolean };
 
 type Props = {
-  // Kalender
   weekNumber: number;
   year: number;
   onPrevWeek: () => void;
   onNextWeek: () => void;
 
-  // Suche + Add
   search?: string;
   onSearch?: (q: string) => void;
   onAdd?: () => void;
 
-  // Sortierung + Aktiv-Toggle
   sortOrder: "vorname" | "nachname";
   onChangeSort: (v: "vorname" | "nachname") => void;
-  showInactive: boolean; // true = auch Inaktive
+  showInactive: boolean;
   onToggleShowInactive: (value: boolean) => void;
 
-  // Tage
   dayToggles: DayToggle[];
   onToggleDay: (key: string, visible: boolean) => void;
 };
@@ -58,10 +54,8 @@ export default function KTHeader(props: Props) {
       {/* Zeile 3: Sort, Trainingstage (größer), Toggle ganz rechts */}
       <div className="kt-row kt-row--filters">
         <div className="kt-flex-left">
-          <label className="kt-field">
-            <span className="kt-label">Sortieren</span>
-            <select
-              className="kt-select"
+          <label className="kt-field"><select
+              className="kt-select" aria-label="Sortieren"
               value={props.sortOrder}
               onChange={(e) => props.onChangeSort(e.target.value as "vorname" | "nachname")}
             >

@@ -1,3 +1,4 @@
+// src/modules/kindertraining/components/PersonList.tsx
 import React from "react";
 import type { Person } from "../lib/types";
 
@@ -7,10 +8,7 @@ function fmtDateDDMM(d: Date) {
   return `${dd}.${mm}`;
 }
 function fmtWeekday2(d: Date) {
-  // de-AT kurz (z.B. "Di"), auf 2 Zeichen begrenzen
-  return new Intl.DateTimeFormat("de-AT", { weekday: "short" })
-    .format(d)
-    .slice(0, 2);
+  return new Intl.DateTimeFormat("de-AT", { weekday: "short" }).format(d).slice(0, 2);
 }
 
 export default function PersonList(props: {
@@ -51,29 +49,31 @@ export default function PersonList(props: {
         </div>
 
         {visibleDays.map((d) => {
-          const inactive = !!inactiveDays[d]; // true -> Tag inaktiv
+          const isInactive = !!inactiveDays[d]; // true => Tag inaktiv
           const dateObj = new Date(d);
-
+          const checkedActive = !isInactive; // Checkbox: standardmäßig angehakt = aktiv
           return (
             <div key={d} className="kt-col kt-col--day" role="columnheader">
               <div className="kt-dayhead">
-                {/* Checkbox über dem Datum: schaltet Tag inaktiv */}
-                <label className="kt-check kt-check--day" title="Tag inaktiv schalten">
+                {/* Checkbox über dem Datum: standardmäßig an (aktiv); Haken raus -> inaktiv + Notiz öffnen */}
+                <label className="kt-check kt-check--day" title="Trainingstag aktiv/inaktiv">
                   <input
                     type="checkbox"
-                    checked={inactive}
-                    onChange={(e) => setInactiveForDate?.(d, e.target.checked)}
+                    checked={checkedActive}
+                    onChange={(e) => {
+                      const makeInactive = !e.target.checked;
+                      setInactiveForDate?.(d, makeInactive);
+                      if (makeInactive) onOpenDayNote?.(d);
+                    }}
                   />
                   <span className="kt-check__box" aria-hidden="true" />
                 </label>
 
-                {/* Datum 04.11 + Wochentag (Di) darunter */}
                 <div className="kt-dayhead__date" aria-label={`Datum ${fmtDateDDMM(dateObj)}`}>
                   <div className="kt-dayhead__ddmm">{fmtDateDDMM(dateObj)}</div>
                   <div className="kt-dayhead__weekday">{fmtWeekday2(dateObj)}</div>
                 </div>
 
-                {/* Tagesnotiz öffnen */}
                 <button
                   type="button"
                   className="kt-icon-note"
@@ -106,27 +106,29 @@ export default function PersonList(props: {
               onClick={() => onClickName(p)}
               title={displayName}
             >
+              {/* €-Symbol links, falls "nicht bezahlt" gesetzt (paid === false) */}
+              {p.paid === false && <span className="kt-icon kt-icon--euro" title="nicht bezahlt">€</span>}
               {displayName}
+              {/* Stift rechts, falls Notiz vorhanden */}
+              {p.generalNote && p.generalNote.trim() !== "" && (
+                <span className="kt-icon kt-icon--note" title="Notiz vorhanden">✎</span>
+              )}
             </div>
 
             {visibleDays.map((d) => {
               const checked = !!getAttendanceById(p.id as string, d);
-              const disabled = !!inactiveDays[d]; // Tag inaktiv -> Feld disabled
+              const disabled = !!inactiveDays[d];
+              const checkedFinal = disabled ? false : checked;
               return (
                 <div
                   key={d + (p.id || p.name)}
                   className={"kt-col kt-col--day" + (disabled ? " is-disabled" : "")}
                   role="cell"
                 >
-                  {/* Teilnahme-Checkbox: dezenter grüner Haken via CSS (.kt-check/.kt-check__box) */}
-                  <label
-                    className="kt-check"
-                    title={`${displayName} – ${d}`}
-                    aria-label={`${displayName} – ${d}`}
-                  >
+                  <label className="kt-check" title={`${displayName} – ${d}`} aria-label={`${displayName} – ${d}`}>
                     <input
                       type="checkbox"
-                      checked={checked}
+                      checked={checkedFinal}
                       disabled={disabled}
                       onChange={() => toggleAttendanceById(p.id as string, d)}
                     />
