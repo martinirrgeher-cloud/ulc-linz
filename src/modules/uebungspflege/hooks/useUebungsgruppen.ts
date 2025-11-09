@@ -1,48 +1,39 @@
 import { useEffect, useState } from "react";
-import { loadUebungsgruppen, saveUebungsgruppen } from "@/modules/uebungskatalog/services/UebungsgruppenStore";
+import { loadUebungsgruppen } from "@/modules/uebungskatalog/services/UebungsgruppenStore";
 
 const FILE_ID = import.meta.env.VITE_DRIVE_UEBUNGSGRUPPEN_FILE_ID as string;
 
 export type GruppenMap = Record<string, string[]>;
 
-export function useUebungsgruppen() {
+export default function useUebungsgruppen() {
   const [gruppen, setGruppen] = useState<GruppenMap>({});
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  async function load() {
-    setLoading(true);
-    try {
-      const raw = await loadUebungsgruppen();
-      const groups: GruppenMap = raw?.hauptgruppen ?? (raw ?? {});
-      // normalize + sort for stable UI
-      const normalized: GruppenMap = Object.fromEntries(
-        Object.entries(groups || {}).map(([h, list]) => [
-          h,
-          (list || []).slice().sort((a, b) => a.localeCompare(b, "de", { sensitivity: "base" }))
-        ])
-      );
-      setGruppen(
-        Object.fromEntries(
-          Object.entries(normalized).sort(([a], [b]) => a.localeCompare(b, "de", { sensitivity: "base" }))
-        )
-      );
-    } finally {
-      setLoading(false);
-    }
-  }
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        setLoading(true);
+        const raw: unknown = await loadUebungsgruppen();
 
-  async function save(next: GruppenMap) {
-    const sorted: GruppenMap = Object.fromEntries(
-      Object.entries(next).map(([h, arr]) => [
-        h,
-        (arr || []).slice().sort((a, b) => a.localeCompare(b, "de", { sensitivity: "base" }))
-      ])
-    );
-    await saveUebungsgruppen(sorted);
-    setGruppen(sorted);
-  }
+        const map: GruppenMap =
+          raw && typeof raw === "object" && raw !== null && "hauptgruppen" in (raw as any) && (raw as any).hauptgruppen
+            ? (raw as any).hauptgruppen as GruppenMap
+            : Array.isArray(raw)
+              ? { Allgemein: raw as string[] }
+              : (raw as GruppenMap) ?? {};
 
-  useEffect(() => { load(); }, []);
+        if (alive) setGruppen(map);
+      } catch (e: any) {
+        if (alive) setError(e?.message || "Fehler beim Laden der Gruppen");
+      } finally {
+        if (alive) setLoading(false);
+      }
+    })();
+    return () => { alive = false; };
+  }, []);
 
-  return { gruppen, loading, reload: load, save };
+  // Wenn du hier auch Speichern brauchst, füge analog zu Katalog.saveGruppen eine persist-Funktion ein
+  return { gruppen, setGruppen, loading, error };
 }

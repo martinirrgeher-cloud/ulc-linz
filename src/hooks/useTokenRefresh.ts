@@ -1,26 +1,21 @@
-import { useEffect } from 'react'
-import { getValidAccessToken, silentRefreshIfNeeded } from '@/lib/googleAuth'
+import { useEffect } from "react";
+import { getValidAccessToken } from "@/lib/googleAuth"; // <- einziges named import
 
-/**
- * Führt regelmäßig einen Best-Effort Silent-Refresh aus.
- * Läuft NICHT auf Login-Seiten und nie parallel zum aktiven Login.
- */
 export default function useTokenRefresh() {
   useEffect(() => {
     const shouldRun = () => {
-      const path = window.location.pathname
-      if (path.startsWith('/login')) return false
-      if (!getValidAccessToken()) return false
-      return true
-    }
+      const path = window.location.pathname;
+      if (path.startsWith("/login")) return false;
+      return !!getValidAccessToken();
+    };
+
     const interval = setInterval(() => {
       if (shouldRun()) {
-        silentRefreshIfNeeded().catch((err) =>
-          console.error('[TokenRefresh] Silent refresh fehlgeschlagen', err)
-        )
+        // Optional: Zugriff triggert ggf. internen Refresh-Flow
+        void getValidAccessToken();
       }
-    }, 10 * 60 * 1000) // alle 10 Minuten
+    }, 5 * 60 * 1000); // alle 5 min
 
-    return () => clearInterval(interval)
-  }, [])
+    return () => clearInterval(interval);
+  }, []);
 }

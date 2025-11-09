@@ -1,8 +1,9 @@
+// src/lib/dateUtils.ts
 function pad2(n: number): string {
   return n < 10 ? `0${n}` : String(n);
 }
 
-// Lokale Datumsarithmetik – korrekt für ISO-Strings
+// Lokale Datumsarithmetik – korrekt für ISO-Strings (YYYY-MM-DD)
 export function addDaysLocal(isoDate: string, days: number): string {
   const d = new Date(isoDate + "T00:00:00");
   d.setDate(d.getDate() + days);
@@ -12,46 +13,37 @@ export function addDaysLocal(isoDate: string, days: number): string {
   return `${y}-${m}-${day}`;
 }
 
-// ISO-Kalenderwoche nach ISO 8601 (Montag = Wochenstart)
-export function getISOWeek(date: Date): number {
-  const d = new Date(date);
-  d.setHours(0, 0, 0, 0);
-  d.setDate(d.getDate() + 3 - ((d.getDay() + 6) % 7));
-  const firstThursday = new Date(d.getFullYear(), 0, 4);
-  const diff = d.getTime() - firstThursday.getTime();
-  return 1 + Math.round(diff / (7 * 24 * 60 * 60 * 1000));
-}
-
-export function getISOWeekYear(date: Date): number {
-  const d = new Date(date);
-  d.setDate(d.getDate() + 3 - ((d.getDay() + 6) % 7));
-  return d.getFullYear();
+// ISO 8601: Montag = 1, KW 1 ist die Woche mit dem 4. Januar
+export function getISOWeekYear(date: Date): { year: number; week: number } {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  // Donnerstag der aktuellen Woche als Referenz
+  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  const week = Math.ceil((((+d - +yearStart) / 86400000) + 1) / 7);
+  const year = d.getUTCFullYear();
+  return { year, week };
 }
 
 export function toWeekKey(year: number, week: number): string {
-  return `${year}-${pad2(week)}`;
+  return `${year}-W${pad2(week)}`;
 }
 
-export function getCurrentWeek(): string {
-  const { year, week } = getISOWeek(new Date());
-  return toWeekKey(year, week);
-}
-
-export function getWeekLabel(weekKey: string): string {
-  const [y, w] = weekKey.split("-");
-  return `KW ${w}/${y}`;
+export function parseWeekKey(weekKey: string): { year: number; week: number } {
+  const m = /^(\d{4})-W(\d{2})$/.exec(weekKey);
+  if (!m) throw new Error(`Ungültiges WeekKey-Format: ${weekKey}`);
+  return { year: Number(m[1]), week: Number(m[2]) };
 }
 
 export function shiftWeek(weekKey: string, delta: number): string {
-  const [y, w] = weekKey.split("-").map(Number);
-  const simple = new Date(Date.UTC(y, 0, 1 + (w - 1) * 7));
-  const dow = simple.getUTCDay();
-  const ISOweekStart = new Date(simple);
-  const diff = (dow <= 4 ? dow - 1 : dow - 8);
-  ISOweekStart.setUTCDate(simple.getUTCDate() - diff);
-  ISOweekStart.setUTCDate(ISOweekStart.getUTCDate() + delta * 7);
-  const { year, week } = getISOWeek(ISOweekStart);
-  return toWeekKey(year, week);
+  const { year, week } = parseWeekKey(weekKey);
+  // Montag der Zielwoche bestimmen:
+  const simple = new Date(Date.UTC(year, 0, 1 + (week - 1) * 7));
+  const dow = simple.getUTCDay() || 7;
+  const monday = new Date(simple);
+  monday.setUTCDate(simple.getUTCDate() - (dow - 1)); // auf Montag
+  monday.setUTCDate(monday.getUTCDate() + delta * 7); // Wochen verschieben
+  const r = getISOWeekYear(monday);
+  return toWeekKey(r.year, r.week);
 }
 
 export function getPreviousWeek(weekKey: string): string {
@@ -60,5 +52,3 @@ export function getPreviousWeek(weekKey: string): string {
 export function getNextWeek(weekKey: string): string {
   return shiftWeek(weekKey, +1);
 }
-
-

@@ -13,6 +13,8 @@ export default function KTHeader(props: {
   onChangeSort: (order: "vorname" | "nachname") => void;
   showInactive: boolean;
   onToggleShowInactive: (val: boolean) => void;
+  search?: string;
+  onSearch?: (q: string) => void;
 }) {
   const {
     year, weekNumber, onPrevWeek, onNextWeek,

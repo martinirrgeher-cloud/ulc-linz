@@ -4,7 +4,9 @@ import type { Exercise } from "./types/exercise";
 import { loadExercises } from "./services/exercisesStore";
 import { loadKategorien } from "./services/categoriesStore";
 import { toPreviewIframeUrl, buildDriveBlobObjectUrl } from "./services/mediaUrl";
-import { getAccessToken } from "./services/authToken";
+// WICHTIG: getAccessToken wird nicht mehr benötigt, daher entfernt
+// import { getAccessToken } from "./services/authToken";
+import { extractFileIdFromUrl } from "@/lib/utils/extractFileIdFromUrl";
 import "./Uebungskatalog.css";
 
 type MediaItem = NonNullable<Exercise["media"]>[number];
@@ -38,15 +40,31 @@ export default function UebungskatalogPage() {
     let revoked: string | null = null;
     (async () => {
       if (!preview) { setPreviewSrc(null); setUseIframe(false); return; }
-      const blobUrl = await buildDriveBlobObjectUrl(preview.url, getAccessToken).catch(() => null);
-      if (blobUrl) {
-        setPreviewSrc(blobUrl);
-        setUseIframe(false);
-        revoked = blobUrl;
-      } else {
-        setPreviewSrc(toPreviewIframeUrl(preview.url));
-        setUseIframe(true);
+
+      // ---- FIX: 1) fileId robust ermitteln, 2) buildDriveBlobObjectUrl nur mit fileId aufrufen ----
+      const url = (preview as any)?.url ?? "";
+      const fileIdFromPreview = (preview as any)?.fileId || (preview as any)?.id || "";
+      const fileId = fileIdFromPreview || (url ? extractFileIdFromUrl(url) : "");
+
+      // 1. Versuch: echter Blob-Download (wenn wir eine fileId haben)
+      if (fileId) {
+        const blobUrl = await buildDriveBlobObjectUrl(fileId).catch(() => null);
+        if (blobUrl) {
+          setPreviewSrc(blobUrl);
+          setUseIframe(false);
+          revoked = blobUrl;
+          return;
+        }
       }
+
+      // 2. Fallback: IFrame-Preview (mit fileId oder der Original-URL)
+      if (fileId) {
+        setPreviewSrc(toPreviewIframeUrl(fileId));
+      } else {
+        setPreviewSrc(toPreviewIframeUrl(url));
+      }
+      setUseIframe(true);
+      // ---- /FIX ----
     })();
     return () => { if (revoked) URL.revokeObjectURL(revoked); };
   }, [preview]);

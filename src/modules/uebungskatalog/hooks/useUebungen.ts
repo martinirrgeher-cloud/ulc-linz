@@ -4,6 +4,7 @@ import { Exercise } from "@/modules/uebungskatalog/types/ExerciseTypes";
 import { loadUebungen, saveUebungen, uploadMedia, removeFile } from "@/modules/uebungskatalog/services/UebungenStore";
 import { extractFileIdFromUrl } from "@/lib/utils/extractFileIdFromUrl";
 import { normalize, validateExerciseDraft, isDuplicateName } from "@/lib/utils/forms";
+import { downloadJson, overwriteJsonContent } from "@/lib/drive/DriveClientCore";
 
 const FILE_ID = import.meta.env.VITE_DRIVE_UEBUNGEN_FILE_ID as string;
 const MEDIA_FOLDER_ID = import.meta.env.VITE_DRIVE_MEDIA_FOLDER_ID as string;
@@ -50,7 +51,7 @@ export function useUebungen() {
 
   // --- upload helper ---
   const uploadMedia = useCallback(async (file: File): Promise<{id: string; url: string; type: "image"|"video"; name: string}> => {
-    const res = await uploadMedia(file, { parentId: MEDIA_FOLDER_ID });
+    const res = await uploadMedia(file);
     const mime = (file.type || "").toLowerCase();
     const type: "image"|"video" = mime.startsWith("image/") ? "image" : "video";
     return { id: res.id, url: res.url, type, name: res.name };

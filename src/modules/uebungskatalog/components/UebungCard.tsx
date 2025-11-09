@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { FileIcon, VideoIcon, ImageIcon } from "lucide-react";
 import "../styles/Uebungskatalog.css";
-import MediaViewerModal from "./MediaViewerModal";
+import { MediaViewerModal } from "./MediaViewerModal";
 
 interface Uebung {
   id: string;
@@ -51,7 +51,14 @@ export default function UebungCard({ uebung }:{ uebung: Uebung }) {
       </div>
       <div className="uk-sub">{uebung.hauptgruppe} • {uebung.untergruppe}</div>
 
-      <MediaViewerModal open={viewerOpen} onClose={() => setViewerOpen(false)} fileId={uebung.mediaId} mediaUrl={mediaUrl} title={uebung.name} />
+      <MediaViewerModal 
+         open={viewerOpen} 
+         onClose={() => setViewerOpen(false)} 
+         fileId={uebung.mediaId} 
+         url={mediaUrl}              // <- statt mediaUrl-Prop
+         name={uebung.name}          // <- statt title
+         type={"image"}              // oder "video" je nach Kontext 
+/>
     </div>
   );
 }

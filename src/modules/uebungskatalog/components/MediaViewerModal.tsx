@@ -1,70 +1,83 @@
-// components/MediaViewerModal.tsx
+// src/modules/uebungskatalog/components/MediaViewerModal.tsx
 import React, { useEffect, useState } from "react";
-import { buildMediaUrl, toPreviewIframeUrl } from "../services/mediaUrl";
+import { buildDriveBlobObjectUrl, toPreviewIframeUrl } from "../services/mediaUrl";
 
 type Props = {
   open: boolean;
   onClose: () => void;
   name?: string;
+  // optional beides zulassen
+  fileId?: string;
   url?: string;
   type?: "image" | "video";
 };
 
-export const MediaViewerModal: React.FC<Props> = ({ open, onClose, name, url, type }) => {
-  const [state, setState] = useState<{ mode: "loading" | "blob" | "iframe" | "error"; src?: string; msg?: string; hint?: string; diag?: any }>({
-    mode: "loading",
-  });
+function MediaViewerModalImpl({ open, onClose, name, fileId, url, type }: Props) {
+  const [mode, setMode] = useState<"loading"|"iframe"|"blob"|"error">("loading");
+  const [src, setSrc] = useState("");
+  const [msg, setMsg] = useState("");
 
   useEffect(() => {
-    let revoked: string | null = null;
-    if (!open) return;
-    setState({ mode: "loading" });
-    (async () => {
-      const r = await buildMediaUrl(url || "");
-      if (r.kind === "blob") {
-        setState({ mode: "blob", src: r.url });
-        revoked = r.url;
-      } else if (r.kind === "iframe") {
-        setState({ mode: "iframe", src: r.url });
-      } else {
-        setState({ mode: "error", msg: r.message, hint: r.hint, diag: r.diag });
-        console.warn("Media preview error:", r);
+    let alive = true;
+    let objectUrl: string | null = null;
+
+    async function run() {
+      setMode("loading"); setSrc(""); setMsg("");
+
+      const fid = fileId || "";
+      const gurl = url || "";
+
+      try {
+        if (fid) {
+          // echter Download mit Token → Blob
+          const u = await buildDriveBlobObjectUrl(fid);
+          if (!alive) return;
+          if (u) { objectUrl = u; setSrc(u); setMode("blob"); return; }
+        }
+        // Fallback: IFrame-Preview
+        if (fid) {
+          setSrc(toPreviewIframeUrl(fid));
+          setMode("iframe"); return;
+        }
+        if (gurl) {
+          setSrc(gurl);
+          setMode(type === "video" ? "blob" : "iframe"); // heuristik
+          return;
+        }
+        setMode("error"); setMsg("Keine Medienquelle vorhanden.");
+      } catch (e: any) {
+        if (!alive) return;
+        setMode("error"); setMsg(e?.message || "Medienvorschau fehlgeschlagen");
       }
-    })();
-    return () => { if (revoked) URL.revokeObjectURL(revoked); };
-  }, [open, url]);
+    }
+
+    if (open) run(); else { setMode("loading"); setSrc(""); setMsg(""); }
+
+    return () => {
+      alive = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [open, fileId, url, type]);
 
   if (!open) return null;
   return (
     <div className="ex-modal" onClick={onClose}>
-      <div className="ex-modal-content" onClick={(e)=>e.stopPropagation()}>
-        <button className="ex-modal-close" onClick={onClose} aria-label="Schließen">×</button>
-        <div className="ex-modal-caption">{name || "Medienvorschau"}</div>
-
-        {state.mode === "loading" && <div className="ex-info">Lade Medien…</div>}
-        {state.mode === "error" && (
-          <div className="ex-error">
-            {state.msg}
-            {state.hint ? <div className="ex-muted" style={{marginTop:8}}>{state.hint}</div> : null}
-            {state.diag?.tokeninfo ? (
-              <pre className="ex-muted" style={{marginTop:8, whiteSpace:"pre-wrap", fontSize:12}}>
-{JSON.stringify(state.diag.tokeninfo, null, 2)}
-              </pre>
-            ) : null}
-            <div style={{marginTop:10}}>
-              <a href={toPreviewIframeUrl(url)} target="_blank" rel="noreferrer">In Drive öffnen</a>
-            </div>
-          </div>
-        )}
-        {state.mode === "iframe" && (
-          <iframe className="ex-modal-media" src={state.src} allow="autoplay" />
-        )}
-        {state.mode === "blob" && (
-          type === "image" ?
-            <img src={state.src} alt={name} className="ex-modal-media" /> :
-            <video className="ex-modal-media" src={state.src} controls autoPlay playsInline preload="metadata" />
+      <div className="ex-modal__content" onClick={e => e.stopPropagation()}>
+        <div className="ex-modal__header">
+          <strong>{name || "Vorschau"}</strong>
+          <button onClick={onClose}>Schließen</button>
+        </div>
+        {mode === "error" && <div className="ex-error">{msg}</div>}
+        {mode === "iframe" && <iframe className="ex-modal-media" src={src} allow="autoplay" />}
+        {mode === "blob" && (
+          type === "image"
+            ? <img className="ex-modal-media" src={src} alt={name} />
+            : <video className="ex-modal-media" src={src} controls autoPlay playsInline preload="metadata" />
         )}
       </div>
     </div>
   );
-};
+}
+
+export default MediaViewerModalImpl;
+export const MediaViewerModal = MediaViewerModalImpl;

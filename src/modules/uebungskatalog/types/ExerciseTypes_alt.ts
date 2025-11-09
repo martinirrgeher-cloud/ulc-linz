@@ -1,4 +1,6 @@
-export const exerciseUnits = ["WH", "m", "sec", "min", "kg"];
+export type Einheit = "WH" | "m" | "sec" | "min" | "kg";
+export const exerciseUnits: Einheit[] = ["WH", "m", "sec", "min", "kg"];
+
 
 export interface Exercise {
   id: string;
