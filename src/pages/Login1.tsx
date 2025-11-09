@@ -10,6 +10,7 @@ import {
 } from "@/lib/googleAuth";
 import { syncTokenMirror } from "@/lib/drive/driveAuthBridge";
 import "@/styles/login.css";
+import logo from "@/assets/logo.png";
 
 export default function Login1() {
   const nav = useNavigate();
@@ -66,10 +67,10 @@ const goNext = async () => {
 
   return (
     <main className="login-container">
-      <h1>Anmelden (Schritt 1: Google)</h1>
+      <img src={logo} alt="Logo" className="login-logo" />
+<h1>Anmelden (Schritt 1: Google)</h1>
 
       <button className="login-btn primary" onClick={onPopup}>Mit Google anmelden</button>
-      <button className="login-btn primary" onClick={goNext}>Weiter zu Schritt 2</button>
       <button className="login-btn link" onClick={onClear}>Sitzung löschen</button>
 
       {error && <div className="login-error">Fehler: {error}</div>}
