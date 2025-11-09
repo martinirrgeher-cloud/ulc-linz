@@ -1,39 +1,44 @@
-import { useEffect, useState, useCallback } from "react";
-import DriveClientCore from "@/lib/drive/DriveClientCore";
+import { useEffect, useState } from "react";
+import { loadUebungsgruppen, saveUebungsgruppen } from "@/modules/uebungskatalog/services/UebungsgruppenStore";
 
-export type GruppenMap = { [hauptgruppe: string]: string[] };
+const FILE_ID = import.meta.env.VITE_DRIVE_UEBUNGSGRUPPEN_FILE_ID as string;
 
-export function useUebungsGruppen(fileId: string) {
+type GruppenMap = Record<string, string[]>;
+
+export function useUebungsGruppen() {
   const [gruppen, setGruppen] = useState<GruppenMap>({});
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  async function load() {
+    try {
+      setLoading(true);
+      const raw = await loadUebungsgruppen();
+      const map: GruppenMap = (raw && raw.hauptgruppen) ? raw.hauptgruppen : (raw ?? {});
+      setGruppen(map || {});
+    } catch (e: any) {
+      setError(e?.message || "Fehler beim Laden der Gruppen");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   useEffect(() => {
-    let alive = true;
-    (async () => {
-      try {
-        const data = await DriveClientCore.downloadJson<any>(fileId);
-        const map: GruppenMap = (data && typeof data === "object" && data.map) ? data.map : (data || {});
-        if (alive) setGruppen(map);
-      } catch (e:any) {
-        if (alive) setError(String(e?.message || e));
-      } finally {
-        if (alive) setLoading(false);
-      }
-    })();
-    return () => { alive = false; };
-  }, [fileId]);
+    load();
+  }, []);
 
-  const refresh = useCallback(async () => {
-    const data = await DriveClientCore.downloadJson<any>(fileId);
-    const map: GruppenMap = (data && typeof data === "object" && data.map) ? data.map : (data || {});
-    setGruppen(map);
-  }, [fileId]);
+  async function saveGruppen(newData: GruppenMap) {
+    try {
+      setSaving(true);
+      setGruppen(newData);
+      await overwriteJsonContent(FILE_ID, { hauptgruppen: newData });
+    } catch (e: any) {
+      setError(e?.message || "Fehler beim Speichern der Gruppen");
+    } finally {
+      setSaving(false);
+    }
+  }
 
-  const save = useCallback(async (next: GruppenMap) => {
-    await DriveClientCore.overwriteJsonContent(fileId, next);
-    setGruppen(next);
-  }, [fileId]);
-
-  return { gruppen, setGruppen, save, refresh, loading, error };
+  return { gruppen, setGruppen: saveGruppen, loading, saving, error, reload: load };
 }

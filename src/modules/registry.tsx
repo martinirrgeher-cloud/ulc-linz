@@ -53,13 +53,7 @@ export const MODULES: AppModule[] = [
     route: "/athleten",
     icon: <LayoutList size={18} />,
   },
-  {
-    key: "TRAININGSPLAN",
-    title: "Trainingsplan",
-    description: "Planung & Übungen",
-    route: "/trainingsplan",
-    icon: <Dumbbell size={18} />,
-  },
+  
 ];
 
 export const moduleByRoute = new Map(MODULES.map(m => [m.route, m]));

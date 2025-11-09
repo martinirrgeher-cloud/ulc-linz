@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { FileIcon, VideoIcon, ImageIcon } from "lucide-react";
 import "../styles/Uebungskatalog.css";
-import { MediaViewerModal } from "./MediaViewerModal";
+import MediaViewerModal from "./MediaViewerModal";
 
 interface Uebung {
   id: string;

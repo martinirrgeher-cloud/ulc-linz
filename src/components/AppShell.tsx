@@ -1,37 +1,35 @@
 import React from "react";
-import AppHeader from "@/components/AppHeader";
+import AppHeader from "./AppHeader";
 
 type Props = {
-  title?: string;
+  title: string;
+  children: React.ReactNode;
   showHome?: boolean;
   showSettings?: boolean;
-  leftSlot?: React.ReactNode;
   rightSlot?: React.ReactNode;
-  children?: React.ReactNode;
-  className?: string;
+  leftSlot?: React.ReactNode;
 };
 
 export default function AppShell({
   title,
-  showHome = true,
-  showSettings = true,
-  leftSlot,
-  rightSlot,
   children,
-  className = ""
+  showHome = true,
+  showSettings = false,
+  rightSlot,
+  leftSlot,
 }: Props) {
   return (
-    <div className={`min-h-screen flex flex-col ${className}`}>
-      <AppHeader />
-      <main className="container mx-auto p-4 w-full">
-        {title && <h1 className="text-2xl font-semibold mb-4 text-center">{title}</h1>}
-        <div className="flex items-start gap-4">
-          {leftSlot && <aside className="hidden lg:block w-64 shrink-0">{leftSlot}</aside>}
-          <section className="flex-1">{children}</section>
-          {rightSlot && <aside className="hidden xl:block w-72 shrink-0">{rightSlot}</aside>}
-        </div>
+    <div className="app-shell">
+      <AppHeader
+        title={title}
+        showHome={showHome}
+        showSettings={showSettings}
+        rightSlot={rightSlot}
+        leftSlot={leftSlot}
+      />
+      <main className="app-content" role="main">
+        {children}
       </main>
-      <footer className="py-4 text-center text-sm text-gray-500">ULC Linz</footer>
     </div>
   );
 }

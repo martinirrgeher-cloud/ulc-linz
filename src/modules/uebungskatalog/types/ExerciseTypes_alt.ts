@@ -1,14 +1,18 @@
-export type Einheit = "min" | "m" | "km" | "reps" | "s" | "kg" | string;
+export const exerciseUnits = ["WH", "m", "sec", "min", "kg"];
 
-export type Exercise = {
+export interface Exercise {
   id: string;
   name: string;
   hauptgruppe: string;
-  untergruppe?: string;
-  difficulty?: number;
-  menge?: number;
-  einheit?: Einheit;
-  media?: { fileId: string; mimeType?: string; title?: string }[];
+  untergruppe: string;
+  active: boolean;
+  difficulty: 1 | 2 | 3;
+  menge: number | null;
+  einheit: Einheit | "";
+  mediaId?: string;
+  mediaUrl?: string;
+  mediaType?: "image" | "video";
+  mediaName?: string;
   createdAt?: string;
   updatedAt?: string;
-};
+}
