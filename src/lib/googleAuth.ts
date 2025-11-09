@@ -141,3 +141,37 @@ export async function revokeAndClear(): Promise<void> {
     clearStoredToken();
   }
 }
+
+
+export function tokenExpired(skewSeconds: number = 60): boolean {
+  const t = getStoredToken();
+  if (!t) return true;
+  const exp = typeof t.expires_at === "number" ? t.expires_at : 0;
+  return !exp || exp <= Date.now() + skewSeconds * 1000;
+}
+
+
+/**
+ * Versucht still zu refreshen, wenn das Token bald abläuft.
+ * Gibt true zurück, wenn danach (wieder) ein gültiges Token vorhanden ist.
+ */
+export async function silentRefreshIfNeeded(leewaySeconds: number = 180): Promise<boolean> {
+  try {
+    const t = getStoredToken();
+    const need = !t || (typeof t.expires_at === "number" && t.expires_at <= Date.now() + leewaySeconds * 1000);
+    if (!need && isGoogleTokenValid()) return true;
+    await getAccessTokenSilent();
+    return isGoogleTokenValid();
+  } catch {
+    return false;
+  }
+}
+
+
+export function redirectToLogin1(): never {
+  // optional: lokalen Zustand löschen, damit Router sauber startet
+  try { clearStoredToken(); } catch {}
+  // harter Redirect – unabhängig vom Router-State
+  window.location.replace("/login1");
+  throw new Error("Redirecting to /login1");
+}

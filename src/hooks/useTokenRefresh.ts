@@ -1,21 +1,41 @@
-import { useEffect } from "react";
-import { getValidAccessToken } from "@/lib/googleAuth"; // <- einziges named import
+import { useEffect, useRef } from "react";
+import { silentRefreshIfNeeded, tokenExpired, getValidAccessToken, redirectToLogin1 } from "@/lib/googleAuth";
 
 export default function useTokenRefresh() {
+  const lastActivity = useRef<number>(Date.now());
+
   useEffect(() => {
-    const shouldRun = () => {
-      const path = window.location.pathname;
-      if (path.startsWith("/login")) return false;
-      return !!getValidAccessToken();
-    };
+    const path = window.location.pathname;
+    if (path.startsWith("/login")) return;
 
-    const interval = setInterval(() => {
-      if (shouldRun()) {
-        // Optional: Zugriff triggert ggf. internen Refresh-Flow
-        void getValidAccessToken();
+    const onActivity = () => { lastActivity.current = Date.now(); };
+    ["pointerdown", "keydown", "scroll", "visibilitychange"].forEach(evt => {
+      document.addEventListener(evt, onActivity, { passive: true });
+    });
+
+    const onFocus = async () => { await silentRefreshIfNeeded(); };
+    window.addEventListener("focus", onFocus);
+
+    const interval = setInterval(async () => {
+      // Nur wenn der Nutzer kürzlich aktiv war
+      if (Date.now() - lastActivity.current < 3 * 60 * 1000) {
+        const ok = await silentRefreshIfNeeded();
+        if (!ok) {
+          redirectToLogin1(); // Google-Session verloren
+          return;
+        }
       }
-    }, 5 * 60 * 1000); // alle 5 min
+      if (tokenExpired(10) && !getValidAccessToken()) {
+        redirectToLogin1();
+      }
+    }, 60 * 1000);
 
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("focus", onFocus);
+      ["pointerdown", "keydown", "scroll", "visibilitychange"].forEach(evt => {
+        document.removeEventListener(evt, onActivity);
+      });
+    };
   }, []);
 }

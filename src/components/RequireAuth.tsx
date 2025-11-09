@@ -11,13 +11,13 @@ type Props = {
   fallbackPath?: string;
 };
 
-export default function RequireAuth({ children, requiredModules = [], requireAll = false, fallbackPath = "/login" }: Props) {
+export default function RequireAuth({ children, requiredModules = [], requireAll = false, fallbackPath = "/login1" }: Props) {
   const loc = useLocation();
   const { user, hasModules } = useAuth();
 
   // Step 1: Google-Login vorhanden?
   if (!isGoogleTokenValid()) {
-    return <Navigate to={"/login"} state={{ from: loc }} replace />;
+    return <Navigate to={fallbackPath} state={{ from: loc }} replace />;
   }
   // Step 2: App-User vorhanden?
   if (!user) {
