@@ -54,7 +54,8 @@ export default function AnmeldungPage() {
   const weekLabel = useMemo(() => {
     const w = getISOWeek(safeWeekStart);
     const y = getISOWeekYear(safeWeekStart);
-    return `KW ${w}, ${y}`;
+    const w2 = String(w).padStart(2, "0");
+    return `${y} - KW${w2}`;
   }, [safeWeekStart]);
 
   const gotoWeek = (offset: number) => {
