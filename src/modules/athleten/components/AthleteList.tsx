@@ -71,7 +71,7 @@ export default function AthleteList({
         ))}
       </div>
 
-      <Modal open={!!editing} onClose={() => setEditing(null)} title="Athlet bearbeiten">
+      <Modal open={!!editing} onClose={() => setEditing(null)} >
         {editing && (
           <AthleteForm
             value={editing}
@@ -82,7 +82,7 @@ export default function AthleteList({
         )}
       </Modal>
 
-      <Modal open={!!creating} onClose={() => setCreating(null)} title="Neuer Athlet">
+      <Modal open={!!creating} onClose={() => setCreating(null)} >
         {creating && (
           <AthleteForm
             value={creating}

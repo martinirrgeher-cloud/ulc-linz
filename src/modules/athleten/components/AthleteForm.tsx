@@ -1,6 +1,6 @@
-// src/modules/athleten/components/AthleteForm.tsx
 import { useEffect, useMemo, useState } from "react";
 import type { Athlete } from "../types/athleten";
+import "./AthleteForm.css"; // Header/Toggle styles
 
 export default function AthleteForm({ value, onChange, onSave, onCancel }: {
   value: Athlete;
@@ -14,7 +14,6 @@ export default function AthleteForm({ value, onChange, onSave, onCancel }: {
 
   const firstNameOk = (local.firstName || "").trim().length > 0;
   const lastNameOk  = (local.lastName  || "").trim().length > 0;
-
   const canSave = useMemo(() => firstNameOk && lastNameOk, [firstNameOk, lastNameOk]);
 
   const onSaveClick = () => {
@@ -26,15 +25,26 @@ export default function AthleteForm({ value, onChange, onSave, onCancel }: {
     onSave();
   };
 
+  const isActive = local.active !== false;
+  // Toggle nur bei "Bearbeiten" anzeigen: wenn eine ID vorhanden ist
+  const isEdit = !!(local as any).id;
+
   return (
     <div className="kt-form">
-      <div className="kt-field toggle">
-        <label>Aktiv</label>
-        <input
-          type="checkbox"
-          checked={local.active !== false}
-          onChange={e => setLocal({ ...local, active: e.target.checked })}
-        />
+      <div className="af-header">
+        <h2>Athlet bearbeiten</h2>
+        {isEdit && (
+          <button
+            type="button"
+            className={`toggle-switch ${isActive ? "on" : "off"}`}
+            onClick={() => setLocal({ ...local, active: !isActive })}
+            aria-pressed={isActive}
+            aria-label={isActive ? "Aktiv" : "Inaktiv"}
+            title={isActive ? "Aktiv" : "Inaktiv"}
+          >
+            <span className="knob" />
+          </button>
+        )}
       </div>
 
       <div className="kt-field">
@@ -64,7 +74,7 @@ export default function AthleteForm({ value, onChange, onSave, onCancel }: {
         <input
           className="kt-input"
           type="number"
-          value={local.geburtsjahr ?? ""}
+          value={(local.geburtsjahr as any) ?? ""}
           onChange={e => setLocal({ ...local, geburtsjahr: e.target.value ? Number(e.target.value) : undefined })}
         />
       </div>

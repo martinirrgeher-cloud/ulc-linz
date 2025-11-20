@@ -223,6 +223,35 @@ export async function deleteFile(fileId: string): Promise<void> {
 }
 
 /** Dateien in einem Ordner auflisten. */
+
+
+/**
+ * Rückwärtskompatible Listen-Funktion.
+ * Akzeptiert eine freie Drive-Query (q) und gibt wie früher { files: [...] } zurück.
+ * Neue Aufrufer sollten bevorzugt listFilesInFolder nutzen.
+ */
+export async function list(params: {
+  q: string;
+  fields?: string;
+  pageSize?: number;
+  orderBy?: string;
+}): Promise<{ files: Array<Record<string, any>> }> {
+  const {
+    q,
+    fields = "files(id,name,mimeType,createdTime,modifiedTime,size,webViewLink,thumbnailLink)",
+    pageSize = 100,
+    orderBy = "modifiedTime desc",
+  } = params;
+  if (!q) throw new Error("list: q fehlt");
+
+  const res = await fetch(
+    `${DRIVE_V3}/files?q=${encodeURIComponent(q)}&pageSize=${pageSize}&orderBy=${encodeURIComponent(orderBy)}&fields=${encodeURIComponent(fields)}`,
+    { headers: await authHeaders() }
+  );
+  await assertOk(res, "list");
+  return res.json();
+}
+
 export async function listFilesInFolder(params: {
   folderId: string;
   mimeTypeStartsWith?: string;
@@ -302,6 +331,7 @@ export default {
   overwriteJsonContent,
   uploadFile,
   deleteFile,
+  list,
   listFilesInFolder,
   getFileMetadata,
   resolveShortcutOrId,

@@ -8,7 +8,7 @@ import AppShell from "@/components/AppShell";
 import { AuthProvider } from "@/store/AuthContext";
 import { MODULES } from "@/modules/registry";
 import { ToastProvider } from "@/components/toast/ToastContext";
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, useEffect } from "react";
 
 /** Lazy imports of module pages (keep your existing files) */
 const Kindertraining = React.lazy(() => import("@/modules/kindertraining/Kindertraining"));
@@ -17,12 +17,32 @@ const Uebungskatalog = React.lazy(() => import("@/modules/uebungskatalog/Uebungs
 const Uebungspflege  = React.lazy(() => import("@/modules/uebungspflege/Uebungspflege"));
 const Athleten = React.lazy(() => import("@/modules/athleten/Athleten"));
 const DriveDebug = lazy(() => import("@/pages/DriveDebug"));
+const Trainingsplanung = React.lazy(() => import("@/modules/leistungsgruppe/trainingsplanung/pages/Trainingsplanung"));
+const Trainingsdoku   = React.lazy(() => import("@/modules/leistungsgruppe/trainingsdoku/pages/Trainingsdoku"));
+
 
 function Page({ title, children }: { title: string; children: React.ReactNode }) {
   return <AppShell title={title} showSettings>{children}</AppShell>;
 }
 
 export default function App() {
+  useEffect(() => {
+    (async () => {
+      try {
+        const mod = await import(
+          /* @vite-ignore */ "@/modules/uebungskatalog/services/ExercisesLite"
+        );
+        const w = window as any;
+        w.ULC = w.ULC || {};
+        if (typeof mod.listExercisesLite === "function") {
+          w.ULC.listExercisesLite = mod.listExercisesLite;
+        }
+      } catch {
+        // optional: falls Datei nicht existiert, bleibt manuelles Hinzufügen aktiv
+      }
+    })();
+  }, []);
+
   return (
     <BrowserRouter>
       <AuthProvider>
@@ -52,7 +72,7 @@ export default function App() {
             <Route
               path="/uebungskatalog"
               element={
-                <RequireAuth requiredModules={["LEISTUNGSGRUPPE","LEISTUNGSGRUPPE-ANMELDUNG","KINDERTRAINING"]}>
+                <RequireAuth requiredModules={["UEBUNGSKATALOG"]}>
                   <Page title="Übungskatalog"><Uebungskatalog /></Page>
                 </RequireAuth>
               }
@@ -60,7 +80,7 @@ export default function App() {
             <Route
               path="/uebungspflege"
               element={
-                <RequireAuth requiredModules={["LEISTUNGSGRUPPE","LEISTUNGSGRUPPE-ANMELDUNG","KINDERTRAINING"]}>
+                <RequireAuth requiredModules={["UEBUNGSPFLEGE"]}>
                   <Page title="Übung hinzufügen"><Uebungspflege /></Page>
                 </RequireAuth>
               }
@@ -68,7 +88,7 @@ export default function App() {
             <Route
               path="/athleten"
               element={
-                <RequireAuth requiredModules={["LEISTUNGSGRUPPE","KINDERTRAINING"]}>
+                <RequireAuth requiredModules={["ATHLETEN"]}>
                   <Page title="Athleten"><Athleten /></Page>
                 </RequireAuth>
               }
@@ -80,6 +100,23 @@ export default function App() {
   </Route>
 
 <Route path="/debug/drive" element={<DriveDebug />} />
+
+            <Route
+              path="/leistungsgruppe/plan"
+              element={
+                <RequireAuth requiredModules={["TRAININGSPLAN"]}>
+                  <Page title="Trainingsplanung"><Trainingsplanung /></Page>
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/leistungsgruppe/doku"
+              element={
+                <RequireAuth requiredModules={["TRAININGSDOKU"]}>
+                  <Page title="Trainingsdoku"><Trainingsdoku /></Page>
+                </RequireAuth>
+              }
+            />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
 </Suspense>

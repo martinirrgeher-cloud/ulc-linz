@@ -1,0 +1,44 @@
+/* Zusatzstyles, bewusst klein gehalten; Athleten.css bleibt unberührt */
+
+/* Header: Titel + Toggle in einer Zeile */
+.kt-form .af-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:8px;
+}
+.kt-form .af-header h2{ margin:0; font-size:16px; font-weight:600; }
+
+/* Toggle-Optik (kompatibel zu Übungspflege); falls global vorhanden, überschreibt das nichts */
+.kt-form .toggle-switch{
+  width: 36px;
+  height: 18px;
+  border-radius: 999px;
+  border: 1px solid #f2a3a3;     /* off */
+  background: #ffd6d6;           /* off */
+  position: relative;
+  padding: 0;
+  cursor: pointer;
+  transition: background .2s, border-color .2s;
+}
+.kt-form .toggle-switch .knob{
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  border: 1px solid #bfbfbf;
+  box-shadow: 0 1px 0 rgba(0,0,0,.06);
+  transform: translateX(0);
+  transition: transform .2s ease;
+}
+.kt-form .toggle-switch.on{
+  background: #c9f2d8;           /* on */
+  border-color: #7bd39d;
+}
+.kt-form .toggle-switch.on .knob{
+  transform: translateX(18px);
+}

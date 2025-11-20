@@ -94,3 +94,44 @@
 .req { color: #d33; font-weight: 700; }
 .kt-error-text { color: #b00; font-size: 12px; margin-top: 4px; }
 
+
+
+/* iOS-Toggle (grün/rot) – ident zu Übungspflege */
+.toggle-switch{
+  width: 36px !important;
+  height: 18px !important;
+  border-radius: 999px !important;
+  border: 1px solid #f2a3a3 !important;        /* off */
+  background: #ffd6d6 !important;               /* off */
+  padding: 0 !important;
+  position: relative !important;
+  transition: background .2s, border-color .2s !important;
+}
+.toggle-switch .knob{
+  position: absolute !important;
+  top: 1px !important;
+  left: 1px !important;
+  width: 16px !important;
+  height: 16px !important;
+  border-radius: 50% !important;
+  background: #fff !important;
+  border: 1px solid #bfbfbf !important;
+  box-shadow: 0 1px 0 rgba(0,0,0,.06) !important;
+  transform: translateX(0) !important;
+  transition: transform .2s ease !important;
+}
+.toggle-switch.on{
+  background: #c9f2d8 !important;               /* on */
+  border-color: #7bd39d !important;
+}
+.toggle-switch.on .knob{
+  transform: translateX(18px) !important;
+}
+
+.kt-form .af-actions{
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  margin-bottom: 8px;
+  gap: 8px;
+}
