@@ -8,7 +8,8 @@ export type ModuleKey =
   | "UEBUNGSPFLEGE"
   | "ATHLETEN"
   | "TRAININGSPLAN"
-  | "TRAININGSDOKU";
+  | "TRAININGSDOKU"
+  | "TRAININGSBLOECKE";
 
 export type AppModule = {
   key: ModuleKey;
@@ -62,6 +63,13 @@ export const MODULES: AppModule[] = [
     icon: <Dumbbell size={18} />,
   },
   {
+    key: "TRAININGSBLOECKE",
+    title: "Trainingsblöcke",
+    description: "Vorlagen für Blöcke",
+    route: "/leistungsgruppe/bloecke",
+    icon: <LayoutList size={18} />,
+  },
+  {
     key: "TRAININGSDOKU",
     title: "Trainingsdoku",
     description: "Abarbeiten & Analyse",
@@ -70,4 +78,4 @@ export const MODULES: AppModule[] = [
   },
 ];
 
-export const moduleByRoute = new Map(MODULES.map(m => [m.route, m]));
+export const moduleByRoute = new Map(MODULES.map((m) => [m.route, m]));

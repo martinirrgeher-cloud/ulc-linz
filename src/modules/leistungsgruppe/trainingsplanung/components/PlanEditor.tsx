@@ -1,225 +1,204 @@
-import React, { useMemo, useState } from "react";
-import { PlanItem } from "../services/TrainingsplanungStore";
+import React from "react";
+import { PlanItem, PlanTarget } from "../services/TrainingsplanungStore";
 
 type Props = {
   planOrder: string[];
   planItems: Record<string, PlanItem>;
-  onUpdate: (id: string, patch: Partial<PlanItem>) => void;
+  onChangeItem: (id: string, next: PlanItem) => void;
   onRemove: (id: string) => void;
   onMove: (id: string, dir: -1 | 1) => void;
 };
 
+function numberOrNull(value: string): number | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const n = Number(trimmed.replace(",", "."));
+  return Number.isFinite(n) ? n : null;
+}
+
 export default function PlanEditor({
   planOrder,
   planItems,
-  onUpdate,
+  onChangeItem,
   onRemove,
   onMove,
 }: Props) {
-  const [editingId, setEditingId] = useState<string | null>(null);
-
-  const entries = useMemo(
-    () => planOrder.map((id) => ({ id, it: planItems[id] })).filter((e) => !!e.it),
-    [planOrder, planItems]
-  );
-
-  if (!entries.length) {
-    return <div className="tp-badge">Noch keine Übungen im Plan.</div>;
+  if (!planOrder.length) {
+    return <div className="tp-empty">Noch keine Übungen im Block.</div>;
   }
 
   return (
-    <div>
-      {entries.map(({ id, it }) => {
-        const editable = editingId === id;
-        const safe: PlanItem = {
-          ...it,
-          default: it.default ?? { reps: null, menge: null, einheit: null },
-          target: it.target ?? { reps: null, menge: null, einheit: null },
+    <div className="tp-plan-editor">
+      {planOrder.map((id) => {
+        const item = planItems[id];
+        if (!item) return null;
+
+        const target: PlanTarget = item.target ?? item.default;
+        const def: PlanTarget = item.default;
+
+        const handleChangeTarget = (field: keyof PlanTarget, value: string) => {
+          const nextTarget: PlanTarget = { ...target };
+
+          if (field === "einheit") {
+            nextTarget.einheit = value;
+          } else {
+            (nextTarget as any)[field] = numberOrNull(value);
+          }
+
+          const nextItem: PlanItem = {
+            ...item,
+            target: nextTarget,
+          };
+          onChangeItem(id, nextItem);
         };
 
-        const t = safe.target;
+        const handleChangeComment = (value: string) => {
+          const nextItem: PlanItem = {
+            ...item,
+            comment: value,
+          };
+          onChangeItem(id, nextItem);
+        };
+
+        const handleChangePause = (value: string) => {
+          const pauseSec = numberOrNull(value);
+          const nextItem: PlanItem = {
+            ...item,
+            pauseSec,
+          };
+          onChangeItem(id, nextItem);
+        };
 
         return (
           <div key={id} className="tp-plan-item">
-            <div className="tp-plan-header">
+            <div className="tp-plan-item-header">
               <div>
-                <div className="tp-plan-title">{safe.nameCache || "Ohne Name"}</div>
-                <div className="tp-plan-groups">
-                  {safe.groupCache?.haupt ?? "—"}
-                  {safe.groupCache?.unter ? ` / ${safe.groupCache.unter}` : ""}
+                <div className="tp-plan-item-title">
+                  {item.nameCache || item.exerciseId || "Übung"}
                 </div>
+                {(item.groupCache?.haupt || item.groupCache?.unter) && (
+                  <div className="tp-plan-item-subtitle">
+                    {[item.groupCache?.haupt, item.groupCache?.unter]
+                      .filter(Boolean)
+                      .join(" / ")}
+                  </div>
+                )}
               </div>
-              <div className="tp-list-actions">
+
+              <div className="tp-plan-item-actions">
                 <button
-                  className="tp-btn"
                   type="button"
-                  title="nach oben"
+                  className="tp-icon-btn"
                   onClick={() => onMove(id, -1)}
                 >
                   ↑
                 </button>
                 <button
-                  className="tp-btn"
                   type="button"
-                  title="nach unten"
-                  onClick={() => onMove(id, +1)}
+                  className="tp-icon-btn"
+                  onClick={() => onMove(id, 1)}
                 >
                   ↓
                 </button>
                 <button
-                  className="tp-btn"
                   type="button"
-                  onClick={() => setEditingId(editable ? null : id)}
-                >
-                  {editable ? "Fertig" : "Bearb."}
-                </button>
-                <button
-                  className="tp-btn"
-                  type="button"
+                  className="tp-icon-btn danger"
                   onClick={() => onRemove(id)}
                 >
-                  Entf
+                  ✕
                 </button>
               </div>
             </div>
 
-            <div className="tp-row" style={{ marginTop: 6 }}>
-              <div>
-                <div className="tp-section-title">Serien / Wiederholungen</div>
-                <div className="tp-plan-grid">
+            <div className="tp-plan-item-body">
+              <div className="tp-row">
+                <div className="tp-field">
+                  <label>Wdh</label>
                   <input
-                    className="tp-input"
-                    type="number"
-                    placeholder="Serien"
-                    value={t.sets ?? ""}
-                    onChange={(e) =>
-                      onUpdate(id, {
-                        target: {
-                          ...t,
-                          sets: e.target.value === "" ? null : Number(e.target.value),
-                        } as any,
-                      })
-                    }
-                    disabled={!editable}
+                    className="tp-input small"
+                    value={target.reps ?? ""}
+                    onChange={(e) => handleChangeTarget("reps", e.target.value)}
                   />
+                </div>
+                <div className="tp-field">
+                  <label>Menge</label>
                   <input
-                    className="tp-input"
-                    type="number"
-                    placeholder="Wdh."
-                    value={t.reps ?? ""}
-                    onChange={(e) =>
-                      onUpdate(id, {
-                        target: {
-                          ...t,
-                          reps: e.target.value === "" ? null : Number(e.target.value),
-                        } as any,
-                      })
-                    }
-                    disabled={!editable}
+                    className="tp-input small"
+                    value={target.menge ?? ""}
+                    onChange={(e) => handleChangeTarget("menge", e.target.value)}
                   />
+                </div>
+                <div className="tp-field">
+                  <label>Einheit</label>
                   <input
-                    className="tp-input"
-                    type="number"
-                    placeholder="Pause (s)"
-                    value={safe.pauseSec ?? ""}
-                    onChange={(e) =>
-                      onUpdate(id, {
-                        pauseSec: e.target.value === "" ? null : Number(e.target.value),
-                      })
-                    }
-                    disabled={!editable}
+                    className="tp-input small"
+                    value={target.einheit ?? ""}
+                    onChange={(e) => handleChangeTarget("einheit", e.target.value)}
                   />
                 </div>
               </div>
-            </div>
 
-            <div className="tp-row" style={{ marginTop: 6 }}>
-              <div>
-                <div className="tp-section-title">Belastung / Umfang</div>
-                <div className="tp-plan-grid">
+              <div className="tp-row">
+                <div className="tp-field">
+                  <label>Sätze</label>
                   <input
-                    className="tp-input"
-                    type="number"
-                    placeholder="Menge"
-                    value={t.menge ?? ""}
-                    onChange={(e) =>
-                      onUpdate(id, {
-                        target: {
-                          ...t,
-                          menge: e.target.value === "" ? null : Number(e.target.value),
-                        } as any,
-                      })
-                    }
-                    disabled={!editable}
+                    className="tp-input small"
+                    value={target.sets ?? ""}
+                    onChange={(e) => handleChangeTarget("sets", e.target.value)}
                   />
+                </div>
+                <div className="tp-field">
+                  <label>Distanz (m)</label>
                   <input
-                    className="tp-input"
-                    type="text"
-                    placeholder="Einheit (min, km, m…)"
-                    value={t.einheit ?? ""}
-                    onChange={(e) =>
-                      onUpdate(id, {
-                        target: {
-                          ...t,
-                          einheit: e.target.value || null,
-                        } as any,
-                      })
-                    }
-                    disabled={!editable}
+                    className="tp-input small"
+                    value={target.distanceM ?? ""}
+                    onChange={(e) => handleChangeTarget("distanceM", e.target.value)}
                   />
+                </div>
+                <div className="tp-field">
+                  <label>Gewicht (kg)</label>
                   <input
-                    className="tp-input"
-                    type="number"
-                    placeholder="Distanz (m)"
-                    value={t.distanceM ?? ""}
-                    onChange={(e) =>
-                      onUpdate(id, {
-                        target: {
-                          ...t,
-                          distanceM: e.target.value === "" ? null : Number(e.target.value),
-                        } as any,
-                      })
-                    }
-                    disabled={!editable}
+                    className="tp-input small"
+                    value={target.weightKg ?? ""}
+                    onChange={(e) => handleChangeTarget("weightKg", e.target.value)}
+                  />
+                </div>
+                <div className="tp-field">
+                  <label>Dauer (s)</label>
+                  <input
+                    className="tp-input small"
+                    value={target.durationSec ?? ""}
+                    onChange={(e) => handleChangeTarget("durationSec", e.target.value)}
                   />
                 </div>
               </div>
-            </div>
 
-            <div className="tp-row" style={{ marginTop: 6 }}>
-              <div>
-                <div className="tp-section-title">Gewicht / Kommentar</div>
-                <div className="tp-plan-grid">
+              <div className="tp-row">
+                <div className="tp-field">
+                  <label>Pause (s)</label>
                   <input
-                    className="tp-input"
-                    type="number"
-                    placeholder="Gewicht (kg)"
-                    value={t.weightKg ?? ""}
-                    onChange={(e) =>
-                      onUpdate(id, {
-                        target: {
-                          ...t,
-                          weightKg: e.target.value === "" ? null : Number(e.target.value),
-                        } as any,
-                      })
-                    }
-                    disabled={!editable}
+                    className="tp-input small"
+                    value={item.pauseSec ?? ""}
+                    onChange={(e) => handleChangePause(e.target.value)}
                   />
+                </div>
+              </div>
+
+              <div className="tp-row">
+                <div className="tp-field" style={{ flex: 1 }}>
+                  <label>Kommentar</label>
                   <textarea
                     className="tp-textarea"
-                    placeholder="Technik-Fokus, Hinweise…"
-                    value={safe.comment ?? ""}
-                    onChange={(e) =>
-                      onUpdate(id, {
-                        comment: e.target.value,
-                      })
-                    }
-                    disabled={!editable}
+                    rows={2}
+                    value={item.comment ?? ""}
+                    onChange={(e) => handleChangeComment(e.target.value)}
                   />
-                  <div className="tp-badge">
-                    Default: {safe.default.reps ?? ""} Wdh, {safe.default.menge ?? ""}{" "}
-                    {safe.default.einheit ?? ""}
-                  </div>
+                </div>
+              </div>
+
+              <div className="tp-badge-row">
+                <div className="tp-badge">
+                  Default: {def.reps ?? ""} Wdh, {def.menge ?? ""} {def.einheit ?? ""}
                 </div>
               </div>
             </div>

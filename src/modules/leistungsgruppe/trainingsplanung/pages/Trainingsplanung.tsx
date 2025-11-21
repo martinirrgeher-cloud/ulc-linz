@@ -3,7 +3,23 @@ import { useTrainingsplanung } from "../hooks/useTrainingsplanung";
 import PlanEditor from "../components/PlanEditor";
 import "../styles/Trainingsplanung.css";
 import { toISODate } from "../../common/date";
-import { loadAnmeldung, DayStatus, AnmeldungData } from "../../anmeldung/services/AnmeldungStore";
+import {
+  loadAnmeldung,
+  DayStatus,
+  AnmeldungData,
+} from "../../anmeldung/services/AnmeldungStore";
+import { loadAthleten } from "@/modules/athleten/services/AthletenStore";
+import type { Athlete } from "@/modules/athleten/types/athleten";
+import type {
+  PlanDay,
+  PlanItem,
+  PlanBlock,
+} from "../services/TrainingsplanungStore";
+import type { ExerciseLite } from "@/modules/uebungskatalog/services/ExercisesLite";
+import TrainingsplanungHeader from "../components/TrainingsplanungHeader";
+import TrainingsplanungExercisePanel from "../components/TrainingsplanungExercisePanel";
+import TrainingsplanungBlocksPanel from "../components/TrainingsplanungBlocksPanel";
+import TrainingsplanungCopyPanel from "../components/TrainingsplanungCopyPanel";
 
 type CandidateExercise = {
   id: string;
@@ -15,17 +31,37 @@ type CandidateExercise = {
   einheit?: string | null;
 };
 
-const WEEKDAY_LABELS = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
-
 function isoWeek(dateIso: string): number {
   const d = new Date(dateIso + "T00:00:00");
-  // ISO-Week-Algorithmus
-  const tmp = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-  const dayNum = tmp.getUTCDay() || 7;
-  tmp.setUTCDate(tmp.getUTCDate() + 4 - dayNum);
-  const yearStart = new Date(Date.UTC(tmp.getUTCFullYear(), 0, 1));
-  const diffDays = Math.floor((tmp.getTime() - yearStart.getTime()) / 86400000) + 1;
-  return Math.ceil(diffDays / 7);
+  const day = (d.getDay() + 6) % 7; // Mo=0
+  d.setDate(d.getDate() - day + 3);
+  const firstThursday = new Date(d.getFullYear(), 0, 4);
+  const firstDay = (firstThursday.getDay() + 6) % 7;
+  firstThursday.setDate(firstThursday.getDate() - firstDay + 3);
+  const diff = d.getTime() - firstThursday.getTime();
+  return 1 + Math.round(diff / (7 * 24 * 60 * 60 * 1000));
+}
+
+function createPlanItemFromCandidate(ex: CandidateExercise): PlanItem {
+  const baseTarget = {
+    reps: ex.reps ?? null,
+    menge: ex.menge ?? null,
+    einheit: ex.einheit ?? "",
+    sets: null,
+    distanceM: null,
+    weightKg: null,
+    durationSec: null,
+  };
+
+  return {
+    exerciseId: ex.id,
+    nameCache: ex.name,
+    groupCache: { haupt: ex.haupt ?? undefined, unter: ex.unter ?? undefined },
+    default: baseTarget,
+    target: { ...baseTarget },
+    pauseSec: null,
+    comment: "",
+  } as PlanItem;
 }
 
 export default function TrainingsplanungPage() {
@@ -37,24 +73,40 @@ export default function TrainingsplanungPage() {
     athleteName,
     setAthleteName,
     planDay,
-    addExercise,
-    updateItem,
-    removeItem,
-    moveItem,
-    save,
-    filteredExercises,
+    loading,
+    saving,
+    dirty,
+    canSave,
+    allExercises,
     search,
     setSearch,
     onlyRegistered,
     setOnlyRegistered,
+    weekDates,
+    updateDay,
+    updateItem,
+    save,
+    filteredExercises,
+    copyScope,
+    setCopyScope,
+    copyToAthleteId,
+    setCopyToAthleteId,
+    copyToWeekOffset,
+    setCopyToWeekOffset,
     copyPlanTo,
-    weekFromDate,
   } = useTrainingsplanung();
 
-  const [copyToIds, setCopyToIds] = useState<string>("");
-  const [copyScope, setCopyScope] = useState<"DAY" | "WEEK">("DAY");
-
-  const [manualEx, setManualEx] = useState<CandidateExercise>({
+  const [athletes, setAthletes] = useState<Athlete[]>([]);
+  const [anmeldung, setAnmeldung] = useState<AnmeldungData | null>(null);
+  const [anmeldungLoading, setAnmeldungLoading] = useState<boolean>(false);
+  const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
+  const [manualEx, setManualEx] = useState<{
+    id: string;
+    name: string;
+    reps?: number | null;
+    menge?: number | null;
+    einheit?: string | null;
+  }>({
     id: "",
     name: "",
     reps: null,
@@ -62,9 +114,31 @@ export default function TrainingsplanungPage() {
     einheit: null,
   });
 
-  const [anmeldung, setAnmeldung] = useState<AnmeldungData | null>(null);
-  const [anmeldungLoading, setAnmeldungLoading] = useState<boolean>(false);
+  // Athleten laden
+  useEffect(() => {
+    let cancelled = false;
 
+    (async () => {
+      try {
+        const list = await loadAthleten();
+        if (!cancelled) {
+          const base = Array.isArray(list) ? list : [];
+          setAthletes(base.filter((a) => a.active !== false));
+        }
+      } catch (e) {
+        console.error("Trainingsplanung: Athleten laden fehlgeschlagen", e);
+        if (!cancelled) {
+          setAthletes([]);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Anmeldedaten laden
   useEffect(() => {
     let cancelled = false;
     async function load() {
@@ -72,8 +146,9 @@ export default function TrainingsplanungPage() {
         setAnmeldungLoading(true);
         const data = await loadAnmeldung();
         if (!cancelled) setAnmeldung(data);
-      } catch (e) {
-        console.error("Anmeldung laden fehlgeschlagen", e);
+      } catch (err) {
+        console.error("Trainingsplanung: Anmeldung laden fehlgeschlagen", err);
+        if (!cancelled) setAnmeldung(null);
       } finally {
         if (!cancelled) setAnmeldungLoading(false);
       }
@@ -84,11 +159,24 @@ export default function TrainingsplanungPage() {
     };
   }, []);
 
-  const planOrder = planDay?.order ?? [];
-  const planItems = planDay?.items ?? {};
-  const canSave = !!athleteId && !!dateISO && !!planDay;
+  // Blöcke / aktiver Block
+  const blocks: Record<string, PlanBlock> = planDay.blocks ?? {};
+  const blockOrder: string[] = planDay.blockOrder ?? [];
 
-  const weekDates = weekFromDate();
+  useEffect(() => {
+    if (!activeBlockId && blockOrder.length > 0) {
+      setActiveBlockId(blockOrder[0]);
+    }
+  }, [blockOrder, activeBlockId]);
+
+  const activeBlock: PlanBlock | undefined = activeBlockId
+    ? blocks[activeBlockId]
+    : undefined;
+
+  const planOrder: string[] = activeBlock
+    ? activeBlock.itemOrder
+    : planDay.order ?? [];
+  const planItems: Record<string, PlanItem> = planDay.items ?? {};
 
   const dayInfos = useMemo(
     () =>
@@ -103,314 +191,285 @@ export default function TrainingsplanungPage() {
     [weekDates, athleteId, anmeldung]
   );
 
-  const targetDates = useMemo(() => {
-    if (copyScope === "DAY") return [dateISO];
-    return weekDates;
-  }, [copyScope, dateISO, weekDates]);
-
-  function handleAddManual() {
-    if (!planDay) return;
-    if (!manualEx.id || !manualEx.name) return;
-    const ex: CandidateExercise = {
-      id: manualEx.id.trim(),
-      name: manualEx.name.trim(),
-      reps: manualEx.reps ?? null,
-      menge: manualEx.menge ?? null,
-      einheit: manualEx.einheit ?? null,
-    };
-    addExercise(ex as any);
-    setManualEx({ id: "", name: "", reps: null, menge: null, einheit: null });
-  }
-
-  async function handleCopy() {
-    const ids = copyToIds
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
-    if (!ids.length) return;
-    await copyPlanTo(ids, targetDates)();
-    // einfache Rückmeldung – später ggf. Toast
-    alert("Plan kopiert.");
-  }
-
   const currentWeek = isoWeek(dateISO);
+
+  const handleSelectAthlete = (id: string) => {
+    setAthleteId(id);
+    const a = athletes.find((x) => x.id === id);
+    setAthleteName(a ? `${a.lastName} ${a.firstName}` : "");
+  };
+
+  const handleAddBlock = () => {
+    const id = `block-${Date.now().toString(36)}-${Math.random()
+      .toString(36)
+      .slice(2, 6)}`;
+    updateDay((draft: PlanDay) => {
+      if (!draft.blocks) draft.blocks = {};
+      if (!draft.blockOrder) draft.blockOrder = [];
+      draft.blocks[id] = {
+        id,
+        title: "Neuer Block",
+        type: "SONSTIGES",
+        targetDurationMin: 15,
+        itemOrder: [],
+      };
+      draft.blockOrder.push(id);
+    });
+    setActiveBlockId(id);
+  };
+
+  const handleBlockTitleChange = (blockId: string, title: string) => {
+    updateDay((draft: PlanDay) => {
+      if (!draft.blocks || !draft.blocks[blockId]) return;
+      draft.blocks[blockId].title = title;
+    });
+  };
+
+  const handleBlockDurationChange = (blockId: string, value: string) => {
+    const trimmed = value.trim();
+    const n = trimmed ? Number(trimmed.replace(",", ".")) : null;
+    updateDay((draft: PlanDay) => {
+      if (!draft.blocks || !draft.blocks[blockId]) return;
+      draft.blocks[blockId].targetDurationMin =
+        n !== null && Number.isFinite(n) ? n : null;
+    });
+  };
+
+  const handleMoveBlock = (blockId: string, dir: -1 | 1) => {
+    updateDay((draft: PlanDay) => {
+      if (!draft.blockOrder) return;
+      const idx = draft.blockOrder.indexOf(blockId);
+      if (idx === -1) return;
+      const newIdx = idx + dir;
+      if (newIdx < 0 || newIdx >= draft.blockOrder.length) return;
+      const copy = [...draft.blockOrder];
+      const [removed] = copy.splice(idx, 1);
+      copy.splice(newIdx, 0, removed);
+      draft.blockOrder = copy;
+    });
+  };
+
+  const handleDeleteBlock = (blockId: string) => {
+    updateDay((draft: PlanDay) => {
+      if (!draft.blocks) return;
+      const block = draft.blocks[blockId];
+      if (!block) return;
+
+      const itemIds = new Set(block.itemOrder);
+      draft.order = (draft.order ?? []).filter((id) => !itemIds.has(id));
+      delete draft.blocks[blockId];
+      if (draft.blockOrder) {
+        draft.blockOrder = draft.blockOrder.filter((id) => id !== blockId);
+      }
+    });
+
+    if (activeBlockId === blockId) {
+      setActiveBlockId(null);
+    }
+  };
+
+  const handleAddExerciseToActiveBlock = (ex: ExerciseLite) => {
+    if (!athleteId) return;
+    if (!activeBlockId) return;
+
+    const newId = `item-${Date.now().toString(36)}-${Math.random()
+      .toString(36)
+      .slice(2, 6)}`;
+    const candidate: CandidateExercise = {
+      id: ex.id,
+      name: ex.name,
+      haupt: ex.haupt ?? null,
+      unter: ex.unter ?? null,
+      reps: ex.reps ?? null,
+      menge: ex.menge ?? null,
+      einheit: ex.einheit ?? null,
+    };
+    const newItem = createPlanItemFromCandidate(candidate);
+
+    updateDay((draft: PlanDay) => {
+      if (!draft.items) draft.items = {};
+      draft.items[newId] = newItem;
+      if (draft.blocks && draft.blocks[activeBlockId]) {
+        draft.blocks[activeBlockId].itemOrder.push(newId);
+      } else {
+        draft.order = [...(draft.order ?? []), newId];
+      }
+    });
+  };
+
+  const handleAddManual = (m: {
+    id: string;
+    name: string;
+    reps?: number | null;
+    menge?: number | null;
+    einheit?: string | null;
+  }) => {
+    if (!athleteId) return;
+    if (!activeBlockId) return;
+    if (!m.id.trim() && !m.name.trim()) return;
+
+    const ex: CandidateExercise = {
+      id: m.id.trim() || m.name.trim(),
+      name: m.name.trim() || m.id.trim(),
+      reps: m.reps ?? null,
+      menge: m.menge ?? null,
+      einheit: m.einheit ?? null,
+    };
+
+    const newId = `item-${Date.now().toString(36)}-${Math.random()
+      .toString(36)
+      .slice(2, 6)}`;
+    const newItem = createPlanItemFromCandidate(ex);
+
+    updateDay((draft: PlanDay) => {
+      if (!draft.items) draft.items = {};
+      draft.items[newId] = newItem;
+      if (draft.blocks && draft.blocks[activeBlockId]) {
+        draft.blocks[activeBlockId].itemOrder.push(newId);
+      } else {
+        draft.order = [...(draft.order ?? []), newId];
+      }
+    });
+
+    setManualEx({
+      id: "",
+      name: "",
+      reps: null,
+      menge: null,
+      einheit: null,
+    });
+  };
+
+  const handleMoveItem = (id: string, dir: -1 | 1) => {
+    updateDay((draft: PlanDay) => {
+      if (activeBlockId && draft.blocks && draft.blocks[activeBlockId]) {
+        const order = draft.blocks[activeBlockId].itemOrder;
+        const idx = order.indexOf(id);
+        if (idx === -1) return;
+        const newIdx = idx + dir;
+        if (newIdx < 0 || newIdx >= order.length) return;
+        const copy = [...order];
+        const [removed] = copy.splice(idx, 1);
+        copy.splice(newIdx, 0, removed);
+        draft.blocks[activeBlockId].itemOrder = copy;
+      } else {
+        const order = draft.order ?? [];
+        const idx = order.indexOf(id);
+        if (idx === -1) return;
+        const newIdx = idx + dir;
+        if (newIdx < 0 || newIdx >= order.length) return;
+        const copy = [...order];
+        const [removed] = copy.splice(idx, 1);
+        copy.splice(newIdx, 0, removed);
+        draft.order = copy;
+      }
+    });
+  };
+
+  const handleRemoveItem = (id: string) => {
+    updateDay((draft: PlanDay) => {
+      if (draft.items) {
+        delete draft.items[id];
+      }
+      if (draft.order) {
+        draft.order = draft.order.filter((x) => x !== id);
+      }
+      if (draft.blocks) {
+        Object.values(draft.blocks).forEach((blk) => {
+          blk.itemOrder = blk.itemOrder.filter((x) => x !== id);
+        });
+      }
+    });
+  };
+
+  const handleChangeItem = (id: string, next: PlanItem) => {
+    updateItem(id, next);
+  };
+
+  const handleCopy = () => {
+    if (!copyToAthleteId) return;
+    copyPlanTo();
+  };
+
+  if (loading) {
+    return <div className="tp-container">Lade Trainingsplanung …</div>;
+  }
+
+  const canSaveHeader = canSave && !saving;
+  const saveLabel = saving ? "Speichere …" : dirty ? "Speichern*" : "Speichern";
 
   return (
     <div className="tp-container">
       <div className="tp-left">
-        <div className="tp-header">
-          <div>
-            <div className="tp-section-title">Kalenderwoche</div>
-            <div className="tp-badge">
-              KW {currentWeek} &middot; {weekDates[0]} – {weekDates[6]}
-            </div>
-            <div className="tp-week-row">
-              {dayInfos.map((d, idx) => {
-                const label = WEEKDAY_LABELS[idx] ?? "";
-                const isActive = d.date === dateISO;
-                const cls = [
-                  "tp-day-chip",
-                  isActive ? "active" : "",
-                  d.status === "YES" ? "yes" : d.status === "MAYBE" ? "maybe" : "no",
-                ]
-                  .filter(Boolean)
-                  .join(" ");
-                const disabled = onlyRegistered && d.status !== "YES";
-                return (
-                  <button
-                    key={d.date}
-                    type="button"
-                    className={cls}
-                    disabled={disabled}
-                    onClick={() => setDateISO(d.date)}
-                  >
-                    <div>{label}</div>
-                    <div className="tp-day-date">{d.date.slice(5)}</div>
-                  </button>
-                );
-              })}
-            </div>
-            {anmeldungLoading && <div className="tp-badge">Anmeldungen werden geladen…</div>}
-          </div>
+        <TrainingsplanungHeader
+          dateISO={dateISO}
+          onChangeDate={setDateISO}
+          currentWeek={currentWeek}
+          weekDates={weekDates}
+          dayInfos={dayInfos}
+          onlyRegistered={onlyRegistered}
+          onToggleOnlyRegistered={setOnlyRegistered}
+          athletes={athletes}
+          athleteId={athleteId}
+          athleteName={athleteName}
+          onSelectAthlete={handleSelectAthlete}
+          canSave={canSaveHeader}
+          onSave={save}
+          anmeldungLoading={anmeldungLoading}
+        />
 
-          <div>
-            <div className="tp-section-title">Datum</div>
-            <input
-              className="tp-input"
-              type="date"
-              value={dateISO}
-              onChange={(e) => setDateISO(e.target.value || toISODate(new Date()))}
-            />
-          </div>
-
-          <div>
-            <div className="tp-section-title">Athlet-ID</div>
-            <input
-              className="tp-input"
-              placeholder="athlete-123"
-              value={athleteId}
-              onChange={(e) => setAthleteId(e.target.value)}
-            />
-          </div>
-
-          <div>
-            <div className="tp-section-title">Name (optional)</div>
-            <input
-              className="tp-input"
-              placeholder="Raphael Briel"
-              value={athleteName}
-              onChange={(e) => setAthleteName(e.target.value)}
-            />
-          </div>
-
-          <div style={{ alignSelf: "flex-end" }}>
-            <label style={{ display: "flex", gap: 6, alignItems: "center" }}>
-              <input
-                type="checkbox"
-                checked={onlyRegistered}
-                onChange={(e) => setOnlyRegistered(e.target.checked)}
-              />
-              Nur Tage mit JA
-            </label>
-          </div>
-
-          <div style={{ marginLeft: "auto", alignSelf: "flex-end" }}>
-            <button className={"tp-btn primary"} disabled={!canSave} onClick={save}>
-              Speichern
-            </button>
-          </div>
-        </div>
-
-        <div className="tp-card">
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div style={{ fontWeight: 600 }}>Übungssuche</div>
-            <div className="tp-badge">
-              Tipp: <span className="tp-kbd">/</span> fokussiert die Suche
-            </div>
-          </div>
-
-          <div className="tp-row">
-            <input
-              className="tp-input"
-              placeholder="Suche nach Name…"
-              value={search.text}
-              onChange={(e) => setSearch((s) => ({ ...s, text: e.target.value }))}
-            />
-            <input
-              className="tp-input"
-              placeholder="Hauptgruppe (optional)"
-              value={search.haupt}
-              onChange={(e) => setSearch((s) => ({ ...s, haupt: e.target.value }))}
-            />
-          </div>
-
-          <div className="tp-row">
-            <input
-              className="tp-input"
-              placeholder="Untergruppe (optional)"
-              value={search.unter}
-              onChange={(e) => setSearch((s) => ({ ...s, unter: e.target.value }))}
-            />
-            <div />
-          </div>
-
-          <div style={{ marginTop: 8 }}>
-            {filteredExercises.length > 0 ? (
-              filteredExercises.slice(0, 50).map((ex) => (
-                <div key={ex.id} className="tp-card" style={{ marginBottom: 6 }}>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      gap: 8,
-                    }}
-                  >
-                    <div>
-                      <div style={{ fontWeight: 600 }}>{ex.name}</div>
-                      <div className="tp-badge">
-                        {ex.haupt ?? "—"}
-                        {ex.unter ? ` / ${ex.unter}` : ""}
-                      </div>
-                    </div>
-                    <button className="tp-btn" type="button" onClick={() => addExercise(ex as any)}>
-                      Hinzufügen
-                    </button>
-                  </div>
-                  <div className="tp-row" style={{ marginTop: 6 }}>
-                    <input className="tp-input" readOnly value={ex.reps ?? ""} placeholder="Wdh." />
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                      <input
-                        className="tp-input"
-                        readOnly
-                        value={ex.menge ?? ""}
-                        placeholder="Menge"
-                      />
-                      <input
-                        className="tp-input"
-                        readOnly
-                        value={ex.einheit ?? ""}
-                        placeholder="Einheit"
-                      />
-                    </div>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="tp-badge">
-                Kein Katalog verfügbar – du kannst unten manuell Übungen anlegen.
-              </div>
-            )}
-          </div>
-
-          <div style={{ marginTop: 12 }}>
-            <div style={{ fontWeight: 600, marginBottom: 6 }}>Manuell hinzufügen</div>
-            <div className="tp-row">
-              <input
-                className="tp-input"
-                placeholder="Übungs-ID"
-                value={manualEx.id}
-                onChange={(e) => setManualEx({ ...manualEx, id: e.target.value })}
-              />
-              <input
-                className="tp-input"
-                placeholder="Name"
-                value={manualEx.name}
-                onChange={(e) => setManualEx({ ...manualEx, name: e.target.value })}
-              />
-            </div>
-            <div className="tp-row">
-              <input
-                className="tp-input"
-                type="number"
-                placeholder="Wdh."
-                value={manualEx.reps ?? ""}
-                onChange={(e) =>
-                  setManualEx({
-                    ...manualEx,
-                    reps: e.target.value === "" ? null : Number(e.target.value),
-                  })
-                }
-              />
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                <input
-                  className="tp-input"
-                  type="number"
-                  placeholder="Menge"
-                  value={manualEx.menge ?? ""}
-                  onChange={(e) =>
-                    setManualEx({
-                      ...manualEx,
-                      menge: e.target.value === "" ? null : Number(e.target.value),
-                    })
-                  }
-                />
-                <input
-                  className="tp-input"
-                  placeholder="Einheit (min, km, m…)"
-                  value={manualEx.einheit ?? ""}
-                  onChange={(e) =>
-                    setManualEx({
-                      ...manualEx,
-                      einheit: e.target.value || null,
-                    })
-                  }
-                />
-              </div>
-            </div>
-            <div className="tp-actions" style={{ marginTop: 8 }}>
-              <button className="tp-btn" type="button" onClick={handleAddManual}>
-                Hinzufügen
-              </button>
-            </div>
-          </div>
-        </div>
+        <TrainingsplanungExercisePanel
+          search={search}
+          setSearch={setSearch}
+          filteredExercises={filteredExercises}
+          hasActiveBlock={!!activeBlockId}
+          manualEx={manualEx}
+          setManualEx={setManualEx}
+          onAddExercise={handleAddExerciseToActiveBlock}
+          onAddManual={handleAddManual}
+        />
       </div>
 
       <div className="tp-right">
+        <TrainingsplanungBlocksPanel
+          dateISO={dateISO}
+          blocks={blocks}
+          blockOrder={blockOrder}
+          activeBlockId={activeBlockId}
+          setActiveBlockId={setActiveBlockId}
+          onAddBlock={handleAddBlock}
+          onChangeTitle={handleBlockTitleChange}
+          onChangeDuration={handleBlockDurationChange}
+          onMoveBlock={handleMoveBlock}
+          onDeleteBlock={handleDeleteBlock}
+        />
+
         <div className="tp-card">
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div style={{ fontWeight: 600 }}>
-              Plan für {athleteName || athleteId || "—"} am {dateISO}
-            </div>
+          <div style={{ fontWeight: 600, marginBottom: 6 }}>
+            Plan für {athleteName || "—"} am {dateISO}
+            {activeBlock ? ` – Block ${activeBlock.title}` : ""}
           </div>
           <PlanEditor
             planOrder={planOrder}
             planItems={planItems}
-            onUpdate={updateItem}
-            onRemove={removeItem}
-            onMove={moveItem}
+            onChangeItem={handleChangeItem}
+            onRemove={handleRemoveItem}
+            onMove={handleMoveItem}
           />
         </div>
 
-        <div className="tp-card">
-          <div style={{ fontWeight: 600, marginBottom: 6 }}>Plan kopieren</div>
-          <div className="tp-row">
-            <select
-              className="tp-select"
-              value={copyScope}
-              onChange={(e) => setCopyScope(e.target.value as "DAY" | "WEEK")}
-            >
-              <option value="DAY">Nur diesen Tag</option>
-              <option value="WEEK">Ganze Woche (Mo–So)</option>
-            </select>
-            <input
-              className="tp-input"
-              placeholder="Ziel-Athleten-IDs, komma-getrennt"
-              value={copyToIds}
-              onChange={(e) => setCopyToIds(e.target.value)}
-            />
-          </div>
-          <div className="tp-actions" style={{ marginTop: 8 }}>
-            <button className="tp-btn" type="button" onClick={handleCopy}>
-              Kopieren
-            </button>
-            <div className="tp-badge">
-              Zieldaten:{" "}
-              {copyScope === "DAY" ? dateISO : `${weekDates[0]} – ${weekDates[6]}`}
-            </div>
-          </div>
-        </div>
+        <TrainingsplanungCopyPanel
+          dateISO={dateISO}
+          weekDates={weekDates}
+          copyScope={copyScope}
+          setCopyScope={setCopyScope}
+          copyToAthleteId={copyToAthleteId}
+          setCopyToAthleteId={setCopyToAthleteId}
+          copyToWeekOffset={copyToWeekOffset}
+          setCopyToWeekOffset={setCopyToWeekOffset}
+          athletes={athletes}
+          onCopy={handleCopy}
+        />
       </div>
     </div>
   );

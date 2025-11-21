@@ -5,310 +5,277 @@ import {
   upsertAthleteDay,
   PlanItem,
   PlanDay,
+  TrainingsplanData,
 } from "../services/TrainingsplanungStore";
-import { loadAnmeldung, DayStatus } from "../../anmeldung/services/AnmeldungStore";
-import {
-  addDays,
-  startOfISOWeek,
-  toISODate,
-  weekRangeFrom,
-} from "../../common/date";
+import { addDays, startOfISOWeek, toISODate, weekRangeFrom } from "../../common/date";
+import { listExercisesLite, type ExerciseLite } from "@/modules/uebungskatalog/services/ExercisesLite";
 
-export type ExerciseLite = {
-  id: string;
-  name: string;
-  haupt?: string | null;
-  unter?: string | null;
-  reps?: number | null;
-  menge?: number | null;
-  einheit?: string | null;
-};
-
-type SearchState = {
+export type SearchState = {
   text: string;
   haupt: string;
   unter: string;
 };
 
-type PlansByAthlete = Record<string, Record<string, PlanDay>>;
+export type CopyScope = "DAY" | "WEEK";
 
-function createEmptyDay(): PlanDay {
-  return {
-    order: [],
-    items: {},
-  };
+async function loadExercisesLiteSafe(): Promise<ExerciseLite[]> {
+  const w: any = window as any;
+  // Bevorzugt die globale Lite-Funktion, falls vorhanden
+  try {
+    if (w?.ULC?.listExercisesLite) {
+      const arr = await w.ULC.listExercisesLite();
+      if (Array.isArray(arr)) return arr;
+    }
+  } catch (err) {
+    console.warn("Trainingsplanung: window.ULC.listExercisesLite fehlgeschlagen", err);
+  }
+
+  // Fallback: direkter Zugriff auf den Service
+  try {
+    return await listExercisesLite();
+  } catch (err) {
+    console.error("Trainingsplanung: listExercisesLite() fehlgeschlagen", err);
+    return [];
+  }
 }
 
-/**
- * Hook für das Modul Trainingsplanung.
- *
- * - Lädt Pläne aus Google Drive
- * - Lädt (leichtgewichtige) Übungen aus dem Übungskatalog über window.ULC.listExercisesLite()
- * - Bindet die Anmeldung-Status ein (für "nur Tage mit JA" – UI kommt im nächsten Schritt)
- * - Stellt Helfer für Planbearbeitung und Kopieren bereit
- */
 export function useTrainingsplanung() {
-  const today = toISODate(new Date());
+  const [dateISO, setDateISO] = useState<string>(() => toISODate(new Date()));
+  const [plans, setPlans] = useState<TrainingsplanData | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [saving, setSaving] = useState<boolean>(false);
+  const [dirty, setDirty] = useState<boolean>(false);
 
-  const [dateISO, setDateISO] = useState<string>(today);
   const [athleteId, setAthleteId] = useState<string>("");
   const [athleteName, setAthleteName] = useState<string>("");
 
-  const [plansByAthlete, setPlansByAthlete] = useState<PlansByAthlete>({});
-  const [planDay, setPlanDay] = useState<PlanDay | null>(null);
-
   const [allExercises, setAllExercises] = useState<ExerciseLite[]>([]);
-  const [search, setSearch] = useState<SearchState>({ text: "", haupt: "", unter: "" });
-
+  const [search, setSearch] = useState<SearchState>({
+    text: "",
+    haupt: "",
+    unter: "",
+  });
   const [onlyRegistered, setOnlyRegistered] = useState<boolean>(false);
-  const [statuses, setStatuses] = useState<Record<string, DayStatus>>({});
 
-  // -------------------------------------------------
-  // Initial: Athlet aus globalem Kontext übernehmen (z.B. aus Anmeldung)
-  // -------------------------------------------------
-  useEffect(() => {
-    const w: any = (window as any);
-    if (w?.ULC?.currentAthlete) {
-      const { id, name } = w.ULC.currentAthlete;
-      if (id) setAthleteId(String(id));
-      if (name) setAthleteName(String(name));
-    }
-  }, []);
+  const [copyScope, setCopyScope] = useState<CopyScope>("DAY");
+  const [copyToAthleteId, setCopyToAthleteId] = useState<string>("");
+  const [copyToWeekOffset, setCopyToWeekOffset] = useState<number>(0);
 
-  // -------------------------------------------------
-  // Pläne laden
-  // -------------------------------------------------
+  // Initiale Ladung der Pläne + Übungen + evtl. Athlet aus window.ULC
   useEffect(() => {
     let cancelled = false;
+
     (async () => {
       try {
-        const data = await loadPlans();
+        const [plansData, exercises] = await Promise.all([
+          loadPlans(),
+          loadExercisesLiteSafe(),
+        ]);
+
         if (!cancelled) {
-          setPlansByAthlete(data.plansByAthlete ?? {});
+          setPlans(plansData);
+          setAllExercises(exercises);
         }
       } catch (err) {
-        console.error("Trainingsplanung: loadPlans failed", err);
+        console.error("Trainingsplanung: Initialisierung fehlgeschlagen", err);
         if (!cancelled) {
-          setPlansByAthlete({});
-        }
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  // -------------------------------------------------
-  // Anmeldung laden (für spätere Filter "nur Tage mit JA")
-  // -------------------------------------------------
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const anm = await loadAnmeldung();
-        if (!cancelled && anm?.statuses) {
-          setStatuses(anm.statuses);
-        }
-      } catch (err) {
-        console.error("Trainingsplanung: loadAnmeldung failed", err);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  // -------------------------------------------------
-  // Übungen laden (leichtgewichtige Liste – über globales window.ULC)
-  // -------------------------------------------------
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadExercises() {
-      try {
-        const w: any = (window as any);
-        if (w?.ULC?.listExercisesLite && typeof w.ULC.listExercisesLite === "function") {
-          const list: ExerciseLite[] = await w.ULC.listExercisesLite();
-          if (!cancelled) {
-            setAllExercises(Array.isArray(list) ? list : []);
-          }
-        } else {
-          // Fallback: direkt importieren, falls global noch nicht gesetzt
-          const mod = await import(
-            /* @vite-ignore */ "@/modules/uebungskatalog/services/ExercisesLite"
-          );
-          const list: ExerciseLite[] = await mod.listExercisesLite();
-          if (!cancelled) {
-            setAllExercises(Array.isArray(list) ? list : []);
-          }
-        }
-      } catch (err) {
-        console.error("Trainingsplanung: listExercisesLite failed", err);
-        if (!cancelled) {
+          setPlans({
+            version: 1,
+            updatedAt: new Date().toISOString(),
+            plansByAthlete: {},
+          });
           setAllExercises([]);
         }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
-    }
+    })();
 
-    loadExercises();
+    // Athlet aus Anmeldung/Global in die Trainingsplanung übernehmen
+    try {
+      const w: any = window as any;
+      if (w?.ULC?.currentAthlete) {
+        const { id, name } = w.ULC.currentAthlete;
+        if (id) setAthleteId(String(id));
+        if (name) setAthleteName(String(name));
+      }
+    } catch (err) {
+      console.warn("Trainingsplanung: Lesen von window.ULC.currentAthlete fehlgeschlagen", err);
+    }
 
     return () => {
       cancelled = true;
     };
   }, []);
 
-  // -------------------------------------------------
-  // Aktuellen Tagesplan ableiten, wenn Athlet / Datum oder Pläne sich ändern
-  // -------------------------------------------------
-  useEffect(() => {
-    if (!athleteId || !dateISO) {
-      setPlanDay(null);
-      return;
+  const weekStartISO = useMemo(
+    () => startOfISOWeek(new Date(dateISO + "T00:00:00")),
+    [dateISO]
+  );
+  const weekDates = useMemo(() => weekRangeFrom(weekStartISO), [weekStartISO]);
+
+  const currentDay: PlanDay = useMemo(() => {
+    if (!athleteId || !plans) {
+      return {
+        order: [],
+        items: {},
+      };
     }
-    const perAthlete = plansByAthlete[athleteId] ?? {};
-    const existing = perAthlete[dateISO];
+    const byAthlete = plans.plansByAthlete[athleteId] ?? {};
+    const existing = byAthlete[dateISO];
     if (existing) {
-      setPlanDay(existing);
-    } else {
-      setPlanDay(createEmptyDay());
+      return {
+        order: existing.order ?? [],
+        items: existing.items ?? {},
+        blocks: existing.blocks,
+        blockOrder: existing.blockOrder,
+      };
     }
-  }, [athleteId, dateISO, plansByAthlete]);
+    return {
+      order: [],
+      items: {},
+    };
+  }, [plans, athleteId, dateISO]);
 
-  // -------------------------------------------------
-  // Helfer: Woche ausgehend vom aktuellen Datum berechnen
-  // -------------------------------------------------
-  function weekFromDate(): string[] {
-    const base = dateISO || today;
-    const d = new Date(base + "T00:00:00");
-    const isoWeekStart = startOfISOWeek(d);
-    const week = weekRangeFrom(isoWeekStart);
+  function updateCurrentDay(mutator: (draft: PlanDay) => void) {
+    if (!athleteId) return;
 
-    if (!onlyRegistered || !athleteId) {
-      return week;
-    }
+    setPlans((prev) => {
+      const base: TrainingsplanData =
+        prev ??
+        ({
+          version: 1,
+          updatedAt: new Date().toISOString(),
+          plansByAthlete: {},
+        } as TrainingsplanData);
 
-    // Nur Tage mit Anmeldung = "YES" für diesen Athleten
-    return week.filter((iso) => statuses[`${athleteId}:${iso}`] === "YES");
+      const plansByAthlete: TrainingsplanData["plansByAthlete"] = {
+        ...base.plansByAthlete,
+      };
+      const daysForAthlete: Record<string, PlanDay> = {
+        ...(plansByAthlete[athleteId] ?? {}),
+      };
+
+      const existing = daysForAthlete[dateISO] ?? {
+        order: [],
+        items: {},
+      };
+
+      const draft: PlanDay = {
+        order: [...(existing.order ?? [])],
+        items: { ...(existing.items ?? {}) },
+        blocks: existing.blocks ? { ...existing.blocks } : undefined,
+        blockOrder: existing.blockOrder ? [...existing.blockOrder] : undefined,
+      };
+
+      mutator(draft);
+
+      daysForAthlete[dateISO] = draft;
+      plansByAthlete[athleteId] = daysForAthlete;
+
+      return {
+        ...base,
+        updatedAt: new Date().toISOString(),
+        plansByAthlete,
+      };
+    });
+
+    setDirty(true);
   }
 
-  // -------------------------------------------------
-  // Plan-Manipulation
-  // -------------------------------------------------
-  function addExercise(ex: ExerciseLite) {
-    if (!planDay) return;
-    const id = `it-${Date.now().toString(36)}-${Math.random()
-      .toString(36)
-      .slice(2, 8)}`;
-
-    const baseTarget = {
-      reps: ex.reps ?? null,
-      menge: ex.menge ?? null,
-      einheit: ex.einheit ?? null,
-    };
-
-    const item: PlanItem = {
-      exerciseId: ex.id,
-      nameCache: ex.name,
-      groupCache: { haupt: ex.haupt ?? undefined, unter: ex.unter ?? undefined },
-      default: baseTarget,
-      target: { ...baseTarget },
-      pauseSec: null,
-      comment: "",
-    };
-
-    const next: PlanDay = {
-      ...planDay,
-      order: [...planDay.order, id],
-      items: {
-        ...planDay.items,
-        [id]: item,
-      },
-    };
-    setPlanDay(next);
-  }
-
-  function updateItem(id: string, patch: Partial<PlanItem>) {
-    if (!planDay) return;
-    if (!planDay.items[id]) return;
-    const nextItems: Record<string, PlanItem> = {
-      ...planDay.items,
-      [id]: { ...planDay.items[id], ...patch },
-    };
-    setPlanDay({ ...planDay, items: nextItems });
-  }
-
-  function removeItem(id: string) {
-    if (!planDay) return;
-    if (!planDay.items[id]) return;
-    const nextItems = { ...planDay.items };
-    delete nextItems[id];
-    const nextOrder = planDay.order.filter((x) => x !== id);
-    setPlanDay({ ...planDay, items: nextItems, order: nextOrder });
-  }
-
-  function moveItem(id: string, dir: -1 | 1) {
-    if (!planDay) return;
-    const idx = planDay.order.indexOf(id);
-    if (idx < 0) return;
-    const newIdx = Math.max(0, Math.min(planDay.order.length - 1, idx + dir));
-    if (newIdx === idx) return;
-    const arr = [...planDay.order];
-    arr.splice(idx, 1);
-    arr.splice(newIdx, 0, id);
-    setPlanDay({ ...planDay, order: arr });
+  function updateItem(id: string, next: PlanItem) {
+    updateCurrentDay((draft) => {
+      draft.items[id] = next;
+    });
   }
 
   async function save() {
-    if (!athleteId || !dateISO || !planDay) return;
-    await upsertAthleteDay(athleteId, dateISO, planDay);
-    // lokale Plans-Struktur aktualisieren, damit alles konsistent bleibt
-    setPlansByAthlete((prev) => {
-      const copy: PlansByAthlete = { ...prev };
-      const perAthlete = { ...(copy[athleteId] ?? {}) };
-      perAthlete[dateISO] = planDay;
-      copy[athleteId] = perAthlete;
-      return copy;
-    });
-  }
-
-  /**
-   * Plan auf andere Athleten / andere Tage kopieren.
-   * Signature ist so gewählt, dass die bestehende Seite
-   * `copyPlanTo(ids, dates)()` aufrufen kann.
-   */
-  function copyPlanTo(targetAthleteIds: string[], targetDates: string[]) {
-    return async () => {
-      if (!planDay) return;
-      const ids = (targetAthleteIds || []).filter(Boolean);
-      const dates = (targetDates || []).filter(Boolean);
-      if (!ids.length || !dates.length) return;
-
-      for (const aid of ids) {
-        for (const iso of dates) {
-          await upsertAthleteDay(aid, iso, planDay);
-        }
-      }
+    if (!athleteId || !plans) return;
+    const byAthlete = plans.plansByAthlete[athleteId] ?? {};
+    const day = byAthlete[dateISO] ?? {
+      order: [],
+      items: {},
     };
+
+    setSaving(true);
+    try {
+      await upsertAthleteDay(athleteId, dateISO, day);
+      setDirty(false);
+    } catch (err) {
+      console.error("Trainingsplanung: Speichern fehlgeschlagen", err);
+    } finally {
+      setSaving(false);
+    }
   }
 
-  // -------------------------------------------------
-  // Übungssuche
-  // -------------------------------------------------
   const filteredExercises = useMemo(() => {
     const txt = search.text.trim().toLowerCase();
-    if (!txt) return allExercises;
+    const haupt = search.haupt.trim().toLowerCase();
+    const unter = search.unter.trim().toLowerCase();
 
     return allExercises.filter((ex) => {
-      const hay = [
-        ex.name ?? "",
-        ex.haupt ?? "",
-        ex.unter ?? "",
-      ]
-        .join(" ")
-        .toLowerCase();
-      return hay.includes(txt);
+      const name = (ex.name ?? "").toLowerCase();
+      const h = (ex.haupt ?? "").toLowerCase();
+      const u = (ex.unter ?? "").toLowerCase();
+
+      if (txt && !(`${name} ${h} ${u}`.includes(txt))) return false;
+      if (haupt && !h.includes(haupt)) return false;
+      if (unter && !u.includes(unter)) return false;
+
+      return true;
     });
   }, [allExercises, search]);
+
+  async function copyPlanTo() {
+    if (!plans) return;
+    if (!athleteId) return;
+    if (!copyToAthleteId) return;
+
+    const srcData = plans;
+    const srcByAthlete = srcData.plansByAthlete[athleteId] ?? {};
+    const targetByAthlete = {
+      ...(srcData.plansByAthlete[copyToAthleteId] ?? {}),
+    };
+
+    const srcWeekStart = startOfISOWeek(new Date(dateISO + "T00:00:00"));
+    const srcWeekStartIso = toISODate(new Date(srcWeekStart));
+    const targetWeekStartIso =
+      copyScope === "WEEK"
+        ? addDays(srcWeekStartIso, copyToWeekOffset * 7)
+        : srcWeekStartIso;
+
+    if (copyScope === "DAY") {
+      const srcDay = srcByAthlete[dateISO];
+      if (!srcDay) return;
+
+      targetByAthlete[dateISO] = JSON.parse(JSON.stringify(srcDay));
+    } else {
+      const srcWeekDates = weekRangeFrom(srcWeekStartIso);
+      const targetWeekDates = weekRangeFrom(targetWeekStartIso);
+
+      srcWeekDates.forEach((srcDate, idx) => {
+        const srcDay = srcByAthlete[srcDate];
+        if (!srcDay) return;
+        const tgtDate = targetWeekDates[idx];
+        targetByAthlete[tgtDate] = JSON.parse(JSON.stringify(srcDay));
+      });
+    }
+
+    const next: TrainingsplanData = {
+      ...srcData,
+      updatedAt: new Date().toISOString(),
+      plansByAthlete: {
+        ...srcData.plansByAthlete,
+        [copyToAthleteId]: targetByAthlete,
+      },
+    };
+    setPlans(next);
+    setDirty(true);
+  }
+
+  const canSave = !!athleteId && !loading && !saving;
 
   return {
     dateISO,
@@ -317,19 +284,28 @@ export function useTrainingsplanung() {
     setAthleteId,
     athleteName,
     setAthleteName,
-    planDay,
-    setPlanDay,
-    addExercise,
-    updateItem,
-    removeItem,
-    moveItem,
-    save,
-    filteredExercises,
+    planDay: currentDay,
+    loading,
+    saving,
+    dirty,
+    canSave,
+    allExercises,
     search,
     setSearch,
     onlyRegistered,
     setOnlyRegistered,
+    weekStartISO,
+    weekDates,
+    updateDay: updateCurrentDay,
+    updateItem,
+    save,
+    filteredExercises,
+    copyScope,
+    setCopyScope,
+    copyToAthleteId,
+    setCopyToAthleteId,
+    copyToWeekOffset,
+    setCopyToWeekOffset,
     copyPlanTo,
-    weekFromDate,
   };
 }

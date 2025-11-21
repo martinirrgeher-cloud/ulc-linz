@@ -12,15 +12,27 @@ export type ExerciseLite = {
   active?: boolean;
 };
 
+/**
+ * Liefert eine leichte Liste der Übungen aus dem Übungskatalog.
+ * Erwartetes Drive-Format:
+ * - aktuelles Format: { items: Exercise[] }
+ * - ältere Varianten: { exercises: Exercise[] } oder direkt ein Array
+ */
 export async function listExercisesLite(): Promise<ExerciseLite[]> {
   const fileId =
     IDS.UEBUNGEN_FILE_ID || import.meta.env.VITE_DRIVE_UEBUNGEN_FILE_ID;
   if (!fileId) return [];
 
   const data = await downloadJson<any>(fileId);
-  // Erwartetes Format (Beispiel aus deinem Projekt):
-  // { exercises: Exercise[] } ODER direkt ein Array
-  const arr: any[] = Array.isArray(data) ? data : (data?.exercises ?? []);
+
+  // Aktuelles Format ({ items: [...] }) + Altformate abdecken
+  const arr: any[] = Array.isArray(data)
+    ? data
+    : (data?.exercises ?? data?.items ?? []);
+
+  if (!Array.isArray(arr) || arr.length === 0) {
+    return [];
+  }
 
   return arr
     .filter((x) => x && (x.active ?? true))
@@ -29,8 +41,9 @@ export async function listExercisesLite(): Promise<ExerciseLite[]> {
       name: x.name,
       haupt: x.hauptgruppe ?? null,
       unter: x.untergruppe ?? null,
-      reps: x.reps ?? null,           // falls vorhanden, sonst null
-      menge: x.menge ?? null,         // z. B. 5
-      einheit: x.einheit ?? null      // z. B. "min"
+      reps: x.reps ?? null,
+      menge: x.menge ?? null,
+      einheit: x.einheit ?? null,
+      active: x.active ?? true,
     }));
 }

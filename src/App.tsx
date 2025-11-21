@@ -19,6 +19,7 @@ const Athleten = React.lazy(() => import("@/modules/athleten/Athleten"));
 const DriveDebug = lazy(() => import("@/pages/DriveDebug"));
 const Trainingsplanung = React.lazy(() => import("@/modules/leistungsgruppe/trainingsplanung/pages/Trainingsplanung"));
 const Trainingsdoku   = React.lazy(() => import("@/modules/leistungsgruppe/trainingsdoku/pages/Trainingsdoku"));
+const Trainingsbloecke = React.lazy(() => import("@/modules/leistungsgruppe/trainingsbloecke/pages/Trainingsbloecke"));
 
 
 function Page({ title, children }: { title: string; children: React.ReactNode }) {
@@ -117,6 +118,18 @@ export default function App() {
                 </RequireAuth>
               }
             />
+
+<Route
+  path="/leistungsgruppe/bloecke"
+  element={
+    <RequireAuth requiredModules={["TRAININGSPLAN"]}>
+      <Page title="Trainingsblöcke">
+        <Trainingsbloecke />
+      </Page>
+    </RequireAuth>
+  }
+/>
+
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
 </Suspense>
