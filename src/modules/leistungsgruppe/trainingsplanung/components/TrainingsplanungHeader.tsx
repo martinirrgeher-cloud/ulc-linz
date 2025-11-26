@@ -1,155 +1,126 @@
+// src/modules/leistungsgruppe/trainingsplanung/components/TrainingsplanungHeader.tsx
 import React from "react";
-import { toISODate } from "../../common/date";
-import type { Athlete } from "@/modules/athleten/types/athleten";
 import type { DayStatus } from "../../anmeldung/services/AnmeldungStore";
 
-const WEEKDAY_LABELS = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
-
-type DayInfo = { date: string; status: DayStatus | null };
-
-type Props = {
-  dateISO: string;
-  onChangeDate: (value: string) => void;
-  currentWeek: number;
-  weekDates: string[];
-  dayInfos: DayInfo[];
-  onlyRegistered: boolean;
-  onToggleOnlyRegistered: (value: boolean) => void;
-
-  athletes: Athlete[];
-  athleteId: string;
-  athleteName: string;
-  onSelectAthlete: (id: string) => void;
-
-  canSave: boolean;
-  onSave: () => void;
-  anmeldungLoading: boolean;
+type AthleteLite = {
+  id: string;
+  name: string;
+  active?: boolean;
 };
 
-export default function TrainingsplanungHeader({
-  dateISO,
-  onChangeDate,
-  currentWeek,
-  weekDates,
-  dayInfos,
-  onlyRegistered,
-  onToggleOnlyRegistered,
-  athletes,
-  athleteId,
-  athleteName,
-  onSelectAthlete,
-  canSave,
-  onSave,
-  anmeldungLoading,
-}: Props) {
+type StatusMap = Record<string, DayStatus | null | undefined>;
+
+type Props = {
+  athletes: AthleteLite[];
+  selectedAthleteId: string;
+  onChangeAthlete: (id: string) => void;
+
+  weekLabel: string;
+  weekDates: string[];
+  dateISO: string;
+  onChangeDate: (dateISO: string) => void;
+
+  statusMap: StatusMap;
+  anmeldungLoading: boolean;
+
+  onPrevWeek: () => void;
+  onNextWeek: () => void;
+};
+
+function statusBadgeClass(s: DayStatus | undefined | null): string {
+  if (!s) return "tp-day-status none";
+
+  const v = s.toString().toUpperCase();
+
+  if (v === "YES") return "tp-day-status yes";     // JA -> grün
+  if (v === "NO") return "tp-day-status no";       // NEIN -> rot
+
+  // MAYBE / ? -> grau (Outline, keine Füllung)
+  if (v === "MAYBE" || v === "?") return "tp-day-status none";
+
+  // Fallback: grau
+  return "tp-day-status none";
+}
+
+const WEEKDAY_NAMES = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
+
+export default function TrainingsplanungHeader(props: Props) {
+  const {
+    athletes,
+    selectedAthleteId,
+    onChangeAthlete,
+    weekLabel,
+    weekDates,
+    dateISO,
+    onChangeDate,
+    statusMap,
+    anmeldungLoading,
+    onPrevWeek,
+    onNextWeek,
+  } = props;
+
   return (
     <div className="tp-header">
-      <div>
-        <div className="tp-section-title">Kalenderwoche</div>
-        <div className="tp-badge">
-          KW {currentWeek} &middot; {weekDates[0]} – {weekDates[6]}
-        </div>
-        <div className="tp-week-row">
-          {dayInfos.map((d, idx) => {
-            const label = WEEKDAY_LABELS[idx] ?? "";
-            const isActive = d.date === dateISO;
-            const cls = [
-              "tp-day-chip",
-              isActive ? "active" : "",
-              d.status === "YES"
-                ? "yes"
-                : d.status === "MAYBE"
-                ? "maybe"
-                : d.status === "NO"
-                ? "no"
-                : "",
-            ]
-              .filter(Boolean)
-              .join(" ");
-            const disabled = onlyRegistered && d.status !== "YES";
-            return (
-              <button
-                key={d.date}
-                type="button"
-                className={cls}
-                disabled={disabled}
-                onClick={() => onChangeDate(d.date)}
-              >
-                <div>{label}</div>
-                <div className="tp-day-date">{d.date.slice(5)}</div>
-              </button>
-            );
-          })}
-        </div>
-        {anmeldungLoading && (
-          <div className="tp-badge">Anmeldungen werden geladen…</div>
-        )}
-      </div>
-
-      <div>
-        <div className="tp-section-title">Datum</div>
-        <input
-          className="tp-input"
-          type="date"
-          value={dateISO}
-          onChange={(e) =>
-            onChangeDate(e.target.value || toISODate(new Date()))
-          }
-        />
-      </div>
-
-      <div>
-        <div className="tp-section-title">Athlet</div>
-        <select
-          className="tp-input"
-          value={athleteId}
-          onChange={(e) => onSelectAthlete(e.target.value)}
-        >
-          <option value="">– Athlet wählen –</option>
-          {athletes
-            .slice()
-            .sort((a, b) => {
-              const ln = a.lastName.localeCompare(b.lastName, "de", {
-                sensitivity: "base",
-              });
-              if (ln !== 0) return ln;
-              return a.firstName.localeCompare(b.firstName, "de", {
-                sensitivity: "base",
-              });
-            })
-            .map((a) => (
+      <div className="tp-header-row">
+        <div className="tp-field">
+          <label className="tp-label">Athlet</label>
+          <select
+            className="tp-input"
+            value={selectedAthleteId}
+            onChange={(e) => onChangeAthlete(e.target.value)}
+          >
+            <option value="">– auswählen –</option>
+            {athletes.map((a) => (
               <option key={a.id} value={a.id}>
-                {a.lastName} {a.firstName}
+                {a.name}
+                {a.active === false ? " (inaktiv)" : ""}
               </option>
             ))}
-        </select>
+          </select>
+        </div>
+        <div className="tp-field tp-week-nav">
+  <button type="button" className="tp-btn" onClick={onPrevWeek}>◀</button>
+  <div className="tp-week-label">{weekLabel}</div>
+  <button type="button" className="tp-btn" onClick={onNextWeek}>▶</button>
+</div>
       </div>
 
-      <div>
-        <div className="tp-section-title">Name</div>
-        <input className="tp-input" placeholder="–" value={athleteName} readOnly />
+      <div className="tp-days-row">
+        {weekDates.map((d) => {
+          const isSelected = d === dateISO;
+          const dateObj = new Date(d + "T00:00:00");
+          const weekdayIndex = (dateObj.getDay() + 6) % 7; // Montag=0
+          const weekdayShort = WEEKDAY_NAMES[weekdayIndex] ?? "";
+          const label = `${d.slice(8, 10)}.${d.slice(5, 7)}.`;
+
+          const statusKey = selectedAthleteId ? `${selectedAthleteId}:${d}` : "";
+          const status = statusKey ? statusMap[statusKey] ?? null : null;
+
+          const cls = [
+            "tp-day-button",
+            isSelected ? "selected" : "",
+          ]
+            .filter(Boolean)
+            .join(" ");
+
+          return (
+            <button
+              key={d}
+              type="button"
+              className={cls}
+              onClick={() => onChangeDate(d)}
+            >
+              <div className="tp-day-weekday">{weekdayShort}</div>
+              <div className="tp-day-date">{label}</div>
+              <div className={statusBadgeClass(status)} />
+            </button>
+          );
+        })}
       </div>
 
-      <div style={{ alignSelf: "flex-end" }}>
-        <label style={{ display: "flex", gap: 6, alignItems: "center" }}>
-          <input
-            type="checkbox"
-            checked={onlyRegistered}
-            onChange={(e) => onToggleOnlyRegistered(e.target.checked)}
-          />
-          Nur Tage mit JA
-        </label>
-      </div>
-
-      <div style={{ marginLeft: "auto", alignSelf: "flex-end" }}>
-        <button
-          className={"tp-btn primary"}
-          disabled={!canSave}
-          onClick={onSave}
-        >
-          Speichern
-        </button>
-      </div>
+      {anmeldungLoading && (
+        <div className="tp-badge">Anmeldedaten werden geladen …</div>
+      )}
     </div>
   );
 }

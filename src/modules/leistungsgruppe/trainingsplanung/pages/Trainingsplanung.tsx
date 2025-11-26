@@ -1,476 +1,883 @@
+// src/modules/leistungsgruppe/trainingsplanung/pages/Trainingsplanung.tsx
 import React, { useEffect, useMemo, useState } from "react";
-import { useTrainingsplanung } from "../hooks/useTrainingsplanung";
-import PlanEditor from "../components/PlanEditor";
 import "../styles/Trainingsplanung.css";
-import { toISODate } from "../../common/date";
+import BlockTemplatePicker from "../components/BlockTemplatePicker";
+import {
+  startOfISOWeek as startOfISOWeekStr,
+  weekRangeFrom,
+  toISODate,
+  addDays,
+} from "../../common/date";
+import {
+  loadAthleten,
+} from "../../../athleten/services/AthletenStore";
+import type { Athlete } from "../../../athleten/types/athleten";
 import {
   loadAnmeldung,
   DayStatus,
   AnmeldungData,
 } from "../../anmeldung/services/AnmeldungStore";
-import { loadAthleten } from "@/modules/athleten/services/AthletenStore";
-import type { Athlete } from "@/modules/athleten/types/athleten";
-import type {
+import TrainingsplanungHeader from "../components/TrainingsplanungHeader";
+import BlockList from "../components/BlockList";
+import ExercisePicker, { ManualExerciseDraft, PickerTab } from "../components/ExercisePicker";
+import {
+  loadPlans,
+  upsertAthleteDay,
   PlanDay,
   PlanItem,
   PlanBlock,
 } from "../services/TrainingsplanungStore";
-import type { ExerciseLite } from "@/modules/uebungskatalog/services/ExercisesLite";
-import TrainingsplanungHeader from "../components/TrainingsplanungHeader";
-import TrainingsplanungExercisePanel from "../components/TrainingsplanungExercisePanel";
-import TrainingsplanungBlocksPanel from "../components/TrainingsplanungBlocksPanel";
-import TrainingsplanungCopyPanel from "../components/TrainingsplanungCopyPanel";
+import {
+  listExercisesLite,
+  ExerciseLite,
+} from "../../../uebungskatalog/services/ExercisesLite";
+import { loadTrainingsbloecke, type BlockTemplate } from "../../trainingsbloecke/services/TrainingsbloeckeStore";
 
-type CandidateExercise = {
+type AthleteLite = {
   id: string;
   name: string;
-  haupt?: string | null;
-  unter?: string | null;
-  reps?: number | null;
-  menge?: number | null;
-  einheit?: string | null;
+  active?: boolean;
 };
 
-function isoWeek(dateIso: string): number {
-  const d = new Date(dateIso + "T00:00:00");
-  const day = (d.getDay() + 6) % 7; // Mo=0
-  d.setDate(d.getDate() - day + 3);
-  const firstThursday = new Date(d.getFullYear(), 0, 4);
-  const firstDay = (firstThursday.getDay() + 6) % 7;
-  firstThursday.setDate(firstThursday.getDate() - firstDay + 3);
-  const diff = d.getTime() - firstThursday.getTime();
-  return 1 + Math.round(diff / (7 * 24 * 60 * 60 * 1000));
+type StatusMap = Record<string, DayStatus>;
+
+function formatAthleteName(a: Athlete): string {
+  if (a.firstName || a.lastName) {
+    return `${a.lastName ?? ""} ${a.firstName ?? ""}`.trim();
+  }
+  return a.name ?? a.id;
 }
 
-function createPlanItemFromCandidate(ex: CandidateExercise): PlanItem {
-  const baseTarget = {
-    reps: ex.reps ?? null,
-    menge: ex.menge ?? null,
-    einheit: ex.einheit ?? "",
-    sets: null,
-    distanceM: null,
-    weightKg: null,
-    durationSec: null,
+function toAthleteLite(a: Athlete): AthleteLite {
+  return {
+    id: a.id,
+    name: formatAthleteName(a),
+    active: a.active ?? true,
   };
+}
+
+function startOfISOWeek(date: Date): string {
+  // Wrapper für String-Version
+  return startOfISOWeekStr(date);
+}
+
+function ensureDay(base: PlanDay | null): PlanDay {
+  if (!base) {
+    return {
+      order: [],
+      items: {},
+      blocks: {},
+      blockOrder: [],
+    };
+  }
+  const blocks = base.blocks ?? {};
+  let blockOrder = base.blockOrder ?? Object.keys(blocks);
+
+  // Falls es noch keine Blöcke gibt, aber eine flache order, alles in einen Default-Block legen
+  if ((!blockOrder || blockOrder.length === 0) && base.order && base.order.length > 0) {
+    const id = "block-standard";
+    const blk: PlanBlock = {
+      id,
+      title: "Plan",
+      type: "SONSTIGES",
+      targetDurationMin: null,
+      itemOrder: [...base.order],
+    };
+    return {
+      ...base,
+      blocks: { [id]: blk },
+      blockOrder: [id],
+    };
+  }
 
   return {
-    exerciseId: ex.id,
-    nameCache: ex.name,
-    groupCache: { haupt: ex.haupt ?? undefined, unter: ex.unter ?? undefined },
-    default: baseTarget,
-    target: { ...baseTarget },
-    pauseSec: null,
-    comment: "",
-  } as PlanItem;
+    ...base,
+    blocks,
+    blockOrder: blockOrder ?? [],
+  };
 }
 
+function normalizeOrder(day: PlanDay): PlanDay {
+  if (!day.blocks || !day.blockOrder || day.blockOrder.length === 0) {
+    return day;
+  }
+  const order: string[] = [];
+  for (const bid of day.blockOrder) {
+    const blk = day.blocks[bid];
+    if (!blk) continue;
+    for (const iid of blk.itemOrder) {
+      if (!order.includes(iid)) order.push(iid);
+    }
+  }
+  return { ...day, order };
+}
+
+
+
+
 export default function TrainingsplanungPage() {
-  const {
-    dateISO,
-    setDateISO,
-    athleteId,
-    setAthleteId,
-    athleteName,
-    setAthleteName,
-    planDay,
-    loading,
-    saving,
-    dirty,
-    canSave,
-    allExercises,
-    search,
-    setSearch,
-    onlyRegistered,
-    setOnlyRegistered,
-    weekDates,
-    updateDay,
-    updateItem,
-    save,
-    filteredExercises,
-    copyScope,
-    setCopyScope,
-    copyToAthleteId,
-    setCopyToAthleteId,
-    copyToWeekOffset,
-    setCopyToWeekOffset,
-    copyPlanTo,
-  } = useTrainingsplanung();
+  const [athletes, setAthletes] = useState<AthleteLite[]>([]);
+  const [selectedAthleteId, setSelectedAthleteId] = useState<string>("");
+  const [weekStartISO, setWeekStartISO] = useState<string>(() =>
+    startOfISOWeek(new Date())
+  );
+  const [dateISO, setDateISO] = useState<string>(() => toISODate(new Date()));
 
-  const [athletes, setAthletes] = useState<Athlete[]>([]);
+  const [plansByAthlete, setPlansByAthlete] = useState<
+    Record<string, Record<string, PlanDay>>
+  >({});
+  const [currentDay, setCurrentDay] = useState<PlanDay | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [saving, setSaving] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+
   const [anmeldung, setAnmeldung] = useState<AnmeldungData | null>(null);
-  const [anmeldungLoading, setAnmeldungLoading] = useState<boolean>(false);
-  const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
-  const [manualEx, setManualEx] = useState<{
-    id: string;
-    name: string;
-    reps?: number | null;
-    menge?: number | null;
-    einheit?: string | null;
-  }>({
-    id: "",
+  const [anmeldungLoading, setAnmeldungLoading] = useState(false);
+
+  const [exercises, setExercises] = useState<ExerciseLite[]>([]);
+  const [exerciseLoading, setExerciseLoading] = useState(false);
+
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerTab, setPickerTab] = useState<PickerTab>("KATALOG");
+  const [pickerBlockId, setPickerBlockId] = useState<string | null>(null);
+
+  const [searchText, setSearchText] = useState("");
+  const [searchHaupt, setSearchHaupt] = useState("");
+  const [searchUnter, setSearchUnter] = useState("");
+
+  const [manualDraft, setManualDraft] = useState<ManualExerciseDraft>({
     name: "",
-    reps: null,
-    menge: null,
-    einheit: null,
+    haupt: "",
+    unter: "",
+    reps: "",
+    menge: "",
+    einheit: "",
   });
+  const [collapsedBlocks, setCollapsedBlocks] = useState<Record<string, boolean>>({});
+  const [blockTemplates, setBlockTemplates] = useState<BlockTemplate[]>([]);
+  const [blockTemplatesLoading, setBlockTemplatesLoading] = useState(false);
+  const [blockTemplatesError, setBlockTemplatesError] = useState<string | null>(null);
+  const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
 
-  // Athleten laden
+  // -------------------------------------------------------
+  // Initial: Athleten, Pläne, Anmeldung, Katalog laden
+  // -------------------------------------------------------
   useEffect(() => {
     let cancelled = false;
 
-    (async () => {
+    async function loadAll() {
       try {
-        const list = await loadAthleten();
-        if (!cancelled) {
-          const base = Array.isArray(list) ? list : [];
-          setAthletes(base.filter((a) => a.active !== false));
-        }
-      } catch (e) {
-        console.error("Trainingsplanung: Athleten laden fehlgeschlagen", e);
-        if (!cancelled) {
-          setAthletes([]);
-        }
-      }
-    })();
+        setLoading(true);
 
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+        // Athleten
+        try {
+          const ath = await loadAthleten();
+          if (!cancelled) {
+            const lite = ath.map(toAthleteLite).sort((a, b) =>
+              a.name.localeCompare(b.name, "de", { sensitivity: "base" })
+            );
+            setAthletes(lite);
+            if (!selectedAthleteId && lite.length > 0) {
+              setSelectedAthleteId(lite[0].id);
+            }
+          }
+        } catch (err) {
+          console.error("Trainingsplanung: loadAthleten fehlgeschlagen", err);
+        }
 
-  // Anmeldedaten laden
-  useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      try {
-        setAnmeldungLoading(true);
-        const data = await loadAnmeldung();
-        if (!cancelled) setAnmeldung(data);
-      } catch (err) {
-        console.error("Trainingsplanung: Anmeldung laden fehlgeschlagen", err);
-        if (!cancelled) setAnmeldung(null);
+        // Pläne
+        try {
+          const data = await loadPlans();
+          if (!cancelled) {
+            setPlansByAthlete(data.plansByAthlete ?? {});
+          }
+        } catch (err) {
+          console.error("Trainingsplanung: loadPlans fehlgeschlagen", err);
+          if (!cancelled) {
+            setPlansByAthlete({});
+          }
+        }
+
+        // Anmeldung
+        try {
+          setAnmeldungLoading(true);
+          const a = await loadAnmeldung();
+          if (!cancelled) setAnmeldung(a);
+        } catch (err) {
+          console.error("Trainingsplanung: loadAnmeldung fehlgeschlagen", err);
+        } finally {
+          if (!cancelled) setAnmeldungLoading(false);
+        }
+
+        // Übungskatalog (Lite)
+        try {
+          setExerciseLoading(true);
+          const ex = await listExercisesLite();
+          if (!cancelled) setExercises(ex);
+        } catch (err) {
+          console.error("Trainingsplanung: listExercisesLite fehlgeschlagen", err);
+        } finally {
+          if (!cancelled) setExerciseLoading(false);
+        }
+
+        // Blockvorlagen (Trainingsblöcke)
+        try {
+          setBlockTemplatesLoading(true);
+          const tbData = await loadTrainingsbloecke();
+          if (!cancelled) {
+            setBlockTemplates(tbData.templates ?? []);
+            setBlockTemplatesError(null);
+          }
+        } catch (err) {
+          console.error("Trainingsplanung: loadTrainingsbloecke fehlgeschlagen", err);
+          if (!cancelled) {
+            setBlockTemplates([]);
+            setBlockTemplatesError("Fehler beim Laden der Blockvorlagen.");
+          }
+        } finally {
+          if (!cancelled) setBlockTemplatesLoading(false);
+        }
       } finally {
-        if (!cancelled) setAnmeldungLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }
-    load();
+
+    loadAll();
+
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Blöcke / aktiver Block
-  const blocks: Record<string, PlanBlock> = planDay.blocks ?? {};
-  const blockOrder: string[] = planDay.blockOrder ?? [];
-
-  useEffect(() => {
-    if (!activeBlockId && blockOrder.length > 0) {
-      setActiveBlockId(blockOrder[0]);
-    }
-  }, [blockOrder, activeBlockId]);
-
-  const activeBlock: PlanBlock | undefined = activeBlockId
-    ? blocks[activeBlockId]
-    : undefined;
-
-  const planOrder: string[] = activeBlock
-    ? activeBlock.itemOrder
-    : planDay.order ?? [];
-  const planItems: Record<string, PlanItem> = planDay.items ?? {};
-
-  const dayInfos = useMemo(
-    () =>
-      weekDates.map((d) => {
-        let status: DayStatus | null = null;
-        if (athleteId && anmeldung?.statuses) {
-          const key = `${athleteId}:${d}`;
-          status = anmeldung.statuses[key] ?? null;
-        }
-        return { date: d, status };
-      }),
-    [weekDates, athleteId, anmeldung]
+  // -------------------------------------------------------
+  // Week / days
+  // -------------------------------------------------------
+  const weekDates: string[] = useMemo(
+    () => weekRangeFrom(weekStartISO),
+    [weekStartISO]
   );
 
-  const currentWeek = isoWeek(dateISO);
+  // Falls aktuelles Datum nicht in der Woche liegt → auf Wochenstart setzen
+  useEffect(() => {
+    if (!weekDates.includes(dateISO)) {
+      setDateISO(weekDates[0]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [weekStartISO]);
 
-  const handleSelectAthlete = (id: string) => {
-    setAthleteId(id);
-    const a = athletes.find((x) => x.id === id);
-    setAthleteName(a ? `${a.lastName} ${a.firstName}` : "");
-  };
+  const weekLabel = useMemo(() => {
+    const d = new Date(weekStartISO + "T00:00:00");
+    // einfache KW-Bestimmung über Index in Jahr; reicht hier als Orientierung
+    const jan1 = new Date(d.getFullYear(), 0, 1);
+    const diff = d.getTime() - jan1.getTime();
+    const day = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const kw = Math.floor((day + jan1.getDay()) / 7) + 1;
+    return `KW${kw.toString().padStart(2, "0")} - ${d.getFullYear()}`;
+  }, [weekStartISO]);
 
-  const handleAddBlock = () => {
-    const id = `block-${Date.now().toString(36)}-${Math.random()
+  // -------------------------------------------------------
+  // Anmeldung-Status-Map
+  // -------------------------------------------------------
+  const statusMap: StatusMap = useMemo(() => {
+    const result: StatusMap = {};
+    if (!anmeldung || !selectedAthleteId) return result;
+    const statuses = anmeldung.statuses ?? {};
+    for (const [key, val] of Object.entries(statuses)) {
+      // Format in Anmeldung: `${athletId}:${isoDate}`
+      if (typeof val === "string" || val === null) {
+        result[key] = val as DayStatus;
+      }
+    }
+    return result;
+  }, [anmeldung, selectedAthleteId]);
+
+  // -------------------------------------------------------
+  // Aktuellen Tagesplan ableiten
+  // -------------------------------------------------------
+  useEffect(() => {
+    if (!selectedAthleteId) {
+      setCurrentDay(null);
+      return;
+    }
+    const byAth = plansByAthlete[selectedAthleteId] ?? {};
+    const base = byAth[dateISO] ?? null;
+    const norm = ensureDay(base);
+    setCurrentDay(norm);
+  }, [plansByAthlete, selectedAthleteId, dateISO]);
+
+  // -------------------------------------------------------
+  // Hilfsfunktionen zum Speichern
+  // -------------------------------------------------------
+  function saveDay(athleteId: string, iso: string, day: PlanDay) {
+    if (!athleteId) return;
+    (async () => {
+      try {
+        setSaving(true);
+        const normalized = normalizeOrder(day);
+        await upsertAthleteDay(athleteId, iso, normalized);
+      } catch (err) {
+        console.error("Trainingsplanung: Speichern fehlgeschlagen", err);
+        setError("Fehler beim Speichern des Plans.");
+      } finally {
+        setSaving(false);
+      }
+    })();
+  }
+
+  function updateDay(mutator: (prev: PlanDay) => PlanDay) {
+    if (!selectedAthleteId) return;
+    setCurrentDay((prev) => {
+      const base = ensureDay(prev);
+      const next = normalizeOrder(mutator(base));
+      setPlansByAthlete((prevPlans) => {
+        const copy = { ...prevPlans };
+        const inner = { ...(copy[selectedAthleteId] ?? {}) };
+        inner[dateISO] = next;
+        copy[selectedAthleteId] = inner;
+        return copy;
+      });
+      saveDay(selectedAthleteId, dateISO, next);
+      return next;
+    });
+  }
+
+  // -------------------------------------------------------
+  // Block-Operationen
+  // -------------------------------------------------------
+  function handleAddBlock() {
+    const id = `blk-${Date.now().toString(36)}-${Math.random()
       .toString(36)
       .slice(2, 6)}`;
-    updateDay((draft: PlanDay) => {
-      if (!draft.blocks) draft.blocks = {};
-      if (!draft.blockOrder) draft.blockOrder = [];
-      draft.blocks[id] = {
+    setCollapsedBlocks((prev) => ({
+      ...prev,
+      [id]: true,
+    }));
+    updateDay((prev) => {
+      const blocks = { ...(prev.blocks ?? {}) };
+      const blockOrder = [...(prev.blockOrder ?? [])];
+      blocks[id] = {
         id,
         title: "Neuer Block",
         type: "SONSTIGES",
-        targetDurationMin: 15,
+        targetDurationMin: null,
         itemOrder: [],
       };
-      draft.blockOrder.push(id);
+      blockOrder.push(id);
+      return { ...prev, blocks, blockOrder };
     });
-    setActiveBlockId(id);
-  };
+  }
 
-  const handleBlockTitleChange = (blockId: string, title: string) => {
-    updateDay((draft: PlanDay) => {
-      if (!draft.blocks || !draft.blocks[blockId]) return;
-      draft.blocks[blockId].title = title;
-    });
-  };
-
-  const handleBlockDurationChange = (blockId: string, value: string) => {
-    const trimmed = value.trim();
-    const n = trimmed ? Number(trimmed.replace(",", ".")) : null;
-    updateDay((draft: PlanDay) => {
-      if (!draft.blocks || !draft.blocks[blockId]) return;
-      draft.blocks[blockId].targetDurationMin =
-        n !== null && Number.isFinite(n) ? n : null;
-    });
-  };
-
-  const handleMoveBlock = (blockId: string, dir: -1 | 1) => {
-    updateDay((draft: PlanDay) => {
-      if (!draft.blockOrder) return;
-      const idx = draft.blockOrder.indexOf(blockId);
-      if (idx === -1) return;
-      const newIdx = idx + dir;
-      if (newIdx < 0 || newIdx >= draft.blockOrder.length) return;
-      const copy = [...draft.blockOrder];
-      const [removed] = copy.splice(idx, 1);
-      copy.splice(newIdx, 0, removed);
-      draft.blockOrder = copy;
-    });
-  };
-
-  const handleDeleteBlock = (blockId: string) => {
-    updateDay((draft: PlanDay) => {
-      if (!draft.blocks) return;
-      const block = draft.blocks[blockId];
-      if (!block) return;
-
-      const itemIds = new Set(block.itemOrder);
-      draft.order = (draft.order ?? []).filter((id) => !itemIds.has(id));
-      delete draft.blocks[blockId];
-      if (draft.blockOrder) {
-        draft.blockOrder = draft.blockOrder.filter((id) => id !== blockId);
-      }
-    });
-
-    if (activeBlockId === blockId) {
-      setActiveBlockId(null);
-    }
-  };
-
-  const handleAddExerciseToActiveBlock = (ex: ExerciseLite) => {
-    if (!athleteId) return;
-    if (!activeBlockId) return;
-
-    const newId = `item-${Date.now().toString(36)}-${Math.random()
+  function handleAddBlockFromTemplate(tpl: BlockTemplate) {
+    const blockId = `tpl-${Date.now().toString(36)}-${Math.random()
       .toString(36)
       .slice(2, 6)}`;
-    const candidate: CandidateExercise = {
-      id: ex.id,
-      name: ex.name,
-      haupt: ex.haupt ?? null,
-      unter: ex.unter ?? null,
+
+    setCollapsedBlocks((prev) => ({
+      ...prev,
+      [blockId]: true,
+    }));
+
+    updateDay((prev) => {
+      const blocks = { ...(prev.blocks ?? {}) };
+      const items = { ...(prev.items ?? {}) };
+      const blockOrder = [...(prev.blockOrder ?? [])];
+
+      const itemOrder: string[] = [];
+
+      for (const tplItem of tpl.items ?? []) {
+        const id = `it-${Date.now().toString(36)}-${Math.random()
+          .toString(36)
+          .slice(2, 6)}`;
+        itemOrder.push(id);
+
+        const baseTarget = {
+          reps: tplItem.target?.reps ?? null,
+          menge: tplItem.target?.menge ?? null,
+          einheit: tplItem.target?.einheit ?? null,
+          sets: tplItem.target?.sets ?? null,
+          distanceM: tplItem.target?.distanceM ?? null,
+          weightKg: tplItem.target?.weightKg ?? null,
+          durationSec: tplItem.target?.durationSec ?? null,
+        };
+
+        const item: PlanItem = {
+          exerciseId: tplItem.exerciseId || id,
+          nameCache: tplItem.name,
+          groupCache: {
+            haupt: tplItem.haupt ?? undefined,
+            unter: tplItem.unter ?? undefined,
+          },
+          default: baseTarget,
+          target: { ...baseTarget },
+          pauseSec: null,
+          comment: "",
+        };
+
+        items[id] = item;
+      }
+
+      blocks[blockId] = {
+        id: blockId,
+        title: tpl.title,
+        type: "SONSTIGES",
+        targetDurationMin:
+          typeof tpl.defaultDurationMin === "number"
+            ? tpl.defaultDurationMin
+            : null,
+        itemOrder,
+        notes: tpl.description ?? "",
+      };
+
+      blockOrder.push(blockId);
+
+      return {
+        ...prev,
+        blocks,
+        items,
+        blockOrder,
+      };
+    });
+
+    setTemplatePickerOpen(false);
+  }
+
+  function handleRemoveBlock(blockId: string) {
+    updateDay((prev) => {
+      const blocks = { ...(prev.blocks ?? {}) };
+      const removed = blocks[blockId];
+      delete blocks[blockId];
+
+      // Items des Blocks optional auch aus items entfernen
+      const items = { ...prev.items };
+      if (removed) {
+        for (const iid of removed.itemOrder) {
+          delete items[iid];
+        }
+      }
+
+      const blockOrder = (prev.blockOrder ?? []).filter((id) => id !== blockId);
+      return { ...prev, blocks, blockOrder, items };
+    setCollapsedBlocks((prev) => {
+      const copy = { ...prev };
+      delete copy[blockId];
+      return copy;
+    });
+    });
+  }
+
+  function handleUpdateBlockTitle(blockId: string, title: string) {
+    updateDay((prev) => {
+      const blocks = { ...(prev.blocks ?? {}) };
+      const blk = blocks[blockId];
+      if (!blk) return prev;
+      blocks[blockId] = { ...blk, title };
+      return { ...prev, blocks };
+    });
+  }
+
+  function handleUpdateBlockDuration(blockId: string, durationMin: string) {
+    const val = durationMin.trim();
+    const num = val === "" ? null : Number(val.replace(",", "."));
+    updateDay((prev) => {
+      const blocks = { ...(prev.blocks ?? {}) };
+      const blk = blocks[blockId];
+      if (!blk) return prev;
+      blocks[blockId] = {
+        ...blk,
+        targetDurationMin:
+          num !== null && !Number.isNaN(num) && num >= 0 ? num : null,
+      };
+      return { ...prev, blocks };
+    });
+  }
+
+  function handleUpdateBlockNotes(blockId: string, notes: string) {
+    // notes wird einfach als zusätzliches Feld am Block abgelegt
+    updateDay((prev) => {
+      const blocks = { ...(prev.blocks ?? {}) };
+      const blk = blocks[blockId];
+      if (!blk) return prev;
+      blocks[blockId] = { ...(blk as any), notes };
+      return { ...prev, blocks };
+    });
+  }
+
+  function toggleBlockCollapsed(blockId: string) {
+    setCollapsedBlocks((prev) => ({
+      ...prev,
+      [blockId]: !prev[blockId],
+    }));
+  }
+  // -------------------------------------------------------
+  // Exercise Picker öffnen
+  // -------------------------------------------------------
+  function openPickerForBlock(blockId: string) {
+    setPickerBlockId(blockId);
+    setPickerOpen(true);
+    setPickerTab("KATALOG");
+  }
+
+  function closePicker() {
+    setPickerOpen(false);
+    setPickerBlockId(null);
+    setSearchText("");
+    setSearchHaupt("");
+    setSearchUnter("");
+    setManualDraft({
+      name: "",
+      haupt: "",
+      unter: "",
+      reps: "",
+      menge: "",
+      einheit: "",
+    });
+  }
+
+  // -------------------------------------------------------
+  // Übungen filtern (Katalog)
+  // -------------------------------------------------------
+  const filteredExercises = useMemo(() => {
+    const q = searchText.trim().toLowerCase();
+    const h = searchHaupt.trim().toLowerCase();
+    const u = searchUnter.trim().toLowerCase();
+    return exercises.filter((ex) => {
+      if (q) {
+        const hay = `${ex.name} ${ex.haupt ?? ""} ${ex.unter ?? ""}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      if (h && (ex.haupt ?? "").toLowerCase() !== h) return false;
+      if (u && (ex.unter ?? "").toLowerCase() !== u) return false;
+      return true;
+    });
+  }, [exercises, searchText, searchHaupt, searchUnter]);
+
+  const allHauptgruppen = useMemo(() => {
+    const set = new Set<string>();
+    exercises.forEach((ex) => {
+      if (ex.haupt) set.add(ex.haupt);
+    });
+    return Array.from(set).sort((a, b) =>
+      a.localeCompare(b, "de", { sensitivity: "base" })
+    );
+  }, [exercises]);
+
+  const allUntergruppen = useMemo(() => {
+    const set = new Set<string>();
+    exercises.forEach((ex) => {
+      if (ex.unter) set.add(ex.unter);
+    });
+    return Array.from(set).sort((a, b) =>
+      a.localeCompare(b, "de", { sensitivity: "base" })
+    );
+  }, [exercises]);
+
+  // -------------------------------------------------------
+  // Übung zu Block hinzufügen (Katalog)
+  // -------------------------------------------------------
+  function handleAddCatalogExercise(ex: ExerciseLite) {
+    if (!pickerBlockId) return;
+    const id = `it-${Date.now().toString(36)}-${Math.random()
+      .toString(36)
+      .slice(2, 6)}`;
+
+    const baseTarget = {
       reps: ex.reps ?? null,
       menge: ex.menge ?? null,
       einheit: ex.einheit ?? null,
-    };
-    const newItem = createPlanItemFromCandidate(candidate);
-
-    updateDay((draft: PlanDay) => {
-      if (!draft.items) draft.items = {};
-      draft.items[newId] = newItem;
-      if (draft.blocks && draft.blocks[activeBlockId]) {
-        draft.blocks[activeBlockId].itemOrder.push(newId);
-      } else {
-        draft.order = [...(draft.order ?? []), newId];
-      }
-    });
-  };
-
-  const handleAddManual = (m: {
-    id: string;
-    name: string;
-    reps?: number | null;
-    menge?: number | null;
-    einheit?: string | null;
-  }) => {
-    if (!athleteId) return;
-    if (!activeBlockId) return;
-    if (!m.id.trim() && !m.name.trim()) return;
-
-    const ex: CandidateExercise = {
-      id: m.id.trim() || m.name.trim(),
-      name: m.name.trim() || m.id.trim(),
-      reps: m.reps ?? null,
-      menge: m.menge ?? null,
-      einheit: m.einheit ?? null,
+      sets: null,
+      distanceM: null,
+      weightKg: null,
+      durationSec: null,
     };
 
-    const newId = `item-${Date.now().toString(36)}-${Math.random()
-      .toString(36)
-      .slice(2, 6)}`;
-    const newItem = createPlanItemFromCandidate(ex);
+    const item: PlanItem = {
+      exerciseId: ex.id,
+      nameCache: ex.name,
+      groupCache: {
+        haupt: ex.haupt ?? undefined,
+        unter: ex.unter ?? undefined,
+      },
+      default: baseTarget,
+      target: { ...baseTarget },
+      pauseSec: null,
+      comment: "",
+    };
 
-    updateDay((draft: PlanDay) => {
-      if (!draft.items) draft.items = {};
-      draft.items[newId] = newItem;
-      if (draft.blocks && draft.blocks[activeBlockId]) {
-        draft.blocks[activeBlockId].itemOrder.push(newId);
-      } else {
-        draft.order = [...(draft.order ?? []), newId];
-      }
+    updateDay((prev) => {
+      const items = { ...prev.items, [id]: item };
+      const blocks = { ...(prev.blocks ?? {}) };
+      const blk = blocks[pickerBlockId];
+      if (!blk) return prev;
+      const itemOrder = [...blk.itemOrder, id];
+      blocks[pickerBlockId] = { ...blk, itemOrder };
+      return { ...prev, items, blocks };
     });
 
-    setManualEx({
-      id: "",
-      name: "",
-      reps: null,
-      menge: null,
-      einheit: null,
-    });
-  };
-
-  const handleMoveItem = (id: string, dir: -1 | 1) => {
-    updateDay((draft: PlanDay) => {
-      if (activeBlockId && draft.blocks && draft.blocks[activeBlockId]) {
-        const order = draft.blocks[activeBlockId].itemOrder;
-        const idx = order.indexOf(id);
-        if (idx === -1) return;
-        const newIdx = idx + dir;
-        if (newIdx < 0 || newIdx >= order.length) return;
-        const copy = [...order];
-        const [removed] = copy.splice(idx, 1);
-        copy.splice(newIdx, 0, removed);
-        draft.blocks[activeBlockId].itemOrder = copy;
-      } else {
-        const order = draft.order ?? [];
-        const idx = order.indexOf(id);
-        if (idx === -1) return;
-        const newIdx = idx + dir;
-        if (newIdx < 0 || newIdx >= order.length) return;
-        const copy = [...order];
-        const [removed] = copy.splice(idx, 1);
-        copy.splice(newIdx, 0, removed);
-        draft.order = copy;
-      }
-    });
-  };
-
-  const handleRemoveItem = (id: string) => {
-    updateDay((draft: PlanDay) => {
-      if (draft.items) {
-        delete draft.items[id];
-      }
-      if (draft.order) {
-        draft.order = draft.order.filter((x) => x !== id);
-      }
-      if (draft.blocks) {
-        Object.values(draft.blocks).forEach((blk) => {
-          blk.itemOrder = blk.itemOrder.filter((x) => x !== id);
-        });
-      }
-    });
-  };
-
-  const handleChangeItem = (id: string, next: PlanItem) => {
-    updateItem(id, next);
-  };
-
-  const handleCopy = () => {
-    if (!copyToAthleteId) return;
-    copyPlanTo();
-  };
-
-  if (loading) {
-    return <div className="tp-container">Lade Trainingsplanung …</div>;
+    // nach Auswahl Picker offen lassen (für mehrere Übungen) oder schließen -> hier offen lassen
   }
 
-  const canSaveHeader = canSave && !saving;
-  const saveLabel = saving ? "Speichere …" : dirty ? "Speichern*" : "Speichern";
+  // -------------------------------------------------------
+  // Übung zu Block hinzufügen (manuell)
+  // -------------------------------------------------------
+  function handleAddManualExercise() {
+    if (!pickerBlockId) return;
+    const name = manualDraft.name.trim();
+    if (!name) return;
 
+    const reps =
+      manualDraft.reps.trim() === ""
+        ? null
+        : Number(manualDraft.reps.replace(",", "."));
+    const menge =
+      manualDraft.menge.trim() === ""
+        ? null
+        : Number(manualDraft.menge.replace(",", "."));
+    const einheit = manualDraft.einheit.trim() || null;
+
+    const id = `manual-${Date.now().toString(36)}-${Math.random()
+      .toString(36)
+      .slice(2, 6)}`;
+
+    const baseTarget = {
+      reps: !Number.isNaN(reps ?? NaN) ? reps : null,
+      menge: !Number.isNaN(menge ?? NaN) ? menge : null,
+      einheit,
+      sets: null,
+      distanceM: null,
+      weightKg: null,
+      durationSec: null,
+    };
+
+    const item: PlanItem = {
+      exerciseId: id,
+      nameCache: name,
+      groupCache: {
+        haupt: manualDraft.haupt || undefined,
+        unter: manualDraft.unter || undefined,
+      },
+      default: baseTarget,
+      target: { ...baseTarget },
+      pauseSec: null,
+      comment: "",
+    };
+
+    updateDay((prev) => {
+      const items = { ...prev.items, [id]: item };
+      const blocks = { ...(prev.blocks ?? {}) };
+      const blk = blocks[pickerBlockId];
+      if (!blk) return prev;
+      const itemOrder = [...blk.itemOrder, id];
+      blocks[pickerBlockId] = { ...blk, itemOrder };
+      return { ...prev, items, blocks };
+    });
+
+    setManualDraft({
+      name: "",
+      haupt: manualDraft.haupt,
+      unter: manualDraft.unter,
+      reps: "",
+      menge: "",
+      einheit: manualDraft.einheit,
+    });
+  }
+
+  // -------------------------------------------------------
+  // Items in Blöcken bearbeiten
+  // -------------------------------------------------------
+  function handleRemoveItem(blockId: string, itemId: string) {
+    updateDay((prev) => {
+      const blocks = { ...(prev.blocks ?? {}) };
+      const blk = blocks[blockId];
+      if (!blk) return prev;
+      const itemOrder = blk.itemOrder.filter((id) => id !== itemId);
+      blocks[blockId] = { ...blk, itemOrder };
+      const items = { ...prev.items };
+      delete items[itemId];
+      return { ...prev, blocks, items };
+    });
+  }
+
+  function handleMoveItem(blockId: string, itemId: string, dir: -1 | 1) {
+    updateDay((prev) => {
+      const blocks = { ...(prev.blocks ?? {}) };
+      const blk = blocks[blockId];
+      if (!blk) return prev;
+      const idx = blk.itemOrder.indexOf(itemId);
+      if (idx === -1) return prev;
+      const target = idx + dir;
+      if (target < 0 || target >= blk.itemOrder.length) return prev;
+      const itemOrder = [...blk.itemOrder];
+      const [spliced] = itemOrder.splice(idx, 1);
+      itemOrder.splice(target, 0, spliced);
+      blocks[blockId] = { ...blk, itemOrder };
+      return { ...prev, blocks };
+    });
+  }
+
+  function handleUpdateItemComment(itemId: string, comment: string) {
+    updateDay((prev) => {
+      const items = { ...prev.items };
+      const it = items[itemId];
+      if (!it) return prev;
+      items[itemId] = { ...it, comment };
+      return { ...prev, items };
+    });
+  }
+
+  function handleUpdateItemTarget(
+    itemId: string,
+    patch: Partial<PlanItem["target"]>
+  ) {
+    updateDay((prev) => {
+      const items = { ...prev.items };
+      const it = items[itemId];
+      if (!it) return prev;
+      items[itemId] = {
+        ...it,
+        target: { ...it.target, ...patch },
+      };
+      return { ...prev, items };
+    });
+  }
+
+  // -------------------------------------------------------
+  // UI Hilfsdaten
+  // -------------------------------------------------------
+  const selectedAthlete = useMemo(
+    () => athletes.find((a) => a.id === selectedAthleteId) ?? null,
+    [athletes, selectedAthleteId]
+  );
+
+  const blocks: PlanBlock[] = useMemo(() => {
+    if (!currentDay || !currentDay.blocks || !currentDay.blockOrder) return [];
+    return currentDay.blockOrder
+      .map((id) => currentDay.blocks![id])
+      .filter((b): b is PlanBlock => Boolean(b));
+  }, [currentDay]);
+
+  const isBusy = loading || saving;
+
+  const handlePrevWeek = () => {
+    setWeekStartISO(
+      startOfISOWeek(new Date(addDays(weekStartISO, -7) + "T00:00:00"))
+    );
+  };
+
+  const handleNextWeek = () => {
+    setWeekStartISO(
+      startOfISOWeek(new Date(addDays(weekStartISO, 7) + "T00:00:00"))
+    );
+  };
+
+
+  // -------------------------------------------------------
+  // Rendering
+  // -------------------------------------------------------
   return (
-    <div className="tp-container">
-      <div className="tp-left">
-        <TrainingsplanungHeader
-          dateISO={dateISO}
-          onChangeDate={setDateISO}
-          currentWeek={currentWeek}
-          weekDates={weekDates}
-          dayInfos={dayInfos}
-          onlyRegistered={onlyRegistered}
-          onToggleOnlyRegistered={setOnlyRegistered}
-          athletes={athletes}
-          athleteId={athleteId}
-          athleteName={athleteName}
-          onSelectAthlete={handleSelectAthlete}
-          canSave={canSaveHeader}
-          onSave={save}
-          anmeldungLoading={anmeldungLoading}
-        />
+    <div className="tp-root">
+      <TrainingsplanungHeader
+        athletes={athletes}
+        selectedAthleteId={selectedAthleteId}
+        onChangeAthlete={setSelectedAthleteId}
+        weekLabel={weekLabel}
+        weekDates={weekDates}
+        dateISO={dateISO}
+        onChangeDate={setDateISO}
+        statusMap={statusMap}
+        anmeldungLoading={anmeldungLoading}
+        onPrevWeek={handlePrevWeek}
+        onNextWeek={handleNextWeek}
+      />
+      {!selectedAthlete && (
+        <div className="tp-info">Bitte zuerst einen Athleten auswählen.</div>
+      )}
 
-        <TrainingsplanungExercisePanel
-          search={search}
-          setSearch={setSearch}
-          filteredExercises={filteredExercises}
-          hasActiveBlock={!!activeBlockId}
-          manualEx={manualEx}
-          setManualEx={setManualEx}
-          onAddExercise={handleAddExerciseToActiveBlock}
-          onAddManual={handleAddManual}
-        />
-      </div>
-
-      <div className="tp-right">
-        <TrainingsplanungBlocksPanel
-          dateISO={dateISO}
-          blocks={blocks}
-          blockOrder={blockOrder}
-          activeBlockId={activeBlockId}
-          setActiveBlockId={setActiveBlockId}
-          onAddBlock={handleAddBlock}
-          onChangeTitle={handleBlockTitleChange}
-          onChangeDuration={handleBlockDurationChange}
-          onMoveBlock={handleMoveBlock}
-          onDeleteBlock={handleDeleteBlock}
-        />
-
-        <div className="tp-card">
-          <div style={{ fontWeight: 600, marginBottom: 6 }}>
-            Plan für {athleteName || "—"} am {dateISO}
-            {activeBlock ? ` – Block ${activeBlock.title}` : ""}
+      {selectedAthlete && (
+        <div className="tp-body">
+          <div className="tp-body-header">
+            <div className="tp-body-title">
+              Trainingsplan für {selectedAthlete.name} – {dateISO}
+            </div>
+            <div className="tp-body-actions">
+              <button
+                type="button"
+                className="tp-btn"
+                onClick={handleAddBlock}
+              >
+                Neuer Block
+              </button>
+              <button
+                type="button"
+                className="tp-btn"
+                disabled={blockTemplatesLoading || blockTemplates.length === 0}
+                onClick={() => setTemplatePickerOpen(true)}
+              >
+                Block aus Vorlage
+              </button>
+            </div>
           </div>
-          <PlanEditor
-            planOrder={planOrder}
-            planItems={planItems}
-            onChangeItem={handleChangeItem}
-            onRemove={handleRemoveItem}
-            onMove={handleMoveItem}
-          />
-        </div>
 
-        <TrainingsplanungCopyPanel
-          dateISO={dateISO}
-          weekDates={weekDates}
-          copyScope={copyScope}
-          setCopyScope={setCopyScope}
-          copyToAthleteId={copyToAthleteId}
-          setCopyToAthleteId={setCopyToAthleteId}
-          copyToWeekOffset={copyToWeekOffset}
-          setCopyToWeekOffset={setCopyToWeekOffset}
-          athletes={athletes}
-          onCopy={handleCopy}
-        />
-      </div>
+          {error && <div className="tp-error">{error}</div>}
+
+          {blocks.length === 0 && (
+            <div className="tp-empty">
+              Noch keine Blöcke angelegt. Lege einen neuen Block an.
+            </div>
+          )}
+
+          <BlockList
+            blocks={blocks}
+            currentDay={currentDay}
+            collapsedBlocks={collapsedBlocks}
+            onToggleCollapsed={toggleBlockCollapsed}
+            onUpdateBlockTitle={handleUpdateBlockTitle}
+            onUpdateBlockDuration={handleUpdateBlockDuration}
+            onUpdateBlockNotes={handleUpdateBlockNotes}
+            onRemoveBlock={handleRemoveBlock}
+            onMoveItem={handleMoveItem}
+            onRemoveItem={handleRemoveItem}
+            onUpdateItemComment={handleUpdateItemComment}
+            onUpdateItemTarget={handleUpdateItemTarget}
+            onOpenPickerForBlock={openPickerForBlock}
+          />
+          {isBusy && (
+            <div className="tp-badge" style={{ marginTop: 8 }}>
+              Änderungen werden gespeichert …
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Übungsauswahl als Overlay / Drawer */}
+      <ExercisePicker
+        open={pickerOpen}
+        onClose={closePicker}
+        pickerTab={pickerTab}
+        onChangeTab={setPickerTab}
+        searchText={searchText}
+        onChangeSearchText={setSearchText}
+        searchHaupt={searchHaupt}
+        onChangeSearchHaupt={setSearchHaupt}
+        searchUnter={searchUnter}
+        onChangeSearchUnter={setSearchUnter}
+        allHauptgruppen={allHauptgruppen}
+        allUntergruppen={allUntergruppen}
+        filteredExercises={filteredExercises}
+        manualDraft={manualDraft}
+        onChangeManualDraft={setManualDraft}
+        onAddCatalogExercise={handleAddCatalogExercise}
+        onAddManualExercise={handleAddManualExercise}
+        exerciseLoading={exerciseLoading}
+      />
+      <BlockTemplatePicker
+        open={templatePickerOpen}
+        onClose={() => setTemplatePickerOpen(false)}
+        templates={blockTemplates}
+        loading={blockTemplatesLoading}
+        error={blockTemplatesError}
+        onSelectTemplate={handleAddBlockFromTemplate}
+      />
     </div>
   );
 }

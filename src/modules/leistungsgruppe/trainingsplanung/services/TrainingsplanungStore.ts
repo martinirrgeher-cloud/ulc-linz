@@ -54,6 +54,7 @@ export type PlanBlock = {
   type?: PlanBlockType;
   targetDurationMin?: number | null; // Orientierungsgröße für den Block
   itemOrder: string[];               // Reihenfolge der Item-IDs in diesem Block
+  notes?: string | null;             // optionale Block-Notizen
 };
 
 /**

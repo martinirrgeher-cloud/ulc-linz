@@ -10,6 +10,7 @@ export type ExerciseLite = {
   menge?: number | null;
   einheit?: string | null;
   active?: boolean;
+  difficulty?: 1 | 2 | 3 | 4 | 5 | null;
 };
 
 /**
@@ -45,5 +46,6 @@ export async function listExercisesLite(): Promise<ExerciseLite[]> {
       menge: x.menge ?? null,
       einheit: x.einheit ?? null,
       active: x.active ?? true,
+      difficulty: x.difficulty ?? null,
     }));
 }
