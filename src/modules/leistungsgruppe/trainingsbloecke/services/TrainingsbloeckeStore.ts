@@ -18,6 +18,7 @@ export type BlockTemplate = {
   group: string;
   description?: string;
   defaultDurationMin?: number | null;
+  active?: boolean;
   items: BlockTemplateItem[];
 };
 

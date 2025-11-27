@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState, useRef } from "react";
 import "../styles/Trainingsbloecke.css";
 import {
   loadTrainingsbloecke,
-  deleteBlockTemplate,
   saveAllTemplates,
   type BlockTemplate,
   type BlockTemplateItem,
@@ -71,6 +70,42 @@ function Stars({ value }: { value?: number | null }) {
   );
 }
 
+
+function formatMengeEinheit(ex: ExerciseLite): string {
+  const anyEx: any = ex as any;
+  const menge = anyEx.menge;
+  const einheit = anyEx.einheit;
+
+  if (menge == null || menge === "") {
+    return einheit ? String(einheit) : "";
+  }
+  if (einheit) {
+    return `${menge} ${einheit}`;
+  }
+  return String(menge);
+}
+
+function getAverageDifficulty(tpl: BlockTemplate): number | null {
+  if (!tpl.items || tpl.items.length === 0) return null;
+  const values = tpl.items
+    .map((it) => it.difficulty)
+    .filter((d): d is number => typeof d === "number" && Number.isFinite(d));
+  if (values.length === 0) return null;
+  const sum = values.reduce((a, b) => a + b, 0);
+  return Math.round((sum / values.length) * 10) / 10;
+}
+
+function formatAverageDifficulty(value: number): string {
+  try {
+    return value.toLocaleString("de-AT", {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1,
+    });
+  } catch {
+    return value.toFixed(1);
+  }
+}
+
 export default function TrainingsbloeckePage() {
   const [templates, setTemplates] = useState<BlockTemplate[]>([]);
   const [groups, setGroups] = useState<BlockGroup[]>([]);
@@ -78,6 +113,7 @@ export default function TrainingsbloeckePage() {
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>(
     {}
   );
+  const [showInactive, setShowInactive] = useState<boolean>(false);
   const [exercises, setExercises] = useState<ExerciseLite[]>([]);
   const [search, setSearch] = useState<SearchState>({
     text: "",
@@ -144,9 +180,17 @@ export default function TrainingsbloeckePage() {
     [groups]
   );
 
+  const visibleTemplates = useMemo(
+    () =>
+      showInactive
+        ? templates
+        : templates.filter((tpl) => tpl.active !== false),
+    [templates, showInactive]
+  );
+
   const groupedTemplates = useMemo(() => {
     const byGroup: Record<string, BlockTemplate[]> = {};
-    for (const tpl of templates) {
+    for (const tpl of visibleTemplates) {
       const group = (tpl.group ?? "Allgemein").trim() || "Allgemein";
       if (!byGroup[group]) byGroup[group] = [];
       byGroup[group].push(tpl);
@@ -160,7 +204,18 @@ export default function TrainingsbloeckePage() {
       );
     }
     return { groups: groupsSorted, byGroup };
-  }, [templates]);
+  }, [visibleTemplates]);
+
+  useEffect(() => {
+    if (groupedTemplates.groups.length === 0) return;
+    if (Object.keys(collapsedGroups).length > 0) return;
+
+    const initial: Record<string, boolean> = {};
+    groupedTemplates.groups.forEach((g) => {
+      initial[g] = true;
+    });
+    setCollapsedGroups(initial);
+  }, [groupedTemplates.groups, collapsedGroups]);
 
   const allCollapsed = useMemo(
     () =>
@@ -188,8 +243,8 @@ export default function TrainingsbloeckePage() {
       if (!toSave) return;
       try {
         setSaving(true);
-        const saved = await saveAllTemplates(toSave);
-        setTemplates(saved.templates ?? toSave);
+      await saveAllTemplates(toSave);
+      // Templates bleiben lokal, damit die Ansicht nicht springt
       } catch (err) {
         console.error("Trainingsblöcke: Autosave fehlgeschlagen", err);
         setError("Fehler beim Speichern.");
@@ -367,24 +422,19 @@ export default function TrainingsbloeckePage() {
     setSelectedId(id);
   }
 
-  async function handleDelete() {
+  function handleToggleActive() {
     if (!selectedTemplate) return;
-    if (!window.confirm("Vorlage wirklich löschen?")) return;
-    try {
-      setSaving(true);
-      const data = await deleteBlockTemplate(selectedTemplate.id);
-      setTemplates(data.templates ?? []);
-      if (data.templates.length > 0) {
-        setSelectedId(data.templates[0].id);
-      } else {
-        setSelectedId(null);
-      }
-    } catch (err) {
-      console.error("Trainingsblöcke: Löschen fehlgeschlagen", err);
-      setError("Fehler beim Löschen.");
-    } finally {
-      setSaving(false);
-    }
+    const id = selectedTemplate.id;
+    updateTemplate(id, (tpl) => {
+      tpl.active = tpl.active === false ? true : false;
+    });
+  }
+
+  function handleClearTemplate() {
+    if (!selectedTemplate) return;
+    // Maske leeren: bestehende Vorlage unverändert lassen,
+    // einfach eine neue, leere Vorlage anlegen
+    handleNewTemplate();
   }
 
   function handleAddExercise(ex: ExerciseLite) {
@@ -459,6 +509,14 @@ export default function TrainingsbloeckePage() {
           <div className="tb-card-header">
             <div className="tb-title">Blockvorlagen</div>
             <div className="tb-actions">
+              <label className="tb-inline-checkbox">
+                <input
+                  type="checkbox"
+                  checked={showInactive}
+                  onChange={(e) => setShowInactive(e.target.checked)}
+                />
+                Inaktive anzeigen
+              </label>
               <button
                 className="tb-btn tb-btn-mini"
                 type="button"
@@ -512,7 +570,8 @@ export default function TrainingsbloeckePage() {
                           "tb-template-item" +
                           (tpl.id === selectedId
                             ? " tb-template-item--active"
-                            : "")
+                            : "") +
+                          (tpl.active === false ? " tb-template-item--inactive" : "")
                         }
                         onClick={() => setSelectedId(tpl.id)}
                       >
@@ -521,6 +580,12 @@ export default function TrainingsbloeckePage() {
                           {tpl.items.length} Übung(en)
                           {typeof tpl.defaultDurationMin === "number" &&
                             ` · ${tpl.defaultDurationMin} min`}
+                          {(() => {
+                            const avg = getAverageDifficulty(tpl);
+                            return avg !== null
+                              ? ` · Ø ${formatAverageDifficulty(avg)}`
+                              : null;
+                          })()}
                         </div>
                       </li>
                     ))}
@@ -540,12 +605,25 @@ export default function TrainingsbloeckePage() {
                 <div className="tb-title">Vorlage bearbeiten</div>
                 <div className="tb-actions">
                   <button
-                    className="tb-btn tb-btn-secondary"
                     type="button"
-                    onClick={handleDelete}
+                    className={
+                      "tb-toggle" +
+                      (selectedTemplate.active === false
+                        ? " tb-toggle--off"
+                        : " tb-toggle--on")
+                    }
+                    onClick={handleToggleActive}
                     disabled={saving}
                   >
-                    Löschen
+                    {selectedTemplate.active === false ? "Inaktiv" : "Aktiv"}
+                  </button>
+                  <button
+                    className="tb-btn tb-btn-secondary"
+                    type="button"
+                    onClick={handleClearTemplate}
+                    disabled={saving}
+                  >
+                    Maske leeren
                   </button>
                 </div>
               </div>
@@ -792,17 +870,18 @@ export default function TrainingsbloeckePage() {
                   return (
                     <div key={ex.id} className="tb-exercise-row">
                       <div>
-                        <div className="tb-exercise-title">{ex.name}</div>
-                        <div className="tb-exercise-subtitle">
-                          {[ex.haupt, ex.unter]
-                            .filter(Boolean)
-                            .join(" / ")}
+                        <div className="tb-exercise-title-row">
+                          <span className="tb-exercise-title">{ex.name}</span>
                           {typeof ex.difficulty === "number" && (
-                            <>
-                              {" "}
-                              · <Stars value={ex.difficulty} />
-                            </>
+                            <span className="tb-exercise-stars">
+                              <Stars value={ex.difficulty} />
+                            </span>
                           )}
+                        </div>
+                        <div className="tb-exercise-subtitle">
+                          {[ex.haupt || "", ex.unter || "", formatMengeEinheit(ex)]
+                            .filter(Boolean)
+                            .join(" · ")}
                           {alreadyInBlock && (
                             <span className="tb-exercise-used">
                               {" "}
