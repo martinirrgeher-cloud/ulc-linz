@@ -1,64 +1,89 @@
-import React, { useState, useMemo } from "react";
-import { FileIcon, VideoIcon, ImageIcon } from "lucide-react";
-import "../styles/Uebungskatalog.css";
+import React, { useMemo, useState } from "react";
+import { FileIcon, ImageIcon, VideoIcon } from "lucide-react";
+import "../Uebungskatalog.css";
 import { MediaViewerModal } from "./MediaViewerModal";
+import type { Exercise, MediaItem } from "../types/exercise";
+import { extractFileIdFromUrl } from "@/lib/utils/extractFileIdFromUrl";
 
-interface Uebung {
-  id: string;
-  name: string;
-  hauptgruppe: string;
-  untergruppe: string;
-  difficulty: number;
-  mediaId?: string;
-  mediaUrl?: string;
-  mediaType?: "image" | "video" | string;
-  active?: boolean;
-}
-
-const Stars: React.FC<{ value?: number }> = ({ value = 0 }) => {
-  const arr = Array.from({ length: 5 });
-  return (
-    <div className="uk-stars">
-      {arr.map((_, i) => (
-        <span key={i} className={i < value ? "on" : ""}>★</span>
-      ))}
-    </div>
-  );
+type Props = {
+  exercise: Exercise;
 };
 
-export default function UebungCard({ uebung }:{ uebung: Uebung }) {
+const Stars: React.FC<{ value: number }> = ({ value }) => (
+  <div className="ex-card-stars">{"★".repeat(value)}</div>
+);
+
+function pickFirstMedia(exercise: Exercise): MediaItem | null {
+  if (!exercise.media || exercise.media.length === 0) return null;
+  return exercise.media[0];
+}
+
+export default function UebungCard({ exercise }: Props) {
   const [viewerOpen, setViewerOpen] = useState(false);
-  const mediaUrl = useMemo(() => uebung.mediaUrl || (uebung.mediaId ? `https://drive.google.com/uc?id=${encodeURIComponent(uebung.mediaId)}&export=download` : ""), [uebung.mediaUrl, uebung.mediaId]);
-  const hasMedia = !!(uebung.mediaId || uebung.mediaUrl);
+
+  const media = useMemo(() => pickFirstMedia(exercise), [exercise]);
+
+  const rawFileId = media ? extractFileIdFromUrl(media.url) : undefined;
+  const fileId: string | undefined = rawFileId ?? undefined; // <- null → undefined
+  const mediaUrl = media?.url;
+  const mediaType: "image" | "video" =
+    media?.type === "video" ? "video" : "image";
+
+  const mengeEinheit =
+    exercise.menge != null && exercise.einheit
+      ? `${exercise.menge} ${exercise.einheit}`
+      : exercise.menge != null
+      ? String(exercise.menge)
+      : exercise.einheit ?? "";
+
+  const hasMedia = !!media;
 
   return (
-    <div className={"uk-card" + (!uebung.active ? " inactive" : "")}>
-      <div className="uk-head">
-        <div className="uk-title">{uebung.name}</div>
-        <div className="uk-icons">
-          <Stars value={uebung.difficulty} />
-          {hasMedia && (
-            <span
-              className="uk-media-icon"
-              role="button"
-              title="Vorschau öffnen"
-              onClick={() => setViewerOpen(true)}
-            >
-              {uebung.mediaType === "video" ? <VideoIcon size={16}/> : uebung.mediaType === "image" ? <ImageIcon size={16}/> : <FileIcon size={16}/>}
-            </span>
-          )}
+    <>
+      <div className="ex-card">
+        <div className="ex-card-head row">
+          <div className="ex-card-head-left">
+            <div className="ex-card-title-row">
+              <div className="ex-card-title">{exercise.name}</div>
+              {exercise.difficulty && <Stars value={exercise.difficulty} />}
+            </div>
+
+            <div className="ex-card-sub">
+              {exercise.hauptgruppe} • {exercise.untergruppe}
+              {mengeEinheit && <> • {mengeEinheit}</>}
+            </div>
+          </div>
+
+          <div className="ex-card-head-right">
+            {hasMedia && media && (
+              <button
+                type="button"
+                className={`ex-media-icon ${media.type}`}
+                title={media.name}
+                aria-label="Medienvorschau öffnen"
+                onClick={() => setViewerOpen(true)}
+              >
+                {media.type === "video" ? (
+                  <VideoIcon size={18} />
+                ) : media.type === "image" ? (
+                  <ImageIcon size={18} />
+                ) : (
+                  <FileIcon size={18} />
+                )}
+              </button>
+            )}
+          </div>
         </div>
       </div>
-      <div className="uk-sub">{uebung.hauptgruppe} • {uebung.untergruppe}</div>
 
-      <MediaViewerModal 
-         open={viewerOpen} 
-         onClose={() => setViewerOpen(false)} 
-         fileId={uebung.mediaId} 
-         url={mediaUrl}              // <- statt mediaUrl-Prop
-         name={uebung.name}          // <- statt title
-         type={"image"}              // oder "video" je nach Kontext 
-/>
-    </div>
+      <MediaViewerModal
+        open={viewerOpen}
+        onClose={() => setViewerOpen(false)}
+        name={exercise.name}
+        fileId={fileId}
+        url={mediaUrl}
+        type={mediaType}
+      />
+    </>
   );
 }
