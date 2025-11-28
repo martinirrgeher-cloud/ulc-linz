@@ -59,6 +59,8 @@ export async function loadTrainingsbloecke(): Promise<TrainingsbloeckeData> {
           typeof tpl.defaultDurationMin === "number"
             ? tpl.defaultDurationMin
             : null,
+        active:
+          typeof tpl.active === "boolean" ? tpl.active : true,
         items: Array.isArray(tpl.items)
           ? tpl.items.map((it: any, itemIdx: number): BlockTemplateItem => ({
               id: String(it.id ?? `item-${idx}-${itemIdx}`),

@@ -60,16 +60,12 @@ function Stars({ value }: { value?: number | null }) {
   const v =
     typeof value === "number" && Number.isFinite(value) ? value : 0;
   const full = Math.min(5, Math.max(0, Math.round(v)));
-  const empty = 5 - full;
   return (
     <span className="tb-stars">
       {"★".repeat(full)}
-      {"☆".repeat(empty)}
-      {full > 0 && <span className="tb-stars-num"> ({full})</span>}
     </span>
   );
 }
-
 
 function formatMengeEinheit(ex: ExerciseLite): string {
   const anyEx: any = ex as any;
@@ -180,7 +176,7 @@ export default function TrainingsbloeckePage() {
     [groups]
   );
 
-  const visibleTemplates = useMemo(
+    const visibleTemplates = useMemo(
     () =>
       showInactive
         ? templates
@@ -243,8 +239,8 @@ export default function TrainingsbloeckePage() {
       if (!toSave) return;
       try {
         setSaving(true);
-      await saveAllTemplates(toSave);
-      // Templates bleiben lokal, damit die Ansicht nicht springt
+        await saveAllTemplates(toSave);
+        // Templates bleiben lokal, damit die Ansicht nicht springt
       } catch (err) {
         console.error("Trainingsblöcke: Autosave fehlgeschlagen", err);
         setError("Fehler beim Speichern.");
@@ -439,9 +435,13 @@ export default function TrainingsbloeckePage() {
 
   function handleAddExercise(ex: ExerciseLite) {
     if (!selectedTemplate) return;
+    const prevY = window.scrollY;
     updateTemplate(selectedTemplate.id, (tpl) => {
       tpl.items.push(createItemFromExercise(ex));
     });
+    window.setTimeout(() => {
+      window.scrollTo(0, prevY);
+    }, 0);
   }
 
   function handleRemoveItem(itemId: string) {
@@ -507,31 +507,31 @@ export default function TrainingsbloeckePage() {
       <div className="tb-left">
         <div className="tb-card">
           <div className="tb-card-header">
-            <div className="tb-title">Blockvorlagen</div>
-            <div className="tb-actions">
-              <label className="tb-inline-checkbox">
-                <input
-                  type="checkbox"
-                  checked={showInactive}
-                  onChange={(e) => setShowInactive(e.target.checked)}
-                />
-                Inaktive anzeigen
-              </label>
-              <button
-                className="tb-btn tb-btn-mini"
-                type="button"
-                onClick={handleToggleAllGroups}
-              >
-                {allCollapsed ? "Alle öffnen" : "Alle schließen"}
-              </button>
-              <button
-                className="tb-btn"
-                type="button"
-                onClick={handleNewTemplate}
-              >
-                Neue Vorlage
-              </button>
-            </div>
+              <div className="tb-title">Blockvorlagen</div>
+              <div className="tb-actions">
+                <label className="tb-inline-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={showInactive}
+                    onChange={(e) => setShowInactive(e.target.checked)}
+                  />
+                  Inaktive anzeigen
+                </label>
+                <button
+                  className="tb-btn tb-btn-mini"
+                  type="button"
+                  onClick={handleToggleAllGroups}
+                >
+                  {allCollapsed ? "Alle öffnen" : "Alle schließen"}
+                </button>
+                <button
+                  className="tb-btn"
+                  type="button"
+                  onClick={handleNewTemplate}
+                >
+                  Neue Vorlage
+                </button>
+              </div>
           </div>
 
           {groupedTemplates.groups.length === 0 && (
@@ -582,9 +582,17 @@ export default function TrainingsbloeckePage() {
                             ` · ${tpl.defaultDurationMin} min`}
                           {(() => {
                             const avg = getAverageDifficulty(tpl);
-                            return avg !== null
-                              ? ` · Ø ${formatAverageDifficulty(avg)}`
-                              : null;
+                            return avg !== null ? (
+                              <>
+                                {" · "}
+                                <span className="tb-template-diff">
+                                  <span className="tb-template-diff-star">★</span>
+                                  <span className="tb-template-diff-value">
+                                    {formatAverageDifficulty(avg)}
+                                  </span>
+                                </span>
+                              </>
+                            ) : null;
                           })()}
                         </div>
                       </li>
@@ -742,7 +750,7 @@ export default function TrainingsbloeckePage() {
                     </div>
                     <div className="tb-item-fields">
                       <label>
-                        Wdh.
+                        Serie
                         <input
                           className="tb-input tb-input-small"
                           value={it.target.reps ?? ""}
@@ -865,7 +873,7 @@ export default function TrainingsbloeckePage() {
                 {filteredExercises.length === 0 && (
                   <div className="tb-empty">Keine Übungen gefunden.</div>
                 )}
-                {filteredExercises.map((ex) => {
+                                {filteredExercises.map((ex) => {
                   const alreadyInBlock = usedExerciseIds.has(ex.id);
                   return (
                     <div key={ex.id} className="tb-exercise-row">
@@ -901,6 +909,7 @@ export default function TrainingsbloeckePage() {
                     </div>
                   );
                 })}
+                              
               </div>
             </div>
           </>

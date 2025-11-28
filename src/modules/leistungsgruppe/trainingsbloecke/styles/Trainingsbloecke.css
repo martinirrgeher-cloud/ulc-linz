@@ -211,13 +211,122 @@
 }
 
 .tb-stars {
-  font-size: 11px;
+  font-size: 12px;
   color: #222;
 }
 
 .tb-stars-num {
   font-size: 11px;
   color: #555;
+
+.tb-template-item--inactive {
+  opacity: 0.55;
+}
+
+.tb-template-diff {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.tb-template-diff-star {
+  font-size: 11px;
+  line-height: 1;
+}
+
+.tb-template-diff-value {
+  font-size: 11px;
+}
+
+.tb-inline-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #444;
+}
+
+.tb-inline-checkbox input[type="checkbox"] {
+  margin: 0;
+}
+
+.tb-exercise-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.tb-exercise-stars {
+  flex-shrink: 0;
+}
+
+.tb-exercise-subtitle {
+  font-size: 11px;
+}
+
+/* Größerer Plus-Button neben Gruppe */
+.tb-group-select-row .tb-btn-mini {
+  min-width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 999px;
+  padding: 0;
+  line-height: 1;
+  font-size: 1.2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Buttons in den Übungszeilen im Block besser tappbar */
+.tb-item-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tb-icon-btn {
+  min-width: 2.0rem;
+  min-height: 2.0rem;
+  padding: 4px;
+  border-radius: 999px;
+  font-size: 1rem;
+}
+
+/* Etwas größere Typografie im rechten Bereich (Vorlage bearbeiten) */
+.tb-right .tb-card {
+  font-size: 13px;
+}
+
+.tb-right .tb-card label {
+  font-size: 12px;
+}
+
+.tb-right .tb-input,
+.tb-right .tb-textarea {
+  font-size: 13px;
+}
+
+/* Toggle-Button Aktiv/Inaktiv */
+.tb-toggle {
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 11px;
+  border: 1px solid #ccc;
+  background: #f5f5f5;
+  cursor: pointer;
+}
+
+.tb-toggle--on {
+  background: #e5f7e5;
+  border-color: #5ca85c;
+}
+
+.tb-toggle--off {
+  background: #fde5e5;
+  border-color: #d9534f;
+}
+
 }
 
 .tb-exercise-list {
@@ -392,52 +501,64 @@
   }
 }
 
-.tb-inline-checkbox {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  margin-right: 8px;
+/* Größere Schrift und Inputs im Bereich "Vorlage bearbeiten" (rechte Seite) */
+.tb-right .tb-card {
+  font-size: 14px;
 }
 
-.tb-inline-checkbox input {
-  margin: 0;
+.tb-right .tb-card label {
+  font-size: 13px;
 }
 
-.tb-template-item--inactive {
-  opacity: 0.6;
+.tb-right .tb-input,
+.tb-right .tb-textarea,
+.tb-right .tb-select {
+  font-size: 14px;
+  padding: 6px 8px;
 }
 
-.tb-toggle {
-  display: inline-flex;
-  align-items: center;
+/* Größerer Plus-Button neben Gruppe */
+.tb-group-select-row .tb-btn.tb-btn-mini {
+  font-size: 16px;
   padding: 4px 10px;
-  border-radius: 999px;
-  border: 1px solid #ccc;
-  font-size: 12px;
-  cursor: pointer;
-  background: #f5f5f5;
+  min-width: 32px;
+  height: 32px;
 }
 
-.tb-toggle--on {
-  background: #e6f4ea;
-  border-color: #137333;
-  color: #137333;
+/* Größere, mobil-tauglichere Buttons für hoch/runter/löschen */
+.tb-item-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: center;
 }
 
-.tb-toggle--off {
-  background: #fce8e6;
-  border-color: #c5221f;
-  color: #c5221f;
+.tb-icon-btn {
+  padding: 6px 10px;
+  font-size: 14px;
+  min-width: 36px;
 }
 
-.tb-exercise-title-row {
+/* Horizontale Anordnung ↑ ↓ ✕ mit 40/40/20 Aufteilung */
+.tb-item-actions {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.tb-item-actions .tb-icon-btn {
+  flex: 0 0 40%;
+  padding: 8px 4px;
+  font-size: 14px;
+  min-width: 0;
   display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
 }
 
-.tb-exercise-stars {
-  display: inline-flex;
-  align-items: center;
+.tb-item-actions .tb-icon-btn:nth-child(3) {
+  flex-basis: 20%;
 }
+
