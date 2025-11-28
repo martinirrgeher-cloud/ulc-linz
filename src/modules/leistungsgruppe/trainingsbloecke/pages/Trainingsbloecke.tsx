@@ -124,6 +124,11 @@ export default function TrainingsbloeckePage() {
   const [newGroupName, setNewGroupName] = useState("");
   const [renameSource, setRenameSource] = useState<string>("");
   const [renameTarget, setRenameTarget] = useState("");
+  const [pendingExercise, setPendingExercise] = useState<ExerciseLite | null>(null);
+  const [pendingSeries, setPendingSeries] = useState<string>("1");
+  const [pendingMenge, setPendingMenge] = useState<string>("");
+  const [pendingEinheit, setPendingEinheit] = useState<string>("");
+  const [overlayScrollY, setOverlayScrollY] = useState<number | null>(null);
   const pendingSaveRef = useRef<BlockTemplate[] | null>(null);
   const saveTimerRef = useRef<number | null>(null);
 
@@ -435,14 +440,64 @@ export default function TrainingsbloeckePage() {
 
   function handleAddExercise(ex: ExerciseLite) {
     if (!selectedTemplate) return;
-    const prevY = window.scrollY;
+    const anyEx = ex as any;
+    const scrollY = window.scrollY;
+
+    setOverlayScrollY(scrollY);
+    setPendingExercise(ex);
+    setPendingSeries("1");
+    setPendingMenge(
+      anyEx.menge != null && anyEx.menge !== "" ? String(anyEx.menge) : ""
+    );
+    setPendingEinheit(
+      anyEx.einheit != null && anyEx.einheit !== "" ? String(anyEx.einheit) : ""
+    );
+  }
+
+  function handleCancelAddFromOverlay() {
+    setPendingExercise(null);
+    setOverlayScrollY(null);
+  }
+
+  function handleConfirmAddFromOverlay() {
+    if (!selectedTemplate || !pendingExercise) {
+      setPendingExercise(null);
+      setOverlayScrollY(null);
+      return;
+    }
+
+    const ex = pendingExercise;
+    const item = createItemFromExercise(ex);
+    const target: any = { ...(item.target as any) };
+
+    const s = pendingSeries.trim().replace(",", ".");
+    const seriesNum = s ? Number(s) : null;
+    target.reps =
+      seriesNum != null && Number.isFinite(seriesNum) ? seriesNum : null;
+
+    const m = pendingMenge.trim().replace(",", ".");
+    const mengeNum = m ? Number(m) : null;
+    target.menge =
+      mengeNum != null && Number.isFinite(mengeNum) ? mengeNum : null;
+
+    target.einheit = pendingEinheit.trim() || null;
+
+    item.target = target;
+
+    const scrollY = overlayScrollY ?? window.scrollY;
+
     updateTemplate(selectedTemplate.id, (tpl) => {
-      tpl.items.push(createItemFromExercise(ex));
+      tpl.items.push(item);
     });
+
+    setPendingExercise(null);
+    setOverlayScrollY(null);
+
     window.setTimeout(() => {
-      window.scrollTo(0, prevY);
+      window.scrollTo(0, scrollY);
     }, 0);
   }
+
 
   function handleRemoveItem(itemId: string) {
     if (!selectedTemplate) return;
@@ -750,7 +805,7 @@ export default function TrainingsbloeckePage() {
                     </div>
                     <div className="tb-item-fields">
                       <label>
-                        Serie
+                        Serien
                         <input
                           className="tb-input tb-input-small"
                           value={it.target.reps ?? ""}
@@ -991,6 +1046,95 @@ export default function TrainingsbloeckePage() {
           </div>
         </div>
       )}
-    </div>
+    
+      {pendingExercise && (
+        <div className="tb-overlay">
+          <div
+            className="tb-overlay-backdrop"
+            onClick={handleCancelAddFromOverlay}
+          />
+          <div className="tb-overlay-dialog">
+            <div className="tb-overlay-header">
+              <div className="tb-overlay-title">Übung hinzufügen</div>
+            </div>
+            <div className="tb-overlay-body">
+              <div className="tb-overlay-ex-name">{pendingExercise.name}</div>
+              <div className="tb-overlay-ex-sub">
+                {[pendingExercise.haupt || "", pendingExercise.unter || ""]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </div>
+
+              <div className="tb-overlay-grid">
+                <div className="tb-overlay-field">
+                  <label>Serien</label>
+                  <select
+                    className="tb-overlay-wheel"
+                    value={pendingSeries}
+                    onChange={(e) => setPendingSeries(e.target.value)}
+                  >
+                    {Array.from({ length: 20 }, (_, i) => (i + 1).toString()).map(
+                      (v) => (
+                        <option key={v} value={v}>
+                          {v}
+                        </option>
+                      )
+                    )}
+                  </select>
+                </div>
+
+                <div className="tb-overlay-field">
+                  <label>Menge</label>
+                  <input
+                    className="tb-overlay-wheel"
+                    type="number"
+                    inputMode="decimal"
+                    value={pendingMenge}
+                    onChange={(e) => setPendingMenge(e.target.value)}
+                  />
+                </div>
+
+                <div className="tb-overlay-field">
+                  <label>Einheit</label>
+                  <select
+                    className="tb-overlay-wheel"
+                    value={pendingEinheit}
+                    onChange={(e) => setPendingEinheit(e.target.value)}
+                  >
+                    {pendingEinheit && (
+                      <option value={pendingEinheit}>{pendingEinheit}</option>
+                    )}
+                    {["m", "km", "s", "min", "kg", "Wdh."].map((u) =>
+                      u === pendingEinheit ? null : (
+                        <option key={u} value={u}>
+                          {u}
+                        </option>
+                      )
+                    )}
+                    <option value="">(leer)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div className="tb-overlay-footer">
+              <button
+                type="button"
+                className="tb-btn tb-btn-secondary"
+                onClick={handleCancelAddFromOverlay}
+              >
+                Abbrechen
+              </button>
+              <button
+                type="button"
+                className="tb-btn"
+                onClick={handleConfirmAddFromOverlay}
+              >
+                Hinzufügen
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+</div>
   );
 }
