@@ -6,6 +6,10 @@ import {
   PlanItem,
   PlanDay,
   TrainingsplanData,
+  cloneDay,
+  PlanTemplate,
+  createTemplateFromDay,
+  applyTemplateToAthleteDay,
 } from "../services/TrainingsplanungStore";
 import { addDays, startOfISOWeek, toISODate, weekRangeFrom } from "../../common/date";
 import { listExercisesLite, type ExerciseLite } from "@/modules/uebungskatalog/services/ExercisesLite";
@@ -131,6 +135,7 @@ export function useTrainingsplanung() {
         items: existing.items ?? {},
         blocks: existing.blocks,
         blockOrder: existing.blockOrder,
+        meta: existing.meta,
       };
     }
     return {
@@ -146,9 +151,10 @@ export function useTrainingsplanung() {
       const base: TrainingsplanData =
         prev ??
         ({
-          version: 1,
+          version: 2,
           updatedAt: new Date().toISOString(),
           plansByAthlete: {},
+          templates: {},
         } as TrainingsplanData);
 
       const plansByAthlete: TrainingsplanData["plansByAthlete"] = {
@@ -168,6 +174,7 @@ export function useTrainingsplanung() {
         items: { ...(existing.items ?? {}) },
         blocks: existing.blocks ? { ...existing.blocks } : undefined,
         blockOrder: existing.blockOrder ? [...existing.blockOrder] : undefined,
+        meta: existing.meta,
       };
 
       mutator(draft);
@@ -228,6 +235,16 @@ export function useTrainingsplanung() {
     });
   }, [allExercises, search]);
 
+  const templatesById: Record<string, PlanTemplate> = useMemo(() => {
+    return plans?.templates ?? {};
+  }, [plans]);
+
+  const templates = useMemo(() => {
+    return Object.values(templatesById).sort((a, b) =>
+      a.label.localeCompare(b.label)
+    );
+  }, [templatesById]);
+
   async function copyPlanTo() {
     if (!plans) return;
     if (!athleteId) return;
@@ -250,7 +267,10 @@ export function useTrainingsplanung() {
       const srcDay = srcByAthlete[dateISO];
       if (!srcDay) return;
 
-      targetByAthlete[dateISO] = JSON.parse(JSON.stringify(srcDay));
+      targetByAthlete[dateISO] = cloneDay(srcDay, {
+        sourceAthleteId: athleteId,
+        sourceDateISO: dateISO,
+      });
     } else {
       const srcWeekDates = weekRangeFrom(srcWeekStartIso);
       const targetWeekDates = weekRangeFrom(targetWeekStartIso);
@@ -259,7 +279,10 @@ export function useTrainingsplanung() {
         const srcDay = srcByAthlete[srcDate];
         if (!srcDay) return;
         const tgtDate = targetWeekDates[idx];
-        targetByAthlete[tgtDate] = JSON.parse(JSON.stringify(srcDay));
+        targetByAthlete[tgtDate] = cloneDay(srcDay, {
+          sourceAthleteId: athleteId,
+          sourceDateISO: srcDate,
+        });
       });
     }
 
@@ -275,6 +298,48 @@ export function useTrainingsplanung() {
     setDirty(true);
   }
 
+
+  async function createTemplateFromCurrentDay(
+    templateId: string,
+    label: string,
+    description?: string
+  ) {
+    if (!athleteId) return;
+    // aktuellen Stand zuerst speichern, damit der Template-Inhalt ident zum UI ist
+    await save();
+
+    try {
+      await createTemplateFromDay({
+        templateId,
+        label,
+        description,
+        athleteId,
+        dateISO,
+      });
+      const fresh = await loadPlans();
+      setPlans(fresh);
+      setDirty(false);
+    } catch (err) {
+      console.error("Trainingsplanung: Template anlegen fehlgeschlagen", err);
+    }
+  }
+
+  async function applyTemplateToCurrentDay(templateId: string) {
+    if (!athleteId) return;
+
+    try {
+      await applyTemplateToAthleteDay({
+        templateId,
+        athleteId,
+        dateISO,
+      });
+      const fresh = await loadPlans();
+      setPlans(fresh);
+      setDirty(false);
+    } catch (err) {
+      console.error("Trainingsplanung: Template anwenden fehlgeschlagen", err);
+    }
+  }
   const canSave = !!athleteId && !loading && !saving;
 
   return {
@@ -300,6 +365,10 @@ export function useTrainingsplanung() {
     updateItem,
     save,
     filteredExercises,
+    templates,
+    templatesById,
+    createTemplateFromCurrentDay,
+    applyTemplateToCurrentDay,
     copyScope,
     setCopyScope,
     copyToAthleteId,

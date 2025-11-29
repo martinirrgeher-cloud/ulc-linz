@@ -45,6 +45,19 @@ const BlockList: React.FC<BlockListProps> = ({
   onUpdateItemTarget,
   onOpenPickerForBlock,
 }) => {
+  const [visibleBlockNotes, setVisibleBlockNotes] =
+    React.useState<Record<string, boolean>>({});
+  const [openItemComments, setOpenItemComments] =
+    React.useState<Record<string, boolean>>({});
+
+  const handleTextareaAutoResize = (
+    e: React.FormEvent<HTMLTextAreaElement>
+  ) => {
+    const el = e.currentTarget;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  };
+
   if (!currentDay) {
     return (
       <div className="tp-empty">
@@ -58,6 +71,11 @@ const BlockList: React.FC<BlockListProps> = ({
     <div className="tp-blocks">
       {blocks.map((blk) => {
         const isCollapsed = !!collapsedBlocks[blk.id];
+        const hasBlockNotes = (blk.notes ?? "").trim() !== "";
+        const blockNotesState = visibleBlockNotes[blk.id];
+        const blockNotesVisible =
+          blockNotesState === undefined ? hasBlockNotes : blockNotesState;
+
         return (
           <div key={blk.id} className="tp-block-card">
             <div className="tp-block-header">
@@ -70,42 +88,62 @@ const BlockList: React.FC<BlockListProps> = ({
                 placeholder="Blocktitel (z.B. Aufwärmen, Sprint …)"
               />
               <div className="tp-block-header-right">
-                <div className="tp-field-row">
-                  <div className="tp-field">
-                    <label className="tp-label">Dauer (min)</label>
-                    <input
-                      className="tp-input tp-input-xs"
-                      value={
-                        blk.targetDurationMin != null &&
-                        !Number.isNaN(blk.targetDurationMin)
-                          ? String(blk.targetDurationMin)
-                          : ""
-                      }
-                      onChange={(e) =>
-                        onUpdateBlockDuration(blk.id, e.target.value)
-                      }
-                      placeholder="z.B. 15"
-                    />
-                  </div>
+                <div className="tp-block-duration">
+                  <input
+                    className="tp-input tp-input-xs tp-block-duration-input"
+                    value={
+                      blk.targetDurationMin != null &&
+                      !Number.isNaN(blk.targetDurationMin)
+                        ? String(blk.targetDurationMin)
+                        : ""
+                    }
+                    onChange={(e) =>
+                      onUpdateBlockDuration(blk.id, e.target.value)
+                    }
+                    placeholder="z.B. 15"
+                  />
+                  <span className="tp-block-duration-unit">min</span>
+                  <button
+                    type="button"
+                    className={
+                      "tp-icon-button tp-note-btn" +
+                      (hasBlockNotes ? " tp-note-btn--active" : "")
+                    }
+                    title={
+                      blockNotesVisible
+                        ? "Block-Notizen ausblenden"
+                        : hasBlockNotes
+                        ? "Block-Notizen anzeigen"
+                        : "Block-Notizen hinzufügen"
+                    }
+                    onClick={() =>
+                      setVisibleBlockNotes((prev) => ({
+                        ...prev,
+                        [blk.id]: !blockNotesVisible,
+                      }))
+                    }
+                  >
+                    {hasBlockNotes ? "🗒️" : "📝"}
+                  </button>
                 </div>
                 <div className="tp-block-header-actions">
                   <button
                     type="button"
-                    className="tp-btn tp-btn-mini"
+                    className="tp-btn tp-btn-lg"
                     onClick={() => onOpenPickerForBlock(blk.id)}
                   >
                     + Übung
                   </button>
                   <button
                     type="button"
-                    className="tp-btn tp-btn-mini"
+                    className="tp-btn tp-btn-lg"
                     onClick={() => onToggleCollapsed(blk.id)}
                   >
                     {isCollapsed ? "▼" : "▲"}
                   </button>
                   <button
                     type="button"
-                    className="tp-btn tp-btn-mini tp-btn-danger"
+                    className="tp-btn tp-btn-lg tp-btn-danger"
                     onClick={() => onRemoveBlock(blk.id)}
                   >
                     Entfernen
@@ -116,16 +154,20 @@ const BlockList: React.FC<BlockListProps> = ({
 
             {!isCollapsed && (
               <>
-                <div className="tp-block-notes">
-                  <textarea
-                    className="tp-input"
-                    value={blk.notes ?? ""}
-                    onChange={(e) =>
-                      onUpdateBlockNotes(blk.id, e.target.value)
-                    }
-                    placeholder="Notizen, Pausen, Hinweise …"
-                  />
-                </div>
+                {blockNotesVisible && (
+                  <div className="tp-block-notes">
+                    <textarea
+                      className="tp-input tp-block-notes-textarea"
+                      value={blk.notes ?? ""}
+                      onChange={(e) =>
+                        onUpdateBlockNotes(blk.id, e.target.value)
+                      }
+                      onInput={handleTextareaAutoResize}
+                      placeholder="Notizen, Pausen, Hinweise …"
+                      rows={1}
+                    />
+                  </div>
+                )}
 
                 <div className="tp-block-items">
                   {blk.itemOrder.length === 0 && (
@@ -138,130 +180,153 @@ const BlockList: React.FC<BlockListProps> = ({
                     const it = currentDay.items?.[iid];
                     if (!it) return null;
                     const t = it.target ?? {};
+                    const hasComment = (it.comment ?? "").trim() !== "";
+                    const commentState = openItemComments[iid];
+                    const commentVisible =
+                      commentState === undefined ? hasComment : commentState;
+
 
                     return (
                       <div key={iid} className="tp-item-row">
                         <div className="tp-item-main">
-                          <div className="tp-item-name">
-  {it.nameCache ?? it.exerciseId}
-</div>
-                          <div className="tp-item-meta">
-                            {it.groupCache?.haupt}
-                            {it.groupCache?.unter
-                              ? ` / ${it.groupCache.unter}`
-                              : ""}
+                          <div className="tp-item-header">
+                             <div className="tp-item-name-meta">
+                               <div className="tp-item-name-row">
+                                 <div className="tp-item-name">
+                                   {it.nameCache ?? it.exerciseId}
+                                 </div>
+                                 <button
+                                   type="button"
+                                   className={
+                                     "tp-icon-button tp-note-btn" +
+                                     (hasComment ? " tp-note-btn--active" : "")
+                                   }
+                                   title={
+                                     commentVisible
+                                       ? "Kommentar ausblenden"
+                                       : hasComment
+                                       ? "Kommentar anzeigen"
+                                       : "Kommentar hinzufügen"
+                                   }
+                                   onClick={() =>
+                                     setOpenItemComments((prev) => ({
+                                       ...prev,
+                                       [iid]: !commentVisible,
+                                     }))
+                                   }
+                                 >
+                                   {hasComment ? "🗒️" : "📝"}
+                                 </button>
+                               </div>
+                               <div className="tp-item-meta">
+                                 {it.groupCache?.haupt}
+                                 {it.groupCache?.unter ? ` / ${it.groupCache.unter}` : ""}
+                               </div>
+                             </div>
+                            <div className="tp-item-actions">
+                              <button
+                                type="button"
+                                className="tp-btn tp-btn-mini tp-btn-rect"
+                                onClick={() => onMoveItem(blk.id, iid, -1)}
+                                title="nach oben"
+                              >
+                                ↑
+                              </button>
+                              <button
+                                type="button"
+                                className="tp-btn tp-btn-mini tp-btn-rect"
+                                onClick={() => onMoveItem(blk.id, iid, +1)}
+                                title="nach unten"
+                              >
+                                ↓
+                              </button>
+                              <button
+                                type="button"
+                                className="tp-btn tp-btn-mini tp-btn-rect tp-btn-danger"
+                                onClick={() => onRemoveItem(blk.id, iid)}
+                                title="Entfernen"
+                              >
+                                ✕
+                              </button>
+                            </div>
                           </div>
-                          <div className="tp-item-comment">
+
+                          <div className="tp-item-target">
                             <input
-                              className="tp-input"
-                              value={it.comment ?? ""}
-                              onChange={(e) =>
-                                onUpdateItemComment(iid, e.target.value)
+                              className="tp-input tp-input-xs tp-item-input-small"
+                              value={
+                                t.sets != null && !Number.isNaN(t.sets)
+                                  ? String(t.sets)
+                                  : t.reps != null && !Number.isNaN(t.reps)
+                                  ? String(t.reps)
+                                  : ""
                               }
-                              placeholder="Kommentar / Hinweis"
+                              onChange={(e) => {
+                                const raw = e.target.value.trim();
+                                const num =
+                                  raw === ""
+                                    ? null
+                                    : Number(raw.replace(",", "."));
+                                onUpdateItemTarget(iid, {
+                                  sets: num,
+                                  reps: num,
+                                });
+                              }}
+                              placeholder="Sätze"
+                            />
+                            <span className="tp-item-math-sign">x</span>
+                            <input
+                              className="tp-input tp-input-xs tp-item-input-small"
+                              value={
+                                t.menge != null && !Number.isNaN(t.menge)
+                                  ? String(t.menge)
+                                  : ""
+                              }
+                              onChange={(e) =>
+                                onUpdateItemTarget(iid, {
+                                  menge:
+                                    e.target.value.trim() === ""
+                                      ? null
+                                      : Number(
+                                          e.target.value.replace(",", ".")
+                                        ),
+                                })
+                              }
+                              placeholder="Menge"
+                            />
+                            <input
+                              className="tp-input tp-input-xs tp-item-input-small"
+                              value={t.einheit ?? ""}
+                              onChange={(e) =>
+                                onUpdateItemTarget(iid, {
+                                  einheit:
+                                    e.target.value.trim() === ""
+                                      ? null
+                                      : e.target.value.trim(),
+                                })
+                              }
+                              placeholder="Einheit"
                             />
                           </div>
-                        </div>
-                        <div className="tp-item-target">
-                          <input
-                            className="tp-input tp-input-xs"
-                            value={
-                              t.sets != null && !Number.isNaN(t.sets)
-                                ? String(t.sets)
-                                : ""
-                            }
-                            onChange={(e) =>
-                              onUpdateItemTarget(iid, {
-                                sets:
-                                  e.target.value.trim() === ""
-                                    ? null
-                                    : Number(
-                                        e.target.value.replace(",", ".")
-                                      ),
-                              })
-                            }
-                            placeholder="Sätze"
-                          />
-                          <input
-                            className="tp-input tp-input-xs"
-                            value={
-                              t.reps != null && !Number.isNaN(t.reps)
-                                ? String(t.reps)
-                                : ""
-                            }
-                            onChange={(e) =>
-                              onUpdateItemTarget(iid, {
-                                reps:
-                                  e.target.value.trim() === ""
-                                    ? null
-                                    : Number(
-                                        e.target.value.replace(",", ".")
-                                      ),
-                              })
-                            }
-                            placeholder="Wdh."
-                          />
-                          <input
-                            className="tp-input tp-input-xs"
-                            value={
-                              t.menge != null && !Number.isNaN(t.menge)
-                                ? String(t.menge)
-                                : ""
-                            }
-                            onChange={(e) =>
-                              onUpdateItemTarget(iid, {
-                                menge:
-                                  e.target.value.trim() === ""
-                                    ? null
-                                    : Number(
-                                        e.target.value.replace(",", ".")
-                                      ),
-                              })
-                            }
-                            placeholder="Menge"
-                          />
-                          <input
-                            className="tp-input tp-input-xs"
-                            value={t.einheit ?? ""}
-                            onChange={(e) =>
-                              onUpdateItemTarget(iid, {
-                                einheit:
-                                  e.target.value.trim() === ""
-                                    ? null
-                                    : e.target.value.trim(),
-                              })
-                            }
-                            placeholder="Einheit"
-                          />
-                          <div className="tp-item-actions">
-                            <button
-                              type="button"
-                              className="tp-btn tp-btn-mini"
-                              onClick={() => onMoveItem(blk.id, iid, -1)}
-                              title="nach oben"
-                            >
-                              ↑
-                            </button>
-                            <button
-                              type="button"
-                              className="tp-btn tp-btn-mini"
-                              onClick={() => onMoveItem(blk.id, iid, +1)}
-                              title="nach unten"
-                            >
-                              ↓
-                            </button>
-                            <button
-                              type="button"
-                              className="tp-btn tp-btn-mini tp-btn-danger"
-                              onClick={() => onRemoveItem(blk.id, iid)}
-                              title="Entfernen"
-                            >
-                              ✕
-                            </button>
-                          </div>
+                          {commentVisible && (
+                            <div className="tp-item-comment">
+                              <textarea
+                                className="tp-input tp-item-comment-textarea"
+                                value={it.comment ?? ""}
+                                onChange={(e) =>
+                                  onUpdateItemComment(iid, e.target.value)
+                                }
+                                onInput={handleTextareaAutoResize}
+                                placeholder="Kommentar / Hinweis"
+                                rows={1}
+                              />
+                            </div>
+                          )}
+
                         </div>
                       </div>
                     );
+
                   })}
                 </div>
               </>

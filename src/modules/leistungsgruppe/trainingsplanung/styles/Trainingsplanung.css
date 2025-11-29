@@ -5,7 +5,7 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .tp-header {
@@ -21,7 +21,7 @@
 .tp-header-row {
   display: flex;
   gap: 8px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: flex-end;
 }
 
@@ -32,6 +32,11 @@
   min-width: 160px;
 }
 
+.tp-field--athlete {
+  flex: 1 1 200px;
+  max-width: 260px;
+}
+
 .tp-label {
   font-size: 12px;
   color: #444;
@@ -39,10 +44,10 @@
 
 .tp-input {
   border: 1px solid #ccc;
-  border-radius: 6px;
-  padding: 4px 6px;
-  font-size: 13px;
-  min-height: 26px;
+  border-radius: 8px;
+  padding: 6px 9px;
+  font-size: 14px;
+  min-height: 32px;
   background: #fff;
 }
 
@@ -54,8 +59,11 @@
 
 .tp-week-nav {
   display: flex;
+  flex-direction: row;
   align-items: center;
   gap: 0.5rem;
+  margin-left: auto;
+  flex-shrink: 0;
 }
 
 .tp-week-label {
@@ -166,11 +174,11 @@ white-space: nowrap;
 }
 
 .tp-btn {
-  border-radius: 6px;
+  border-radius: 999px;
   border: 1px solid #bbb;
   background: #f7f7f7;
-  padding: 3px 8px;
-  font-size: 12px;
+  padding: 5px 10px;
+  font-size: 13px;
   cursor: pointer;
 }
 
@@ -195,9 +203,34 @@ white-space: nowrap;
 }
 
 .tp-btn-mini {
-  padding: 2px 6px;
-  font-size: 11px;
+  padding: 3px 8px;
+  font-size: 12px;
 }
+
+.tp-btn-lg {
+  padding: 7px 14px;
+  font-size: 14px;
+}
+
+.tp-item-comment-toggle {
+  margin-top: 4px;
+}
+
+.tp-btn-link {
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-size: 12px;
+  color: #1976d2;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.tp-btn-link:hover {
+  background: transparent;
+  color: #145ca0;
+}
+
 
 .tp-error {
   padding: 4px 6px;
@@ -223,31 +256,52 @@ white-space: nowrap;
 
 .tp-block-card {
   background: #ffffff;
-  border-radius: 10px;
-  padding: 6px 8px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  border-radius: 12px;
+  padding: 10px 10px;
+  border: 1px solid #e0e0e0;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
 .tp-block-header {
   display: flex;
-  gap: 6px;
-  align-items: flex-start;
-  justify-content: space-between;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 8px;
+  align-items: stretch;
 }
 
 .tp-block-title {
-  width: 220px;
+  width: 100%;
   max-width: 100%;
+  font-size: 15px;
+  font-weight: 600;
 }
 
 .tp-block-header-right {
   display: flex;
-  gap: 6px;
+  flex-wrap: wrap;
+  gap: 8px;
   align-items: center;
+  justify-content: space-between;
+}
+
+.tp-block-duration {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.tp-block-duration-input {
+  text-align: right;
+  width: 60px;
+  min-width: 60px;
+}
+
+.tp-block-duration-unit {
+  font-size: 11px;
+  color: #555;
 }
 
 .tp-label-small {
@@ -283,24 +337,38 @@ white-space: nowrap;
 
 .tp-item-row {
   display: flex;
-  flex-direction: row;
-  gap: 6px;
-  align-items: flex-start;
+  flex-direction: column;
+  gap: 8px;
+  align-items: stretch;
+  padding: 8px;
+  border-radius: 10px;
+  border: 1px solid #eee;
+  background: #fafafa;
 }
 
 .tp-item-main {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
 }
 
 .tp-item-title {
   font-weight: 600;
-  font-size: 13px;
+  font-size: 14px;
+}
+
+.tp-item-name {
+  font-weight: 600;
+  font-size: 14px;
 }
 
 .tp-item-groups {
+  font-size: 11px;
+  color: #666;
+}
+
+.tp-item-meta {
   font-size: 11px;
   color: #666;
 }
@@ -311,9 +379,9 @@ white-space: nowrap;
 
 .tp-item-target {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
-  align-items: flex-end;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
 }
 
 .tp-item-target .tp-input-xs {
@@ -322,20 +390,22 @@ white-space: nowrap;
 
 .tp-item-actions {
   display: flex;
-  gap: 2px;
+  flex-wrap: wrap;
+  gap: 4px;
   justify-content: flex-end;
+  margin-top: 4px;
 }
 
 .tp-block-notes {
-  margin-top: 2px;
+  margin-top: 4px;
 }
 
 .tp-textarea {
-  border-radius: 6px;
+  border-radius: 8px;
   border: 1px solid #ccc;
-  font-size: 12px;
-  padding: 4px 6px;
-  min-height: 40px;
+  font-size: 13px;
+  padding: 6px 9px;
+  min-height: 56px;
   resize: vertical;
 }
 
@@ -467,6 +537,46 @@ white-space: nowrap;
 
 /* Buttons usw. bereits oben definiert */
 
+
+.tp-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.tp-item-name-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.tp-item-target-label {
+  font-size: 12px;
+  color: #555;
+}
+
+.tp-item-math-sign {
+  font-size: 14px;
+  padding: 0 2px;
+}
+
+.tp-item-input-small {
+  max-width: 70px;
+}
+
+.tp-btn-rect {
+  border-radius: 6px;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 /* Responsive */
 
 @media (max-width: 720px) {
@@ -479,8 +589,6 @@ white-space: nowrap;
   }
 
   .tp-item-target {
-    flex-direction: row;
-    flex-wrap: wrap;
     justify-content: flex-start;
   }
 
@@ -544,4 +652,126 @@ white-space: nowrap;
 .tp-template-meta {
   font-size: 11px;
   color: #666;
+}
+
+
+/* Plan-Template Zeile */
+.tp-plan-template-row {
+  margin-top: 6px;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.tp-plan-template-select {
+  flex: 1 1 55%;
+}
+
+.tp-plan-template-select select {
+  width: 100%;
+  padding: 4px 6px;
+  font-size: 13px;
+  border-radius: 6px;
+  border: 1px solid #d0d7de;
+  background: #fff;
+}
+
+.tp-plan-template-actions {
+  display: flex;
+  gap: 4px;
+}
+
+/* Plan übertragen Overlay */
+.tp-copyplan-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tp-copyplan-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tp-copyplan-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.tp-copyplan-date {
+  flex: 0 0 150px;
+  padding: 4px 6px;
+  font-size: 13px;
+  border-radius: 6px;
+  border: 1px solid #d0d7de;
+}
+
+.tp-copyplan-divider {
+  margin: 4px 0;
+  border: none;
+  border-top: 1px solid #e0e0e0;
+}
+
+.tp-copyplan-legend {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 11px;
+  color: #555;
+}
+
+.tp-copyplan-legend .tp-day-status {
+  margin-right: 2px;
+}
+
+.tp-copyplan-athlete-list {
+  max-height: 260px;
+  overflow: auto;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 4px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tp-copyplan-athlete-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  padding: 2px 0;
+}
+
+.tp-copyplan-athlete-row input[type="checkbox"] {
+  transform: scale(1.1);
+}
+
+.tp-copyplan-athlete-row .tp-day-status {
+  width: 10px;
+  height: 10px;
+}
+
+.tp-copyplan-athlete-name {
+  flex: 1;
+}
+
+/* Mobile Anpassungen */
+@media (max-width: 600px) {
+  .tp-plan-template-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .tp-copyplan-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .tp-copyplan-date {
+    width: 100%;
+  }
 }

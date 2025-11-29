@@ -62,7 +62,7 @@ export default function TrainingsplanungHeader(props: Props) {
   return (
     <div className="tp-header">
       <div className="tp-header-row">
-        <div className="tp-field">
+        <div className="tp-field tp-field--athlete">
           <label className="tp-label">Athlet</label>
           <select
             className="tp-input"

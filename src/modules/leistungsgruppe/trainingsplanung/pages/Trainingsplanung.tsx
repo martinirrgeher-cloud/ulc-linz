@@ -17,6 +17,9 @@ import {
   DayStatus,
   AnmeldungData,
 } from "../../anmeldung/services/AnmeldungStore";
+
+import type { PlanTemplate } from "../services/TrainingsplanungStore";
+
 import TrainingsplanungHeader from "../components/TrainingsplanungHeader";
 import BlockList from "../components/BlockList";
 import ExercisePicker, { ManualExerciseDraft, PickerTab } from "../components/ExercisePicker";
@@ -26,6 +29,9 @@ import {
   PlanDay,
   PlanItem,
   PlanBlock,
+  createTemplateFromDay,
+  applyTemplateToAthleteDay,
+  cloneDay,
 } from "../services/TrainingsplanungStore";
 import {
   listExercisesLite,
@@ -40,6 +46,21 @@ type AthleteLite = {
 };
 
 type StatusMap = Record<string, DayStatus>;
+
+function statusBadgeClassForCopy(s: DayStatus | undefined | null): string {
+  if (!s) return "tp-day-status none";
+
+  const v = s.toString().toUpperCase();
+
+  if (v === "YES") return "tp-day-status yes"; // JA -> grün
+  if (v === "NO") return "tp-day-status no"; // NEIN -> rot
+
+  // MAYBE / ? -> grau (Outline)
+  if (v === "MAYBE" || v === "?") return "tp-day-status none";
+
+  // Fallback: grau
+  return "tp-day-status none";
+}
 
 function formatAthleteName(a: Athlete): string {
   if (a.firstName || a.lastName) {
@@ -159,6 +180,21 @@ export default function TrainingsplanungPage() {
   const [blockTemplatesError, setBlockTemplatesError] = useState<string | null>(null);
   const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
 
+  const [planTemplates, setPlanTemplates] = useState<PlanTemplate[]>([]);
+  const [selectedPlanTemplateId, setSelectedPlanTemplateId] = useState<string>("");
+
+  const [planTemplateDialogOpen, setPlanTemplateDialogOpen] = useState(false);
+  const [planTemplateIdInput, setPlanTemplateIdInput] = useState("");
+  const [planTemplateLabelInput, setPlanTemplateLabelInput] = useState("");
+  const [planTemplateDescriptionInput, setPlanTemplateDescriptionInput] =
+    useState("");
+
+  const [copyOverlayOpen, setCopyOverlayOpen] = useState(false);
+  const [copyTargetDateISO, setCopyTargetDateISO] = useState<string>("");
+  const [copyTargetAthletes, setCopyTargetAthletes] = useState<
+    Record<string, boolean>
+  >({});
+
   // -------------------------------------------------------
   // Initial: Athleten, Pläne, Anmeldung, Katalog laden
   // -------------------------------------------------------
@@ -190,11 +226,14 @@ export default function TrainingsplanungPage() {
           const data = await loadPlans();
           if (!cancelled) {
             setPlansByAthlete(data.plansByAthlete ?? {});
+            const templates = data.templates ? Object.values(data.templates) : [];
+            setPlanTemplates(templates);
           }
         } catch (err) {
           console.error("Trainingsplanung: loadPlans fehlgeschlagen", err);
           if (!cancelled) {
             setPlansByAthlete({});
+            setPlanTemplates([]);
           }
         }
 
@@ -305,6 +344,20 @@ export default function TrainingsplanungPage() {
     const norm = ensureDay(base);
     setCurrentDay(norm);
   }, [plansByAthlete, selectedAthleteId, dateISO]);
+
+  // -------------------------------------------------------
+  // Standard: Blöcke beim Laden zunächst eingeklappt
+  // -------------------------------------------------------
+  useEffect(() => {
+    if (!currentDay || !currentDay.blocks || !currentDay.blockOrder) return;
+    setCollapsedBlocks((prev) => {
+      const next: Record<string, boolean> = {};
+      for (const id of currentDay.blockOrder!) {
+        next[id] = prev[id] ?? true;
+      }
+      return next;
+    });
+  }, [currentDay]);
 
   // -------------------------------------------------------
   // Hilfsfunktionen zum Speichern
@@ -741,6 +794,167 @@ export default function TrainingsplanungPage() {
     });
   }
 
+
+  // -------------------------------------------------------
+  // Plan-Templates (ganzer Tagesplan)
+  // -------------------------------------------------------
+  async function handleApplyPlanTemplate() {
+    if (!selectedAthleteId) return;
+    if (!selectedPlanTemplateId) return;
+
+    try {
+      setSaving(true);
+      await applyTemplateToAthleteDay({
+        templateId: selectedPlanTemplateId,
+        athleteId: selectedAthleteId,
+        dateISO,
+      });
+      const data = await loadPlans();
+      setPlansByAthlete(data.plansByAthlete ?? {});
+      const templates = data.templates ? Object.values(data.templates) : [];
+      setPlanTemplates(templates);
+
+      const byAth = data.plansByAthlete[selectedAthleteId] ?? {};
+      const base = byAth[dateISO] ?? null;
+      const norm = ensureDay(base);
+      setCurrentDay(norm);
+    } catch (err) {
+      console.error("Trainingsplanung: Plan-Template anwenden fehlgeschlagen", err);
+      setError("Fehler beim Anwenden des Plan-Templates.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleCreatePlanTemplate() {
+    if (!selectedAthleteId) return;
+    const label = planTemplateLabelInput.trim();
+    if (!label) return;
+
+    const templateId =
+      planTemplateIdInput.trim() ||
+      label.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9\-]/g, "");
+
+    const day = ensureDay(currentDay);
+
+    try {
+      setSaving(true);
+      // aktuellen Stand sicherheitshalber speichern
+      await saveDay(selectedAthleteId, dateISO, day);
+      await createTemplateFromDay({
+        templateId,
+        label,
+        description: planTemplateDescriptionInput.trim() || undefined,
+        athleteId: selectedAthleteId,
+        dateISO,
+      });
+
+      const data = await loadPlans();
+      setPlansByAthlete(data.plansByAthlete ?? {});
+      const templates = data.templates ? Object.values(data.templates) : [];
+      setPlanTemplates(templates);
+
+      setPlanTemplateDialogOpen(false);
+      setPlanTemplateIdInput("");
+      setPlanTemplateLabelInput("");
+      setPlanTemplateDescriptionInput("");
+    } catch (err) {
+      console.error("Trainingsplanung: Plan-Template anlegen fehlgeschlagen", err);
+      setError("Fehler beim Anlegen des Plan-Templates.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  // -------------------------------------------------------
+  // Plan übertragen (ganzer Tag)
+  // -------------------------------------------------------
+  function openCopyOverlay() {
+    setCopyTargetDateISO(dateISO);
+    setCopyTargetAthletes({});
+    setCopyOverlayOpen(true);
+  }
+
+  function toggleCopyTargetAthlete(id: string) {
+    setCopyTargetAthletes((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
+  }
+
+  function getDayStatusForAthlete(athleteId: string, iso: string): DayStatus | null {
+    if (!anmeldung) return null;
+    const statuses = anmeldung.statuses ?? {};
+    const key = `${athleteId}:${iso}`;
+    const val = statuses[key];
+    if (typeof val === "string" || val === null) {
+      return val as DayStatus;
+    }
+    return null;
+  }
+
+  function getCopyStatusClass(athleteId: string, iso: string): string {
+    const s = getDayStatusForAthlete(athleteId, iso);
+    return statusBadgeClassForCopy(s);
+  }
+
+  async function handleCopyToOtherDay() {
+    if (!selectedAthleteId) return;
+    if (!copyTargetDateISO) return;
+    if (copyTargetDateISO === dateISO) return;
+    if (!currentDay) return;
+
+    const base = ensureDay(currentDay);
+    const cloned = cloneDay(base, {
+      sourceAthleteId: selectedAthleteId,
+      sourceDateISO: dateISO,
+    });
+
+    const normalized = normalizeOrder(cloned);
+
+    setPlansByAthlete((prevPlans) => {
+      const copy = { ...prevPlans };
+      const inner = { ...(copy[selectedAthleteId] ?? {}) };
+      inner[copyTargetDateISO] = normalized;
+      copy[selectedAthleteId] = inner;
+      return copy;
+    });
+
+    await saveDay(selectedAthleteId, copyTargetDateISO, normalized);
+  }
+
+  async function handleCopyToOtherAthletes() {
+    if (!currentDay) return;
+
+    const targetIds = Object.entries(copyTargetAthletes)
+      .filter(([, checked]) => checked)
+      .map(([id]) => id)
+      .filter((id) => id && id !== selectedAthleteId);
+
+    if (targetIds.length === 0) return;
+
+    const base = ensureDay(currentDay);
+
+    setPlansByAthlete((prevPlans) => {
+      const copy = { ...prevPlans };
+      for (const aid of targetIds) {
+        const cloned = cloneDay(base, {
+          sourceAthleteId: selectedAthleteId,
+          sourceDateISO: dateISO,
+        });
+        const normalized = normalizeOrder(cloned);
+        const inner = { ...(copy[aid] ?? {}) };
+        inner[dateISO] = normalized;
+        copy[aid] = inner;
+        // Speichern pro Athlet (Best-Effort, async)
+        saveDay(aid, dateISO, normalized);
+      }
+      return copy;
+    });
+
+    setCopyOverlayOpen(false);
+  }
+
   // -------------------------------------------------------
   // UI Hilfsdaten
   // -------------------------------------------------------
@@ -815,6 +1029,57 @@ export default function TrainingsplanungPage() {
               >
                 Block aus Vorlage
               </button>
+              <button
+                type="button"
+                className="tp-btn"
+                onClick={openCopyOverlay}
+                disabled={!currentDay}
+              >
+                Plan übertragen
+              </button>
+            </div>
+
+            <div className="tp-plan-template-row">
+              <div className="tp-plan-template-select">
+                <select
+                  value={selectedPlanTemplateId}
+                  onChange={(e) => setSelectedPlanTemplateId(e.target.value)}
+                >
+                  <option value="">Plan-Template wählen …</option>
+                  {planTemplates.map((tpl) => (
+                    <option key={tpl.id} value={tpl.id}>
+                      {tpl.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="tp-plan-template-actions">
+                <button
+                  type="button"
+                  className="tp-btn tp-btn-mini"
+                  onClick={handleApplyPlanTemplate}
+                  disabled={!selectedPlanTemplateId || saving}
+                >
+                  Template anwenden
+                </button>
+                <button
+                  type="button"
+                  className="tp-btn tp-btn-mini"
+                  onClick={() => {
+                    if (!selectedAthlete) return;
+                    setPlanTemplateLabelInput(
+                      planTemplateLabelInput ||
+                        `Plan ${selectedAthlete.name} ${dateISO}`
+                    );
+                    setPlanTemplateIdInput("");
+                    setPlanTemplateDescriptionInput("");
+                    setPlanTemplateDialogOpen(true);
+                  }}
+                  disabled={saving}
+                >
+                  Als Template speichern
+                </button>
+              </div>
             </div>
           </div>
 
@@ -850,6 +1115,164 @@ export default function TrainingsplanungPage() {
       )}
 
       {/* Übungsauswahl als Overlay / Drawer */}
+
+      {planTemplateDialogOpen && (
+        <div className="tp-picker-overlay">
+          <div className="tp-picker-dialog">
+            <div className="tp-picker-header">
+              <div className="tp-picker-tabs">
+                <div className="tp-picker-tab tp-picker-tab--active">
+                  Plan-Template speichern
+                </div>
+              </div>
+              <button
+                type="button"
+                className="tp-picker-close"
+                onClick={() => setPlanTemplateDialogOpen(false)}
+              >
+                ✕
+              </button>
+            </div>
+            <div className="tp-picker-body">
+              <div className="tp-picker-label">Bezeichnung*</div>
+              <input
+                type="text"
+                className="tp-picker-search"
+                value={planTemplateLabelInput}
+                onChange={(e) => setPlanTemplateLabelInput(e.target.value)}
+                placeholder="z.B. LG Montag Technik"
+              />
+              <div className="tp-picker-label">Technischer Name (optional)</div>
+              <input
+                type="text"
+                className="tp-picker-search"
+                value={planTemplateIdInput}
+                onChange={(e) => setPlanTemplateIdInput(e.target.value)}
+                placeholder="z.B. lg-montag-technik"
+              />
+              <div className="tp-picker-label">Beschreibung (optional)</div>
+              <textarea
+                className="tp-block-notes-input"
+                value={planTemplateDescriptionInput}
+                onChange={(e) => setPlanTemplateDescriptionInput(e.target.value)}
+                rows={3}
+              />
+              <div className="tp-picker-footer">
+                <button
+                  type="button"
+                  className="tp-btn"
+                  onClick={() => setPlanTemplateDialogOpen(false)}
+                >
+                  Abbrechen
+                </button>
+                <button
+                  type="button"
+                  className="tp-btn tp-btn-primary"
+                  onClick={handleCreatePlanTemplate}
+                  disabled={saving || !planTemplateLabelInput.trim()}
+                >
+                  Speichern
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {copyOverlayOpen && (
+        <div className="tp-picker-overlay">
+          <div className="tp-picker-dialog">
+            <div className="tp-picker-header">
+              <div className="tp-picker-tabs">
+                <div className="tp-picker-tab tp-picker-tab--active">
+                  Plan übertragen
+                </div>
+              </div>
+              <button
+                type="button"
+                className="tp-picker-close"
+                onClick={() => setCopyOverlayOpen(false)}
+              >
+                ✕
+              </button>
+            </div>
+            <div className="tp-picker-body tp-copyplan-body">
+              <div className="tp-copyplan-section">
+                <div className="tp-picker-label">
+                  Auf anderen Tag für {selectedAthlete?.name}
+                </div>
+                <div className="tp-copyplan-row">
+                  <input
+                    type="date"
+                    className="tp-copyplan-date"
+                    value={copyTargetDateISO || dateISO}
+                    onChange={(e) => setCopyTargetDateISO(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    className="tp-btn tp-btn-mini"
+                    onClick={handleCopyToOtherDay}
+                    disabled={!copyTargetDateISO || copyTargetDateISO === dateISO}
+                  >
+                    Auf diesen Tag kopieren
+                  </button>
+                </div>
+              </div>
+
+              <hr className="tp-copyplan-divider" />
+
+              <div className="tp-copyplan-section">
+                <div className="tp-picker-label">
+                  Auf andere Athleten für {dateISO}
+                </div>
+                <div className="tp-copyplan-legend">
+                  <span className="tp-day-status yes" /> Ja
+                  <span className="tp-day-status no" /> Nein
+                  <span className="tp-day-status none" /> ? / keine Angabe
+                </div>
+                <div className="tp-copyplan-athlete-list">
+                  {athletes
+                    .filter((a) => a.active !== false)
+                    .map((a) => (
+                      <label key={a.id} className="tp-copyplan-athlete-row">
+                        <input
+                          type="checkbox"
+                          checked={!!copyTargetAthletes[a.id]}
+                          onChange={() => toggleCopyTargetAthlete(a.id)}
+                        />
+                        <span
+                          className={getCopyStatusClass(a.id, dateISO)}
+                          aria-hidden="true"
+                        />
+                        <span className="tp-copyplan-athlete-name">
+                          {a.name}
+                          {a.id === selectedAthleteId ? " (aktuell)" : ""}
+                        </span>
+                      </label>
+                    ))}
+                </div>
+                <div className="tp-picker-footer">
+                  <button
+                    type="button"
+                    className="tp-btn"
+                    onClick={() => setCopyOverlayOpen(false)}
+                  >
+                    Abbrechen
+                  </button>
+                  <button
+                    type="button"
+                    className="tp-btn tp-btn-primary"
+                    onClick={handleCopyToOtherAthletes}
+                  >
+                    Auf ausgewählte Athleten kopieren
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <ExercisePicker
         open={pickerOpen}
         onClose={closePicker}
