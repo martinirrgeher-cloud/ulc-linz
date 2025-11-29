@@ -54,20 +54,9 @@ function TrainingsplanungHeader(props: Props) {
 
   return (
     <div className="tp-header">
-      {/* KW-Navigation oberhalb des Athleten-Dropdowns */}
-      <div className="tp-week-nav">
-        <button type="button" className="tp-btn" onClick={onPrevWeek}>
-          ◀
-        </button>
-        <div className="tp-week-label">{weekLabel}</div>
-        <button type="button" className="tp-btn" onClick={onNextWeek}>
-          ▶
-        </button>
-      </div>
-
+      {/* Athleten-Auswahl oberhalb der KW-Navigation */}
       <div className="tp-header-row">
-        <div className="tp-field tp-field--athlete">
-          <label className="tp-label">Athlet</label>
+        
           <select
             className="tp-input"
             value={selectedAthleteId}
@@ -81,9 +70,21 @@ function TrainingsplanungHeader(props: Props) {
               </option>
             ))}
           </select>
-        </div>
+        
       </div>
 
+      {/* KW-Navigation direkt unter dem Athleten-Dropdown */}
+      <div className="tp-week-nav">
+        <button type="button" className="tp-btn" onClick={onPrevWeek}>
+          ◀
+        </button>
+        <div className="tp-week-label">{weekLabel}</div>
+        <button type="button" className="tp-btn" onClick={onNextWeek}>
+          ▶
+        </button>
+      </div>
+
+      {/* Tage-Leiste direkt unter der KW-Zeile */}
       <div className="tp-days-row">
         {weekDates.map((d) => {
           const isSelected = d === dateISO;

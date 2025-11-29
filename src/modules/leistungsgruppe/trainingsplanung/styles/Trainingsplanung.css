@@ -1,4 +1,4 @@
-/* src/modules/leistungsgruppe/trainingsplanung/styles/Trainingsplanung.css */
+
 
 .tp-root {
   padding: 8px;
@@ -15,7 +15,7 @@
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
 }
 
 .tp-header-row {
@@ -23,6 +23,7 @@
   gap: 8px;
   flex-wrap: nowrap;
   align-items: flex-end;
+  margin-bottom: 0;
 }
 
 .tp-field {
@@ -61,7 +62,7 @@
   display: flex;
   flex-direction: row;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: center;
   gap: 0.5rem;
 }
 
@@ -69,14 +70,14 @@
   padding: 2px 8px;
   border-radius: 999px;
   background: #f0f4ff;
-  font-size: 12px;
+  font-size: 14px;
   white-space: nowrap;
 }
 
 .tp-days-row {
   display: flex;
-  flex-wrap: wrap;
   gap: 4px;
+  overflow-x: auto;
   padding-bottom: 2px;
 }
 
@@ -146,7 +147,6 @@
   color: #444;
 }
 
-/* Body / Blöcke */
 
 .tp-body {
   display: flex;
@@ -211,19 +211,8 @@
   font-size: 14px;
 }
 
-.tp-item-comment-toggle {
-  margin-top: 4px;
-}
 
-.tp-btn-link {
-  border: none;
-  background: transparent;
-  padding: 0;
-  font-size: 12px;
-  color: #1976d2;
-  cursor: pointer;
-  text-decoration: underline;
-}
+
 
 .tp-btn-link:hover {
   background: transparent;
@@ -245,7 +234,6 @@
   color: #555;
 }
 
-/* Block Cards */
 
 .tp-blocks {
   display: flex;
@@ -303,30 +291,13 @@
   color: #555;
 }
 
-.tp-label-small {
-  font-size: 11px;
-  color: #555;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.tp-input-small {
-  max-width: 70px;
-}
-
 .tp-input-xs {
   width: 60px;
   min-width: 0;
 }
 
-/* Block Body */
 
-.tp-block-body {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
+
 
 .tp-block-items {
   display: flex;
@@ -352,28 +323,14 @@
   gap: 4px;
 }
 
-.tp-item-title {
-  font-weight: 600;
-  font-size: 14px;
-}
-
 .tp-item-name {
   font-weight: 600;
   font-size: 14px;
 }
 
-.tp-item-groups {
-  font-size: 11px;
-  color: #666;
-}
-
 .tp-item-meta {
   font-size: 11px;
   color: #666;
-}
-
-.tp-item-comment {
-  margin-top: 2px;
 }
 
 .tp-item-target {
@@ -399,21 +356,6 @@
   margin-top: 4px;
 }
 
-.tp-textarea {
-  border-radius: 8px;
-  border: 1px solid #ccc;
-  font-size: 13px;
-  padding: 6px 9px;
-  min-height: 56px;
-  resize: vertical;
-}
-
-.tp-block-footer {
-  display: flex;
-  justify-content: flex-end;
-}
-
-/* Picker Overlay */
 
 .tp-picker-overlay {
   position: fixed;
@@ -507,26 +449,11 @@
   gap: 2px;
 }
 
-.tp-picker-item-title {
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.tp-picker-item-groups {
-  font-size: 11px;
-  color: #666;
-}
-
 .tp-picker-item-meta {
   font-size: 11px;
   color: #555;
 }
 
-.tp-picker-manual-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 6px;
-}
 
 .tp-picker-footer {
   display: flex;
@@ -534,7 +461,6 @@
   margin-top: 6px;
 }
 
-/* Buttons usw. bereits oben definiert */
 
 .tp-item-name-row {
   display: flex;
@@ -562,11 +488,6 @@
   flex: 1;
 }
 
-.tp-item-target-label {
-  font-size: 12px;
-  color: #555;
-}
-
 .tp-item-math-sign {
   font-size: 14px;
   padding: 0 2px;
@@ -586,7 +507,6 @@
   justify-content: center;
 }
 
-/* Responsive */
 
 @media (max-width: 720px) {
   .tp-block-card {
@@ -625,7 +545,7 @@
   }
 }
 
-/* Blockvorlagen-Auswahl */
+
 .tp-picker-title {
   font-weight: 600;
   font-size: 13px;
@@ -691,7 +611,6 @@
   font-size: 12px;
 }
 
-/* Plan-Template Zeile */
 .tp-plan-template-row {
   margin-top: 6px;
   display: flex;
@@ -718,7 +637,7 @@
   gap: 4px;
 }
 
-/* Plan übertragen Overlay */
+
 .tp-copyplan-body {
   display: flex;
   flex-direction: column;
@@ -795,7 +714,207 @@
   flex: 1;
 }
 
-/* Mobile Anpassungen */
+.tp-field-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.tp-block-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.tp-btn-sm {
+  padding: 0.15rem 0.4rem;
+  font-size: 0.8rem;
+  line-height: 1.2;
+}
+
+.tp-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 0.15rem 0.3rem;
+  background-color: #f8f8f8;
+  cursor: pointer;
+}
+
+.tp-icon-button:hover {
+  background-color: #f0f0f0;
+}
+
+.tp-note-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid #ccc;
+  padding: 0.1rem 0.4rem;
+  font-size: 0.8rem;
+  background-color: #f8f8f8;
+  cursor: pointer;
+  opacity: 0.7;
+}
+
+.tp-note-btn--active {
+  border-color: #3b82f6; 
+  background-color: #e0edff;
+  opacity: 1;
+}
+
+.tp-picker-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 0.25rem;
+}
+
+
+.tp-block-notes-input {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  padding: 0.25rem 0.4rem;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  margin-top: 0.25rem;
+}
+
+.tp-block-notes-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  padding: 0.25rem 0.4rem;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  margin-top: 0.25rem;
+  resize: vertical;
+  min-height: 2.2rem;
+}
+
+.tp-item-comment-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  padding: 0.25rem 0.4rem;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  margin-top: 0.25rem;
+  resize: vertical;
+  min-height: 2.2rem;
+}
+
+.tp-picker-label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+  opacity: 0.8;
+}
+
+.tp-picker-search {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.3rem 0.4rem;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  font: inherit;
+  margin-bottom: 0.5rem;
+}
+
+.tp-picker-subtitle {
+  font-size: 0.85rem;
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+  opacity: 0.9;
+}
+
+.tp-picker-empty {
+  font-size: 0.9rem;
+  opacity: 0.7;
+  padding: 0.5rem 0;
+  text-align: center;
+}
+
+.tp-picker-manual {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px dashed #ddd;
+}
+
+.tp-picker-note {
+  margin-top: 0.5rem;
+}
+
+.tp-picker-tab--active {
+  border-bottom: 2px solid #3b82f6;
+  font-weight: 600;
+}
+
+.tp-picker-item-name {
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.tp-picker-item-stars {
+  display: inline-flex;
+  gap: 0.1rem;
+  font-size: 0.8rem;
+  opacity: 0.8;
+}
+
+.tp-picker-item-target {
+  font-size: 0.8rem;
+  opacity: 0.9;
+}
+
+.tp-header {
+  justify-content: flex-start;
+}
+
+.tp-header .tp-days-row {
+  margin-top: 4px;
+}
+
+.tp-days-row {
+  display: flex;
+  flex-wrap: wrap;      
+  gap: 4px;
+  padding-top: 4px;
+  padding-bottom: 2px;
+  overflow-x: visible;  
+}
+
+.tp-header {
+  gap: 2px;              /* war 4px */
+  padding-top: 6px;      /* leicht reduziert */
+  padding-bottom: 6px;
+}
+
+/* Zeile mit Athlet: kein extra Abstand nach unten */
+.tp-header-row {
+  margin-bottom: 0;
+}
+
+/* KW-Zeile direkt unter dem Athletenfeld, ohne Extra-Abstand */
+.tp-week-nav {
+  margin-top: 2px;       /* explizit klein halten */
+  margin-bottom: 0;
+}
+
+/* Tage-Leiste direkt unter der KW-Zeile */
+.tp-days-row {
+  margin-top: 2px;
+}
+
 @media (max-width: 600px) {
   .tp-plan-template-row {
     flex-direction: column;
@@ -810,4 +929,32 @@
   .tp-copyplan-date {
     width: 100%;
   }
+
+  .tp-header {
+    gap: 4px;            
+  }
+
+  .tp-header-row {
+    margin-bottom: 0;
+  }
+
+  .tp-week-nav {
+    justify-content: center;  
+  }
+
+  .tp-days-row {
+    display: flex;
+    flex-wrap: wrap;     
+    gap: 4px;
+    overflow-x: visible; 
+    margin-top: 2px;
+  }
+
+  
+  .tp-day-button {
+    flex: 0 0 auto;      
+    min-width: 56px;     
+  }
 }
+
+ 
