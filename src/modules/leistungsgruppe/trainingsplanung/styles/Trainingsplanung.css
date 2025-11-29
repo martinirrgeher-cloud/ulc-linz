@@ -61,9 +61,8 @@
   display: flex;
   flex-direction: row;
   align-items: center;
+  justify-content: flex-end;
   gap: 0.5rem;
-  margin-left: auto;
-  flex-shrink: 0;
 }
 
 .tp-week-label {
@@ -71,13 +70,13 @@
   border-radius: 999px;
   background: #f0f4ff;
   font-size: 12px;
-white-space: nowrap;
+  white-space: nowrap;
 }
 
 .tp-days-row {
   display: flex;
+  flex-wrap: wrap;
   gap: 4px;
-  overflow-x: auto;
   padding-bottom: 2px;
 }
 
@@ -537,6 +536,16 @@ white-space: nowrap;
 
 /* Buttons usw. bereits oben definiert */
 
+.tp-item-name-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.tp-item-comment-inline {
+  flex: 1 1 120px;
+}
 
 .tp-item-header {
   display: flex;
@@ -654,6 +663,33 @@ white-space: nowrap;
   color: #666;
 }
 
+.tp-template-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.tp-template-details {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px dashed #ddd;
+  font-size: 11px;
+  color: #555;
+}
+
+.tp-template-details-list {
+  margin: 0;
+  padding-left: 16px;
+}
+
+.tp-template-toggle {
+  border: none;
+  background: transparent;
+  padding: 2px 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
 
 /* Plan-Template Zeile */
 .tp-plan-template-row {

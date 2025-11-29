@@ -14,37 +14,30 @@ type Props = {
   athletes: AthleteLite[];
   selectedAthleteId: string;
   onChangeAthlete: (id: string) => void;
-
   weekLabel: string;
   weekDates: string[];
-  dateISO: string;
-  onChangeDate: (dateISO: string) => void;
-
+  dateISO: string | null;
+  onChangeDate: (d: string) => void;
   statusMap: StatusMap;
   anmeldungLoading: boolean;
-
   onPrevWeek: () => void;
   onNextWeek: () => void;
 };
 
-function statusBadgeClass(s: DayStatus | undefined | null): string {
-  if (!s) return "tp-day-status none";
+const WEEKDAY_NAMES = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
 
-  const v = s.toString().toUpperCase();
+function statusBadgeClass(status: DayStatus | null | undefined): string {
+  if (!status) return "tp-day-status none";
 
-  if (v === "YES") return "tp-day-status yes";     // JA -> grün
-  if (v === "NO") return "tp-day-status no";       // NEIN -> rot
+  const v = status.toString().toUpperCase();
+  if (v === "YES") return "tp-day-status yes";
+  if (v === "NO") return "tp-day-status no";
+  if (v === "MAYBE") return "tp-day-status maybe";
 
-  // MAYBE / ? -> grau (Outline, keine Füllung)
-  if (v === "MAYBE" || v === "?") return "tp-day-status none";
-
-  // Fallback: grau
   return "tp-day-status none";
 }
 
-const WEEKDAY_NAMES = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
-
-export default function TrainingsplanungHeader(props: Props) {
+function TrainingsplanungHeader(props: Props) {
   const {
     athletes,
     selectedAthleteId,
@@ -61,6 +54,17 @@ export default function TrainingsplanungHeader(props: Props) {
 
   return (
     <div className="tp-header">
+      {/* KW-Navigation oberhalb des Athleten-Dropdowns */}
+      <div className="tp-week-nav">
+        <button type="button" className="tp-btn" onClick={onPrevWeek}>
+          ◀
+        </button>
+        <div className="tp-week-label">{weekLabel}</div>
+        <button type="button" className="tp-btn" onClick={onNextWeek}>
+          ▶
+        </button>
+      </div>
+
       <div className="tp-header-row">
         <div className="tp-field tp-field--athlete">
           <label className="tp-label">Athlet</label>
@@ -78,11 +82,6 @@ export default function TrainingsplanungHeader(props: Props) {
             ))}
           </select>
         </div>
-        <div className="tp-field tp-week-nav">
-  <button type="button" className="tp-btn" onClick={onPrevWeek}>◀</button>
-  <div className="tp-week-label">{weekLabel}</div>
-  <button type="button" className="tp-btn" onClick={onNextWeek}>▶</button>
-</div>
       </div>
 
       <div className="tp-days-row">
@@ -96,10 +95,7 @@ export default function TrainingsplanungHeader(props: Props) {
           const statusKey = selectedAthleteId ? `${selectedAthleteId}:${d}` : "";
           const status = statusKey ? statusMap[statusKey] ?? null : null;
 
-          const cls = [
-            "tp-day-button",
-            isSelected ? "selected" : "",
-          ]
+          const cls = ["tp-day-button", isSelected ? "selected" : ""]
             .filter(Boolean)
             .join(" ");
 
@@ -124,3 +120,5 @@ export default function TrainingsplanungHeader(props: Props) {
     </div>
   );
 }
+
+export default TrainingsplanungHeader;

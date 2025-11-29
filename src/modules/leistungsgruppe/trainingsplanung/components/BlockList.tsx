@@ -72,9 +72,10 @@ const BlockList: React.FC<BlockListProps> = ({
       {blocks.map((blk) => {
         const isCollapsed = !!collapsedBlocks[blk.id];
         const hasBlockNotes = (blk.notes ?? "").trim() !== "";
-        const blockNotesState = visibleBlockNotes[blk.id];
         const blockNotesVisible =
-          blockNotesState === undefined ? hasBlockNotes : blockNotesState;
+          visibleBlockNotes[blk.id] === undefined
+            ? hasBlockNotes
+            : visibleBlockNotes[blk.id];
 
         return (
           <div key={blk.id} className="tp-block-card">
@@ -146,7 +147,7 @@ const BlockList: React.FC<BlockListProps> = ({
                     className="tp-btn tp-btn-lg tp-btn-danger"
                     onClick={() => onRemoveBlock(blk.id)}
                   >
-                    Entfernen
+                    ✕
                   </button>
                 </div>
               </div>
@@ -185,44 +186,65 @@ const BlockList: React.FC<BlockListProps> = ({
                     const commentVisible =
                       commentState === undefined ? hasComment : commentState;
 
-
                     return (
                       <div key={iid} className="tp-item-row">
                         <div className="tp-item-main">
                           <div className="tp-item-header">
-                             <div className="tp-item-name-meta">
-                               <div className="tp-item-name-row">
-                                 <div className="tp-item-name">
-                                   {it.nameCache ?? it.exerciseId}
-                                 </div>
-                                 <button
-                                   type="button"
-                                   className={
-                                     "tp-icon-button tp-note-btn" +
-                                     (hasComment ? " tp-note-btn--active" : "")
-                                   }
-                                   title={
-                                     commentVisible
-                                       ? "Kommentar ausblenden"
-                                       : hasComment
-                                       ? "Kommentar anzeigen"
-                                       : "Kommentar hinzufügen"
-                                   }
-                                   onClick={() =>
-                                     setOpenItemComments((prev) => ({
-                                       ...prev,
-                                       [iid]: !commentVisible,
-                                     }))
-                                   }
-                                 >
-                                   {hasComment ? "🗒️" : "📝"}
-                                 </button>
-                               </div>
-                               <div className="tp-item-meta">
-                                 {it.groupCache?.haupt}
-                                 {it.groupCache?.unter ? ` / ${it.groupCache.unter}` : ""}
-                               </div>
-                             </div>
+                            <div className="tp-item-name-meta">
+                              {/* Name + Icon + Kommentar INLINE */}
+                              <div className="tp-item-name-row">
+                                <div className="tp-item-name">
+                                  {it.nameCache ?? it.exerciseId}
+                                </div>
+                                <button
+                                  type="button"
+                                  className={
+                                    "tp-icon-button tp-note-btn" +
+                                    (hasComment
+                                      ? " tp-note-btn--active"
+                                      : "")
+                                  }
+                                  title={
+                                    commentVisible
+                                      ? "Kommentar ausblenden"
+                                      : hasComment
+                                      ? "Kommentar anzeigen"
+                                      : "Kommentar hinzufügen"
+                                  }
+                                  onClick={() =>
+                                    setOpenItemComments((prev) => ({
+                                      ...prev,
+                                      [iid]: !commentVisible,
+                                    }))
+                                  }
+                                >
+                                  {hasComment ? "🗒️" : "📝"}
+                                </button>
+                                {commentVisible && (
+                                  <div className="tp-item-comment-inline">
+                                    <textarea
+                                      className="tp-input tp-item-comment-textarea"
+                                      value={it.comment ?? ""}
+                                      onChange={(e) =>
+                                        onUpdateItemComment(
+                                          iid,
+                                          e.target.value
+                                        )
+                                      }
+                                      onInput={handleTextareaAutoResize}
+                                      placeholder="Kommentar / Hinweis"
+                                      rows={1}
+                                    />
+                                  </div>
+                                )}
+                              </div>
+                              <div className="tp-item-meta">
+                                {it.groupCache?.haupt}
+                                {it.groupCache?.unter
+                                  ? ` / ${it.groupCache.unter}`
+                                  : ""}
+                              </div>
+                            </div>
                             <div className="tp-item-actions">
                               <button
                                 type="button"
@@ -308,25 +330,9 @@ const BlockList: React.FC<BlockListProps> = ({
                               placeholder="Einheit"
                             />
                           </div>
-                          {commentVisible && (
-                            <div className="tp-item-comment">
-                              <textarea
-                                className="tp-input tp-item-comment-textarea"
-                                value={it.comment ?? ""}
-                                onChange={(e) =>
-                                  onUpdateItemComment(iid, e.target.value)
-                                }
-                                onInput={handleTextareaAutoResize}
-                                placeholder="Kommentar / Hinweis"
-                                rows={1}
-                              />
-                            </div>
-                          )}
-
                         </div>
                       </div>
                     );
-
                   })}
                 </div>
               </>
