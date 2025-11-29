@@ -321,6 +321,7 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+  width: 100%;
 }
 
 .tp-item-name {
@@ -650,12 +651,6 @@
   gap: 6px;
 }
 
-.tp-copyplan-row {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-}
-
 .tp-copyplan-date {
   flex: 0 0 150px;
   padding: 4px 6px;
@@ -915,13 +910,131 @@
   margin-top: 2px;
 }
 
+.tp-copyplan-date {
+  font-size: 0.9rem;
+  white-space: nowrap;      /* zwingt in eine Zeile */
+  padding: 0.15rem 0;       /* Höhe reduzieren */
+}
+
+/* Athletennamen im Overlay größer und prominenter */
+.tp-copyplan-athlete-name {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.tp-item-target {
+  margin-top: 0.25rem;
+}
+
+.tp-item-target-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
+/* Links: Sätze / Menge / Einheit kompakt nebeneinander */
+.tp-item-target-main {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+}
+
+/* Rechts: nur das Notiz-Icon */
+.tp-item-comment-toggle {
+  margin-left: auto;
+}
+
+/* Kommentar-Zeile unter der Menge, volle Breite */
+.tp-item-comment {
+  margin-top: 0.25rem;
+}
+
+/* Rechts: Kommentar-Button + Textarea */
+.tp-item-comment-container {
+  margin-left: auto;
+  display: flex;
+  flex-direction: column;    /* Button in der Zeile, Textarea darunter */
+  align-items: flex-end;     /* Button rechts ausrichten */
+  gap: 0.25rem;
+  max-width: 60%;            /* bei Bedarf anpassen */
+}
+
+/* Kommentar-Textarea unterhalb, volle Breite innerhalb des Containers */
+.tp-item-comment-textarea {
+  width: 100%;
+  min-height: 1.9rem;
+  resize: vertical;
+  font-size: 0.85rem;
+  padding: 0.2rem 0.3rem;
+}
+
+.tp-item-target {
+  margin-top: 0.25rem;
+  width: 100%;
+}
+
+.tp-item-target-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
+/* Links: Sätze / Menge / Einheit */
+.tp-item-target-main {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+}
+
+/* Notiz-Icon rechts */
+.tp-item-comment-toggle {
+  margin-left: auto;
+}
+
+/* Kommentarzeile unterhalb, volle Kartenbreite */
+.tp-item-comment {
+  margin-top: 0.25rem;
+  width: 100%;
+}
+
+.tp-item-comment-textarea {
+  width: 100%;
+  min-height: 1.9rem;
+  resize: vertical;
+  font-size: 0.85rem;
+  padding: 0.2rem 0.3rem;
+}
+
+/* Overlay "Plan übertragen": Datumszeile einzeilig und kompakt */
+
+.tp-copyplan-date {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap; /* Label nicht umbrechen */
+}
+
+/* Date-Input etwas niedriger und einzeilig */
+.tp-copyplan-date input[type="date"],
+.tp-copyplan-date .tp-input {
+  height: 2.1rem;
+  padding: 0 0.4rem;
+  line-height: 1.2;
+}
+
+/* Basis: Plan-übertragen-Zeilen kompakt und einzeilig */
+.tp-copyplan-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+  flex-wrap: nowrap; /* verhindert Umbrechen innerhalb der Zeile */
+}
+
 @media (max-width: 600px) {
   .tp-plan-template-row {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .tp-copyplan-row {
     flex-direction: column;
     align-items: stretch;
   }
@@ -932,6 +1045,11 @@
 
   .tp-header {
     gap: 4px;            
+  }
+
+  .tp-copyplan-row {
+    flex-direction: row;      /* NICHT column */
+    align-items: center;      /* NICHT stretch */
   }
 
   .tp-header-row {

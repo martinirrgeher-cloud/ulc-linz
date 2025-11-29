@@ -177,9 +177,11 @@ const BlockList: React.FC<BlockListProps> = ({
                       Übung“ hinzufügen.
                     </div>
                   )}
+
                   {blk.itemOrder.map((iid) => {
                     const it = currentDay.items?.[iid];
                     if (!it) return null;
+
                     const t = it.target ?? {};
                     const hasComment = (it.comment ?? "").trim() !== "";
                     const commentState = openItemComments[iid];
@@ -191,52 +193,10 @@ const BlockList: React.FC<BlockListProps> = ({
                         <div className="tp-item-main">
                           <div className="tp-item-header">
                             <div className="tp-item-name-meta">
-                              {/* Name + Icon + Kommentar INLINE */}
                               <div className="tp-item-name-row">
                                 <div className="tp-item-name">
                                   {it.nameCache ?? it.exerciseId}
                                 </div>
-                                <button
-                                  type="button"
-                                  className={
-                                    "tp-icon-button tp-note-btn" +
-                                    (hasComment
-                                      ? " tp-note-btn--active"
-                                      : "")
-                                  }
-                                  title={
-                                    commentVisible
-                                      ? "Kommentar ausblenden"
-                                      : hasComment
-                                      ? "Kommentar anzeigen"
-                                      : "Kommentar hinzufügen"
-                                  }
-                                  onClick={() =>
-                                    setOpenItemComments((prev) => ({
-                                      ...prev,
-                                      [iid]: !commentVisible,
-                                    }))
-                                  }
-                                >
-                                  {hasComment ? "🗒️" : "📝"}
-                                </button>
-                                {commentVisible && (
-                                  <div className="tp-item-comment-inline">
-                                    <textarea
-                                      className="tp-input tp-item-comment-textarea"
-                                      value={it.comment ?? ""}
-                                      onChange={(e) =>
-                                        onUpdateItemComment(
-                                          iid,
-                                          e.target.value
-                                        )
-                                      }
-                                      onInput={handleTextareaAutoResize}
-                                      placeholder="Kommentar / Hinweis"
-                                      rows={1}
-                                    />
-                                  </div>
-                                )}
                               </div>
                               <div className="tp-item-meta">
                                 {it.groupCache?.haupt}
@@ -273,62 +233,122 @@ const BlockList: React.FC<BlockListProps> = ({
                             </div>
                           </div>
 
+                          {/* Ziel / Menge in einer Zeile */}
                           <div className="tp-item-target">
-                            <input
-                              className="tp-input tp-input-xs tp-item-input-small"
-                              value={
-                                t.sets != null && !Number.isNaN(t.sets)
-                                  ? String(t.sets)
-                                  : t.reps != null && !Number.isNaN(t.reps)
-                                  ? String(t.reps)
-                                  : ""
-                              }
-                              onChange={(e) => {
-                                const raw = e.target.value.trim();
-                                const num =
-                                  raw === ""
-                                    ? null
-                                    : Number(raw.replace(",", "."));
-                                onUpdateItemTarget(iid, {
-                                  sets: num,
-                                  reps: num,
-                                });
-                              }}
-                              placeholder="Sätze"
-                            />
-                            <span className="tp-item-math-sign">x</span>
-                            <input
-                              className="tp-input tp-input-xs tp-item-input-small"
-                              value={
-                                t.menge != null && !Number.isNaN(t.menge)
-                                  ? String(t.menge)
-                                  : ""
-                              }
-                              onChange={(e) =>
-                                onUpdateItemTarget(iid, {
-                                  menge:
-                                    e.target.value.trim() === ""
-                                      ? null
-                                      : Number(
-                                          e.target.value.replace(",", ".")
-                                        ),
-                                })
-                              }
-                              placeholder="Menge"
-                            />
-                            <input
-                              className="tp-input tp-input-xs tp-item-input-small"
-                              value={t.einheit ?? ""}
-                              onChange={(e) =>
-                                onUpdateItemTarget(iid, {
-                                  einheit:
-                                    e.target.value.trim() === ""
-                                      ? null
-                                      : e.target.value.trim(),
-                                })
-                              }
-                              placeholder="Einheit"
-                            />
+                            <div className="tp-item-target-row">
+                              <div className="tp-item-target-main">
+                                {/* Serien/Sätze */}
+                                <input
+                                  className="tp-input tp-input-xs tp-item-input-small"
+                                  value={
+                                    t.sets != null &&
+                                    !Number.isNaN(t.sets)
+                                      ? String(t.sets)
+                                      : ""
+                                  }
+                                  onChange={(e) => {
+                                    const raw = e.target.value.trim();
+                                    const num =
+                                      raw === ""
+                                        ? null
+                                        : Number(
+                                            raw.replace(",", ".")
+                                          );
+                                    onUpdateItemTarget(iid, {
+                                      sets: num,
+                                    });
+                                  }}
+                                  placeholder="Sätze"
+                                />
+                                <span className="tp-item-math-sign">x</span>
+
+                                {/* Menge / Wiederholungen / Distanz-Wert */}
+                                <input
+                                  className="tp-input tp-input-xs tp-item-input-small"
+                                  value={
+                                    t.menge != null &&
+                                    !Number.isNaN(t.menge)
+                                      ? String(t.menge)
+                                      : ""
+                                  }
+                                  onChange={(e) =>
+                                    onUpdateItemTarget(iid, {
+                                      menge:
+                                        e.target.value.trim() === ""
+                                          ? null
+                                          : Number(
+                                              e.target.value
+                                                .trim()
+                                                .replace(",", ".")
+                                            ),
+                                    })
+                                  }
+                                  placeholder="Menge"
+                                />
+
+                                {/* Einheit (z.B. m, s, Wdh.) */}
+                                <input
+                                  className="tp-input tp-input-xs tp-item-input-small"
+                                  value={t.einheit ?? ""}
+                                  onChange={(e) =>
+                                    onUpdateItemTarget(iid, {
+                                      einheit:
+                                        e.target.value.trim() === ""
+                                          ? null
+                                          : e.target.value.trim(),
+                                    })
+                                  }
+                                  placeholder="Einheit"
+                                />
+                              </div>
+
+                              {/* Notiz-Icon rechts in derselben Zeile */}
+                              <div className="tp-item-comment-toggle">
+                                <button
+                                  type="button"
+                                  className={
+                                    "tp-icon-button tp-note-btn" +
+                                    (hasComment
+                                      ? " tp-note-btn--active"
+                                      : "")
+                                  }
+                                  title={
+                                    commentVisible
+                                      ? "Kommentar ausblenden"
+                                      : hasComment
+                                      ? "Kommentar anzeigen"
+                                      : "Kommentar hinzufügen"
+                                  }
+                                  onClick={() =>
+                                    setOpenItemComments((prev) => ({
+                                      ...prev,
+                                      [iid]: !commentVisible,
+                                    }))
+                                  }
+                                >
+                                  {hasComment ? "🗒️" : "📝"}
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Kommentar-Zeile unterhalb, volle Breite */}
+                            {commentVisible && (
+                              <div className="tp-item-comment">
+                                <textarea
+                                  className="tp-input tp-item-comment-textarea"
+                                  value={it.comment ?? ""}
+                                  onChange={(e) =>
+                                    onUpdateItemComment(
+                                      iid,
+                                      e.target.value
+                                    )
+                                  }
+                                  onInput={handleTextareaAutoResize}
+                                  placeholder="Kommentar / Hinweis"
+                                  rows={1}
+                                />
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
