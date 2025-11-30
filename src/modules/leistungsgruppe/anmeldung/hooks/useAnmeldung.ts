@@ -1,9 +1,9 @@
 // src/modules/leistungsgruppe/anmeldung/hooks/useAnmeldung.ts
 import { useCallback, useEffect, useState } from "react";
-import type { DayStatus, AnmeldungData } from "../services/AnmeldungStore";
+import type { DayStatus } from "../services/AnmeldungStore";
 import { loadAnmeldung, saveAnmeldung } from "../services/AnmeldungStore";
 import { loadAthleten } from "@/modules/athleten/services/AthletenStore";
-import { startOfISOWeek } from "../utils/weekUtils";
+import { startOfISOWeek, getDaysOfWeek } from "../utils/weekUtils";
 
 type Athlete = {
   id: string;
@@ -16,29 +16,14 @@ type Athlete = {
   info?: string;
 };
 
-export interface UseAnmeldungResult {
-  athletes: Athlete[];
-  statuses: Record<string, DayStatus>;
-  notes: Record<string, string>;
-  weekStart: Date;
-  setWeekStart: (d: Date) => void;
-  setStatus: (athleteId: string, isoDate: string, status: DayStatus) => void;
-  setNote: (athleteId: string, isoDate: string, note: string) => void;
-  loading: boolean;
-  error: string | null;
-  saving: boolean;
-  saveError: string | null;
-  saveAll: () => Promise<void>;
-  reload: () => Promise<void>;
-}
-
-export function useAnmeldung(): UseAnmeldungResult {
+export function useAnmeldung() {
   const [athletes, setAthletes] = useState<Athlete[]>([]);
   const [statuses, setStatuses] = useState<Record<string, DayStatus>>({});
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [weekStart, setWeekStart] = useState<Date>(() => startOfISOWeek(new Date()));
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+
   const [saving, setSaving] = useState<boolean>(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
@@ -63,17 +48,15 @@ export function useAnmeldung(): UseAnmeldungResult {
         return 0;
       });
 
-      const data: AnmeldungData = anmeldung || { statuses: {}, notes: {} };
-
       setAthletes(safeAthletes);
       setStatuses(
-        data && data.statuses && typeof data.statuses === "object"
-          ? data.statuses
+        anmeldung && anmeldung.statuses && typeof anmeldung.statuses === "object"
+          ? anmeldung.statuses
           : {}
       );
       setNotes(
-        data && data.notes && typeof data.notes === "object"
-          ? data.notes
+        anmeldung && anmeldung.notes && typeof anmeldung.notes === "object"
+          ? anmeldung.notes
           : {}
       );
     } catch (err) {
@@ -125,22 +108,50 @@ export function useAnmeldung(): UseAnmeldungResult {
     []
   );
 
+  /**
+   * Speichert den aktuellen Stand und ergänzt für die aktuelle Woche
+   * explizit alle fehlenden Tage mit Status "NO".
+   *
+   * Dadurch werden in der Übersicht wirklich alle Tage (auch die
+   * "nie angeklickten") als NEIN im JSON gespeichert und können z.B.
+   * rot markiert werden.
+   */
   const saveAll = useCallback(async () => {
     setSaving(true);
     setSaveError(null);
     try {
+      const baseWeek = weekStart ?? startOfISOWeek(new Date());
+      const days = getDaysOfWeek(baseWeek);
+
+      // Kopie des aktuellen Status-Objekts, auf dem wir arbeiten
+      const nextStatuses: Record<string, DayStatus> = { ...statuses };
+
+      const aths = Array.isArray(athletes) ? athletes : [];
+      for (const a of aths) {
+        if (!a.id) continue;
+        for (const d of days) {
+          const key = `${a.id}:${d.isoDate}`;
+          if (nextStatuses[key] == null) {
+            // bisher nie gesetzt -> explizit als "NO" speichern
+            nextStatuses[key] = "NO";
+          }
+        }
+      }
+
       await saveAnmeldung({
-        statuses,
+        statuses: nextStatuses,
         notes,
       });
+
+      // Lokalen State aktualisieren, damit UI mit dem gespeicherten Stand übereinstimmt
+      setStatuses(nextStatuses);
     } catch (err) {
       console.error("useAnmeldung: Speichern fehlgeschlagen", err);
       setSaveError("Fehler beim Speichern der Anmeldedaten.");
-      throw err;
     } finally {
       setSaving(false);
     }
-  }, [statuses, notes]);
+  }, [weekStart, statuses, notes, athletes]);
 
   return {
     athletes,

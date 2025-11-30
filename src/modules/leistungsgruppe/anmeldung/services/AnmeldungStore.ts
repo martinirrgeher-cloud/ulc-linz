@@ -1,5 +1,5 @@
 // src/modules/leistungsgruppe/anmeldung/services/AnmeldungStore.ts
-import { downloadJson, overwriteJsonContent } from "@/lib/drive/DriveClientCore";
+import { downloadJson, overwriteJsonContent, patchJsonContent } from "@/lib/drive/DriveClientCore";
 import { IDS } from "@/config/driveIds";
 
 export type DayStatus = "YES" | "NO" | "MAYBE" | null;
@@ -7,6 +7,21 @@ export type DayStatus = "YES" | "NO" | "MAYBE" | null;
 export interface AnmeldungData {
   statuses: Record<string, DayStatus>;
   notes: Record<string, string>;
+}
+
+export interface AnmeldungDelta {
+  /**
+   * Nur die geänderten Status-Werte.
+   * Key: `${athleteId}:${isoDate}`.
+   * Wert: Neuer Status oder null zum Löschen.
+   */
+  statuses?: Record<string, DayStatus | null>;
+  /**
+   * Nur die geänderten Notizen.
+   * Key: `${athleteId}:${isoDate}`.
+   * Wert: Neue Notiz (trimmed) oder null/"" zum Löschen.
+   */
+  notes?: Record<string, string | null>;
 }
 
 function getFileId(): string {
@@ -38,10 +53,51 @@ export async function loadAnmeldung(): Promise<AnmeldungData> {
 }
 
 /**
- * Speichert den kompletten Anmeldestatus (alle Athleten / alle Tage).
- * Änderungen werden nur mehr über die expliziten Speichern-Buttons
- * in der UI ausgelöst.
+ * Vollständiges Speichern des Datensatzes.
+ * Wird vom Anmeldungs-Hook beim manuellen Speichern verwendet.
  */
 export async function saveAnmeldung(data: AnmeldungData): Promise<void> {
   await overwriteJsonContent(getFileId(), data);
+}
+
+/**
+ * Delta-Speichern bleibt für eventuelle andere Aufrufer erhalten.
+ * Aktuell wird es vom Anmeldungs-Hook nicht verwendet.
+ */
+export async function saveAnmeldungDelta(delta: AnmeldungDelta): Promise<void> {
+  const fileId = getFileId();
+
+  await patchJsonContent(fileId, (prev: any) => {
+    const base = prev && typeof prev === "object" ? prev : {};
+    const prevStatuses: Record<string, DayStatus> =
+      base.statuses && typeof base.statuses === "object" ? { ...base.statuses } : {};
+    const prevNotes: Record<string, string> =
+      base.notes && typeof base.notes === "object" ? { ...base.notes } : {};
+
+    if (delta.statuses) {
+      for (const [key, value] of Object.entries(delta.statuses)) {
+        if (value == null) {
+          delete prevStatuses[key];
+        } else {
+          prevStatuses[key] = value;
+        }
+      }
+    }
+
+    if (delta.notes) {
+      for (const [key, value] of Object.entries(delta.notes)) {
+        if (value == null || value === "") {
+          delete prevNotes[key];
+        } else {
+          prevNotes[key] = value;
+        }
+      }
+    }
+
+    return {
+      ...base,
+      statuses: prevStatuses,
+      notes: prevNotes,
+    };
+  });
 }
