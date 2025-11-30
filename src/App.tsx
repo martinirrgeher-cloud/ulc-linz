@@ -21,6 +21,7 @@ const Trainingsplanung = React.lazy(() => import("@/modules/leistungsgruppe/trai
 const Trainingsdoku   = React.lazy(() => import("@/modules/leistungsgruppe/trainingsdoku/pages/Trainingsdoku"));
 const Trainingsbloecke = React.lazy(() => import("@/modules/leistungsgruppe/trainingsbloecke/pages/Trainingsbloecke"));
 const TrainingsplanUebersicht = React.lazy(() => import("@/modules/leistungsgruppe/trainingsplanung/pages/TrainingsplanUebersicht"));
+const Benutzerverwaltung = React.lazy(() => import("@/modules/benutzerverwaltung/Benutzerverwaltung"));
 
 function Page({ title, children }: { title: string; children: React.ReactNode }) {
   return <AppShell title={title} showSettings>{children}</AppShell>;
@@ -139,6 +140,17 @@ export default function App() {
     </RequireAuth>
   }
 />
+
+<Route
+              path="/admin/benutzer"
+              element={
+                <RequireAuth requiredModules={["BENUTZER"]}>
+                  <Page title="Benutzerverwaltung">
+                    <Benutzerverwaltung />
+                  </Page>
+                </RequireAuth>
+              }
+            />
 
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

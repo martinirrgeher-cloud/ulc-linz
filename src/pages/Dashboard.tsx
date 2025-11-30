@@ -10,8 +10,13 @@ export default function Dashboard() {
   const { user } = useAuth();
 
   const visibleModules: AppModule[] = useMemo(() => {
-    if (!user?.modules?.length) return MODULES;
-    return MODULES.filter(m => user.modules.includes(m.key));
+    const base = !user?.modules?.length
+      ? MODULES
+      : MODULES.filter(m => user.modules.includes(m.key));
+
+    return [...base].sort((a, b) =>
+      a.title.localeCompare(b.title, "de", { sensitivity: "base" })
+    );
   }, [user]);
 
   const Logo = <img src={logo} alt="Logo" className="dashboard-logo" />;

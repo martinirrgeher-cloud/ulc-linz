@@ -10,7 +10,9 @@ export type ModuleKey =
   | "TRAININGSPLAN"
   | "TRAININGSDOKU"
   | "TRAININGSBLOECKE"
-  | "TRAININGSPLAN-UEBERSICHT";
+  | "TRAININGSPLAN-UEBERSICHT"
+  | "BENUTZER"
+  ;
 
 export type AppModule = {
   key: ModuleKey;
@@ -84,6 +86,13 @@ export const MODULES: AppModule[] = [
     description: "Abarbeiten & Analyse",
     route: "/leistungsgruppe/doku",
     icon: <Dumbbell size={18} />,
+  },
+  {
+    key: "BENUTZER",
+    title: "Benutzerverwaltung",
+    description: "Benutzer & Rechte",
+    route: "/admin/benutzer",
+    icon: <Users size={18} />,
   },
 ];
 
