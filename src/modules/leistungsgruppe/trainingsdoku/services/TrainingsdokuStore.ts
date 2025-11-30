@@ -1,109 +1,274 @@
-import {
-  downloadJson,
-  overwriteJsonContent,
-  uploadFile,
-  list,
-} from "@/lib/drive/DriveClientCore";
+// src/modules/leistungsgruppe/trainingsdoku/services/TrainingsdokuStore.ts
+import { downloadJson, overwriteJsonContent } from "@/lib/drive/DriveClientCore";
 import { IDS } from "@/config/driveIds";
-
-export type DokuItemStatus = "AS_PLANNED" | "MODIFIED" | "SKIPPED" | "EXTRA";
+import type {
+  PlanDay,
+  PlanTarget,
+  PlanBlockType,
+} from "../../trainingsplanung/services/TrainingsplanungStore";
 
 /**
- * Gemeinsame Struktur für geplante/Ist-Werte in der Doku.
- * Alle Felder sind optional, damit alte Einträge weiterhin gültig bleiben.
+ * Zielwerte in der Dokumentation entsprechen 1:1 den Zielwerten im Plan.
+ * Wir referenzieren den Typ, um keine Dopplungen zu erzeugen.
  */
-export type DokuLoad = {
-  reps?: number | null;
-  menge?: number | null;
-  einheit?: string | null;
+export type TrainingDocTarget = PlanTarget;
 
-  gewicht?: number | null;
-  strecke?: number | null;
-  dauerMin?: number | null;
+export type TrainingDocItemStatus =
+  | "planned"            // noch nicht bearbeitet
+  | "completedAsPlanned" // mit einem Tap bestätigt
+  | "completedModified"  // erledigt, aber Umfang geändert
+  | "partial"            // nur teilweise absolviert
+  | "skipped";           // ausgelassen
 
-  // optional: Serien (für spätere Auswertungen)
-  sets?: number | null;
-};
+export type TrainingDocIssueTag =
+  | "PAIN"
+  | "TOO_HARD"
+  | "TOO_EASY"
+  | "TIME"
+  | "OTHER";
 
-export type ExecutionQuality = "SEHR_GUT" | "GUT" | "OK" | "SCHLECHT";
-export type PerceivedDifficulty = "EASY" | "MEDIUM" | "HARD";
+/**
+ * Ein dokumentierter Übungs-Eintrag für einen Athleten an einem Tag.
+ */
+export type TrainingDocItem = {
+  /** Stabile ID des Doku-Eintrags; bei aus dem Plan übernommenen Übungen ident mit planItemId. */
+  id: string;
 
-export type DokuItem = {
+  /** Referenz auf das Plan-Item, falls die Übung aus dem Plan stammt. */
+  planItemId?: string;
+
+  /** Kennzeichnung, ob der Eintrag aus dem Plan kommt oder vom Athleten ergänzt wurde. */
+  source: "plan" | "added";
+
+  /** Referenz auf die Übung aus dem Katalog. */
   exerciseId: string;
-  status: DokuItemStatus;
 
-  // Planwerte, abgeleitet aus Trainingsplanung (target)
-  planned: DokuLoad;
+  /** Caches für die Anzeige – wie in der Planung. */
+  nameCache?: string;
+  groupCache?: { haupt?: string; unter?: string };
 
-  // Tatsächlich erledigte Werte
-  actual?: DokuLoad;
+  /** Geplanter Umfang (Snapshot aus dem Plan zum Doku-Zeitpunkt). */
+  plannedTarget?: TrainingDocTarget | null;
 
-  // allgemeiner Kommentar (z.B. „Muskelkater“, „zu leicht“)
-  comment?: string;
+  /** Tatsächlich absolvierter Umfang. */
+  actualTarget?: TrainingDocTarget | null;
 
-  // NEU: Qualität der Ausführung
-  executionQuality?: ExecutionQuality;       // z.B. „SEHR_GUT“, „OK“, „SCHLECHT“
-  perceivedDifficulty?: PerceivedDifficulty; // z.B. „EASY“, „MEDIUM“, „HARD“
-  executionComment?: string;                 // kurze Technik-Bemerkung
+  /** Status des Eintrags. */
+  status: TrainingDocItemStatus;
+
+  /** Freitext-Notiz des Athleten zu dieser Übung. */
+  note?: string;
+
+  /** Kategorisiertes Problem/Feedback. */
+  issueTag?: TrainingDocIssueTag;
 };
 
-export type DokuDay = {
-  startedAt?: string;
-  finishedAt?: string;
-  items: DokuItem[];
-  summary?: any; // wird im Hook berechnet (wie bisher)
+/**
+ * Ein dokumentierter Block (z.B. Aufwärmen, Hauptteil).
+ */
+export type TrainingDocBlock = {
+  /** Stabile ID des Blocks; bei Plan-Blöcken ident mit der Block-ID aus dem Plan. */
+  id: string;
+  title: string;
+  type?: PlanBlockType | null;
+
+  /** Reihenfolge der Items in diesem Block. */
+  itemOrder: string[];
+
+  /** Items als Map nach ID. */
+  items: Record<string, TrainingDocItem>;
 };
 
-export type DokuData = {
-  version: number;
+export type TrainingDayOverall = {
+  /** Subjektive Belastung, z.B. 1–10. */
+  rpe?: number;
+  /** Allgemeine Stimmung. */
+  mood?: "great" | "ok" | "tired";
+  /** Freitext-Kommentar zum gesamten Training. */
+  note?: string;
+};
+
+/**
+ * Dokumentation eines Tages für einen Athleten.
+ * Identifiziert durch athleteId + dateISO.
+ */
+export type TrainingDayDoc = {
   athleteId: string;
-  logsByDate: Record<string, DokuDay>;
+  /** Datum im Format YYYY-MM-DD. */
+  dateISO: string;
+
+  blocks: TrainingDocBlock[];
+
+  /** Zusammenfassendes Feedback zum Trainingstag. */
+  overall?: TrainingDayOverall;
+
+  /** Optional: Referenz auf die Plan-Version (falls wir das später benötigen). */
+  basedOnPlanVersion?: string;
+
+  createdAt: string;
+  updatedAt: string;
 };
 
-const folderId = (): string => {
-  const id = import.meta.env.VITE_DRIVE_TRAININGSDOKU_FOLDER_ID as string | undefined;
-  if (!id) {
-    throw new Error("VITE_DRIVE_TRAININGSDOKU_FOLDER_ID ist nicht gesetzt");
+/**
+ * Alle Dokumentationen eines Athleten, indexiert nach Datum.
+ */
+export type DocsByDay = Record<string, TrainingDayDoc>;
+
+/**
+ * Root-Objekt der Trainingsdokumentation – analog zur Trainingsplanung.
+ * Wir bleiben bei einer zentralen JSON-Datei auf Google Drive.
+ */
+export type TrainingsdokuData = {
+  version: number;
+  updatedAt: string;
+  docsByAthlete: Record<string, DocsByDay>;
+};
+
+const CURRENT_VERSION = 1;
+
+const fileId = () =>
+  IDS.TRAININGSDOKU_FILE_ID ||
+  import.meta.env.VITE_DRIVE_TRAININGSDOKU_FILE_ID;
+
+/**
+ * Leeres Root-Objekt erstellen.
+ */
+function emptyData(): TrainingsdokuData {
+  return {
+    version: CURRENT_VERSION,
+    updatedAt: new Date().toISOString(),
+    docsByAthlete: {},
+  };
+}
+
+/**
+ * Normalisiert geladene Daten und hebt sie bei Bedarf auf die aktuelle Version.
+ * (Derzeit nur Version 1 – Platzhalter für spätere Migrationen.)
+ */
+function normalize(data: TrainingsdokuData | null): TrainingsdokuData {
+  if (!data) {
+    return emptyData();
   }
-  return id;
-};
 
-async function resolveFileId(athleteId: string): Promise<string> {
-  const name = `trainingsdoku_${athleteId}.json`;
-  const res = await list({
-    q: `'${folderId()}' in parents and name='${name}' and trashed=false`,
-  });
-  if (res?.files?.[0]?.id) return res.files[0].id;
+  // Falls wir später Versionen einführen, können wir hier migrieren.
+  if (!data.version) {
+    data.version = 1;
+  }
 
-  // neu anlegen
-  const blob = new Blob(
-    [
-      JSON.stringify(
-        { version: 1, athleteId, logsByDate: {} },
-        null,
-        2
-      ),
-    ],
-    { type: "application/json" }
-  );
-  const up = await uploadFile({
-    name,
-    mimeType: "application/json",
-    blob,
-    parentFolderId: folderId(),
-  });
-  return up.fileId!;
+  if (!data.docsByAthlete) {
+    data.docsByAthlete = {};
+  }
+
+  return {
+    ...data,
+    updatedAt: data.updatedAt || new Date().toISOString(),
+  };
 }
 
-export async function loadDoku(athleteId: string): Promise<DokuData> {
-  const id = await resolveFileId(athleteId);
-  return (await downloadJson<DokuData>(id))!;
+/**
+ * Lädt alle Trainingsdoku-Daten aus Google Drive.
+ */
+export async function loadDocs(): Promise<TrainingsdokuData> {
+  const raw = await downloadJson<TrainingsdokuData>(fileId());
+  return normalize(raw ?? null);
 }
 
-export async function saveDoku(
+/**
+ * Lädt die Dokumentation für einen Athleten und ein Datum.
+ */
+export async function loadDayDoc(
   athleteId: string,
-  data: DokuData
-): Promise<void> {
-  const id = await resolveFileId(athleteId);
-  await overwriteJsonContent(id, data);
+  dateISO: string
+): Promise<TrainingDayDoc | null> {
+  const data = await loadDocs();
+  return data.docsByAthlete[athleteId]?.[dateISO] ?? null;
+}
+
+/**
+ * Schreibt ein Tagesdoku-Objekt zurück nach Google Drive.
+ * Wird für Autosave und vollständige Bestätigung verwendet.
+ */
+export async function upsertDayDoc(doc: TrainingDayDoc): Promise<void> {
+  const data = await loadDocs();
+
+  if (!data.docsByAthlete[doc.athleteId]) {
+    data.docsByAthlete[doc.athleteId] = {};
+  }
+
+  const existing = data.docsByAthlete[doc.athleteId][doc.dateISO];
+
+  const merged: TrainingDayDoc = {
+    ...existing,
+    ...doc,
+    blocks: doc.blocks,
+    createdAt: existing?.createdAt ?? doc.createdAt ?? new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+
+  data.docsByAthlete[doc.athleteId][doc.dateISO] = merged;
+  data.updatedAt = new Date().toISOString();
+
+  await overwriteJsonContent(fileId(), data as any);
+}
+
+/**
+ * Hilfsfunktion:
+ * Erstellt eine initiale Dokumentations-Struktur aus einem PlanDay.
+ * Diese Funktion erzeugt nur das In-Memory-Objekt und speichert noch nicht.
+ */
+export function createInitialDocFromPlan(
+  athleteId: string,
+  dateISO: string,
+  plan: PlanDay
+): TrainingDayDoc {
+  const blocks: TrainingDocBlock[] = [];
+
+  const blockOrder = plan.blockOrder ?? [];
+  const blocksMap = plan.blocks ?? {};
+
+  for (const blockId of blockOrder) {
+    const planBlock = blocksMap[blockId];
+    if (!planBlock) continue;
+
+    const items: Record<string, TrainingDocItem> = {};
+    const itemOrder: string[] = [];
+
+    for (const itemId of planBlock.itemOrder) {
+      const planItem = plan.items[itemId];
+      if (!planItem) continue;
+
+      const docItem: TrainingDocItem = {
+        id: itemId,
+        planItemId: itemId,
+        source: "plan",
+        exerciseId: planItem.exerciseId,
+        nameCache: planItem.nameCache,
+        groupCache: planItem.groupCache,
+        plannedTarget: planItem.target ?? planItem.default,
+        actualTarget: null,
+        status: "planned",
+      };
+
+      items[itemId] = docItem;
+      itemOrder.push(itemId);
+    }
+
+    blocks.push({
+      id: planBlock.id,
+      title: planBlock.title,
+      type: planBlock.type ?? null,
+      itemOrder,
+      items,
+    });
+  }
+
+  const now = new Date().toISOString();
+
+  return {
+    athleteId,
+    dateISO,
+    blocks,
+    createdAt: now,
+    updatedAt: now,
+  };
 }
