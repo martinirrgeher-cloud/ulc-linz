@@ -31,7 +31,20 @@ function nextStatus(s: Status): Status {
 }
 
 export default function AnmeldungPage() {
-  const { athletes, statuses, notes, setStatus, setNote, weekStart, setWeekStart, error, loading } = useAnmeldung();
+  const {
+    athletes,
+    statuses,
+    notes,
+    setStatus,
+    setNote,
+    weekStart,
+    setWeekStart,
+    error,
+    loading,
+    saving,
+    saveError,
+    saveAll,
+  } = useAnmeldung();
 
   const safeWeekStart = weekStart ?? new Date();
   const days = useMemo(() => getDaysOfWeek(safeWeekStart), [safeWeekStart]);
@@ -137,6 +150,37 @@ export default function AnmeldungPage() {
           })}
         </div>
       )}
+
+      <div className="anm-save-row">
+        {saveError && <div className="anm-error">{saveError}</div>}
+        <button
+          className="anm-btn ghost"
+          disabled={saving}
+          onClick={async () => {
+            try {
+              await saveAll();
+            } catch {
+              // Fehleranzeige über saveError
+            }
+          }}
+        >
+          {saving ? "Speichern ..." : "Speichern und auf Seite bleiben"}
+        </button>
+        <button
+          className="anm-btn primary"
+          disabled={saving}
+          onClick={async () => {
+            try {
+              await saveAll();
+              window.history.back();
+            } catch {
+              // Bei Fehler auf Seite bleiben
+            }
+          }}
+        >
+          {saving ? "Speichern ..." : "Speichern und zurück zum Hauptmenü"}
+        </button>
+      </div>
 
       {/* Notiz-Overlay */}
       {selected && noteForDay && (

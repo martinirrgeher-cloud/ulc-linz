@@ -160,3 +160,24 @@
 /* Intensiveres Blau bei vorhandener Notiz */
 .note-icon.filled { background: #e0efff !important; border-color: #9cc3ff !important; color: #0a5fb4 !important; }
 
+
+/* Speichern-Buttons unter der Anmeldetabelle */
+.anm-save-row {
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #e0e0e0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.anm-save-row .anm-error {
+  flex: 1 1 100%;
+  color: #b00020;
+  font-size: 0.9rem;
+}
+
+.anm-btn.secondary {
+  background: #f5f5f5;
+}
