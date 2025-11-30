@@ -964,13 +964,26 @@ export default function TrainingsplanungPage() {
   );
 
   const blocks: PlanBlock[] = useMemo(() => {
-    if (!currentDay || !currentDay.blocks || !currentDay.blockOrder) return [];
-    return currentDay.blockOrder
-      .map((id) => currentDay.blocks![id])
-      .filter((b): b is PlanBlock => Boolean(b));
-  }, [currentDay]);
+  if (!currentDay || !currentDay.blocks || !currentDay.blockOrder) return [];
+  return currentDay.blockOrder
+    .map((id) => currentDay.blocks![id])
+    .filter((b): b is PlanBlock => Boolean(b));
+}, [currentDay]);
 
-  const isBusy = loading || saving;
+// Summe der Block-Minuten für den aktuellen Tag
+const totalBlockMinutes = useMemo(() => {
+  if (!currentDay || !currentDay.blocks || !currentDay.blockOrder) return 0;
+
+  return currentDay.blockOrder.reduce((sum, id) => {
+    const blk = currentDay.blocks![id];
+    const val = blk?.targetDurationMin;
+
+    if (val == null || Number.isNaN(val)) return sum;
+    return sum + Number(val);
+  }, 0);
+}, [currentDay]);
+
+const isBusy = loading || saving;
 
   const handlePrevWeek = () => {
     setWeekStartISO(
@@ -1011,7 +1024,7 @@ export default function TrainingsplanungPage() {
         <div className="tp-body">
           <div className="tp-body-header">
             <div className="tp-body-title">
-              Trainingsplan für {selectedAthlete.name} – {dateISO}
+              Trainingsplan für {selectedAthlete.name} – {dateISO} – {totalBlockMinutes} Minuten
             </div>
             <div className="tp-body-actions">
               <button

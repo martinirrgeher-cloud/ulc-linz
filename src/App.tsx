@@ -20,7 +20,7 @@ const DriveDebug = lazy(() => import("@/pages/DriveDebug"));
 const Trainingsplanung = React.lazy(() => import("@/modules/leistungsgruppe/trainingsplanung/pages/Trainingsplanung"));
 const Trainingsdoku   = React.lazy(() => import("@/modules/leistungsgruppe/trainingsdoku/pages/Trainingsdoku"));
 const Trainingsbloecke = React.lazy(() => import("@/modules/leistungsgruppe/trainingsbloecke/pages/Trainingsbloecke"));
-
+const TrainingsplanUebersicht = React.lazy(() => import("@/modules/leistungsgruppe/trainingsplanung/pages/TrainingsplanUebersicht"));
 
 function Page({ title, children }: { title: string; children: React.ReactNode }) {
   return <AppShell title={title} showSettings>{children}</AppShell>;
@@ -107,6 +107,16 @@ export default function App() {
               element={
                 <RequireAuth requiredModules={["TRAININGSPLAN"]}>
                   <Page title="Trainingsplanung"><Trainingsplanung /></Page>
+                </RequireAuth>
+              }
+            />
+<Route
+              path="/leistungsgruppe/plan-uebersicht"
+              element={
+                <RequireAuth requiredModules={["TRAININGSPLAN-UEBERSICHT"]}>
+                  <Page title="Trainingsplan Übersicht">
+                    <TrainingsplanUebersicht />
+                  </Page>
                 </RequireAuth>
               }
             />

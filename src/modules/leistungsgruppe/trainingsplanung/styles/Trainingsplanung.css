@@ -1033,6 +1033,60 @@
   flex-wrap: nowrap; /* verhindert Umbrechen innerhalb der Zeile */
 }
 
+/* Trainingsplan Übersicht */
+.tp-overview-wrapper {
+  background: #ffffff;
+  border-radius: 10px;
+  padding: 8px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  overflow-x: auto;
+}
+
+.tp-overview-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.tp-overview-table th,
+.tp-overview-table td {
+  border: 1px solid #e0e0e0;
+  padding: 4px 6px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.tp-overview-athlete-col {
+  text-align: left;
+  min-width: 140px;
+}
+
+.tp-overview-athlete-cell {
+  text-align: left;
+  font-weight: 500;
+}
+
+/* Hintergrundfarben je nach Anmeldestatus */
+.tp-overview-cell.yes {
+  background: #c8e6c9; /* grünlich für JA */
+}
+
+.tp-overview-cell.no {
+  background: #ffcdd2; /* rötlich für NEIN */
+}
+
+.tp-overview-cell.maybe {
+  background: #eeeeee; /* grau für ? */
+}
+
+.tp-overview-cell.none {
+  background: #fafafa;
+}
+
+.tp-overview-table td.tp-overview-athlete-cell {
+  text-align: left;
+}
+
 @media (max-width: 600px) {
   .tp-plan-template-row {
     flex-direction: column;

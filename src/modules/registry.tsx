@@ -9,7 +9,8 @@ export type ModuleKey =
   | "ATHLETEN"
   | "TRAININGSPLAN"
   | "TRAININGSDOKU"
-  | "TRAININGSBLOECKE";
+  | "TRAININGSBLOECKE"
+  | "TRAININGSPLAN-UEBERSICHT";
 
 export type AppModule = {
   key: ModuleKey;
@@ -62,6 +63,14 @@ export const MODULES: AppModule[] = [
     route: "/leistungsgruppe/plan",
     icon: <Dumbbell size={18} />,
   },
+  {
+    key: "TRAININGSPLAN-UEBERSICHT",
+    title: "Trainingsplan Übersicht",
+    description: "Gesamtdauer je Athlet/Tag",
+    route: "/leistungsgruppe/plan-uebersicht",
+    icon: <LayoutList size={18} />,
+  },
+
   {
     key: "TRAININGSBLOECKE",
     title: "Trainingsblöcke",
