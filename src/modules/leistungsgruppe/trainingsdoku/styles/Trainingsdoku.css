@@ -340,3 +340,33 @@
     align-self: center;
   }
 }
+
+
+/* Top row: athlete + date always side by side */
+.td-top-row {
+  display: flex;
+  flex-direction: row;
+  gap: 0.5rem;
+  align-items: flex-end;
+}
+
+.td-top-row .td-athlete-select,
+.td-top-row .td-date-picker {
+  flex: 1 1 0;
+}
+
+/* Summary row always below, left aligned */
+.td-summary-row {
+  font-size: 0.9rem;
+}
+
+/* On larger screens we can slightly adjust spacing if needed */
+@media (min-width: 800px) {
+  .td-top-row {
+    gap: 0.75rem;
+  }
+
+  .td-summary-row {
+    font-size: 0.95rem;
+  }
+}

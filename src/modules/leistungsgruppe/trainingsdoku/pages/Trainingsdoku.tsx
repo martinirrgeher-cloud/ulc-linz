@@ -242,7 +242,7 @@ export const Trainingsdoku: React.FC = () => {
   return (
     <div className="td-root">
       
-      <div className="td-top-row">
+            <div className="td-top-row">
         <div className="td-athlete-select">
           <label htmlFor="td-athlete">Athlet</label>
           <select
@@ -268,17 +268,18 @@ export const Trainingsdoku: React.FC = () => {
             onChange={handleDateChange}
           />
         </div>
-
-        <div className="td-summary">
-          {overallStats.total > 0 ? (
-            <span>
-              {overallStats.done}/{overallStats.total} Übungen erledigt
-            </span>
-          ) : (
-            <span>Keine Übungen für diesen Tag</span>
-          )}
-        </div>
       </div>
+
+      <div className="td-summary-row">
+        {overallStats.total > 0 ? (
+          <span>
+            {overallStats.done}/{overallStats.total} Übungen erledigt
+          </span>
+        ) : (
+          <span>Keine Übungen für diesen Tag</span>
+        )}
+      </div>
+
 
       {error && <div className="td-error">Fehler: {error}</div>}
       {loading && <div className="td-loading">Lade Training ...</div>}
