@@ -241,30 +241,24 @@ export const Trainingsdoku: React.FC = () => {
 
   return (
     <div className="td-root">
-      <header className="td-header">
-        <div className="td-header-title">Trainingsdokumentation</div>
-        <div className="td-header-subtitle">
-          {athleteName || "Kein Athlet ausgewählt"}
-        </div>
-      </header>
-
-      <div className="td-athlete-row">
-        <label htmlFor="td-athlete">Athlet</label>
-        <select
-          id="td-athlete"
-          value={athleteId}
-          onChange={handleAthleteChange}
-        >
-          <option value="">– bitte wählen –</option>
-          {athletes.map((a) => (
-            <option key={a.id} value={a.id}>
-              {a.name}
-            </option>
-          ))}
-        </select>
-      </div>
-
+      
       <div className="td-top-row">
+        <div className="td-athlete-select">
+          <label htmlFor="td-athlete">Athlet</label>
+          <select
+            id="td-athlete"
+            value={athleteId}
+            onChange={handleAthleteChange}
+          >
+            <option value="">– bitte wählen –</option>
+            {athletes.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
         <div className="td-date-picker">
           <label htmlFor="td-date">Datum</label>
           <input

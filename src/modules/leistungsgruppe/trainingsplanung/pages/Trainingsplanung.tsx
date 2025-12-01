@@ -923,8 +923,11 @@ export default function TrainingsplanungPage() {
     await saveDay(selectedAthleteId, copyTargetDateISO, normalized);
   }
 
+  
+  
   async function handleCopyToOtherAthletes() {
     if (!currentDay) return;
+    if (!selectedAthleteId) return;
 
     const targetIds = Object.entries(copyTargetAthletes)
       .filter(([, checked]) => checked)
@@ -935,22 +938,36 @@ export default function TrainingsplanungPage() {
 
     const base = ensureDay(currentDay);
 
-    setPlansByAthlete((prevPlans) => {
-      const copy = { ...prevPlans };
-      for (const aid of targetIds) {
-        const cloned = cloneDay(base, {
-          sourceAthleteId: selectedAthleteId,
-          sourceDateISO: dateISO,
-        });
-        const normalized = normalizeOrder(cloned);
-        const inner = { ...(copy[aid] ?? {}) };
-        inner[dateISO] = normalized;
-        copy[aid] = inner;
-        // Speichern pro Athlet (Best-Effort, async)
-        saveDay(aid, dateISO, normalized);
+    // neuen State auf Basis des aktuellen Snapshots berechnen
+    const updates: { aid: string; day: PlanDay }[] = [];
+    const newPlansByAthlete: typeof plansByAthlete = { ...plansByAthlete };
+
+    for (const aid of targetIds) {
+      const cloned = cloneDay(base, {
+        sourceAthleteId: selectedAthleteId,
+        sourceDateISO: dateISO,
+      });
+      const normalized = normalizeOrder(cloned);
+      updates.push({ aid, day: normalized });
+
+      const inner = { ...(newPlansByAthlete[aid] ?? {}) };
+      inner[dateISO] = normalized;
+      newPlansByAthlete[aid] = inner;
+    }
+
+    setPlansByAthlete(newPlansByAthlete);
+
+    try {
+      setSaving(true);
+      for (const { aid, day } of updates) {
+        await upsertAthleteDay(aid, dateISO, day);
       }
-      return copy;
-    });
+    } catch (err) {
+      console.error("Trainingsplanung: Kopieren auf mehrere Athleten fehlgeschlagen", err);
+      setError("Fehler beim Kopieren des Plans auf mehrere Athleten.");
+    } finally {
+      setSaving(false);
+    }
 
     setCopyOverlayOpen(false);
   }

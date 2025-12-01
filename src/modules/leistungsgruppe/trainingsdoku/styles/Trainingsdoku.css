@@ -302,3 +302,41 @@
     align-self: center;
   }
 }
+
+
+/* Layout for athlete + date in one row */
+.td-top-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: stretch;
+}
+
+.td-top-row > .td-athlete-select,
+.td-top-row > .td-date-picker,
+.td-top-row > .td-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+/* On wider screens: athlete dropdown, date and summary in one line */
+@media (min-width: 600px) {
+  .td-top-row {
+    flex-direction: row;
+    align-items: flex-end;
+  }
+
+  .td-top-row > .td-athlete-select {
+    flex: 1 1 auto;
+  }
+
+  .td-top-row > .td-date-picker {
+    flex: 0 0 auto;
+  }
+
+  .td-top-row > .td-summary {
+    flex: 0 0 auto;
+    align-self: center;
+  }
+}
