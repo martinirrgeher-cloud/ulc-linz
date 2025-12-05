@@ -18,6 +18,12 @@ export type PlanTarget = {
   distanceM?: number | null;
   weightKg?: number | null;
   durationSec?: number | null;
+  extraUnit?: "kg" | "sek" | null;
+};
+
+export type PlanTargetPerSet = {
+  weightKg?: number | null;
+  durationSec?: number | null;
 };
 
 export type PlanItem = {
@@ -30,6 +36,9 @@ export type PlanItem = {
 
   // konkret geplanter Umfang für diese Einheit
   target: PlanTarget;
+
+  // optionale zielwerte pro Satz (nur wenn aufgesplittet)
+  perSetTargets?: PlanTargetPerSet[];
 
   pauseSec?: number | null;
   comment?: string | null;

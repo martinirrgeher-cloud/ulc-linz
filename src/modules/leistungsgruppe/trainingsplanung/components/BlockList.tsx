@@ -4,6 +4,7 @@ import type {
   PlanBlock,
   PlanDay,
   PlanItem,
+  PlanTargetPerSet,
 } from "../services/TrainingsplanungStore";
 
 type BlockListProps = {
@@ -18,13 +19,20 @@ type BlockListProps = {
   onUpdateBlockNotes: (blockId: string, notes: string) => void;
 
   onRemoveBlock: (blockId: string) => void;
+  onMoveBlock: (blockId: string, direction: -1 | 1) => void;
 
   onMoveItem: (blockId: string, itemId: string, direction: -1 | 1) => void;
   onRemoveItem: (blockId: string, itemId: string) => void;
+  onSplitItem: (blockId: string, itemId: string) => void;
   onUpdateItemComment: (itemId: string, comment: string) => void;
   onUpdateItemTarget: (
     itemId: string,
     patch: Partial<PlanItem["target"]>
+  ) => void;
+  onUpdateItemPerSetTarget: (
+    itemId: string,
+    setIndex: number,
+    patch: Partial<PlanTargetPerSet>
   ) => void;
 
   onOpenPickerForBlock: (blockId: string) => void;
@@ -39,10 +47,13 @@ const BlockList: React.FC<BlockListProps> = ({
   onUpdateBlockDuration,
   onUpdateBlockNotes,
   onRemoveBlock,
+  onMoveBlock,
   onMoveItem,
+  onSplitItem,
   onRemoveItem,
   onUpdateItemComment,
   onUpdateItemTarget,
+  onUpdateItemPerSetTarget,
   onOpenPickerForBlock,
 }) => {
   const [visibleBlockNotes, setVisibleBlockNotes] =
@@ -144,6 +155,22 @@ const BlockList: React.FC<BlockListProps> = ({
                   </button>
                   <button
                     type="button"
+                    className="tp-btn tp-btn-mini tp-btn-rect"
+                    onClick={() => onMoveBlock(blk.id, -1)}
+                    title="Block nach oben"
+                  >
+                    ↑
+                  </button>
+                  <button
+                    type="button"
+                    className="tp-btn tp-btn-mini tp-btn-rect"
+                    onClick={() => onMoveBlock(blk.id, +1)}
+                    title="Block nach unten"
+                  >
+                    ↓
+                  </button>
+                  <button
+                    type="button"
                     className="tp-btn tp-btn-lg tp-btn-danger"
                     onClick={() => onRemoveBlock(blk.id)}
                   >
@@ -188,7 +215,43 @@ const BlockList: React.FC<BlockListProps> = ({
                     const commentVisible =
                       commentState === undefined ? hasComment : commentState;
 
-                    return (
+                    const extraUnit: "" | "kg" | "sek" = (() => {
+                      // explizit gesetzte Einheit bevorzugen
+                      if (t.extraUnit === "kg" || t.extraUnit === "sek") {
+                        return t.extraUnit;
+                      }
+                      // ansonsten aus Zielwerten ableiten
+                      if (t.weightKg != null && !Number.isNaN(t.weightKg)) {
+                        return "kg";
+                      }
+                      if (t.durationSec != null && !Number.isNaN(t.durationSec)) {
+                        return "sek";
+                      }
+                      // oder aus vorhandenen Serienwerten ableiten
+                      if (it.perSetTargets && it.perSetTargets.length > 0) {
+                        for (const st of it.perSetTargets) {
+                          if (st.weightKg != null && !Number.isNaN(st.weightKg as any)) {
+                            return "kg";
+                          }
+                          if (
+                            st.durationSec != null &&
+                            !Number.isNaN(st.durationSec as any)
+                          ) {
+                            return "sek";
+                          }
+                        }
+                      }
+                      return "";
+                    })();
+
+                    const extraDisplayValue =
+                      extraUnit === "kg"
+                        ? String(t.weightKg).replace(".", ",")
+                        : extraUnit === "sek"
+                        ? String(t.durationSec).replace(".", ",")
+                        : "";
+
+return (
                       <div key={iid} className="tp-item-row">
                         <div className="tp-item-main">
                           <div className="tp-item-header">
@@ -198,11 +261,39 @@ const BlockList: React.FC<BlockListProps> = ({
                                   {it.nameCache ?? it.exerciseId}
                                 </div>
                               </div>
-                              <div className="tp-item-meta">
-                                {it.groupCache?.haupt}
-                                {it.groupCache?.unter
-                                  ? ` / ${it.groupCache.unter}`
-                                  : ""}
+                              <div className="tp-item-meta-row">
+                                <div className="tp-item-meta">
+                                  {it.groupCache?.haupt}
+                                  {it.groupCache?.unter
+                                    ? ` / ${it.groupCache.unter}`
+                                    : ""}
+                                </div>
+                                <div className="tp-item-comment-toggle">
+                                  <button
+                                    type="button"
+                                    className={
+                                      "tp-icon-button tp-note-btn" +
+                                      (hasComment
+                                        ? " tp-note-btn--active"
+                                        : "")
+                                    }
+                                    title={
+                                      commentVisible
+                                        ? "Kommentar ausblenden"
+                                        : hasComment
+                                        ? "Kommentar anzeigen"
+                                        : "Kommentar hinzufügen"
+                                    }
+                                    onClick={() =>
+                                      setOpenItemComments((prev) => ({
+                                        ...prev,
+                                        [iid]: !commentVisible,
+                                      }))
+                                    }
+                                  >
+                                    {hasComment ? "🗒️" : "📝"}
+                                  </button>
+                                </div>
                               </div>
                             </div>
                             <div className="tp-item-actions">
@@ -224,6 +315,15 @@ const BlockList: React.FC<BlockListProps> = ({
                               </button>
                               <button
                                 type="button"
+                                className="tp-btn tp-btn-mini tp-btn-rect"
+                                onClick={() => onSplitItem(blk.id, iid)}
+                                disabled={!t.sets || t.sets <= 1}
+                                title="Sätze auf einzelne Zeilen aufsplitten"
+                              >
+                                ⇵
+                              </button>
+                              <button
+                                type="button"
                                 className="tp-btn tp-btn-mini tp-btn-rect tp-btn-danger"
                                 onClick={() => onRemoveItem(blk.id, iid)}
                                 title="Entfernen"
@@ -233,16 +333,14 @@ const BlockList: React.FC<BlockListProps> = ({
                             </div>
                           </div>
 
-                          {/* Ziel / Menge in einer Zeile */}
                           <div className="tp-item-target">
                             <div className="tp-item-target-row">
                               <div className="tp-item-target-main">
-                                {/* Serien/Sätze */}
+                                {/* Sätze / Serien (schmäler) */}
                                 <input
-                                  className="tp-input tp-input-xs tp-item-input-small"
+                                  className="tp-input tp-input-xs tp-item-input-small tp-item-input-sets"
                                   value={
-                                    t.sets != null &&
-                                    !Number.isNaN(t.sets)
+                                    t.sets != null && !Number.isNaN(t.sets)
                                       ? String(t.sets)
                                       : ""
                                   }
@@ -262,12 +360,11 @@ const BlockList: React.FC<BlockListProps> = ({
                                 />
                                 <span className="tp-item-math-sign">x</span>
 
-                                {/* Menge / Wiederholungen / Distanz-Wert */}
+                                {/* Menge / Wiederholungen / Distanz */}
                                 <input
                                   className="tp-input tp-input-xs tp-item-input-small"
                                   value={
-                                    t.menge != null &&
-                                    !Number.isNaN(t.menge)
+                                    t.menge != null && !Number.isNaN(t.menge)
                                       ? String(t.menge)
                                       : ""
                                   }
@@ -286,7 +383,7 @@ const BlockList: React.FC<BlockListProps> = ({
                                   placeholder="Menge"
                                 />
 
-                                {/* Einheit (z.B. m, s, Wdh.) */}
+                                {/* Einheit (z.B. m, Wdh.) */}
                                 <input
                                   className="tp-input tp-input-xs tp-item-input-small"
                                   value={t.einheit ?? ""}
@@ -300,36 +397,199 @@ const BlockList: React.FC<BlockListProps> = ({
                                   }
                                   placeholder="Einheit"
                                 />
-                              </div>
 
-                              {/* Notiz-Icon rechts in derselben Zeile */}
-                              <div className="tp-item-comment-toggle">
-                                <button
-                                  type="button"
-                                  className={
-                                    "tp-icon-button tp-note-btn" +
-                                    (hasComment
-                                      ? " tp-note-btn--active"
-                                      : "")
-                                  }
-                                  title={
-                                    commentVisible
-                                      ? "Kommentar ausblenden"
-                                      : hasComment
-                                      ? "Kommentar anzeigen"
-                                      : "Kommentar hinzufügen"
-                                  }
-                                  onClick={() =>
-                                    setOpenItemComments((prev) => ({
-                                      ...prev,
-                                      [iid]: !commentVisible,
-                                    }))
-                                  }
+                                {/* Zusatzwert (Gewicht oder Zeit) – nur wenn nicht gesplittet */}
+                                {!(
+                                  it.perSetTargets &&
+                                  it.perSetTargets.length > 0 &&
+                                  t.sets != null &&
+                                  !Number.isNaN(t.sets as any) &&
+                                  t.sets > 1
+                                ) && (
+                                  <input
+                                    className="tp-input tp-input-xs tp-item-input-small"
+                                    value={extraDisplayValue}
+                                    onChange={(e) => {
+                                      const raw = e.target.value.trim();
+                                      if (raw === "") {
+                                        // Zusatzwert löschen
+                                        onUpdateItemTarget(iid, {
+                                          weightKg: null,
+                                          durationSec: null,
+                                        });
+                                        return;
+                                      }
+                                      const cleaned = raw
+                                        .replace(".", ",")
+                                        .replace(",", ".");
+                                      const num = Number(cleaned);
+                                      const unitForUpdate =
+                                        extraUnit === "" ? "kg" : extraUnit;
+                                      if (Number.isNaN(num)) {
+                                        return;
+                                      }
+                                      if (unitForUpdate === "kg") {
+                                        onUpdateItemTarget(iid, {
+                                          weightKg: num,
+                                          durationSec: null,
+                                        });
+                                      } else if (unitForUpdate === "sek") {
+                                        onUpdateItemTarget(iid, {
+                                          weightKg: null,
+                                          durationSec: num,
+                                        });
+                                      }
+                                    }}
+                                    placeholder={
+                                      extraUnit === "sek"
+                                        ? "Zeit (z.B. 11,15)"
+                                        : "Gewicht"
+                                    }
+                                  />
+                                )}
+
+                                {/* Einheit für Zusatzwert: kg / sek */}
+                                <select
+                                  className="tp-input tp-input-xs tp-item-input-extra-unit"
+                                  value={extraUnit}
+                                  onChange={(e) => {
+                                    const newUnit = e.target.value as
+                                      | ""
+                                      | "kg"
+                                      | "sek";
+
+                                    // Einheit explizit im Ziel speichern, unabhängig vom numerischen Wert
+                                    if (newUnit === "") {
+                                      onUpdateItemTarget(iid, {
+                                        extraUnit: null,
+                                      });
+                                    } else if (newUnit === "kg") {
+                                      onUpdateItemTarget(iid, {
+                                        extraUnit: "kg",
+                                      });
+                                    } else if (newUnit === "sek") {
+                                      onUpdateItemTarget(iid, {
+                                        extraUnit: "sek",
+                                      });
+                                    }
+                                  }}
                                 >
-                                  {hasComment ? "🗒️" : "📝"}
-                                </button>
+                                  <option value="">–</option>
+                                  <option value="kg">kg</option>
+                                  <option value="sek">sek</option>
+                                </select>
                               </div>
                             </div>
+
+                            {/* Serien-Details pro Satz (optional) */}
+                            {it.perSetTargets &&
+                              it.perSetTargets.length > 0 &&
+                              t.sets != null &&
+                              !Number.isNaN(t.sets as any) &&
+                              t.sets > 1 && (
+                                <div className="tp-item-split-list">
+                                  {Array.from({ length: t.sets }).map(
+                                    (_, setIndex) => {
+                                      const perSet =
+                                        it.perSetTargets?.[setIndex] ?? {};
+                                      const perSetValue =
+                                        extraUnit === "kg"
+                                          ? perSet.weightKg != null &&
+                                            !Number.isNaN(perSet.weightKg as any)
+                                            ? String(perSet.weightKg).replace(
+                                                ".",
+                                                ","
+                                              )
+                                            : ""
+                                          : extraUnit === "sek"
+                                          ? perSet.durationSec != null &&
+                                            !Number.isNaN(perSet.durationSec as any)
+                                            ? String(
+                                                perSet.durationSec
+                                              ).replace(".", ",")
+                                            : ""
+                                          : "";
+
+                                      return (
+                                        <div
+                                          key={setIndex}
+                                          className="tp-item-split-row"
+                                        >
+                                          <span className="tp-item-split-label">
+                                            {`1x${
+                                              t.menge != null &&
+                                              !Number.isNaN(t.menge as any)
+                                                ? t.menge
+                                                : "?"
+                                            } ${t.einheit ?? ""}`}
+                                          </span>
+                                          <input
+                                            className="tp-input tp-input-xs tp-item-input-small tp-item-input-split-extra"
+                                            value={perSetValue}
+                                            onChange={(e) => {
+                                              const raw =
+                                                e.target.value.trim();
+                                              if (raw === "") {
+                                                onUpdateItemPerSetTarget(
+                                                  iid,
+                                                  setIndex,
+                                                  {
+                                                    weightKg: null,
+                                                    durationSec: null,
+                                                  }
+                                                );
+                                                return;
+                                              }
+                                              const cleaned = raw
+                                                .replace(".", ",")
+                                                .replace(",", ".");
+                                              const num = Number(cleaned);
+                                              if (Number.isNaN(num)) {
+                                                return;
+                                              }
+                                              const unitForUpdate =
+                                                extraUnit === ""
+                                                  ? "kg"
+                                                  : extraUnit;
+                                              if (unitForUpdate === "kg") {
+                                                onUpdateItemPerSetTarget(
+                                                  iid,
+                                                  setIndex,
+                                                  {
+                                                    weightKg: num,
+                                                    durationSec: null,
+                                                  }
+                                                );
+                                              } else if (
+                                                unitForUpdate === "sek"
+                                              ) {
+                                                onUpdateItemPerSetTarget(
+                                                  iid,
+                                                  setIndex,
+                                                  {
+                                                    weightKg: null,
+                                                    durationSec: num,
+                                                  }
+                                                );
+                                              }
+                                            }}
+                                            placeholder={
+                                              extraUnit === "sek"
+                                                ? "Zeit"
+                                                : "Gewicht"
+                                            }
+                                          />
+                                          {extraUnit && (
+                                            <span className="tp-item-split-unit">
+                                              {extraUnit}
+                                            </span>
+                                          )}
+                                        </div>
+                                      );
+                                    }
+                                  )}
+                                </div>
+                            )}
 
                             {/* Kommentar-Zeile unterhalb, volle Breite */}
                             {commentVisible && (
@@ -353,7 +613,8 @@ const BlockList: React.FC<BlockListProps> = ({
                         </div>
                       </div>
                     );
-                  })}
+                  })
+}
                 </div>
               </>
             )}

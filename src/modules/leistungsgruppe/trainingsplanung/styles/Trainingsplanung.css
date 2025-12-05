@@ -324,6 +324,7 @@
   width: 100%;
 }
 
+
 .tp-item-name {
   font-weight: 600;
   font-size: 14px;
@@ -334,6 +335,12 @@
   color: #666;
 }
 
+.tp-item-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 2px;
+}
 .tp-item-target {
   display: flex;
   flex-wrap: wrap;
@@ -494,8 +501,17 @@
   padding: 0 2px;
 }
 
+
 .tp-item-input-small {
   max-width: 70px;
+}
+
+.tp-item-input-sets {
+  max-width: 45px;
+}
+
+.tp-item-input-extra-unit {
+  max-width: 60px;
 }
 
 .tp-btn-rect {
@@ -931,6 +947,19 @@
   align-items: flex-end;
   gap: 0.5rem;
 }
+.tp-item-target-row-secondary {
+  margin-top: 0.25rem;
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.tp-item-unit-suffix {
+  font-size: 0.75rem;
+  opacity: 0.8;
+}
+
 
 /* Links: Sätze / Menge / Einheit kompakt nebeneinander */
 .tp-item-target-main {
@@ -1142,3 +1171,32 @@
 }
 
  
+
+
+.tp-item-split-list {
+  margin-top: 0.35rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.tp-item-split-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+}
+
+.tp-item-split-label {
+  min-width: 90px;
+  white-space: nowrap;
+}
+
+.tp-item-input-split-extra {
+  max-width: 80px;
+}
+
+.tp-item-split-unit {
+  font-size: 0.75rem;
+  opacity: 0.8;
+}

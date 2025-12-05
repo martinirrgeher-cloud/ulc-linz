@@ -32,6 +32,7 @@ import {
   createTemplateFromDay,
   applyTemplateToAthleteDay,
   cloneDay,
+  PlanTargetPerSet,
 } from "../services/TrainingsplanungStore";
 import {
   listExercisesLite,
@@ -496,12 +497,19 @@ export default function TrainingsplanungPage() {
   }
 
   function handleRemoveBlock(blockId: string) {
+    // Block-Zusammenklapp-Status entfernen
+    setCollapsedBlocks((prev) => {
+      const copy = { ...prev };
+      delete copy[blockId];
+      return copy;
+    });
+
+    // Block, seine Items und die blockOrder im Day entfernen
     updateDay((prev) => {
       const blocks = { ...(prev.blocks ?? {}) };
       const removed = blocks[blockId];
       delete blocks[blockId];
 
-      // Items des Blocks optional auch aus items entfernen
       const items = { ...prev.items };
       if (removed) {
         for (const iid of removed.itemOrder) {
@@ -511,15 +519,24 @@ export default function TrainingsplanungPage() {
 
       const blockOrder = (prev.blockOrder ?? []).filter((id) => id !== blockId);
       return { ...prev, blocks, blockOrder, items };
-    setCollapsedBlocks((prev) => {
-      const copy = { ...prev };
-      delete copy[blockId];
-      return copy;
-    });
     });
   }
 
-  function handleUpdateBlockTitle(blockId: string, title: string) {
+
+function handleMoveBlock(blockId: string, direction: -1 | 1) {
+    updateDay((prev) => {
+      const blockOrder = [...(prev.blockOrder ?? [])];
+      const idx = blockOrder.indexOf(blockId);
+      if (idx === -1) return prev;
+      const target = idx + direction;
+      if (target < 0 || target >= blockOrder.length) return prev;
+      const [spliced] = blockOrder.splice(idx, 1);
+      blockOrder.splice(target, 0, spliced);
+      return { ...prev, blockOrder };
+    });
+  }
+
+function handleUpdateBlockTitle(blockId: string, title: string) {
     updateDay((prev) => {
       const blocks = { ...(prev.blocks ?? {}) };
       const blk = blocks[blockId];
@@ -768,17 +785,103 @@ export default function TrainingsplanungPage() {
     });
   }
 
-  function handleUpdateItemComment(itemId: string, comment: string) {
+  function handleSplitItem(blockId: string, itemId: string) {
     updateDay((prev) => {
+      const blocks = { ...(prev.blocks ?? {}) };
+      const blk = blocks[blockId];
+      if (!blk) return prev;
+
       const items = { ...prev.items };
       const it = items[itemId];
       if (!it) return prev;
-      items[itemId] = { ...it, comment };
+
+      const currentTarget = it.target ?? it.default;
+      const rawSets = currentTarget.sets ?? 1;
+      const sets =
+        rawSets == null || Number.isNaN(rawSets as any) ? 1 : (rawSets as number);
+
+      // Wenn keine oder nur 1 Serie geplant ist, können wir nichts sinnvoll splitten.
+      if (!sets || sets <= 1) {
+        // Falls doch noch Serien-Details existieren, entfernen wir sie (zusammenführen).
+        if (it.perSetTargets && it.perSetTargets.length > 0) {
+          items[itemId] = {
+            ...it,
+            perSetTargets: undefined,
+          };
+          return { ...prev, items };
+        }
+        return prev;
+      }
+
+      // Toggle-Verhalten:
+      // - wenn bereits perSetTargets existieren -> wieder zusammenführen
+      // - sonst: perSetTargets neu anlegen
+      if (it.perSetTargets && it.perSetTargets.length > 0) {
+        items[itemId] = {
+          ...it,
+          perSetTargets: undefined,
+        };
+        return { ...prev, items };
+      }
+
+      const extraUnit: "" | "kg" | "sek" =
+        currentTarget.weightKg != null && !Number.isNaN(currentTarget.weightKg)
+          ? "kg"
+          : currentTarget.durationSec != null &&
+            !Number.isNaN(currentTarget.durationSec)
+          ? "sek"
+          : "";
+
+      const existing = it.perSetTargets ?? [];
+      const perSetTargets: PlanTargetPerSet[] = [];
+
+      for (let i = 0; i < sets; i++) {
+        const prevPerSet = existing[i];
+        if (prevPerSet) {
+          perSetTargets.push(prevPerSet);
+        } else if (extraUnit === "kg") {
+          perSetTargets.push({
+            weightKg: currentTarget.weightKg ?? null,
+            durationSec: null,
+          });
+        } else if (extraUnit === "sek") {
+          perSetTargets.push({
+            weightKg: null,
+            durationSec: currentTarget.durationSec ?? null,
+          });
+        } else {
+          perSetTargets.push({
+            weightKg: null,
+            durationSec: null,
+          });
+        }
+      }
+
+      items[itemId] = {
+        ...it,
+        perSetTargets,
+      };
+
       return { ...prev, items };
     });
   }
 
-  function handleUpdateItemTarget(
+
+function handleUpdateItemComment(itemId: string, comment: string) {
+    updateDay((prev) => {
+      const items = { ...prev.items };
+      const it = items[itemId];
+      if (!it) return prev;
+      items[itemId] = {
+        ...it,
+        comment,
+      };
+      return { ...prev, items };
+    });
+  }
+
+
+function handleUpdateItemTarget(
     itemId: string,
     patch: Partial<PlanItem["target"]>
   ) {
@@ -786,13 +889,125 @@ export default function TrainingsplanungPage() {
       const items = { ...prev.items };
       const it = items[itemId];
       if (!it) return prev;
+
+      const nextTarget: PlanItem["target"] = {
+        ...it.target,
+        ...patch,
+      };
+
+      let perSetTargets = it.perSetTargets;
+
+      if (Object.prototype.hasOwnProperty.call(patch, "sets")) {
+        const rawSets = patch.sets;
+        const sets =
+          rawSets == null || Number.isNaN(rawSets as any) ? null : (rawSets as number);
+
+        if (!sets || sets <= 1) {
+          // Wenn Sätze auf 0/1 reduziert werden, Serien-Details entfernen
+          perSetTargets = undefined;
+        } else if (perSetTargets && perSetTargets.length > 0) {
+          // Es gibt bereits Serien-Details -> nur auf neue Satzanzahl anpassen
+          const extraUnit: "" | "kg" | "sek" =
+            nextTarget.weightKg != null && !Number.isNaN(nextTarget.weightKg)
+              ? "kg"
+              : nextTarget.durationSec != null &&
+                !Number.isNaN(nextTarget.durationSec)
+              ? "sek"
+              : "";
+
+          const existing = perSetTargets ?? [];
+          const updated: PlanTargetPerSet[] = [];
+
+          for (let i = 0; i < sets; i++) {
+            const prevPerSet = existing[i];
+            if (prevPerSet) {
+              updated.push(prevPerSet);
+            } else if (extraUnit === "kg") {
+              updated.push({
+                weightKg: nextTarget.weightKg ?? null,
+                durationSec: null,
+              });
+            } else if (extraUnit === "sek") {
+              updated.push({
+                weightKg: null,
+                durationSec: nextTarget.durationSec ?? null,
+              });
+            } else {
+              updated.push({
+                weightKg: null,
+                durationSec: null,
+              });
+            }
+          }
+
+          perSetTargets = updated;
+        } else {
+          // Sätze wurden geändert, aber noch nicht gesplittet -> kein perSetTargets anlegen,
+          // das passiert erst beim Klick auf den Split-Button.
+          perSetTargets = undefined;
+        }
+      }
+
       items[itemId] = {
         ...it,
-        target: { ...it.target, ...patch },
+        target: nextTarget,
+        perSetTargets,
       };
       return { ...prev, items };
     });
   }
+
+
+function handleUpdateItemPerSetTarget(
+    itemId: string,
+    setIndex: number,
+    patch: Partial<PlanTargetPerSet>
+  ) {
+    updateDay((prev) => {
+      const items = { ...prev.items };
+      const it = items[itemId];
+      if (!it) return prev;
+
+      const sets = it.target?.sets ?? null;
+      if (!sets || sets <= 0) {
+        return prev;
+      }
+
+      const perSetTargets: PlanTargetPerSet[] = [
+        ...(it.perSetTargets ?? []),
+      ];
+
+      // sicherstellen, dass das Array lang genug ist
+      while (perSetTargets.length < sets) {
+        perSetTargets.push({
+          weightKg: null,
+          durationSec: null,
+        });
+      }
+
+      const current = perSetTargets[setIndex] ?? {
+        weightKg: null,
+        durationSec: null,
+      };
+
+      perSetTargets[setIndex] = {
+        ...current,
+        ...patch,
+      };
+
+      items[itemId] = {
+        ...it,
+        perSetTargets,
+      };
+
+      return { ...prev, items };
+    });
+  }
+
+
+  // -------------------------------------------------------
+  // Plan-Templates (ganzer Tagesplan)
+  // -------------------------------------------------------
 
 
   // -------------------------------------------------------
@@ -1130,10 +1345,13 @@ const isBusy = loading || saving;
             onUpdateBlockDuration={handleUpdateBlockDuration}
             onUpdateBlockNotes={handleUpdateBlockNotes}
             onRemoveBlock={handleRemoveBlock}
+            onMoveBlock={handleMoveBlock}
             onMoveItem={handleMoveItem}
+            onSplitItem={handleSplitItem}
             onRemoveItem={handleRemoveItem}
             onUpdateItemComment={handleUpdateItemComment}
             onUpdateItemTarget={handleUpdateItemTarget}
+            onUpdateItemPerSetTarget={handleUpdateItemPerSetTarget}
             onOpenPickerForBlock={openPickerForBlock}
           />
           {isBusy && (
