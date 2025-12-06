@@ -15,12 +15,12 @@ import { Save, Eraser, Plus } from "lucide-react";
 import "./Uebungspflege.css";
 import "@/modules/uebungspflege/services/authToken"; // Token-Provider
 
-type Filter = { q: string; onlyActive: boolean };
+type Filter = { q: string; onlyActive: boolean; haupt: string; unter: string };
 type ModalState = { open: boolean; type: 'haupt' | 'unter' | null; value: string };
 
 export default function Uebungspflege() {
   const [all, setAll] = useState<Exercise[]>([]);
-  const [flt, setFlt] = useState<Filter>({ q: "", onlyActive: true });
+  const [flt, setFlt] = useState<Filter>({ q: "", onlyActive: true, haupt: "", unter: "" });
   const [sel, setSel] = useState<Exercise | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -67,6 +67,10 @@ export default function Uebungspflege() {
     const qq = flt.q.trim().toLowerCase();
     return all.filter((x) => {
       if (flt.onlyActive && x.active === false) return false;
+
+      if (flt.haupt && x.hauptgruppe !== flt.haupt) return false;
+      if (flt.unter && x.untergruppe !== flt.unter) return false;
+
       if (!qq) return true;
       return (
         x.name?.toLowerCase().includes(qq) ||
@@ -202,6 +206,30 @@ export default function Uebungspflege() {
     }
     closeModal();
   }
+
+  const totalCount = all.length;
+  const filteredCount = listAll.length;
+
+  const filterHauptgruppen = useMemo(() => {
+    const set = new Set<string>();
+    for (const ex of all) {
+      if (ex.hauptgruppe) set.add(ex.hauptgruppe);
+    }
+    return Array.from(set).sort((a, b) =>
+      a.localeCompare(b, "de-AT", { sensitivity: "base" })
+    );
+  }, [all]);
+
+  const filterUntergruppen = useMemo(() => {
+    const set = new Set<string>();
+    for (const ex of all) {
+      if (flt.haupt && ex.hauptgruppe !== flt.haupt) continue;
+      if (ex.untergruppe) set.add(ex.untergruppe);
+    }
+    return Array.from(set).sort((a, b) =>
+      a.localeCompare(b, "de-AT", { sensitivity: "base" })
+    );
+  }, [all, flt.haupt]);
 
   const collator = new Intl.Collator('de', { sensitivity: 'base' });
   const hgSorted = [...hauptgruppen].sort((a,b) => collator.compare(a,b));
@@ -411,7 +439,7 @@ export default function Uebungspflege() {
 
       {/* ---------- Suche & Liste ---------- */}
       <section aria-label="Suchen & vorhandene Übungen" style={{ marginTop: 16 }}>
-        <h3 style={{ margin: "8px 0" }}>bestehende Übung suchen</h3>
+        <h3 style={{ margin: "8px 0" }}>bestehende Übung suchen ({filteredCount}/{totalCount})</h3>
         <div
           className="toolbar"
           style={{
@@ -437,6 +465,49 @@ export default function Uebungspflege() {
             />
             Nur aktive
           </label>
+        </div>
+
+        <div
+          className="toolbar"
+          style={{
+            display: "flex",
+            gap: 10,
+            alignItems: "center",
+            flexWrap: "wrap",
+            marginBottom: 10,
+          }}
+        >
+          <select
+            className="input"
+            value={flt.haupt}
+            onChange={(e) =>
+              setFlt((s) => ({ ...s, haupt: e.target.value, unter: "" }))
+            }
+            style={{ minWidth: 180, flex: "0 0 180px" }}
+          >
+            <option value="">Alle Hauptgruppen</option>
+            {filterHauptgruppen.map((hg) => (
+              <option key={hg} value={hg}>
+                {hg}
+              </option>
+            ))}
+          </select>
+
+          <select
+            className="input"
+            value={flt.unter}
+            onChange={(e) =>
+              setFlt((s) => ({ ...s, unter: e.target.value }))
+            }
+            style={{ minWidth: 180, flex: "0 0 180px" }}
+          >
+            <option value="">Alle Untergruppen</option>
+            {filterUntergruppen.map((ug) => (
+              <option key={ug} value={ug}>
+                {ug}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div
