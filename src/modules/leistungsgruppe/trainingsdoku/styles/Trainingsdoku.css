@@ -61,6 +61,7 @@
   border-radius: 0.5rem;
   border: 1px solid #ccc;
   font-size: 0.95rem;
+  font-family: inherit;
 }
 
 .td-summary {
@@ -182,6 +183,7 @@
   display: flex;
   align-items: stretch;
   gap: 0.4rem;
+  flex-wrap: wrap;
 }
 
 .td-ok-button {
@@ -258,6 +260,7 @@
   background: #f9fafb;
   border: 1px solid #e5e7eb;
   font-size: 0.85rem;
+  flex: 1 0 100%;
 }
 
 .td-item-details-row {
@@ -369,4 +372,47 @@
   .td-summary-row {
     font-size: 0.95rem;
   }
+}
+
+
+.td-item-plan-perset {
+  display: block;
+  font-size: 0.8rem;
+  opacity: 0.85;
+  margin-top: 2px;
+}
+
+.td-item-perset-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.td-item-perset-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+}
+
+.td-item-perset-label {
+  min-width: 70px;
+  font-weight: 500;
+}
+
+.td-item-perset-plan {
+  flex: 1 1 auto;
+}
+
+.td-item-perset-actual {
+  min-width: 80px;
+}
+
+.td-input-perset {
+  width: 70px;
+  padding: 0.15rem 0.25rem;
+  border-radius: 0.4rem;
+  border: 1px solid #d1d5db;
+  font-size: 0.8rem;
+  text-align: right;
 }

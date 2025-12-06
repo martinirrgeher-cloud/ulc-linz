@@ -38,14 +38,18 @@ function formatTarget(target: any | null | undefined): string {
 
   if (target.menge != null && target.einheit) {
     parts.push(`${target.menge} ${target.einheit}`);
-  } else if (target.distance != null) {
-    const unit = target.distanceUnit || "m";
-    parts.push(`${target.distance} ${unit}`);
+  } else {
+    const distance = target.distanceM ?? target.distance;
+    if (distance != null) {
+      const unit = target.distanceUnit || "m";
+      parts.push(`${distance} ${unit}`);
+    }
   }
 
-  if (target.timeSec != null) {
-    const min = Math.floor(target.timeSec / 60);
-    const sec = target.timeSec % 60;
+  const timeSec = target.durationSec ?? target.timeSec;
+  if (timeSec != null) {
+    const min = Math.floor(timeSec / 60);
+    const sec = timeSec % 60;
     if (min > 0) {
       parts.push(`${min}′${sec.toString().padStart(2, "0")}″`);
     } else {
@@ -64,6 +68,59 @@ function formatTarget(target: any | null | undefined): string {
   return parts.join(" · ");
 }
 
+
+function getPerSetExtraUnit(
+  planned: any,
+  perSet: any[] | undefined
+): "" | "kg" | "sek" {
+  if (planned?.extraUnit === "kg" || planned?.extraUnit === "sek") {
+    return planned.extraUnit;
+  }
+  if (planned?.weightKg != null && !Number.isNaN(planned.weightKg)) {
+    return "kg";
+  }
+  const durationSec = planned?.durationSec ?? planned?.timeSec;
+  if (durationSec != null && !Number.isNaN(durationSec)) {
+    return "sek";
+  }
+  if (perSet && perSet.length > 0) {
+    for (const st of perSet) {
+      if (st?.weightKg != null && !Number.isNaN(st.weightKg as any)) {
+        return "kg";
+      }
+      const ds = st?.durationSec;
+      if (ds != null && !Number.isNaN(ds as any)) {
+        return "sek";
+      }
+    }
+  }
+  return "";
+}
+
+function formatPerSetSummary(
+  planned: any,
+  perSet: any[] | undefined
+): string {
+  if (!planned || !perSet || perSet.length === 0) return "";
+
+  const unit = getPerSetExtraUnit(planned, perSet);
+  if (!unit) return "";
+
+  const values: string[] = perSet.map((st) => {
+    const raw =
+      unit === "kg"
+        ? st?.weightKg
+        : (st?.durationSec);
+    if (raw == null || Number.isNaN(raw)) return "?";
+    const str = String(raw);
+    return str.replace(".", ",");
+  });
+
+  const label = unit === "kg" ? "Gewichte" : "Zeiten";
+  const suffix = unit === "kg" ? "kg" : "s";
+
+  return `${label}: ${values.join(" / ")} ${suffix}`;
+}
 function statusLabel(status: string | undefined): string {
   switch (status) {
     case "completedAsPlanned":
@@ -183,10 +240,73 @@ export const Trainingsdoku: React.FC = () => {
       if (item.plannedTarget) {
         item.actualTarget = JSON.parse(JSON.stringify(item.plannedTarget));
       }
+      if (item.plannedPerSetTargets && item.plannedPerSetTargets.length > 0) {
+        item.actualPerSetTargets = item.plannedPerSetTargets.map((st: any) =>
+          st ? { weightKg: st.weightKg ?? null, durationSec: st.durationSec ?? null } : { weightKg: null, durationSec: null }
+        );
+      }
     });
   }
 
-  function handleStatusChange(
+  function handlePerSetActualChange(
+    blockId: string,
+    itemId: string,
+    setIndex: number,
+    rawValue: string
+  ) {
+    updateDoc((draft) => {
+      const block = draft.blocks.find((b) => b.id === blockId);
+      if (!block) return;
+      const item = block.items[itemId];
+      if (!item) return;
+
+      const planned = item.plannedTarget as any;
+      const perSet = item.plannedPerSetTargets as any[] | undefined;
+      if (!planned || !perSet || perSet.length === 0) return;
+
+      const unit = getPerSetExtraUnit(planned, perSet);
+      if (!unit) return;
+
+      const count = perSet.length;
+      if (!item.actualPerSetTargets || item.actualPerSetTargets.length !== count) {
+        item.actualPerSetTargets = perSet.map((st: any) => ({
+          weightKg: st?.weightKg ?? null,
+          durationSec: st?.durationSec ?? null,
+        }));
+      }
+
+      const arr = item.actualPerSetTargets!;
+      const target = { ...(arr[setIndex] || { weightKg: null, durationSec: null }) };
+
+      const trimmed = rawValue.trim();
+      if (trimmed === "") {
+        if (unit === "kg") {
+          target.weightKg = null;
+        } else if (unit === "sek") {
+          target.durationSec = null;
+        }
+      } else {
+        const normalized = trimmed.replace(",", ".").replace(/\s+/g, "");
+        const num = Number(normalized);
+        if (Number.isNaN(num)) {
+          return;
+        }
+        if (unit === "kg") {
+          target.weightKg = num;
+        } else if (unit === "sek") {
+          target.durationSec = num;
+        }
+        if (item.status === "completedAsPlanned") {
+          item.status = "completedModified";
+        }
+      }
+
+      arr[setIndex] = target;
+      item.actualPerSetTargets = arr;
+    });
+  }
+
+    function handleStatusChange(
     blockId: string,
     itemId: string,
     value: string
@@ -288,25 +408,7 @@ export const Trainingsdoku: React.FC = () => {
         <section className="td-overall">
           <h2 className="td-section-title">Tagesfeedback</h2>
           <div className="td-overall-row">
-            <label>Belastung (RPE 1–10)</label>
-            <div className="td-overall-rpe">
-              <input
-                type="range"
-                min={1}
-                max={10}
-                value={overallRpe || 1}
-                onChange={(e) =>
-                  handleOverallRpeChange(Number(e.target.value || "1"))
-                }
-              />
-              <span className="td-overall-rpe-value">
-                {overallRpe ? overallRpe : "-"}
-              </span>
-            </div>
-          </div>
-
-          <div className="td-overall-row">
-            <label>Stimmung</label>
+            <label>Tagesverfassung</label>
             <select
               value={overallMood}
               onChange={(e) => handleOverallMoodChange(e.target.value)}
@@ -385,6 +487,11 @@ export const Trainingsdoku: React.FC = () => {
                               Plan: {formatTarget(planned)}
                             </span>
                           )}
+                          {planned && item.plannedPerSetTargets && item.plannedPerSetTargets.length > 0 && (
+                            <span className="td-item-plan-perset">
+                              {formatPerSetSummary(planned, item.plannedPerSetTargets as any[])}
+                            </span>
+                          )}
                           <span
                             className={
                               "td-item-status td-item-status--" +
@@ -426,6 +533,73 @@ export const Trainingsdoku: React.FC = () => {
                               <option value="skipped">ausgelassen</option>
                             </select>
                           </div>
+
+                          {planned && item.plannedPerSetTargets && item.plannedPerSetTargets.length > 0 && (
+                            <div className="td-item-details-row td-item-details-row--perset">
+                              <label>Serien (Plan / Ist)</label>
+                              <div className="td-item-perset-list">
+                                {item.plannedPerSetTargets.map((st, idx) => {
+                                  const unit = getPerSetExtraUnit(planned, item.plannedPerSetTargets as any[]);
+                                  const plannedVal =
+                                    unit === "kg"
+                                      ? st?.weightKg
+                                      : (st?.durationSec);
+                                  const plannedStr =
+                                    plannedVal == null || Number.isNaN(plannedVal)
+                                      ? ""
+                                      : String(plannedVal).replace(".", ",");
+                                  const actualArr = item.actualPerSetTargets as any[] | undefined;
+                                  const actualEntry = actualArr && actualArr[idx];
+                                  const actualVal =
+                                    unit === "kg"
+                                      ? actualEntry?.weightKg
+                                      : (actualEntry?.durationSec);
+                                  const actualStr =
+                                    actualVal == null || Number.isNaN(actualVal)
+                                      ? ""
+                                      : String(actualVal).replace(".", ",");
+
+                                  return (
+                                    <div key={idx} className="td-item-perset-row">
+                                      <div className="td-item-perset-label">
+                                        Satz {idx + 1}
+                                      </div>
+                                      <div className="td-item-perset-plan">
+                                        {planned.reps != null
+                                          ? `1×${planned.reps} Wdh`
+                                          : ""}
+                                        {planned.menge != null && planned.einheit
+                                          ? (planned.reps != null ? " · " : "") +
+                                            `${planned.menge} ${planned.einheit}`
+                                          : ""}
+                                        {plannedStr
+                                          ? (planned.reps != null || (planned.menge != null && planned.einheit)
+                                              ? " · "
+                                              : "") +
+                                            `${plannedStr} ${unit === "kg" ? "kg" : "s"}`
+                                          : ""}
+                                      </div>
+                                      <div className="td-item-perset-actual">
+                                        <input
+                                          className="td-input-perset"
+                                          value={actualStr}
+                                          onChange={(e) =>
+                                            handlePerSetActualChange(
+                                              block.id,
+                                              item.id,
+                                              idx,
+                                              e.target.value
+                                            )
+                                          }
+                                          placeholder={unit === "kg" ? "Ist-Gewicht" : "Ist-Zeit"}
+                                        />
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
 
                           <div className="td-item-details-row">
                             <label>Notiz / Problem</label>

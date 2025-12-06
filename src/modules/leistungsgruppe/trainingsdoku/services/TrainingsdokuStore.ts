@@ -5,6 +5,7 @@ import type {
   PlanDay,
   PlanTarget,
   PlanBlockType,
+  PlanTargetPerSet,
 } from "../../trainingsplanung/services/TrainingsplanungStore";
 
 /**
@@ -12,6 +13,13 @@ import type {
  * Wir referenzieren den Typ, um keine Dopplungen zu erzeugen.
  */
 export type TrainingDocTarget = PlanTarget;
+
+export type TrainingDocPerSetTarget = PlanTargetPerSet;
+
+/**
+ * Ein geplanter/absolvierter Zielwert pro Satz (z.B. Gewicht oder Zeit).
+ * Wir referenzieren den Typ aus der Planung, um konsistent zu bleiben.
+ */
 
 export type TrainingDocItemStatus =
   | "planned"            // noch nicht bearbeitet
@@ -50,8 +58,14 @@ export type TrainingDocItem = {
   /** Geplanter Umfang (Snapshot aus dem Plan zum Doku-Zeitpunkt). */
   plannedTarget?: TrainingDocTarget | null;
 
-  /** Tatsächlich absolvierter Umfang. */
+  /** Tatsächlich absolvierter Umfang (aggregiert, z.B. Gesamtumfang). */
   actualTarget?: TrainingDocTarget | null;
+
+  /** Geplante Zielwerte pro Satz (falls im Plan gesplittet, z.B. Gewichte/Zielzeiten). */
+  plannedPerSetTargets?: TrainingDocPerSetTarget[];
+
+  /** Tatsächlich absolvierte Zielwerte pro Satz (optional). */
+  actualPerSetTargets?: TrainingDocPerSetTarget[];
 
   /** Status des Eintrags. */
   status: TrainingDocItemStatus;
@@ -237,6 +251,11 @@ export function createInitialDocFromPlan(
       const planItem = plan.items[itemId];
       if (!planItem) continue;
 
+      const plannedTarget = planItem.target ?? planItem.default;
+      const perSet = (planItem as any).perSetTargets as
+        | PlanTargetPerSet[]
+        | undefined;
+
       const docItem: TrainingDocItem = {
         id: itemId,
         planItemId: itemId,
@@ -244,8 +263,16 @@ export function createInitialDocFromPlan(
         exerciseId: planItem.exerciseId,
         nameCache: planItem.nameCache,
         groupCache: planItem.groupCache,
-        plannedTarget: planItem.target ?? planItem.default,
+        plannedTarget,
         actualTarget: null,
+        plannedPerSetTargets:
+          perSet && perSet.length > 0
+            ? perSet.map((p) => ({
+                weightKg: p.weightKg ?? null,
+                durationSec: p.durationSec ?? null,
+              }))
+            : undefined,
+        actualPerSetTargets: undefined,
         status: "planned",
       };
 
