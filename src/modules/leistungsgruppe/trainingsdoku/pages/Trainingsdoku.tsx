@@ -125,12 +125,14 @@ function statusLabel(status: string | undefined): string {
   switch (status) {
     case "completedAsPlanned":
       return "ok wie geplant";
+    case "partial":
+      return "gemacht mit Einschränkungen";
+    case "completedWithIssues":
+      return "gemacht, aber Probleme";
     case "completedModified":
       return "erledigt (angepasst)";
-    case "partial":
-      return "teilweise";
     case "skipped":
-      return "ausgelassen";
+      return "nicht gemacht";
     case "planned":
     default:
       return "noch offen";
@@ -236,19 +238,61 @@ export const Trainingsdoku: React.FC = () => {
       const item = block.items[itemId];
       if (!item) return;
 
-      item.status = "completedAsPlanned";
-      if (item.plannedTarget) {
-        item.actualTarget = JSON.parse(JSON.stringify(item.plannedTarget));
+      const current = (item.status || "planned") as any;
+      let next: any;
+      switch (current) {
+        case "planned":
+          next = "completedAsPlanned";
+          break;
+        case "completedAsPlanned":
+          next = "partial";
+          break;
+        case "partial":
+          next = "completedWithIssues";
+          break;
+        case "completedWithIssues":
+          next = "skipped";
+          break;
+        case "skipped":
+          next = "planned";
+          break;
+        case "completedModified":
+          next = "completedAsPlanned";
+          break;
+        default:
+          next = "completedAsPlanned";
       }
-      if (item.plannedPerSetTargets && item.plannedPerSetTargets.length > 0) {
-        item.actualPerSetTargets = item.plannedPerSetTargets.map((st: any) =>
-          st ? { weightKg: st.weightKg ?? null, durationSec: st.durationSec ?? null } : { weightKg: null, durationSec: null }
-        );
+
+      item.status = next as any;
+
+      if (next === "planned" || next === "skipped") {
+        item.actualTarget = null;
+        item.actualPerSetTargets = undefined;
+      } else {
+        if (item.plannedTarget && !item.actualTarget) {
+          item.actualTarget = JSON.parse(JSON.stringify(item.plannedTarget));
+        }
+        if (
+          item.plannedPerSetTargets &&
+          item.plannedPerSetTargets.length > 0 &&
+          (!item.actualPerSetTargets ||
+            item.actualPerSetTargets.length !== item.plannedPerSetTargets.length)
+        ) {
+          item.actualPerSetTargets = item.plannedPerSetTargets.map((st: any) =>
+            st
+              ? {
+                  weightKg: st.weightKg ?? null,
+                  durationSec: st.durationSec ?? null,
+                }
+              : { weightKg: null, durationSec: null }
+          );
+        }
       }
     });
   }
 
-  function handlePerSetActualChange(
+  
+function handlePerSetActualChange(
     blockId: string,
     itemId: string,
     setIndex: number,
@@ -296,7 +340,7 @@ export const Trainingsdoku: React.FC = () => {
         } else if (unit === "sek") {
           target.durationSec = num;
         }
-        if (item.status === "completedAsPlanned") {
+        if (item.status === "completedAsPlanned" || item.status === "planned") {
           item.status = "completedModified";
         }
       }
@@ -306,21 +350,7 @@ export const Trainingsdoku: React.FC = () => {
     });
   }
 
-    function handleStatusChange(
-    blockId: string,
-    itemId: string,
-    value: string
-  ) {
-    updateDoc((draft) => {
-      const block = draft.blocks.find((b) => b.id === blockId);
-      if (!block) return;
-      const item = block.items[itemId];
-      if (!item) return;
-      item.status = value as any;
-    });
-  }
-
-  function handleNoteChange(
+    function handleNoteChange(
     blockId: string,
     itemId: string,
     note: string
@@ -438,7 +468,8 @@ export const Trainingsdoku: React.FC = () => {
             (item) =>
               item.status === "completedAsPlanned" ||
               item.status === "completedModified" ||
-              item.status === "partial"
+              item.status === "partial" ||
+              item.status === "completedWithIssues"
           ).length;
 
           return (
@@ -464,14 +495,16 @@ export const Trainingsdoku: React.FC = () => {
                       <button
                         type="button"
                         className={
-                          "td-ok-button" +
-                          (item.status === "completedAsPlanned"
-                            ? " td-ok-button--active"
-                            : "")
+                          "td-ok-button td-ok-button--" +
+                          (item.status || "planned")
                         }
                         onClick={() => handleQuickOk(block.id, item.id)}
                       >
-                        OK
+                        {item.status === "skipped"
+                          ? "X"
+                          : item.status === "completedModified"
+                          ? "~"
+                          : "OK"}
                       </button>
 
                       <div
@@ -492,14 +525,6 @@ export const Trainingsdoku: React.FC = () => {
                               {formatPerSetSummary(planned, item.plannedPerSetTargets as any[])}
                             </span>
                           )}
-                          <span
-                            className={
-                              "td-item-status td-item-status--" +
-                              (item.status || "planned")
-                            }
-                          >
-                            {statusLabel(item.status)}
-                          </span>
                         </div>
                         {hasNote && (
                           <div className="td-item-note-indicator">
@@ -510,30 +535,6 @@ export const Trainingsdoku: React.FC = () => {
 
                       {isExpanded && (
                         <div className="td-item-details">
-                          <div className="td-item-details-row">
-                            <label>Status</label>
-                            <select
-                              value={item.status || "planned"}
-                              onChange={(e) =>
-                                handleStatusChange(
-                                  block.id,
-                                  item.id,
-                                  e.target.value
-                                )
-                              }
-                            >
-                              <option value="planned">noch offen</option>
-                              <option value="completedAsPlanned">
-                                ok wie geplant
-                              </option>
-                              <option value="completedModified">
-                                erledigt (angepasst)
-                              </option>
-                              <option value="partial">teilweise</option>
-                              <option value="skipped">ausgelassen</option>
-                            </select>
-                          </div>
-
                           {planned && item.plannedPerSetTargets && item.plannedPerSetTargets.length > 0 && (
                             <div className="td-item-details-row td-item-details-row--perset">
                               <label>Serien (Plan / Ist)</label>

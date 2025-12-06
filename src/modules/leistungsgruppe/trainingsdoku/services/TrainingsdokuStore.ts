@@ -23,10 +23,14 @@ export type TrainingDocPerSetTarget = PlanTargetPerSet;
 
 export type TrainingDocItemStatus =
   | "planned"            // noch nicht bearbeitet
-  | "completedAsPlanned" // mit einem Tap bestätigt
-  | "completedModified"  // erledigt, aber Umfang geändert
-  | "partial"            // nur teilweise absolviert
-  | "skipped";           // ausgelassen
+  | "completedAsPlanned" // gemacht und alles gut (OK grün)
+  | "partial"            // gemacht mit Einschränkungen (OK gelb)
+  | "completedWithIssues"// gemacht, aber Probleme (OK hellrot)
+  | "completedModified"  // erledigt, aber Umfang/Parameter angepasst (~ orange)
+  | "skipped";           // nicht gemacht (X dunkelrot)
+
+
+
 
 export type TrainingDocIssueTag =
   | "PAIN"
