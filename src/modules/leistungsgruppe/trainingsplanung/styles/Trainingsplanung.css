@@ -1210,6 +1210,7 @@
   display: flex;
   gap: 8px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .tp-block-header-top .tp-block-title {
