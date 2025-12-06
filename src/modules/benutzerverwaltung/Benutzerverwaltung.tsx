@@ -115,6 +115,17 @@ const Benutzerverwaltung: React.FC = () => {
     }, 400);
   }
 
+  
+  const sortedModules = useMemo(
+    () =>
+      [...MODULES].sort((a, b) =>
+        (a.title || "").localeCompare(b.title || "", "de-AT", {
+          sensitivity: "base",
+        })
+      ),
+    []
+  );
+
   const sortedUsers = useMemo(() => {
     if (!usersFile?.users) return [];
     let list = [...usersFile.users];
@@ -429,7 +440,7 @@ const Benutzerverwaltung: React.FC = () => {
 
         <div className="user-admin-section-title">Module / Rechte</div>
         <div className="user-admin-modules">
-          {MODULES.map((m) => (
+          {sortedModules.map((m) => (
             <label key={m.key} className="user-admin-module-item">
               <input
                 type="checkbox"

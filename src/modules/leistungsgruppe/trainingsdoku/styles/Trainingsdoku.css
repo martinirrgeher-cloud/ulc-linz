@@ -159,8 +159,31 @@
 .td-block-header {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
+  align-items: center;
   gap: 0.5rem;
+}
+
+.td-block-header > .td-block-title {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.td-block-header > .td-block-meta {
+  flex: 0 0 auto;
+}
+
+.td-block-toggle {
+  flex: 0 0 auto;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.9rem;
+  padding: 0.1rem 0.25rem;
+}
+
+.td-block-toggle:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
 }
 
 .td-block-title {
@@ -438,6 +461,14 @@
 
 .td-item-perset-actual {
   min-width: 80px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.td-item-perset-unit {
+  font-size: 0.8rem;
+  opacity: 0.8;
 }
 
 .td-input-perset {
@@ -447,4 +478,29 @@
   border: 1px solid #d1d5db;
   font-size: 0.8rem;
   text-align: right;
+}
+
+
+.td-item-actual-basic {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.td-item-actual-mult {
+  font-size: 0.85rem;
+  opacity: 0.8;
+}
+
+.td-btn-secondary {
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid #d1d5db;
+  background: #f9fafb;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.td-btn-secondary:hover {
+  background: #f3f4f6;
 }

@@ -153,6 +153,7 @@ export const Trainingsdoku: React.FC = () => {
   } = useTrainingsdokuForAthlete();
 
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
+  const [collapsedBlocks, setCollapsedBlocks] = useState<Record<string, boolean>>({});
   const [athletes, setAthletes] = useState<AthleteLite[]>([]);
 
   // Athleten laden (analog Trainingsplanung), damit eine Auswahl möglich ist
@@ -350,7 +351,126 @@ function handlePerSetActualChange(
     });
   }
 
-    function handleNoteChange(
+    
+  function handleActualTargetChange(
+    blockId: string,
+    itemId: string,
+    field: "sets" | "reps",
+    rawValue: string
+  ) {
+    updateDoc((draft) => {
+      const block = draft.blocks.find((b) => b.id === blockId);
+      if (!block) return;
+      const item = block.items[itemId];
+      if (!item) return;
+
+      const planned = item.plannedTarget as any;
+      if (!planned) return;
+
+      if (!item.actualTarget && item.plannedTarget) {
+        item.actualTarget = JSON.parse(JSON.stringify(item.plannedTarget));
+      }
+      const actual = item.actualTarget as any;
+      if (!actual) return;
+
+      const trimmed = rawValue.trim();
+      let nextValue: number | null;
+      if (trimmed === "") {
+        nextValue = null;
+      } else {
+        const normalized = trimmed.replace(",", ".").replace(/\s+/g, "");
+        const num = Number(normalized);
+        if (Number.isNaN(num)) {
+          return;
+        }
+        nextValue = Math.max(0, Math.floor(num));
+      }
+
+      if (field === "sets") {
+        actual.sets = nextValue;
+      } else if (field === "reps") {
+        actual.reps = nextValue;
+      }
+
+      item.actualTarget = actual;
+
+      if (
+        item.status === "planned" ||
+        item.status === "completedAsPlanned"
+      ) {
+        item.status = "completedModified" as any;
+      }
+    });
+  }
+
+  function handleSplitSeriesInDoc(blockId: string, itemId: string) {
+    updateDoc((draft) => {
+      const block = draft.blocks.find((b) => b.id === blockId);
+      if (!block) return;
+      const item = block.items[itemId];
+      if (!item) return;
+
+      const planned = item.plannedTarget as any;
+      const actual = item.actualTarget as any;
+
+      const sets =
+        (actual && typeof actual.sets === "number" && actual.sets > 0
+          ? actual.sets
+          : undefined) ??
+        (planned && typeof planned.sets === "number" && planned.sets > 0
+          ? planned.sets
+          : undefined);
+
+      if (!sets || sets <= 1) return;
+
+      const basePlannedWeight = planned?.weightKg ?? null;
+      const basePlannedDur = planned?.durationSec ?? planned?.timeSec ?? null;
+
+      const baseActualWeight =
+        actual && typeof actual.weightKg === "number"
+          ? actual.weightKg
+          : basePlannedWeight;
+      const baseActualDur =
+        (actual && typeof actual.durationSec === "number"
+          ? actual.durationSec
+          : actual && typeof actual.timeSec === "number"
+          ? actual.timeSec
+          : undefined) ?? basePlannedDur;
+
+      const prevPlanned = item.plannedPerSetTargets || [];
+      const prevActual = item.actualPerSetTargets || [];
+
+      item.plannedPerSetTargets = Array.from({ length: sets }, (_, idx) => {
+        const prev = prevPlanned[idx];
+        return {
+          weightKg:
+            prev && typeof prev.weightKg === "number"
+              ? prev.weightKg
+              : basePlannedWeight,
+          durationSec:
+            prev && typeof prev.durationSec === "number"
+              ? prev.durationSec
+              : basePlannedDur,
+        };
+      });
+
+      item.actualPerSetTargets = Array.from({ length: sets }, (_, idx) => {
+        const prev = prevActual[idx];
+        return {
+          weightKg:
+            prev && typeof prev.weightKg === "number"
+              ? prev.weightKg
+              : baseActualWeight,
+          durationSec:
+            prev && typeof prev.durationSec === "number"
+              ? prev.durationSec
+              : baseActualDur,
+        };
+      });
+    });
+  }
+
+  function handleNoteChange(
     blockId: string,
     itemId: string,
     note: string
@@ -472,6 +592,8 @@ function handlePerSetActualChange(
               item.status === "completedWithIssues"
           ).length;
 
+          const isCollapsed = !!collapsedBlocks[block.id];
+
           return (
             <section key={block.id} className="td-block">
               <div className="td-block-header">
@@ -481,9 +603,23 @@ function handlePerSetActualChange(
                 <div className="td-block-meta">
                   {done}/{total} erledigt
                 </div>
+                <button
+                  type="button"
+                  className="td-block-toggle"
+                  onClick={() =>
+                    setCollapsedBlocks((prev) => ({
+                      ...prev,
+                      [block.id]: !prev[block.id],
+                    }))
+                  }
+                  aria-label={isCollapsed ? "Block ausklappen" : "Block einklappen"}
+                >
+                  {isCollapsed ? "▼" : "▲"}
+                </button>
               </div>
 
-              <div className="td-items">
+              {!isCollapsed && (
+                <div className="td-items">
                 {items.map((item) => {
                   const key = `${block.id}:${item.id}`;
                   const isExpanded = expandedKey === key;
@@ -535,6 +671,64 @@ function handlePerSetActualChange(
 
                       {isExpanded && (
                         <div className="td-item-details">
+                          {planned && (
+                            <div className="td-item-details-row">
+                              <label>Ist Serien / Wdh</label>
+                              <div className="td-item-actual-basic">
+                                <input
+                                  className="td-input-perset"
+                                  value={
+                                    item.actualTarget && (item.actualTarget as any).sets != null
+                                      ? String((item.actualTarget as any).sets)
+                                      : ""
+                                  }
+                                  onChange={(e) =>
+                                    handleActualTargetChange(
+                                      block.id,
+                                      item.id,
+                                      "sets",
+                                      e.target.value
+                                    )
+                                  }
+                                  placeholder="Serien"
+                                />
+                                <span className="td-item-actual-mult">×</span>
+                                <input
+                                  className="td-input-perset"
+                                  value={
+                                    item.actualTarget && (item.actualTarget as any).reps != null
+                                      ? String((item.actualTarget as any).reps)
+                                      : ""
+                                  }
+                                  onChange={(e) =>
+                                    handleActualTargetChange(
+                                      block.id,
+                                      item.id,
+                                      "reps",
+                                      e.target.value
+                                    )
+                                  }
+                                  placeholder="Wdh"
+                                />
+                              </div>
+                            </div>
+                          )}
+
+                          {planned &&
+                            (!item.plannedPerSetTargets || item.plannedPerSetTargets.length === 0) &&
+                            planned.sets != null &&
+                            planned.sets > 1 && (
+                              <div className="td-item-details-row">
+                                <button
+                                  type="button"
+                                  className="td-btn-secondary"
+                                  onClick={() => handleSplitSeriesInDoc(block.id, item.id)}
+                                >
+                                  Serien aufsplitten
+                                </button>
+                              </div>
+                            )}
+
                           {planned && item.plannedPerSetTargets && item.plannedPerSetTargets.length > 0 && (
                             <div className="td-item-details-row td-item-details-row--perset">
                               <label>Serien (Plan / Ist)</label>
@@ -594,6 +788,9 @@ function handlePerSetActualChange(
                                           }
                                           placeholder={unit === "kg" ? "Ist-Gewicht" : "Ist-Zeit"}
                                         />
+                                        <span className="td-item-perset-unit">
+                                          {unit === "kg" ? "kg" : unit === "sek" ? "s" : ""}
+                                        </span>
                                       </div>
                                     </div>
                                   );
@@ -622,6 +819,7 @@ function handlePerSetActualChange(
                   );
                 })}
               </div>
+              )}
             </section>
           );
         })}
