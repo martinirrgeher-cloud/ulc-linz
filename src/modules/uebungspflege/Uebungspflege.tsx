@@ -483,7 +483,7 @@ export default function Uebungspflege() {
             onChange={(e) =>
               setFlt((s) => ({ ...s, haupt: e.target.value, unter: "" }))
             }
-            style={{ minWidth: 180, flex: "0 0 180px" }}
+            style={{ flex: "1 1 0", minWidth: 0 }}
           >
             <option value="">Alle Hauptgruppen</option>
             {filterHauptgruppen.map((hg) => (
@@ -499,7 +499,7 @@ export default function Uebungspflege() {
             onChange={(e) =>
               setFlt((s) => ({ ...s, unter: e.target.value }))
             }
-            style={{ minWidth: 180, flex: "0 0 180px" }}
+            style={{ flex: "1 1 0", minWidth: 0 }}
           >
             <option value="">Alle Untergruppen</option>
             {filterUntergruppen.map((ug) => (
