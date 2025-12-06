@@ -1210,13 +1210,17 @@
   display: flex;
   gap: 8px;
   align-items: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 .tp-block-header-top .tp-block-title {
-  flex: 1 1 auto;
+  flex: 1 1 0;
+  min-width: 0;
   width: auto;
   max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .tp-block-delete-btn {
@@ -1227,6 +1231,6 @@
 
 /* Override: duration input smaller than generic tp-input-xs */
 .tp-block-duration-input.tp-input-xs {
-  width: 30px;
-  min-width: 30px;
+  width: 45px;
+  min-width: 45px;
 }
