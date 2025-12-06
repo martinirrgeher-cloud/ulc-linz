@@ -282,8 +282,8 @@
 
 .tp-block-duration-input {
   text-align: right;
-  width: 60px;
-  min-width: 60px;
+  width: 45px;
+  min-width: 45px;
 }
 
 .tp-block-duration-unit {
@@ -503,7 +503,7 @@
 
 
 .tp-item-input-small {
-  max-width: 70px;
+  max-width: 50px;
 }
 
 .tp-item-input-sets {
@@ -512,6 +512,10 @@
 
 .tp-item-input-extra-unit {
   max-width: 60px;
+  height: 32px;
+  min-height: 32px;
+  padding-top: 4px;
+  padding-bottom: 4px;
 }
 
 .tp-btn-rect {
@@ -1199,4 +1203,22 @@
 .tp-item-split-unit {
   font-size: 0.75rem;
   opacity: 0.8;
+}
+
+
+.tp-block-header-top {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.tp-block-header-top .tp-block-title {
+  flex: 1 1 auto;
+  width: auto;
+  max-width: 100%;
+}
+
+.tp-block-delete-btn {
+  padding-left: 10px;
+  padding-right: 10px;
 }

@@ -91,14 +91,24 @@ const BlockList: React.FC<BlockListProps> = ({
         return (
           <div key={blk.id} className="tp-block-card">
             <div className="tp-block-header">
-              <input
-                className="tp-input tp-block-title"
-                value={blk.title}
-                onChange={(e) =>
-                  onUpdateBlockTitle(blk.id, e.target.value)
-                }
-                placeholder="Blocktitel (z.B. Aufwärmen, Sprint …)"
-              />
+              <div className="tp-block-header-top">
+                <input
+                  className="tp-input tp-block-title"
+                  value={blk.title}
+                  onChange={(e) =>
+                    onUpdateBlockTitle(blk.id, e.target.value)
+                  }
+                  placeholder="Blocktitel (z.B. Aufwärmen, Sprint …)"
+                />
+                <button
+                  type="button"
+                  className="tp-btn tp-btn-lg tp-btn-danger tp-block-delete-btn"
+                  onClick={() => onRemoveBlock(blk.id)}
+                  title="Block löschen"
+                >
+                  ✕
+                </button>
+              </div>
               <div className="tp-block-header-right">
                 <div className="tp-block-duration">
                   <input
@@ -168,13 +178,6 @@ const BlockList: React.FC<BlockListProps> = ({
                     title="Block nach unten"
                   >
                     ↓
-                  </button>
-                  <button
-                    type="button"
-                    className="tp-btn tp-btn-lg tp-btn-danger"
-                    onClick={() => onRemoveBlock(blk.id)}
-                  >
-                    ✕
                   </button>
                 </div>
               </div>
