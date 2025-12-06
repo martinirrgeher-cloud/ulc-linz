@@ -102,6 +102,22 @@ const BlockList: React.FC<BlockListProps> = ({
                 />
                 <button
                   type="button"
+                  className="tp-btn tp-btn-mini tp-btn-rect"
+                  onClick={() => onMoveBlock(blk.id, -1)}
+                  title="Block nach oben"
+                >
+                  ↑
+                </button>
+                <button
+                  type="button"
+                  className="tp-btn tp-btn-mini tp-btn-rect"
+                  onClick={() => onMoveBlock(blk.id, +1)}
+                  title="Block nach unten"
+                >
+                  ↓
+                </button>
+                <button
+                  type="button"
                   className="tp-btn tp-btn-lg tp-btn-danger tp-block-delete-btn"
                   onClick={() => onRemoveBlock(blk.id)}
                   title="Block löschen"
@@ -162,22 +178,6 @@ const BlockList: React.FC<BlockListProps> = ({
                     onClick={() => onToggleCollapsed(blk.id)}
                   >
                     {isCollapsed ? "▼" : "▲"}
-                  </button>
-                  <button
-                    type="button"
-                    className="tp-btn tp-btn-mini tp-btn-rect"
-                    onClick={() => onMoveBlock(blk.id, -1)}
-                    title="Block nach oben"
-                  >
-                    ↑
-                  </button>
-                  <button
-                    type="button"
-                    className="tp-btn tp-btn-mini tp-btn-rect"
-                    onClick={() => onMoveBlock(blk.id, +1)}
-                    title="Block nach unten"
-                  >
-                    ↓
                   </button>
                 </div>
               </div>
