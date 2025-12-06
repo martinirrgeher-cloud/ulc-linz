@@ -96,11 +96,28 @@ function MediaViewerModalImpl({ open, onClose, name, fileId, url, type }: Props)
           <button onClick={onClose}>Schließen</button>
         </div>
         {mode === "error" && <div className="ex-error">{msg}</div>}
-        {mode === "iframe" && <iframe className="ex-modal-media" src={src} allow="autoplay" />}
+        {mode === "iframe" && (
+          <iframe
+            className="ex-modal-media"
+            src={src}
+            allow="autoplay"
+            style={{ width: "100%", height: "80vh" }}
+          />
+        )}
         {mode === "blob" && (
           type === "image"
             ? <img className="ex-modal-media" src={src} alt={name} />
-            : <video className="ex-modal-media" src={src} controls autoPlay playsInline preload="metadata" />
+            : (
+              <video
+                className="ex-modal-media"
+                src={src}
+                controls
+                autoPlay
+                playsInline
+                preload="metadata"
+                style={{ maxHeight: "80vh", width: "100%" }}
+              />
+            )
         )}
       </div>
     </div>
