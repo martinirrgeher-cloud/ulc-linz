@@ -1129,7 +1129,10 @@
   background: #fafafa;
 }
 
-
+.tp-block-duration-input.tp-input-xs {
+  width: 45px;
+  min-width: 45px;
+}
 
 
 @media (max-width: 600px) {
