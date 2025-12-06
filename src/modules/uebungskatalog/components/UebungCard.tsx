@@ -10,7 +10,12 @@ type Props = {
 };
 
 const Stars: React.FC<{ value: number }> = ({ value }) => (
-  <div className="ex-card-stars">{"★".repeat(value)}</div>
+  <div
+    className="ex-card-stars"
+    style={{ marginLeft: "auto", textAlign: "right", whiteSpace: "nowrap" }}
+  >
+    {"★".repeat(value)}
+  </div>
 );
 
 function pickFirstMedia(exercise: Exercise): MediaItem | null {
@@ -43,15 +48,21 @@ export default function UebungCard({ exercise }: Props) {
       <div className="ex-card">
         <div className="ex-card-head row">
           <div className="ex-card-head-left">
-            <div className="ex-card-title-row">
+            <div className="ex-card-title-row" style={{ display: "flex", alignItems: "center" }}>
               <div className="ex-card-title">{exercise.name}</div>
               {exercise.difficulty && <Stars value={exercise.difficulty} />}
             </div>
 
             <div className="ex-card-sub">
-              {exercise.hauptgruppe} • {exercise.untergruppe}
-              {mengeEinheit && <> • {mengeEinheit}</>}
+              {exercise.hauptgruppe}
+              {exercise.hauptgruppe && exercise.untergruppe && " • "}
+              {exercise.hauptgruppe ? exercise.untergruppe : (exercise.untergruppe || "")}
             </div>
+            {mengeEinheit && (
+              <div className="ex-card-amount">
+                {mengeEinheit}
+              </div>
+            )}
           </div>
 
           <div className="ex-card-head-right">

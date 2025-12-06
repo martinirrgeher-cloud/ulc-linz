@@ -13,20 +13,31 @@
 
 .ex-card-title-row {
   display: flex;
-  justify-content: space-between;
   align-items: center;
   gap: 0.5rem;
 }
 
+.ex-card-title {
+  font-weight: 800;
+  font-size: 1.15rem;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .ex-card-stars {
   font-size: 0.9rem;
+  margin-left: auto;
+  text-align: right;
+  white-space: nowrap;
 }
 
 .ex-cards { display:grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap:12px; }
 .ex-card { border:1px solid #eee; border-radius:12px; padding:10px; display:flex; flex-direction:column; gap:8px; background:#fff; }
 .ex-card-head.row { display:flex; align-items:center; justify-content:space-between; gap:8px; }
-.ex-card-title { font-weight:800; font-size:1.15rem; }
+.ex-card-head-left { flex: 1 1 auto; min-width: 0; }
+.ex-card-title { font-weight:800; font-size:1.15rem; flex:1 1 auto; min-width:0; }
 .ex-card-sub { font-size:1.05rem; color:#555; }
+.ex-card-amount { font-size:0.95rem; color:#555; margin-top:2px; }
 .ex-card-head-right { display:flex; align-items:center; gap:8px; }
 
 /* Media icon on right */

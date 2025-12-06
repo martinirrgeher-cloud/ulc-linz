@@ -1,6 +1,7 @@
 // src/modules/uebungskatalog/components/MediaViewerModal.tsx
 import React, { useEffect, useState } from "react";
-import { buildDriveBlobObjectUrl, toPreviewIframeUrl } from "../services/mediaUrl";
+import { toPreviewIframeUrl } from "../services/mediaUrl";
+import { extractFileIdFromUrl } from "@/lib/utils/extractFileIdFromUrl";
 
 type Props = {
   open: boolean;
@@ -24,35 +25,58 @@ function MediaViewerModalImpl({ open, onClose, name, fileId, url, type }: Props)
 
   useEffect(() => {
     let alive = true;
-    let objectUrl: string | null = null;
 
     async function run() {
       setMode("loading"); setSrc(""); setMsg("");
 
-      const fid = fileId || "";
-      const gurl = url || "";
+      const fidProp = fileId || "";
+      const urlProp = url || "";
 
       try {
-        if (fid) {
-          // echter Download mit Token → Blob
-          const u = await buildDriveBlobObjectUrl(fid);
+        // 1) Drive-ID ermitteln (entweder direkt, aus einer Drive-URL oder aus einer "nackten" ID)
+        let driveId = fidProp;
+
+        if (!driveId && urlProp) {
+          if (urlProp.includes("drive.google.com")) {
+            // klassischer geteilter Drive-Link
+            driveId = extractFileIdFromUrl(urlProp) || "";
+          } else {
+            // Falls die URL wie eine nackte ID aussieht (keine Slashes, kein Protokoll),
+            // dann behandeln wir sie als Drive-File-ID.
+            const looksLikeId =
+              !urlProp.includes("://") &&
+              !urlProp.startsWith("/") &&
+              !urlProp.startsWith("./") &&
+              !urlProp.startsWith("../");
+            if (looksLikeId) {
+              driveId = urlProp;
+            }
+          }
+        }
+
+        // 2) Wenn wir eine Drive-ID haben → immer Drive-Preview verwenden
+        if (driveId) {
           if (!alive) return;
-          if (u) { objectUrl = u; setSrc(u); setMode("blob"); return; }
-        }
-        // Fallback: IFrame-Preview
-        if (fid) {
-          setSrc(toPreviewIframeUrl(fid));
-          setMode("iframe"); return;
-        }
-        if (gurl) {
-          setSrc(gurl);
-          setMode(type === "video" ? "blob" : "iframe"); // heuristik
+          const preview = toPreviewIframeUrl(driveId);
+          setSrc(preview);
+          setMode("iframe");
           return;
         }
-        setMode("error"); setMsg("Keine Medienquelle vorhanden.");
+
+        // 3) Fallback: echte externe URL (nur http/https)
+        if (urlProp && /^https?:\/\//.test(urlProp)) {
+          if (!alive) return;
+          setSrc(urlProp);
+          setMode("iframe");
+          return;
+        }
+
+        setMode("error");
+        setMsg("Keine gültige Medienquelle vorhanden.");
       } catch (e: any) {
         if (!alive) return;
-        setMode("error"); setMsg(e?.message || "Medienvorschau fehlgeschlagen");
+        setMode("error");
+        setMsg(e?.message || "Medienvorschau fehlgeschlagen");
       }
     }
 
@@ -60,7 +84,6 @@ function MediaViewerModalImpl({ open, onClose, name, fileId, url, type }: Props)
 
     return () => {
       alive = false;
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
   }, [open, fileId, url, type]);
 
