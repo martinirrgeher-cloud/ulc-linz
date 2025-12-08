@@ -61,6 +61,22 @@ const BlockList: React.FC<BlockListProps> = ({
   const [openItemComments, setOpenItemComments] =
     React.useState<Record<string, boolean>>({});
 
+  const [pendingDelete, setPendingDelete] = React.useState<
+    | { type: "block"; blockId: string }
+    | { type: "item"; blockId: string; itemId: string }
+    | null
+  >(null);
+
+  const handleConfirmDelete = () => {
+    if (!pendingDelete) return;
+    if (pendingDelete.type === "block") {
+      onRemoveBlock(pendingDelete.blockId);
+    } else if (pendingDelete.type === "item") {
+      onRemoveItem(pendingDelete.blockId, pendingDelete.itemId);
+    }
+    setPendingDelete(null);
+  };
+
   const handleTextareaAutoResize = (
     e: React.FormEvent<HTMLTextAreaElement>
   ) => {
@@ -119,7 +135,9 @@ const BlockList: React.FC<BlockListProps> = ({
                 <button
                   type="button"
                   className="tp-btn tp-btn-lg tp-btn-danger tp-block-delete-btn"
-                  onClick={() => onRemoveBlock(blk.id)}
+                  onClick={() =>
+                    setPendingDelete({ type: "block", blockId: blk.id })
+                  }
                   title="Block löschen"
                 >
                   ✕
@@ -332,7 +350,13 @@ return (
                               <button
                                 type="button"
                                 className="tp-btn tp-btn-mini tp-btn-rect tp-btn-danger"
-                                onClick={() => onRemoveItem(blk.id, iid)}
+                                onClick={() =>
+                                  setPendingDelete({
+                                    type: "item",
+                                    blockId: blk.id,
+                                    itemId: iid,
+                                  })
+                                }
                                 title="Entfernen"
                               >
                                 ✕
@@ -631,6 +655,48 @@ return (
           </div>
         );
       })}
+      {pendingDelete && (
+        <div
+          className="tp-picker-overlay"
+          onClick={() => setPendingDelete(null)}
+        >
+          <div
+            className="tp-picker-dialog"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="tp-picker-header">
+              <div className="tp-picker-title">
+                {pendingDelete.type === "block"
+                  ? "Block wirklich löschen?"
+                  : "Übung wirklich löschen?"}
+              </div>
+            </div>
+            <div className="tp-picker-body">
+              <p>
+                {pendingDelete.type === "block"
+                  ? "Der gesamte Block mit allen enthaltenen Übungen wird entfernt. Dieser Vorgang kann nicht rückgängig gemacht werden."
+                  : "Diese Übung wird aus dem Block entfernt. Dieser Vorgang kann nicht rückgängig gemacht werden."}
+              </p>
+            </div>
+            <div className="tp-picker-footer">
+              <button
+                type="button"
+                className="tp-btn"
+                onClick={() => setPendingDelete(null)}
+              >
+                Abbrechen
+              </button>
+              <button
+                type="button"
+                className="tp-btn tp-btn-danger"
+                onClick={handleConfirmDelete}
+              >
+                Ja, löschen
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
