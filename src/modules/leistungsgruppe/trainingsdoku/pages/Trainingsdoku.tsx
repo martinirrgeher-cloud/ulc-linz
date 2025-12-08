@@ -30,24 +30,65 @@ function formatTarget(target: any | null | undefined): string {
   if (!target) return "";
   const parts: string[] = [];
 
-  if (target.sets != null && target.reps != null) {
-    parts.push(`${target.sets} × ${target.reps}`);
-  } else if (target.reps != null) {
-    parts.push(`${target.reps} Wdh`);
+  const sets = target.sets;
+  const reps = target.reps;
+  const menge = target.menge;
+  const einheit = target.einheit;
+
+  let combinedMengeWithSets = false;
+
+  if (sets != null && reps != null) {
+    // Klassischer Fall: z.B. 5 × 5 Wdh
+    parts.push(`${sets} × ${reps} Wdh`);
+  } else if (sets != null && menge != null && einheit) {
+    // Z.B. 5 × 200 m (Läufe etc.)
+    parts.push(`${sets} × ${menge} ${einheit}`);
+    combinedMengeWithSets = true;
+  } else if (reps != null) {
+    parts.push(`${reps} Wdh`);
   }
 
-  if (target.menge != null && target.einheit) {
-    parts.push(`${target.menge} ${target.einheit}`);
-  } else {
-    const distance = target.distanceM ?? target.distance;
-    if (distance != null) {
-      const unit = target.distanceUnit || "m";
-      parts.push(`${distance} ${unit}`);
+  if (!combinedMengeWithSets) {
+    if (menge != null && einheit) {
+      parts.push(`${menge} ${einheit}`);
+    } else {
+      const distance = target.distanceM ?? target.distance;
+      if (distance != null) {
+        const unit = target.distanceUnit || "m";
+        parts.push(`${distance} ${unit}`);
+      }
     }
   }
 
-  const timeSec = target.durationSec ?? target.timeSec;
-  if (timeSec != null) {
+  // Zusatzwert (Zeit / Gewicht) sauber auswerten
+  // - Für neue Pläne verwenden wir durationSec für Zeiten und weightKg für Gewichte,
+  //   gesteuert über target.extraUnit.
+  // - Für ältere Pläne unterstützen wir weiterhin target.timeSec.
+  // - Falls extraUnit = "sek" gesetzt ist, aber nur weightKg befüllt ist,
+  //   interpretieren wir weightKg rückwirkend als Sekunden.
+  const extraUnit: "kg" | "sek" | "" =
+    target.extraUnit === "kg" || target.extraUnit === "sek"
+      ? target.extraUnit
+      : "";
+
+  let timeSec: number | null =
+    (target.durationSec ?? target.timeSec) != null
+      ? (target.durationSec ?? target.timeSec)
+      : null;
+  let weightKg: number | null =
+    target.weightKg != null && !Number.isNaN(target.weightKg)
+      ? target.weightKg
+      : null;
+
+  // Rückwärtskompatibilität: Sekunden wurden früher teilweise in weightKg gespeichert,
+  // wenn im Plan "sek" ausgewählt war.
+  if (extraUnit === "sek" && timeSec == null && weightKg != null) {
+    timeSec = weightKg;
+    weightKg = null;
+  }
+
+  // Zeit anzeigen (falls vorhanden)
+  if (timeSec != null && !Number.isNaN(timeSec)) {
     const min = Math.floor(timeSec / 60);
     const sec = timeSec % 60;
     if (min > 0) {
@@ -57,8 +98,9 @@ function formatTarget(target: any | null | undefined): string {
     }
   }
 
-  if (target.weightKg != null) {
-    parts.push(`${target.weightKg} kg`);
+  // Gewicht nur anzeigen, wenn es wirklich ein Gewicht ist
+  if (weightKg != null && !Number.isNaN(weightKg) && extraUnit !== "sek") {
+    parts.push(`${weightKg} kg`);
   }
 
   if (target.intensity != null) {
@@ -73,27 +115,40 @@ function getPerSetExtraUnit(
   planned: any,
   perSet: any[] | undefined
 ): "" | "kg" | "sek" {
+  // 1) Wenn im Plan explizit eine Einheit gesetzt wurde, hat diese Vorrang.
   if (planned?.extraUnit === "kg" || planned?.extraUnit === "sek") {
     return planned.extraUnit;
   }
-  if (planned?.weightKg != null && !Number.isNaN(planned.weightKg)) {
-    return "kg";
+
+  // 2) Zuerst auf Per-Set-Werte schauen: wenn nur Zeiten vorkommen -> "sek", wenn nur Gewichte -> "kg".
+  if (perSet && perSet.length > 0) {
+    let hasTime = false;
+    let hasWeight = false;
+    for (const st of perSet) {
+      if (st?.durationSec != null && !Number.isNaN(st.durationSec as any)) {
+        hasTime = true;
+      }
+      if (st?.weightKg != null && !Number.isNaN(st.weightKg as any)) {
+        hasWeight = true;
+      }
+    }
+    if (hasTime && !hasWeight) return "sek";
+    if (hasWeight && !hasTime) return "kg";
+    if (hasTime && hasWeight) {
+      // Falls beides vorkommt, bevorzugen wir Zeiten, da Läufe typischerweise so dokumentiert werden.
+      return "sek";
+    }
   }
+
+  // 3) Fallback auf aggregierte Plan-Werte.
   const durationSec = planned?.durationSec ?? planned?.timeSec;
   if (durationSec != null && !Number.isNaN(durationSec)) {
     return "sek";
   }
-  if (perSet && perSet.length > 0) {
-    for (const st of perSet) {
-      if (st?.weightKg != null && !Number.isNaN(st.weightKg as any)) {
-        return "kg";
-      }
-      const ds = st?.durationSec;
-      if (ds != null && !Number.isNaN(ds as any)) {
-        return "sek";
-      }
-    }
+  if (planned?.weightKg != null && !Number.isNaN(planned.weightKg)) {
+    return "kg";
   }
+
   return "";
 }
 
