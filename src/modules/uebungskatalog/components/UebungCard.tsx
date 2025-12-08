@@ -29,7 +29,7 @@ export default function UebungCard({ exercise }: Props) {
   const media = useMemo(() => pickFirstMedia(exercise), [exercise]);
 
   const rawFileId = media ? extractFileIdFromUrl(media.url) : undefined;
-  const fileId: string | undefined = rawFileId ?? undefined; // <- null → undefined
+  const fileId: string | undefined = rawFileId ?? undefined;
   const mediaUrl = media?.url;
   const mediaType: "image" | "video" =
     media?.type === "video" ? "video" : "image";
@@ -48,41 +48,46 @@ export default function UebungCard({ exercise }: Props) {
       <div className="ex-card">
         <div className="ex-card-head row">
           <div className="ex-card-head-left">
-            <div className="ex-card-title-row" style={{ display: "flex", alignItems: "center" }}>
+            <div
+              className="ex-card-title-row"
+              style={{ display: "flex", alignItems: "center" }}
+            >
               <div className="ex-card-title">{exercise.name}</div>
               {exercise.difficulty && <Stars value={exercise.difficulty} />}
             </div>
 
-            <div className="ex-card-sub">
-              {exercise.hauptgruppe}
-              {exercise.hauptgruppe && exercise.untergruppe && " • "}
-              {exercise.hauptgruppe ? exercise.untergruppe : (exercise.untergruppe || "")}
-            </div>
-            {mengeEinheit && (
-              <div className="ex-card-amount">
-                {mengeEinheit}
-              </div>
-            )}
-          </div>
-
-          <div className="ex-card-head-right">
-            {hasMedia && media && (
-              <button
-                type="button"
-                className={`ex-media-icon ${media.type}`}
-                title={media.name}
-                aria-label="Medienvorschau öffnen"
-                onClick={() => setViewerOpen(true)}
-              >
-                {media.type === "video" ? (
-                  <VideoIcon size={18} />
-                ) : media.type === "image" ? (
-                  <ImageIcon size={18} />
-                ) : (
-                  <FileIcon size={18} />
+            <div className="ex-card-body-row">
+              <div className="ex-card-body-left">
+                <div className="ex-card-sub">
+                  {exercise.hauptgruppe}
+                  {exercise.hauptgruppe && exercise.untergruppe && " • "}
+                  {exercise.hauptgruppe
+                    ? exercise.untergruppe
+                    : exercise.untergruppe || ""}
+                </div>
+                {mengeEinheit && (
+                  <div className="ex-card-amount">{mengeEinheit}</div>
                 )}
-              </button>
-            )}
+              </div>
+
+              {hasMedia && media && (
+                <button
+                  type="button"
+                  className={"ex-media-icon " + media.type}
+                  title={media.name}
+                  aria-label="Medienvorschau öffnen"
+                  onClick={() => setViewerOpen(true)}
+                >
+                  {media.type === "video" ? (
+                    <VideoIcon size={18} />
+                  ) : media.type === "image" ? (
+                    <ImageIcon size={18} />
+                  ) : (
+                    <FileIcon size={18} />
+                  )}
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>

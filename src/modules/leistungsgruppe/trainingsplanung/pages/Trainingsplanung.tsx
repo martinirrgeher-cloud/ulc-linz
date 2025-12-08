@@ -449,7 +449,12 @@ export default function TrainingsplanungPage() {
           reps: tplItem.target?.reps ?? null,
           menge: tplItem.target?.menge ?? null,
           einheit: tplItem.target?.einheit ?? null,
-          sets: tplItem.target?.sets ?? null,
+          // Serien: wenn möglich aus sets, sonst aus reps übernehmen
+          sets:
+            tplItem.target?.sets != null &&
+            !Number.isNaN((tplItem.target as any).sets as any)
+              ? tplItem.target?.sets ?? null
+              : tplItem.target?.reps ?? null,
           distanceM: tplItem.target?.distanceM ?? null,
           weightKg: tplItem.target?.weightKg ?? null,
           durationSec: tplItem.target?.durationSec ?? null,
@@ -634,13 +639,15 @@ function handleUpdateBlockTitle(blockId: string, title: string) {
 
   const allUntergruppen = useMemo(() => {
     const set = new Set<string>();
+    const h = searchHaupt.trim().toLowerCase();
     exercises.forEach((ex) => {
+      if (h && (ex.haupt ?? "").toLowerCase() !== h) return;
       if (ex.unter) set.add(ex.unter);
     });
     return Array.from(set).sort((a, b) =>
       a.localeCompare(b, "de", { sensitivity: "base" })
     );
-  }, [exercises]);
+  }, [exercises, searchHaupt]);
 
   // -------------------------------------------------------
   // Übung zu Block hinzufügen (Katalog)

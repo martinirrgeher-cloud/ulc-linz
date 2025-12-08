@@ -115,7 +115,12 @@ const ExercisePicker: React.FC<Props> = ({
               <select
                 className="tp-input"
                 value={searchHaupt}
-                onChange={(e) => onChangeSearchHaupt(e.target.value)}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  onChangeSearchHaupt(v);
+                  // Untergruppen-Filter zurücksetzen, wenn Hauptgruppe geändert wird
+                  onChangeSearchUnter("");
+                }}
               >
                 <option value="">Alle Hauptgruppen</option>
                 {allHauptgruppen.map((g) => (

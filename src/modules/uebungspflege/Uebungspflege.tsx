@@ -65,7 +65,7 @@ export default function Uebungspflege() {
 
   const listAll = useMemo(() => {
     const qq = flt.q.trim().toLowerCase();
-    return all.filter((x) => {
+    const base = all.filter((x) => {
       if (flt.onlyActive && x.active === false) return false;
 
       if (flt.haupt && x.hauptgruppe !== flt.haupt) return false;
@@ -79,6 +79,12 @@ export default function Uebungspflege() {
         x.beschreibung?.toLowerCase().includes(qq)
       );
     });
+
+    return base.slice().sort((a, b) =>
+      (a.name ?? "").localeCompare(b.name ?? "", "de-AT", {
+        sensitivity: "base",
+      })
+    );
   }, [all, flt]);
 
   // Limit auf 15 Einträge in der Vorschau-Liste

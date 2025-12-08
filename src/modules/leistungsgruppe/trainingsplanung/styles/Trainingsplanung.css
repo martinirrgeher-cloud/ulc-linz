@@ -1234,3 +1234,23 @@
   width: 45px;
   min-width: 45px;
 }
+
+
+.tp-picker-filter-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  margin-right: 4px;
+  margin-top: 2px;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  background: #ffffff;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.tp-picker-filter-btn--active {
+  background: #1976d2;
+  color: #ffffff;
+  border-color: #1976d2;
+}

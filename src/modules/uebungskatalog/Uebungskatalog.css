@@ -39,6 +39,7 @@
 .ex-card-sub { font-size:1.05rem; color:#555; }
 .ex-card-amount { font-size:0.95rem; color:#555; margin-top:2px; }
 .ex-card-head-right { display:flex; align-items:center; gap:8px; margin-top:6px; }
+.ex-card-foot { margin-top:4px; display:flex; justify-content:flex-end; }
 
 /* Media icon on right */
 .ex-media-icon { display:inline-flex; align-items:center; justify-content:center; width:36px; height:36px; border-radius:10px; border:1px solid #ddd; background:#fff; cursor:pointer; }
@@ -88,3 +89,23 @@
 /* Close-Button im Modal über Videos zuverlässig klickbar */
 .ex-modal-content { position: relative; }
 .ex-modal-close { z-index: 5; pointer-events: auto; }
+
+
+.ex-card-body-row {
+  display: flex;
+  align-items: center;
+  margin-top: 2px;
+  gap: 8px;
+}
+
+.ex-card-body-left {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* Icon soll über beide Zeilen "stehen" */
+.ex-card-body-row .ex-media-icon {
+  align-self: stretch;
+  display: inline-flex;
+  align-items: center;
+}

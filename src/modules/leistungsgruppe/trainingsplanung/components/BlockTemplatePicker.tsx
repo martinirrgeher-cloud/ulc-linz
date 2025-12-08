@@ -31,6 +31,23 @@ function BlockTemplatePicker({
     );
   }, [templates]);
 
+
+  const [groupFilter, setGroupFilter] = useState<string | null>(null);
+
+  const sortedTemplates = useMemo(() => {
+    return [...templates].sort((a, b) =>
+      (a.title ?? "").localeCompare(b.title ?? "", "de-AT", {
+        sensitivity: "base",
+      })
+    );
+  }, [templates]);
+
+  const visibleTemplates = useMemo(() => {
+    if (!groupFilter) return sortedTemplates;
+    const key = groupFilter;
+    return sortedTemplates.filter((t) => (t.group || "Allgemein") === key);
+  }, [sortedTemplates, groupFilter]);
+
   const [openTemplateIds, setOpenTemplateIds] = useState<
     Record<string, boolean>
   >({});
@@ -83,13 +100,38 @@ function BlockTemplatePicker({
           )}
           {!loading && hasTemplates && (
             <>
-              {groups.length > 1 && (
+              {groups.length > 0 && (
                 <div className="tp-picker-subtitle">
-                  {groups.join(" · ")}
+                  <span>Blocktypen:</span>{" "}
+                  <button
+                    type="button"
+                    className={
+                      "tp-picker-filter-btn" +
+                      (!groupFilter ? " tp-picker-filter-btn--active" : "")
+                    }
+                    onClick={() => setGroupFilter(null)}
+                  >
+                    Alle
+                  </button>
+                  {groups.map((g) => (
+                    <button
+                      key={g}
+                      type="button"
+                      className={
+                        "tp-picker-filter-btn" +
+                        (groupFilter === g
+                          ? " tp-picker-filter-btn--active"
+                          : "")
+                      }
+                      onClick={() => setGroupFilter(g)}
+                    >
+                      {g}
+                    </button>
+                  ))}
                 </div>
               )}
               <div className="tp-template-list">
-                {templates.map((tpl) => {
+                {visibleTemplates.map((tpl) => {
                   const isOpen = !!openTemplateIds[tpl.id];
                   const items = (tpl as any).items as any[] | undefined;
 

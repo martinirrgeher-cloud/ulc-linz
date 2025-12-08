@@ -249,9 +249,13 @@ const BlockList: React.FC<BlockListProps> = ({
 
                     const extraDisplayValue =
                       extraUnit === "kg"
-                        ? String(t.weightKg).replace(".", ",")
+                        ? t.weightKg != null && !Number.isNaN(t.weightKg as any)
+                          ? String(t.weightKg).replace(".", ",")
+                          : ""
                         : extraUnit === "sek"
-                        ? String(t.durationSec).replace(".", ",")
+                        ? t.durationSec != null && !Number.isNaN(t.durationSec as any)
+                          ? String(t.durationSec).replace(".", ",")
+                          : ""
                         : "";
 
 return (
@@ -463,8 +467,11 @@ return (
 
                                     // Einheit explizit im Ziel speichern, unabhängig vom numerischen Wert
                                     if (newUnit === "") {
+                                      // Einheit und dazugehörige Werte komplett löschen
                                       onUpdateItemTarget(iid, {
                                         extraUnit: null,
+                                        weightKg: null,
+                                        durationSec: null,
                                       });
                                     } else if (newUnit === "kg") {
                                       onUpdateItemTarget(iid, {

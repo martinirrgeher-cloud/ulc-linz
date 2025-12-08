@@ -264,7 +264,7 @@ export default function TrainingsbloeckePage() {
     const diffVal =
       d && !Number.isNaN(Number(d)) ? Number(d) : undefined;
 
-    return exercises.filter((ex) => {
+    const base = exercises.filter((ex) => {
       if (t) {
         const hay = `${ex.name} ${ex.haupt ?? ""} ${ex.unter ?? ""}`.toLowerCase();
         if (!hay.includes(t)) return false;
@@ -276,6 +276,12 @@ export default function TrainingsbloeckePage() {
       }
       return true;
     });
+
+    return base.slice().sort((a, b) =>
+      (a.name ?? "").localeCompare(b.name ?? "", "de-AT", {
+        sensitivity: "base",
+      })
+    );
   }, [exercises, search]);
 
   const hauptOptions = useMemo(
@@ -472,8 +478,11 @@ export default function TrainingsbloeckePage() {
 
     const s = pendingSeries.trim().replace(",", ".");
     const seriesNum = s ? Number(s) : null;
-    target.reps =
+    const seriesVal =
       seriesNum != null && Number.isFinite(seriesNum) ? seriesNum : null;
+    // Serien sowohl in reps (Alt-Feld) als auch in sets (neues Serien-Feld) speichern
+    target.reps = seriesVal;
+    (target as any).sets = seriesVal;
 
     const m = pendingMenge.trim().replace(",", ".");
     const mengeNum = m ? Number(m) : null;
@@ -530,8 +539,15 @@ export default function TrainingsbloeckePage() {
       const it = tpl.items.find((x) => x.id === itemId);
       if (!it) return;
       const t: PlanTarget = { ...(it.target as PlanTarget) };
-      if (
-        field === "reps" ||
+
+      if (field === "reps") {
+        const trimmed = value.trim();
+        const num = trimmed ? Number(trimmed.replace(",", ".")) || null : null;
+        t.reps = num;
+        // Serien zusätzlich im neuen Feld sets speichern, damit die Trainingsplanung
+        // sie als Sätze anzeigen kann.
+        (t as any).sets = num;
+      } else if (
         field === "menge" ||
         field === "sets" ||
         field === "distanceM" ||
