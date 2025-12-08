@@ -2,6 +2,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import "../styles/Trainingsplanung.css";
 import BlockTemplatePicker from "../components/BlockTemplatePicker";
+import PlanWeekOverviewModal from "../components/PlanWeekOverviewModal";
 import {
   startOfISOWeek as startOfISOWeekStr,
   weekRangeFrom,
@@ -180,6 +181,7 @@ export default function TrainingsplanungPage() {
   const [blockTemplatesLoading, setBlockTemplatesLoading] = useState(false);
   const [blockTemplatesError, setBlockTemplatesError] = useState<string | null>(null);
   const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
+  const [weekOverviewOpen, setWeekOverviewOpen] = useState(false);
 
   const [planTemplates, setPlanTemplates] = useState<PlanTemplate[]>([]);
   const [selectedPlanTemplateId, setSelectedPlanTemplateId] = useState<string>("");
@@ -1202,6 +1204,11 @@ function handleUpdateItemPerSetTarget(
     [athletes, selectedAthleteId]
   );
 
+  const plansForSelectedAthlete = useMemo(
+    () => (selectedAthleteId ? plansByAthlete[selectedAthleteId] ?? {} : {}),
+    [plansByAthlete, selectedAthleteId]
+  );
+
   const blocks: PlanBlock[] = useMemo(() => {
   if (!currentDay || !currentDay.blocks || !currentDay.blockOrder) return [];
   return currentDay.blockOrder
@@ -1280,6 +1287,13 @@ const isBusy = loading || saving;
                 onClick={() => setTemplatePickerOpen(true)}
               >
                 Block aus Vorlage
+              </button>
+              <button
+                type="button"
+                className="tp-btn"
+                onClick={() => setWeekOverviewOpen(true)}
+              >
+                Wochenansicht
               </button>
               <button
                 type="button"
@@ -1547,6 +1561,14 @@ const isBusy = loading || saving;
         onAddCatalogExercise={handleAddCatalogExercise}
         onAddManualExercise={handleAddManualExercise}
         exerciseLoading={exerciseLoading}
+      />
+      <PlanWeekOverviewModal
+        open={weekOverviewOpen && !!selectedAthlete}
+        onClose={() => setWeekOverviewOpen(false)}
+        athleteName={selectedAthlete ? selectedAthlete.name : ""}
+        weekLabel={weekLabel}
+        weekDates={weekDates}
+        plansByDay={plansForSelectedAthlete}
       />
       <BlockTemplatePicker
         open={templatePickerOpen}
