@@ -1265,6 +1265,9 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  max-height: calc(90vh - 48px);
+  overflow-y: auto;
+  padding-right: 4px;
 }
 
 .tp-week-header-main {
@@ -1392,4 +1395,23 @@
   font-size: 11px;
   color: #333;
   font-style: italic;
+}
+
+.tp-week-day-header {
+  cursor: pointer;
+}
+
+.tp-week-day-header-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tp-week-day-toggle {
+  border: none;
+  background: transparent;
+  font-size: 16px;
+  line-height: 1;
+  padding: 0 4px;
+  cursor: pointer;
 }

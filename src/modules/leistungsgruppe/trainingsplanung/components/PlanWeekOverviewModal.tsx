@@ -1,5 +1,5 @@
 // src/modules/leistungsgruppe/trainingsplanung/components/PlanWeekOverviewModal.tsx
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import type {
   PlanDay,
   PlanBlock,
@@ -105,6 +105,9 @@ function PlanWeekOverviewModal(props: Props) {
     [weekDates, plansByDay]
   );
 
+
+  const [collapsedDays, setCollapsedDays] = useState<Record<string, boolean>>({});
+
   if (!open) return null;
 
   return (
@@ -143,22 +146,46 @@ function PlanWeekOverviewModal(props: Props) {
 
             return (
               <div key={iso} className="tp-week-day-card">
-                <div className="tp-week-day-header">
-                  <div className="tp-week-day-name">
-                    {labels.weekday}
+                <div
+                  className="tp-week-day-header"
+                  onClick={() =>
+                    setCollapsedDays((prev) => ({
+                      ...prev,
+                      [iso]: !prev[iso],
+                    }))
+                  }
+                >
+                  <div className="tp-week-day-header-main">
+                    <div className="tp-week-day-name">
+                      {labels.weekday}
+                    </div>
+                    <div className="tp-week-day-date">
+                      {labels.date}
+                    </div>
                   </div>
-                  <div className="tp-week-day-date">
-                    {labels.date}
-                  </div>
+                  <button
+                    type="button"
+                    className="tp-week-day-toggle"
+                    aria-label="Tag ein- oder ausklappen"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCollapsedDays((prev) => ({
+                        ...prev,
+                        [iso]: !prev[iso],
+                      }));
+                    }}
+                  >
+                    {collapsedDays[iso] ? "+" : "–"}
+                  </button>
                 </div>
 
-                {!hasContent && (
+                {!hasContent && !collapsedDays[iso] && (
                   <div className="tp-week-empty">
                     Kein Training geplant.
                   </div>
                 )}
 
-                {hasContent && (
+                {hasContent && !collapsedDays[iso] && (
                   <div className="tp-week-blocks">
                     {blocks.map((blk) => {
                       const items: PlanItem[] =
