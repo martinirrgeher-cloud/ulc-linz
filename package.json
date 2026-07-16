@@ -1,34 +1,33 @@
 {
-  "name": "ulc-linz-app-v3",
+  "name": "ulc-linz-app-v2",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.3.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "typecheck": "tsc -b --pretty false",
+    "supabase:start": "npx --yes supabase@2.109.1 start",
+    "supabase:stop": "npx --yes supabase@2.109.1 stop",
+    "supabase:reset": "npx --yes supabase@2.109.1 db reset",
+    "supabase:types:local": "npx --yes supabase@2.109.1 gen types typescript --local > src/types/database.generated.ts",
+    "supabase:db:push": "npx --yes supabase@2.109.1 db push",
+    "supabase:functions:deploy": "npx --yes supabase@2.109.1 functions deploy invite-member"
   },
   "dependencies": {
-    "bcryptjs": "^3.0.3",
-    "date-fns": "^4.1.0",
-    "lucide-react": "^0.546.0",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "react-router-dom": "^6.26.2",
-    "uuid": "^13.0.0"
+    "@supabase/supabase-js": "^2.110.6",
+    "lucide-react": "^1.24.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "react-router-dom": "^7.18.1"
   },
   "devDependencies": {
-    "@types/gapi": "^0.0.47",
-    "@types/gapi.auth2": "^0.0.61",
-    "@types/google.accounts": "^0.0.18",
-    "@types/node": "^22.7.5",
-    "@types/react": "^18.3.5",
-    "@types/react-dom": "^18.3.0",
-    "@vitejs/plugin-react": "^4.7.0",
-    "autoprefixer": "^10.4.20",
-    "postcss": "^8.4.47",
-    "tailwindcss": "^3.4.14",
-    "typescript": "^5.6.3",
-    "vite": "^5.4.10"
+    "@types/node": "^22.18.0",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.3",
+    "typescript": "^7.0.2",
+    "vite": "^8.1.4"
   }
 }

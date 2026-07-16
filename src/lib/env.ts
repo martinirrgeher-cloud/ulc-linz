@@ -1,15 +1,12 @@
-// src/lib/env.ts
-/** Resolve the first defined env var from the given keys. Keeps your existing .env intact. */
-export function env(...keys: string[]): string | undefined {
-  const meta = import.meta.env as any;
-  for (const k of keys) {
-    const v = meta?.[k];
-    if (typeof v === "string" && v.trim().length > 0) return v;
-  }
-  return undefined;
-}
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL?.trim() ?? "";
+const supabasePublishableKey =
+  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY?.trim() ?? "";
 
-/** Optional resourceKey resolver (Drive link security). */
-export function envRK(...keys: string[]): string | undefined {
-  return env(...keys);
-}
+export const env = {
+  appName: import.meta.env.VITE_APP_NAME?.trim() || "ULC Linz",
+  supabaseUrl,
+  supabasePublishableKey,
+  allowSelfSignup:
+    (import.meta.env.VITE_ALLOW_SELF_SIGNUP ?? "false").toLowerCase() === "true",
+  isSupabaseConfigured: Boolean(supabaseUrl && supabasePublishableKey),
+} as const;

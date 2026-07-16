@@ -1,0 +1,185 @@
+import { useState, type FormEvent } from "react";
+import { Save, X } from "lucide-react";
+import type {
+  TrainingGroup,
+  TrainingGroupInput,
+} from "@/features/athletes/types";
+
+export type TrainingGroupEditorMode =
+  | { type: "create" }
+  | { type: "edit"; group: TrainingGroup };
+
+type TrainingGroupEditorProps = {
+  mode: TrainingGroupEditorMode;
+  busy: boolean;
+  onCancel: () => void;
+  onSubmit: (values: TrainingGroupInput) => Promise<void>;
+};
+
+function initialValues(mode: TrainingGroupEditorMode): TrainingGroupInput {
+  if (mode.type === "create") {
+    return {
+      name: "",
+      shortName: "",
+      description: "",
+      isActive: true,
+      sortOrder: 100,
+    };
+  }
+
+  return {
+    name: mode.group.name,
+    shortName: mode.group.shortName ?? "",
+    description: mode.group.description ?? "",
+    isActive: mode.group.isActive,
+    sortOrder: mode.group.sortOrder,
+  };
+}
+
+export function TrainingGroupEditor({
+  mode,
+  busy,
+  onCancel,
+  onSubmit,
+}: TrainingGroupEditorProps) {
+  const [values, setValues] = useState<TrainingGroupInput>(() => initialValues(mode));
+  const [error, setError] = useState<string | null>(null);
+  const canSave = values.name.trim().length >= 2 && values.sortOrder >= 0;
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!canSave || busy) return;
+
+    setError(null);
+    try {
+      await onSubmit(values);
+    } catch (submitError) {
+      setError(
+        submitError instanceof Error
+          ? submitError.message
+          : "Die Trainingsgruppe konnte nicht gespeichert werden.",
+      );
+    }
+  }
+
+  return (
+    <section className="management-editor" aria-labelledby="group-editor-title">
+      <div className="management-editor-heading">
+        <div>
+          <p className="eyebrow">Trainingsgruppen</p>
+          <h2 id="group-editor-title">
+            {mode.type === "create" ? "Gruppe anlegen" : "Gruppe bearbeiten"}
+          </h2>
+          <p>Gruppen werden später von Kindertraining und Leistungsgruppe gemeinsam genutzt.</p>
+        </div>
+        <button
+          type="button"
+          className="icon-button"
+          onClick={onCancel}
+          disabled={busy}
+          aria-label="Bearbeitung schließen"
+        >
+          <X aria-hidden="true" />
+        </button>
+      </div>
+
+      {error && <div className="alert error">{error}</div>}
+
+      <form className="management-form" onSubmit={handleSubmit}>
+        <div className="form-grid">
+          <label>
+            Gruppenname
+            <input
+              type="text"
+              value={values.name}
+              onChange={(event) =>
+                setValues((current) => ({ ...current, name: event.target.value }))
+              }
+              maxLength={100}
+              placeholder="z. B. Kindertraining Montag"
+              required
+            />
+          </label>
+
+          <label>
+            Kurzbezeichnung
+            <input
+              type="text"
+              value={values.shortName}
+              onChange={(event) =>
+                setValues((current) => ({ ...current, shortName: event.target.value }))
+              }
+              maxLength={20}
+              placeholder="z. B. KT-MO"
+            />
+          </label>
+
+          <label>
+            Reihenfolge
+            <input
+              type="number"
+              min={0}
+              max={10000}
+              value={values.sortOrder}
+              onChange={(event) =>
+                setValues((current) => ({
+                  ...current,
+                  sortOrder: Number(event.target.value) || 0,
+                }))
+              }
+            />
+            <small>Kleinere Zahlen werden zuerst angezeigt.</small>
+          </label>
+
+          {mode.type === "edit" && (
+            <label>
+              Status
+              <select
+                value={values.isActive ? "active" : "inactive"}
+                onChange={(event) =>
+                  setValues((current) => ({
+                    ...current,
+                    isActive: event.target.value === "active",
+                  }))
+                }
+              >
+                <option value="active">Aktiv</option>
+                <option value="inactive">Inaktiv</option>
+              </select>
+              <small>Deaktivieren erhält bestehende Zuordnungen und Historie.</small>
+            </label>
+          )}
+        </div>
+
+        <label className="full-width-field">
+          Beschreibung
+          <textarea
+            value={values.description}
+            onChange={(event) =>
+              setValues((current) => ({ ...current, description: event.target.value }))
+            }
+            maxLength={1000}
+            rows={3}
+            placeholder="Optional"
+          />
+          <small>{values.description.length} / 1000 Zeichen</small>
+        </label>
+
+        <div className="management-actions">
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={onCancel}
+            disabled={busy}
+          >
+            Abbrechen
+          </button>
+          <button type="submit" className="primary-button" disabled={!canSave || busy}>
+            <Save aria-hidden="true" />
+            {busy ? "Speichert …" : "Speichern"}
+          </button>
+        </div>
+      </form>
+    </section>
+  );
+}
