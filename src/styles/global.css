@@ -2375,3 +2375,240 @@ input:focus-visible {
   color: var(--muted);
   background: #f3f5f4;
 }
+
+/* Stammdaten kompakt: drei Anlageaktionen statt redundanter Kennzahlen */
+.compact-management-heading {
+  margin-bottom: 0;
+}
+
+.masterdata-create-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.masterdata-create-actions > button {
+  min-width: 0;
+  min-height: 66px;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  color: var(--green-950);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: 0 5px 16px rgba(15, 62, 38, 0.05);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+}
+
+.masterdata-create-actions > button:hover:not(:disabled) {
+  border-color: var(--green-500);
+  background: var(--green-50);
+}
+
+.masterdata-create-actions > button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.masterdata-create-actions > button > svg {
+  width: 28px;
+  height: 28px;
+  padding: 5px;
+  color: #fff;
+  background: var(--green-700);
+  border-radius: 9px;
+}
+
+.masterdata-create-actions > button > span {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+}
+
+.masterdata-create-actions > button > span svg {
+  width: 15px;
+  height: 15px;
+}
+
+.training-group-card {
+  position: relative;
+  padding-right: 70px;
+}
+
+.training-group-card-top-actions {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.compact-editor {
+  padding-bottom: 0;
+}
+
+.compact-editor-heading {
+  min-height: 46px;
+}
+
+.compact-athlete-form {
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.editor-section-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
+  padding: 5px;
+  background: #e9f1ec;
+  border: 1px solid var(--border);
+  border-radius: 13px;
+}
+
+.editor-section-tabs button {
+  min-width: 0;
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 7px 8px;
+  color: var(--green-800);
+  background: transparent;
+  border: 0;
+  border-radius: 9px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.editor-section-tabs button.active {
+  color: #fff;
+  background: var(--green-700);
+  box-shadow: 0 4px 12px rgba(15, 62, 38, 0.16);
+}
+
+.editor-section-tabs button svg {
+  width: 17px;
+  height: 17px;
+  flex: 0 0 auto;
+}
+
+.editor-section-tabs button span {
+  min-width: 20px;
+  padding: 1px 5px;
+  color: var(--green-800);
+  background: rgba(20, 122, 70, 0.12);
+  border-radius: 999px;
+  font-size: 0.7rem;
+}
+
+.editor-section-tabs button.active span {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.editor-section-panel {
+  min-width: 0;
+  display: grid;
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.sticky-editor-actions {
+  position: sticky;
+  z-index: 5;
+  bottom: 0;
+  margin: 0 -14px;
+  padding: 12px 14px calc(12px + env(safe-area-inset-bottom));
+  background: rgba(255, 255, 255, 0.96);
+  border-top: 1px solid var(--border);
+  box-shadow: 0 -10px 24px rgba(15, 62, 38, 0.08);
+  backdrop-filter: blur(8px);
+}
+
+.danger-button {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 14px;
+  color: #fff;
+  background: #b83e3e;
+  border: 1px solid #a33333;
+  border-radius: 12px;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+}
+
+.danger-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+@media (max-width: 520px) {
+  .masterdata-create-actions {
+    gap: 6px;
+  }
+
+  .masterdata-create-actions > button {
+    min-height: 54px;
+    grid-template-columns: 22px minmax(0, 1fr);
+    gap: 5px;
+    padding: 7px 6px;
+    border-radius: 11px;
+    font-size: 0.73rem;
+  }
+
+  .masterdata-create-actions > button > svg {
+    width: 22px;
+    height: 22px;
+    padding: 4px;
+    border-radius: 7px;
+  }
+
+  .masterdata-create-actions > button > span svg {
+    display: none;
+  }
+
+  .editor-section-tabs button {
+    padding-inline: 4px;
+    font-size: 0.72rem;
+  }
+
+  .editor-section-tabs button svg {
+    width: 15px;
+    height: 15px;
+  }
+
+  .sticky-editor-actions > button {
+    flex: 1;
+  }
+}
+
+@media (max-width: 370px) {
+  .masterdata-create-actions > button {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    gap: 3px;
+    font-size: 0.68rem;
+  }
+
+  .editor-section-tabs button svg {
+    display: none;
+  }
+}

@@ -624,3 +624,31 @@ textarea {
     flex-direction: column;
   }
 }
+
+/* Stammdaten kompakt */
+@media (max-width: 760px) {
+  .athlete-management-page {
+    gap: 14px;
+  }
+
+  .athlete-management-page .compact-management-heading {
+    margin-bottom: 0;
+  }
+
+  .compact-editor {
+    padding-bottom: 0;
+  }
+
+  .compact-editor-heading {
+    min-height: 42px;
+  }
+
+  .compact-athlete-form .form-grid {
+    gap: 12px;
+  }
+
+  .sticky-editor-actions {
+    margin-right: -14px;
+    margin-left: -14px;
+  }
+}

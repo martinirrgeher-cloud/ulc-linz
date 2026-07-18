@@ -10,6 +10,7 @@ import {
   Clock3,
   CloudCheck,
   MapPin,
+  MoreVertical,
   Phone,
   RefreshCw,
   Search,
@@ -43,6 +44,7 @@ import type {
   TrainingEnvironment,
 } from "@/features/kindertraining/types";
 import { useAuth } from "@/features/auth/AuthContext";
+import { deactivateAthleteFromTraining } from "@/features/athletes/api";
 
 const STATUS_OPTIONS: Array<{
   value: AttendanceStatus;
@@ -271,6 +273,9 @@ export function KindertrainingDraftPage() {
     athleteName: string;
     contacts: AthleteEmergencyContact[];
   } | null>(null);
+  const [athleteToDeactivate, setAthleteToDeactivate] = useState<KindertrainingParticipant | null>(null);
+  const [deactivationConfirmed, setDeactivationConfirmed] = useState(false);
+  const [deactivatingAthlete, setDeactivatingAthlete] = useState(false);
   const [deletingSpecial, setDeletingSpecial] = useState(false);
   const [showAllTrainers, setShowAllTrainers] = useState(false);
 
@@ -794,6 +799,33 @@ export function KindertrainingDraftPage() {
     }
   }
 
+  async function deactivateSelectedAthlete(): Promise<void> {
+    if (!organizationId || !group?.id || !athleteToDeactivate || !deactivationConfirmed) return;
+    if (!(await flushPendingSave())) return;
+
+    setDeactivatingAthlete(true);
+    setError(null);
+    try {
+      await deactivateAthleteFromTraining(
+        organizationId,
+        "kindertraining",
+        group.id,
+        athleteToDeactivate.athleteId,
+      );
+      const deactivatedName = athleteDisplayName(athleteToDeactivate, sortMode);
+      setAthleteToDeactivate(null);
+      setDeactivationConfirmed(false);
+      await loadSession();
+      setSuccessMessage(
+        `${deactivatedName} wurde inaktiv gesetzt und aus zukünftigen Kindertrainingslisten entfernt.`,
+      );
+    } catch (deactivateError) {
+      setError(errorMessage(deactivateError));
+    } finally {
+      setDeactivatingAthlete(false);
+    }
+  }
+
   function autosaveLabel() {
     if (autoSaveState === "error") {
       return (
@@ -1124,22 +1156,38 @@ export function KindertrainingDraftPage() {
                             </small>
                           </div>
 
-                          {participant.contacts.length > 0 ? (
-                            <button
-                              type="button"
-                              className="icon-button contact-button"
-                              onClick={() => setSelectedContacts({
-                                athleteName: athleteDisplayName(participant, sortMode),
-                                contacts: participant.contacts,
-                              })}
-                              aria-label={`Kontaktdaten von ${athleteDisplayName(participant, sortMode)} anzeigen`}
-                              title="Notfallkontakte"
-                            >
-                              <Phone aria-hidden="true" />
-                            </button>
-                          ) : (
-                            <span className="contact-button-placeholder" aria-hidden="true" />
-                          )}
+                          <div className="compact-athlete-actions">
+                            {participant.contacts.length > 0 ? (
+                              <button
+                                type="button"
+                                className="icon-button contact-button"
+                                onClick={() => setSelectedContacts({
+                                  athleteName: athleteDisplayName(participant, sortMode),
+                                  contacts: participant.contacts,
+                                })}
+                                aria-label={`Kontaktdaten von ${athleteDisplayName(participant, sortMode)} anzeigen`}
+                                title="Notfallkontakte"
+                              >
+                                <Phone aria-hidden="true" />
+                              </button>
+                            ) : (
+                              <span className="contact-button-placeholder" aria-hidden="true" />
+                            )}
+                            {canEdit && participant.isActive && (
+                              <button
+                                type="button"
+                                className="icon-button athlete-more-button"
+                                onClick={() => {
+                                  setDeactivationConfirmed(false);
+                                  setAthleteToDeactivate(participant);
+                                }}
+                                aria-label={`${athleteDisplayName(participant, sortMode)} verwalten`}
+                                title="Athlet verwalten"
+                              >
+                                <MoreVertical aria-hidden="true" />
+                              </button>
+                            )}
+                          </div>
 
                           <div className="compact-status-actions" aria-label="Status wählen">
                             {STATUS_OPTIONS.filter((status) => status.value !== currentStatus).map(
@@ -1314,6 +1362,89 @@ export function KindertrainingDraftPage() {
             </>
           ) : null}
         </>
+      )}
+
+      {athleteToDeactivate && (
+        <div
+          className="contact-dialog-backdrop"
+          role="presentation"
+          onMouseDown={() => {
+            if (!deactivatingAthlete) {
+              setAthleteToDeactivate(null);
+              setDeactivationConfirmed(false);
+            }
+          }}
+        >
+          <section
+            className="contact-dialog athlete-deactivate-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="athlete-deactivate-title"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <div className="contact-dialog-heading">
+              <div>
+                <p className="eyebrow">Athlet verwalten</p>
+                <h2 id="athlete-deactivate-title">
+                  {athleteDisplayName(athleteToDeactivate, sortMode)}
+                </h2>
+              </div>
+              <button
+                type="button"
+                className="icon-button"
+                onClick={() => {
+                  setAthleteToDeactivate(null);
+                  setDeactivationConfirmed(false);
+                }}
+                disabled={deactivatingAthlete}
+                aria-label="Dialog schließen"
+              >
+                <X aria-hidden="true" />
+              </button>
+            </div>
+
+            <div className="alert warning compact-alert">
+              Das Kind wird ab sofort inaktiv und aus allen aktiven Gruppen entfernt.
+              Vergangene Trainings und Statistiken bleiben erhalten.
+            </div>
+
+            <label className="deactivation-confirmation">
+              <input
+                type="checkbox"
+                checked={deactivationConfirmed}
+                onChange={(event) => setDeactivationConfirmed(event.target.checked)}
+                disabled={deactivatingAthlete}
+              />
+              <span>
+                <strong>Wirklich inaktiv setzen</strong>
+                <small>Diese zusätzliche Bestätigung verhindert versehentliche Änderungen.</small>
+              </span>
+            </label>
+
+            <div className="management-actions">
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={() => {
+                  setAthleteToDeactivate(null);
+                  setDeactivationConfirmed(false);
+                }}
+                disabled={deactivatingAthlete}
+              >
+                Abbrechen
+              </button>
+              <button
+                type="button"
+                className="danger-button"
+                onClick={() => void deactivateSelectedAthlete()}
+                disabled={!deactivationConfirmed || deactivatingAthlete}
+              >
+                <UserMinus aria-hidden="true" />
+                {deactivatingAthlete ? "Wird deaktiviert …" : "Athlet inaktiv setzen"}
+              </button>
+            </div>
+          </section>
+        </div>
       )}
 
       {selectedContacts && (

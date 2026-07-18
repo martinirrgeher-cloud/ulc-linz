@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  CalendarDays,
   Layers3,
   Mail,
   Pencil,
@@ -210,15 +209,7 @@ export function AthleteManagementPage() {
     });
   }, [activeFilter, groups, searchTerm, trainers]);
 
-  const counts = useMemo(
-    () => ({
-      activeAthletes: athletes.filter((athlete) => athlete.isActive).length,
-      inactiveAthletes: athletes.filter((athlete) => !athlete.isActive).length,
-      activeGroups: groups.filter((group) => group.isActive).length,
-      activeTrainers: trainers.filter((trainer) => trainer.isActive).length,
-    }),
-    [athletes, groups, trainers],
-  );
+
 
   if (!canView || !organizationId) return <Navigate to="/kein-zugriff" replace />;
   const activeOrganizationId = organizationId;
@@ -237,12 +228,16 @@ export function AthleteManagementPage() {
     setSearchParams(nextTab === "athletes" ? {} : { tab: nextTab }, { replace: true });
   }
 
-  function openCreateEditor() {
+  function openCreateEditor(targetTab: ViewTab) {
     setSuccess(null);
+    setTab(targetTab);
+    setSearchTerm("");
+    setGroupFilter("all");
+    setSearchParams(targetTab === "athletes" ? {} : { tab: targetTab }, { replace: true });
     closeEditors();
-    if (tab === "athletes") setAthleteEditor({ type: "create" });
-    if (tab === "groups") setGroupEditor({ type: "create" });
-    if (tab === "trainers") setTrainerEditor({ type: "create" });
+    if (targetTab === "athletes") setAthleteEditor({ type: "create" });
+    if (targetTab === "groups") setGroupEditor({ type: "create" });
+    if (targetTab === "trainers") setTrainerEditor({ type: "create" });
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -306,23 +301,33 @@ export function AthleteManagementPage() {
     }
   }
 
-  const createLabel = tab === "athletes" ? "Athlet anlegen" : tab === "groups" ? "Gruppe anlegen" : "Trainer anlegen";
   const searchLabel = tab === "athletes" ? "Athlet suchen" : tab === "groups" ? "Gruppe suchen" : "Trainer suchen";
 
   return (
     <section className="athlete-management-page">
-      <div className="management-page-heading">
+      <div className="management-page-heading compact-management-heading">
         <div>
           <p className="eyebrow">Gemeinsame Stammdaten</p>
           <h1>Athleten, Trainer &amp; Gruppen</h1>
         </div>
-        {canEdit && (
-          <button type="button" className="primary-button" onClick={openCreateEditor} disabled={loading || busy}>
-            <Plus aria-hidden="true" />
-            {createLabel}
-          </button>
-        )}
       </div>
+
+      {canEdit && (
+        <div className="masterdata-create-actions" aria-label="Stammdaten anlegen">
+          <button type="button" onClick={() => openCreateEditor("athletes")} disabled={loading || busy}>
+            <UserRound aria-hidden="true" />
+            <span><Plus aria-hidden="true" /> Athlet</span>
+          </button>
+          <button type="button" onClick={() => openCreateEditor("groups")} disabled={loading || busy}>
+            <Layers3 aria-hidden="true" />
+            <span><Plus aria-hidden="true" /> Gruppe</span>
+          </button>
+          <button type="button" onClick={() => openCreateEditor("trainers")} disabled={loading || busy}>
+            <UserRoundCog aria-hidden="true" />
+            <span><Plus aria-hidden="true" /> Trainer</span>
+          </button>
+        </div>
+      )}
 
       {!canEdit && (
         <div className="read-only-notice">
@@ -365,24 +370,7 @@ export function AthleteManagementPage() {
         />
       )}
 
-      <div className="summary-grid" aria-label="Übersicht Stammdaten">
-        <div className="summary-card">
-          <UserRound aria-hidden="true" />
-          <span><strong>{counts.activeAthletes}</strong> aktive Athleten</span>
-        </div>
-        <div className="summary-card">
-          <UsersRound aria-hidden="true" />
-          <span><strong>{counts.activeGroups}</strong> aktive Gruppen</span>
-        </div>
-        <div className="summary-card">
-          <UserRoundCog aria-hidden="true" />
-          <span><strong>{counts.activeTrainers}</strong> aktive Trainer</span>
-        </div>
-        <div className="summary-card subtle">
-          <CalendarDays aria-hidden="true" />
-          <span><strong>{counts.inactiveAthletes}</strong> inaktive Athleten</span>
-        </div>
-      </div>
+
 
       <div className="management-tabs three-tabs" role="tablist" aria-label="Stammdatenbereich">
         <button type="button" role="tab" aria-selected={tab === "athletes"} className={tab === "athletes" ? "active" : ""} onClick={() => switchTab("athletes")}>
@@ -514,11 +502,14 @@ export function AthleteManagementPage() {
                     </div>
                   )}
                 </dl>
-                {canEdit && (
-                  <button type="button" className="secondary-button" onClick={() => { setSuccess(null); closeEditors(); setGroupEditor({ type: "edit", group }); window.scrollTo({ top: 0, behavior: "smooth" }); }}>
-                    <Pencil aria-hidden="true" /> Bearbeiten
-                  </button>
-                )}
+                <div className="training-group-card-top-actions">
+                  <span className={`athlete-status-dot ${group.isActive ? "active" : "inactive"}`} role="status" aria-label={group.isActive ? "Gruppe aktiv" : "Gruppe inaktiv"} title={group.isActive ? "Aktiv" : "Inaktiv"} />
+                  {canEdit && (
+                    <button type="button" className="icon-button" onClick={() => { setSuccess(null); closeEditors(); setGroupEditor({ type: "edit", group }); window.scrollTo({ top: 0, behavior: "smooth" }); }} aria-label={`${group.name} bearbeiten`} title="Bearbeiten">
+                      <Pencil aria-hidden="true" />
+                    </button>
+                  )}
+                </div>
               </article>
             ))}
           </div>

@@ -323,3 +323,18 @@ export async function updateTrainer(
     p_group_ids: values.groupIds,
   });
 }
+
+
+export async function deactivateAthleteFromTraining(
+  organizationId: string,
+  moduleKey: Exclude<TrainingGroupModuleKey, null>,
+  groupId: string,
+  athleteId: string,
+): Promise<void> {
+  await callJsonRpc("deactivate_training_module_athlete", {
+    p_organization_id: organizationId,
+    p_module_key: moduleKey,
+    p_group_id: groupId,
+    p_athlete_id: athleteId,
+  });
+}
