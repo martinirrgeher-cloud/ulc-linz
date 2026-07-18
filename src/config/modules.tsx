@@ -166,8 +166,8 @@ export const APP_MODULES: AppModuleDefinition[] = [
   },
   {
     key: "athletes",
-    title: "Athleten",
-    description: "Athleten und Gruppenzuordnungen verwalten",
+    title: "Athleten, Trainer & Gruppen",
+    description: "Athleten, Trainer und Trainingsgruppen verwalten",
     route: "/module/athletes",
     icon: <LayoutDashboard aria-hidden="true" />,
     groupKey: "master_data",

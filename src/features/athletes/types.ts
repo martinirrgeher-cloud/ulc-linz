@@ -54,6 +54,7 @@ export type Trainer = {
   notes: string | null;
   isActive: boolean;
   linkedUserId: string | null;
+  groupIds: string[];
   createdAt: string;
   updatedAt: string;
 };
@@ -86,4 +87,5 @@ export type TrainerInput = {
   email: string;
   notes: string;
   isActive: boolean;
+  groupIds: string[];
 };

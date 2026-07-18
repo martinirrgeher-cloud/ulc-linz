@@ -40,6 +40,11 @@ function nullableString(value: unknown): string | null {
   return typeof value === "string" && value.trim().length > 0 ? value : null;
 }
 
+function parseStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return [...new Set(value.filter((item): item is string => typeof item === "string"))];
+}
+
 function parseAthleteGroups(value: unknown): AthleteGroupSummary[] {
   if (!Array.isArray(value)) return [];
 
@@ -167,6 +172,7 @@ function parseTrainers(value: Json): Trainer[] {
       notes: nullableString(item.notes),
       isActive: item.is_active === true,
       linkedUserId: nullableString(item.linked_user_id),
+      groupIds: parseStringArray(item.group_ids),
       createdAt: typeof item.created_at === "string" ? item.created_at : "",
       updatedAt: typeof item.updated_at === "string" ? item.updated_at : "",
     }];
@@ -190,7 +196,7 @@ export async function loadAthleteManagement(
   const [athletesData, groupsData, trainersData] = await Promise.all([
     callJsonRpc("athlete_overview", { p_organization_id: organizationId }),
     callJsonRpc("training_group_overview_v2", { p_organization_id: organizationId }),
-    callJsonRpc("trainer_overview", { p_organization_id: organizationId }),
+    callJsonRpc("trainer_overview_v2", { p_organization_id: organizationId }),
   ]);
 
   return {
@@ -282,13 +288,14 @@ export async function createTrainer(
   organizationId: string,
   values: TrainerInput,
 ): Promise<string> {
-  const data = await callJsonRpc("create_trainer", {
+  const data = await callJsonRpc("create_trainer_v2", {
     p_organization_id: organizationId,
     p_first_name: values.firstName.trim(),
     p_last_name: values.lastName.trim(),
     p_phone: values.phone.trim() || null,
     p_email: values.email.trim() || null,
     p_notes: values.notes.trim() || null,
+    p_group_ids: values.groupIds,
   });
 
   if (typeof data !== "string") {
@@ -302,7 +309,7 @@ export async function updateTrainer(
   trainerId: string,
   values: TrainerInput,
 ): Promise<void> {
-  await callJsonRpc("update_trainer", {
+  await callJsonRpc("update_trainer_v2", {
     p_organization_id: organizationId,
     p_trainer_id: trainerId,
     p_first_name: values.firstName.trim(),
@@ -311,5 +318,6 @@ export async function updateTrainer(
     p_email: values.email.trim() || null,
     p_notes: values.notes.trim() || null,
     p_is_active: values.isActive,
+    p_group_ids: values.groupIds,
   });
 }

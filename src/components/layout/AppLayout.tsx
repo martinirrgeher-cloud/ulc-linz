@@ -24,7 +24,14 @@ function AppLayoutContent() {
   const role = appContext?.membership?.role;
 
   async function goHome() {
-    if (await runGuard()) navigate("/");
+    if (!(await runGuard())) return;
+
+    navigate("/", { replace: true, flushSync: true });
+
+    // Sicherheitsnetz für mobile Browser nach einem asynchronen Autosave.
+    window.setTimeout(() => {
+      if (window.location.pathname !== "/") window.location.assign("/");
+    }, 150);
   }
 
   async function handleSignOut() {

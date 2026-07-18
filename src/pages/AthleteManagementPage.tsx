@@ -202,12 +202,13 @@ export function AthleteManagementPage() {
         trainer.phone ?? "",
         trainer.email ?? "",
         trainer.notes ?? "",
+        ...trainer.groupIds.map((groupId) => groups.find((group) => group.id === groupId)?.name ?? ""),
       ]
         .join(" ")
         .toLocaleLowerCase("de-AT")
         .includes(search);
     });
-  }, [activeFilter, searchTerm, trainers]);
+  }, [activeFilter, groups, searchTerm, trainers]);
 
   const counts = useMemo(
     () => ({
@@ -313,7 +314,7 @@ export function AthleteManagementPage() {
       <div className="management-page-heading">
         <div>
           <p className="eyebrow">Gemeinsame Stammdaten</p>
-          <h1>Athleten, Gruppen und Trainer</h1>
+          <h1>Athleten, Trainer &amp; Gruppen</h1>
           <p>Zentrale Grundlage für Kindertraining, Leistungsgruppe und Trainingsplanung.</p>
         </div>
         {canEdit && (
@@ -358,6 +359,7 @@ export function AthleteManagementPage() {
         <TrainerEditor
           key={trainerEditor.type === "create" ? "new-trainer" : `trainer-${trainerEditor.trainer.id}`}
           mode={trainerEditor}
+          groups={groups}
           busy={busy}
           onCancel={closeEditors}
           onSubmit={handleTrainerSubmit}
@@ -515,6 +517,12 @@ export function AthleteManagementPage() {
                 {trainer.phone && <a href={`tel:${trainer.phone}`}><Phone aria-hidden="true" />{trainer.phone}</a>}
                 {trainer.email && <a href={`mailto:${trainer.email}`}><Mail aria-hidden="true" />{trainer.email}</a>}
                 {!trainer.phone && !trainer.email && <span>Keine Kontaktdaten</span>}
+              </div>
+              <div className="trainer-group-chips">
+                {trainer.groupIds.length > 0 ? trainer.groupIds.map((groupId) => {
+                  const group = groups.find((item) => item.id === groupId);
+                  return group ? <span className={group.isActive ? "" : "inactive"} key={groupId}>{group.shortName || group.name}</span> : null;
+                }) : <span className="unassigned">Keine Trainingsgruppe</span>}
               </div>
               {trainer.notes && <p className="trainer-notes">{trainer.notes}</p>}
               {canEdit && (

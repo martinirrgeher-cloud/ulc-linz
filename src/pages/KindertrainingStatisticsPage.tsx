@@ -28,6 +28,20 @@ function isoToday(): string {
   return `${year}-${month}-${day}`;
 }
 
+function isValidIsoDate(value: string | null | undefined): value is string {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const parts = value.split("-").map(Number);
+  const year = parts[0] ?? 0;
+  const month = parts[1] ?? 0;
+  const day = parts[2] ?? 0;
+  const parsed = new Date(year, month - 1, day, 12);
+  return (
+    parsed.getFullYear() === year &&
+    parsed.getMonth() === month - 1 &&
+    parsed.getDate() === day
+  );
+}
+
 function formatDate(value: string): string {
   const parts = value.split("-").map(Number);
   const year = parts[0] ?? new Date().getFullYear();
@@ -70,7 +84,7 @@ export function KindertrainingStatisticsPage() {
     canEditModule("kindertraining_statistics") || canEditModule("kindertraining");
 
   const [statistics, setStatistics] = useState<KindertrainingStatistics | null>(null);
-  const [fromDate, setFromDate] = useState<string>("");
+  const [fromDate, setFromDate] = useState<string>(() => isoToday());
   const [toDate, setToDate] = useState<string>(() => isoToday());
   const [sessionLimit, setSessionLimit] = useState(10);
   const [tab, setTab] = useState<StatisticsTab>("sessions");
@@ -79,21 +93,33 @@ export function KindertrainingStatisticsPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  const loadData = useCallback(async (requestedFromDate?: string) => {
+  const loadData = useCallback(async (requestedFromDate?: string | null) => {
     if (!organizationId || !canView) return;
+    const today = isoToday();
+    const safeToDate = isValidIsoDate(toDate) ? toDate : today;
+    const requestedValue = requestedFromDate === undefined ? fromDate : requestedFromDate;
+    const safeFromDate = requestedValue === null
+      ? null
+      : isValidIsoDate(requestedValue)
+        ? requestedValue
+        : today;
+
     setLoading(true);
     setError(null);
     setSuccess(null);
     try {
       const data = await loadKindertrainingStatistics(
         organizationId,
-        requestedFromDate ?? (fromDate || null),
-        toDate,
+        safeFromDate,
+        safeToDate,
         sessionLimit,
       );
       setStatistics(data);
-      if (!fromDate || requestedFromDate === "") setFromDate(data.fromDate);
+      setFromDate(isValidIsoDate(data.fromDate) ? data.fromDate : safeFromDate ?? today);
+      setToDate(isValidIsoDate(data.toDate) ? data.toDate : today);
     } catch (loadError) {
+      setFromDate((current) => isValidIsoDate(current) ? current : today);
+      setToDate((current) => isValidIsoDate(current) ? current : today);
       setError(errorMessage(loadError));
     } finally {
       setLoading(false);
@@ -101,7 +127,7 @@ export function KindertrainingStatisticsPage() {
   }, [canView, fromDate, organizationId, sessionLimit, toDate]);
 
   useEffect(() => {
-    void loadData("");
+    void loadData(null);
     // Die Statistik wird bewusst nur beim ersten Öffnen automatisch geladen.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [organizationId, canView]);
@@ -148,11 +174,11 @@ export function KindertrainingStatisticsPage() {
         <div className="statistics-filter-grid">
           <label>
             Von
-            <input type="date" value={fromDate} max={toDate} onChange={(event) => setFromDate(event.target.value)} />
+            <input type="date" value={fromDate} max={toDate} onChange={(event) => setFromDate(isValidIsoDate(event.target.value) ? event.target.value : isoToday())} />
           </label>
           <label>
             Bis
-            <input type="date" value={toDate} min={fromDate || undefined} max={isoToday()} onChange={(event) => setToDate(event.target.value)} />
+            <input type="date" value={toDate} min={fromDate} max={isoToday()} onChange={(event) => setToDate(isValidIsoDate(event.target.value) ? event.target.value : isoToday())} />
           </label>
           <label>
             Trainingsliste

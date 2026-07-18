@@ -15,6 +15,7 @@ export type KindertrainingGroupConfiguration = {
 export type KindertrainingConfiguration = {
   group: KindertrainingGroupConfiguration | null;
   specialDates: string[];
+  groupTrainerIds: string[];
 };
 
 export type AthleteEmergencyContact = {

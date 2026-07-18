@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { Save, X } from "lucide-react";
-import type { Trainer, TrainerInput } from "@/features/athletes/types";
+import type { Trainer, TrainerInput, TrainingGroup } from "@/features/athletes/types";
 
 export type TrainerEditorMode =
   | { type: "create" }
@@ -8,6 +8,7 @@ export type TrainerEditorMode =
 
 type TrainerEditorProps = {
   mode: TrainerEditorMode;
+  groups: TrainingGroup[];
   busy: boolean;
   onCancel: () => void;
   onSubmit: (values: TrainerInput) => Promise<void>;
@@ -22,6 +23,7 @@ function initialValues(mode: TrainerEditorMode): TrainerInput {
       email: "",
       notes: "",
       isActive: true,
+      groupIds: [],
     };
   }
 
@@ -32,14 +34,30 @@ function initialValues(mode: TrainerEditorMode): TrainerInput {
     email: mode.trainer.email ?? "",
     notes: mode.trainer.notes ?? "",
     isActive: mode.trainer.isActive,
+    groupIds: mode.trainer.groupIds,
   };
 }
 
-export function TrainerEditor({ mode, busy, onCancel, onSubmit }: TrainerEditorProps) {
+export function TrainerEditor({
+  mode,
+  groups,
+  busy,
+  onCancel,
+  onSubmit,
+}: TrainerEditorProps) {
   const [values, setValues] = useState<TrainerInput>(() => initialValues(mode));
   const [error, setError] = useState<string | null>(null);
 
   const canSave = values.firstName.trim().length > 0 && values.lastName.trim().length > 0;
+
+  function toggleGroup(groupId: string, checked: boolean) {
+    setValues((current) => ({
+      ...current,
+      groupIds: checked
+        ? [...new Set([...current.groupIds, groupId])]
+        : current.groupIds.filter((id) => id !== groupId),
+    }));
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -65,7 +83,7 @@ export function TrainerEditor({ mode, busy, onCancel, onSubmit }: TrainerEditorP
           <h2 id="trainer-editor-title">
             {mode.type === "create" ? "Trainer anlegen" : "Trainer bearbeiten"}
           </h2>
-          <p>Trainer werden unabhängig von einem App-Login verwaltet.</p>
+          <p>Trainer können einer oder mehreren Trainingsgruppen zugeordnet werden.</p>
         </div>
         <button
           type="button"
@@ -150,6 +168,29 @@ export function TrainerEditor({ mode, busy, onCancel, onSubmit }: TrainerEditorP
             </label>
           )}
         </div>
+
+        <fieldset className="trainer-group-field full-width-field">
+          <legend>Trainingsgruppen</legend>
+          {groups.length === 0 ? (
+            <p className="form-help">Noch keine Trainingsgruppen angelegt.</p>
+          ) : (
+            <div className="trainer-group-options">
+              {groups.map((group) => (
+                <label key={group.id} className={group.isActive ? "" : "inactive"}>
+                  <input
+                    type="checkbox"
+                    checked={values.groupIds.includes(group.id)}
+                    onChange={(event) => toggleGroup(group.id, event.target.checked)}
+                  />
+                  <span>
+                    <strong>{group.name}</strong>
+                    {!group.isActive && <small>Inaktiv</small>}
+                  </span>
+                </label>
+              ))}
+            </div>
+          )}
+        </fieldset>
 
         <label className="full-width-field">
           Interne Notiz

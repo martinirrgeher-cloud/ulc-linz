@@ -154,7 +154,14 @@ function findTrainingDate(
   return fromDate;
 }
 
-function makeDraft(session: KindertrainingSession): KindertrainingDraft {
+function makeDraft(
+  session: KindertrainingSession,
+  groupTrainerIds: string[] = [],
+): KindertrainingDraft {
+  const trainerIds = session.id
+    ? session.trainerIds
+    : session.trainerIds.filter((trainerId) => groupTrainerIds.includes(trainerId));
+
   return {
     state: session.state,
     note: session.note,
@@ -162,7 +169,7 @@ function makeDraft(session: KindertrainingSession): KindertrainingDraft {
       session.participants.map((participant) => [participant.athleteId, participant.status]),
     ),
     environment: session.environment,
-    trainerIds: session.trainerIds,
+    trainerIds,
   };
 }
 
@@ -279,6 +286,7 @@ export function KindertrainingDraftPage() {
     contacts: AthleteEmergencyContact[];
   } | null>(null);
   const [deletingSpecial, setDeletingSpecial] = useState(false);
+  const [showAllTrainers, setShowAllTrainers] = useState(false);
 
   const requestIdRef = useRef(0);
   const initializedDateRef = useRef(false);
@@ -345,6 +353,19 @@ export function KindertrainingDraftPage() {
     return sortParticipants(filtered, sortMode);
   }, [activeCategory, draft.attendance, participants, searchTerm, sortMode]);
 
+  const groupTrainerIds = configuration?.groupTrainerIds ?? [];
+  const visibleTrainers = useMemo(() => {
+    const assignedIds = new Set(groupTrainerIds);
+    const selectedIds = new Set(draft.trainerIds);
+    return (session?.availableTrainers ?? []).filter(
+      (trainer) => showAllTrainers || assignedIds.has(trainer.id) || selectedIds.has(trainer.id),
+    );
+  }, [draft.trainerIds, groupTrainerIds, session?.availableTrainers, showAllTrainers]);
+  const hiddenTrainerCount = Math.max(
+    0,
+    (session?.availableTrainers.length ?? 0) - visibleTrainers.length,
+  );
+
   const selectedDateIsRegular = group
     ? isRegularDate(selectedDate, group.regularWeekdays)
     : false;
@@ -405,7 +426,7 @@ export function KindertrainingDraftPage() {
       );
       if (requestId !== requestIdRef.current || selectedDateRef.current !== loadingDate) return;
 
-      const loadedDraft = makeDraft(loadedSession);
+      const loadedDraft = makeDraft(loadedSession, groupTrainerIds);
       const shouldCreateSpecial =
         pendingSpecialDateRef.current === loadingDate &&
         !loadedSession.id &&
@@ -421,6 +442,7 @@ export function KindertrainingDraftPage() {
       setAutoSaveState(loadedSession.updatedAt ? "saved" : shouldCreateSpecial ? "pending" : "idle");
       setActiveCategory("open");
       setSearchTerm("");
+      setShowAllTrainers(false);
 
       if (!shouldCreateSpecial) pendingSpecialDateRef.current = null;
     } catch (loadError) {
@@ -434,7 +456,7 @@ export function KindertrainingDraftPage() {
     } finally {
       if (requestId === requestIdRef.current) setSessionLoading(false);
     }
-  }, [canView, clearAutosaveTimer, group?.id, organizationId, selectedDate]);
+  }, [canView, clearAutosaveTimer, group?.id, groupTrainerIds, organizationId, selectedDate]);
 
   const createSaveSnapshot = useCallback((): SaveSnapshot | null => {
     if (
@@ -488,7 +510,7 @@ export function KindertrainingDraftPage() {
       sessionByDateRef.current[snapshot.sessionDate] = savedSession;
 
       if (selectedDateRef.current === snapshot.sessionDate) {
-        const savedDraft = makeDraft(savedSession);
+        const savedDraft = makeDraft(savedSession, groupTrainerIds);
         setSession(savedSession);
         setParticipants(savedSession.participants);
         setBaseline(savedDraft);
@@ -519,7 +541,7 @@ export function KindertrainingDraftPage() {
     } finally {
       if (selectedDateRef.current === snapshot.sessionDate) setSaving(false);
     }
-  }, []);
+  }, [groupTrainerIds]);
 
   const enqueueSave = useCallback((snapshot: SaveSnapshot): Promise<boolean> => {
     const saveKey = `${snapshot.sessionDate}:${snapshot.revision}:${snapshot.forceCreate ? "create" : "update"}`;
@@ -829,34 +851,18 @@ export function KindertrainingDraftPage() {
       <div className="kindertraining-heading">
         <div>
           <p className="eyebrow">Training erfassen</p>
-          <h1>Kindertraining</h1>
+          <div className="kindertraining-title-row">
+            <h1>Kindertraining</h1>
+            <Link
+              className="icon-button statistics-link"
+              to="/module/kindertraining/statistik"
+              aria-label="Kindertraining-Statistik öffnen"
+              title="Statistik"
+            >
+              <BarChart3 aria-hidden="true" />
+            </Link>
+          </div>
           <p>Anwesenheit schnell erfassen und direkt am Handy verwalten.</p>
-        </div>
-        <div className="kindertraining-heading-actions">
-          <Link
-            className="icon-button statistics-link"
-            to="/module/kindertraining/statistik"
-            aria-label="Kindertraining-Statistik öffnen"
-            title="Statistik"
-          >
-            <BarChart3 aria-hidden="true" />
-          </Link>
-          <span
-            className={`training-save-badge ${
-              autoSaveState === "error" ||
-              autoSaveState === "pending" ||
-              autoSaveState === "saving" ||
-              dirty ||
-              forceCreateSpecial
-                ? "dirty"
-                : autoSaveState === "saved" || session?.updatedAt
-                  ? "saved"
-                  : "new"
-            }`}
-            aria-live="polite"
-          >
-            {autosaveLabel()}
-          </span>
         </div>
       </div>
 
@@ -1128,11 +1134,11 @@ export function KindertrainingDraftPage() {
                           <div className="compact-athlete-name">
                             <strong>{athleteDisplayName(participant, sortMode)}</strong>
                             <small>
-                              {participant.birthYear ? `Jahrgang ${participant.birthYear}` : "Kein Jahrgang"}
+                              {participant.birthYear ? `Jg. ${participant.birthYear}` : "Jg. –"}
                             </small>
                           </div>
 
-                          {participant.contacts.length > 0 && (
+                          {participant.contacts.length > 0 ? (
                             <button
                               type="button"
                               className="icon-button contact-button"
@@ -1145,6 +1151,8 @@ export function KindertrainingDraftPage() {
                             >
                               <Phone aria-hidden="true" />
                             </button>
+                          ) : (
+                            <span className="contact-button-placeholder" aria-hidden="true" />
                           )}
 
                           <div className="compact-status-actions" aria-label="Status wählen">
@@ -1201,32 +1209,51 @@ export function KindertrainingDraftPage() {
                   </fieldset>
 
                   <fieldset className="training-trainer-field">
-                    <legend><UsersRound aria-hidden="true" /> Anwesende Trainer</legend>
+                    <div className="trainer-field-heading">
+                      <legend><UsersRound aria-hidden="true" /> Anwesende Trainer</legend>
+                      {(session?.availableTrainers ?? []).length > 0 && (
+                        <button
+                          type="button"
+                          className="text-button"
+                          onClick={() => setShowAllTrainers((current) => !current)}
+                        >
+                          {showAllTrainers ? "Nur Gruppentrainer" : `Alle Trainer anzeigen${hiddenTrainerCount > 0 ? ` (${hiddenTrainerCount})` : ""}`}
+                        </button>
+                      )}
+                    </div>
                     {(session?.availableTrainers ?? []).length === 0 ? (
                       <div className="inline-empty-state compact-empty-state">
                         Noch keine Trainer angelegt.
                         <Link to="/module/athletes?tab=trainers">Trainer verwalten</Link>
                       </div>
+                    ) : visibleTrainers.length === 0 ? (
+                      <div className="inline-empty-state compact-empty-state">
+                        Der Kindertrainingsgruppe ist noch kein Trainer zugeordnet.
+                        <button type="button" className="text-button" onClick={() => setShowAllTrainers(true)}>Alle Trainer anzeigen</button>
+                      </div>
                     ) : (
                       <div className="trainer-checkbox-grid">
-                        {(session?.availableTrainers ?? []).map((trainer) => (
-                          <label className="trainer-checkbox" key={trainer.id}>
-                            <input
-                              type="checkbox"
-                              checked={draft.trainerIds.includes(trainer.id)}
-                              onChange={(event) => toggleTrainer(trainer.id, event.target.checked)}
-                              disabled={!canEdit}
-                            />
-                            <span>
-                              <strong>{trainer.firstName} {trainer.lastName}</strong>
-                              {!trainer.isActive && <small>Inaktiv</small>}
-                            </span>
-                          </label>
-                        ))}
+                        {visibleTrainers.map((trainer) => {
+                          const isGroupTrainer = groupTrainerIds.includes(trainer.id);
+                          return (
+                            <label className="trainer-checkbox" key={trainer.id}>
+                              <input
+                                type="checkbox"
+                                checked={draft.trainerIds.includes(trainer.id)}
+                                onChange={(event) => toggleTrainer(trainer.id, event.target.checked)}
+                                disabled={!canEdit}
+                              />
+                              <span>
+                                <strong>{trainer.firstName} {trainer.lastName}</strong>
+                                <small>{!trainer.isActive ? "Inaktiv" : isGroupTrainer ? "Gruppentrainer" : "Aushilfe"}</small>
+                              </span>
+                            </label>
+                          );
+                        })}
                       </div>
                     )}
-                    {session?.usesDefaults && !session?.id && (
-                      <small>Auswahl aus dem letzten Training vorgeschlagen.</small>
+                    {session?.usesDefaults && !session?.id && draft.trainerIds.length > 0 && (
+                      <small>Gruppentrainer aus dem letzten Training vorgeschlagen.</small>
                     )}
                   </fieldset>
 

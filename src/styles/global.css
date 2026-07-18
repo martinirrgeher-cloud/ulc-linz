@@ -2311,3 +2311,67 @@ input:focus-visible {
   top: 0.7rem;
   right: 0.7rem;
 }
+
+/* Trainer – Gruppenzuordnung */
+.trainer-group-field {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.trainer-group-field legend {
+  margin-bottom: 0.45rem;
+  color: var(--green-950);
+  font-weight: 800;
+}
+
+.trainer-group-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.45rem;
+}
+
+.trainer-group-options label {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.55rem 0.65rem;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+}
+
+.trainer-group-options label.inactive {
+  opacity: 0.68;
+}
+
+.trainer-group-options span {
+  display: grid;
+}
+
+.trainer-group-options small {
+  color: var(--muted);
+}
+
+.trainer-group-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.trainer-group-chips > span {
+  padding: 0.25rem 0.45rem;
+  color: var(--green-850);
+  background: var(--green-50);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 750;
+}
+
+.trainer-group-chips > span.inactive,
+.trainer-group-chips > span.unassigned {
+  color: var(--muted);
+  background: #f3f5f4;
+}

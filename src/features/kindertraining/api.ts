@@ -200,10 +200,18 @@ export async function loadKindertrainingConfiguration(
     ? data.special_dates.filter((item): item is string => typeof item === "string")
     : [];
 
-  if (!rawGroup) return { group: null, specialDates };
+  if (!rawGroup) return { group: null, specialDates, groupTrainerIds: [] };
   if (typeof rawGroup.id !== "string" || typeof rawGroup.name !== "string") {
     throw new Error("Die zugeordnete Kindertrainingsgruppe ist ungültig.");
   }
+
+  const groupTrainerIds = parseStringArray(await callJsonRpc(
+    "kindertraining_group_trainer_ids",
+    {
+      p_organization_id: organizationId,
+      p_group_id: rawGroup.id,
+    },
+  ));
 
   return {
     group: {
@@ -215,6 +223,7 @@ export async function loadKindertrainingConfiguration(
       allowSpecialTraining: rawGroup.allow_special_training !== false,
     },
     specialDates,
+    groupTrainerIds,
   };
 }
 
