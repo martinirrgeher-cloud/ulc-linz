@@ -1,6 +1,7 @@
 import { LogOut, ShieldCheck } from "lucide-react";
 import { Link, Outlet } from "react-router-dom";
 import { useAuth } from "@/features/auth/AuthContext";
+import { env } from "@/lib/env";
 
 const roleNames = {
   admin: "Administrator",
@@ -20,9 +21,9 @@ export function AppLayout() {
     <div className="app-shell">
       <header className="app-header">
         <Link to="/" className="brand" aria-label="Zur Startseite">
-          <img src="/logo.png" alt="ULC Linz" />
+          <img src="/logo.png" alt="ULC Linz Oberbank" />
           <span>
-            <strong>{appContext?.organization?.name ?? "ULC Linz"}</strong>
+            <strong>{env.appName}</strong>
             <small>Vereins-App</small>
           </span>
         </Link>

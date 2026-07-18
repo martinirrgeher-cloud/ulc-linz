@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { env } from "@/lib/env";
 import { useAuth } from "@/features/auth/AuthContext";
@@ -9,6 +10,7 @@ export function LoginPage() {
   const { signIn, isAuthenticated, configurationError } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -43,7 +45,7 @@ export function LoginPage() {
   return (
     <main className="auth-page">
       <section className="auth-card">
-        <img src="/logo.png" alt="ULC Linz" className="auth-logo" />
+        <img src="/logo.png" alt="ULC Linz Oberbank" className="auth-logo" />
         <div className="auth-heading">
           <p className="eyebrow">Vereins-App</p>
           <h1>Anmelden</h1>
@@ -68,15 +70,27 @@ export function LoginPage() {
 
           <label>
             Passwort
-            <input
-              type="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              required
-              minLength={8}
-              disabled={Boolean(configurationError)}
-            />
+            <span className="password-field">
+              <input
+                type={showPassword ? "text" : "password"}
+                autoComplete="current-password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                required
+                minLength={8}
+                disabled={Boolean(configurationError)}
+              />
+              <button
+                type="button"
+                className="password-toggle"
+                onClick={() => setShowPassword((current) => !current)}
+                aria-label={showPassword ? "Passwort ausblenden" : "Passwort anzeigen"}
+                title={showPassword ? "Passwort ausblenden" : "Passwort anzeigen"}
+                disabled={Boolean(configurationError)}
+              >
+                {showPassword ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
+              </button>
+            </span>
           </label>
 
           <button

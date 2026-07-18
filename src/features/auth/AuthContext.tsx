@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type PropsWithChildren,
 } from "react";
@@ -45,7 +46,13 @@ function errorMessage(error: unknown): string {
 }
 
 const AUTH_INITIALIZATION_TIMEOUT_MS = 12_000;
+const AUTH_RESTORE_ATTEMPTS = 3;
 const CONTEXT_LOADING_TIMEOUT_MS = 15_000;
+
+
+function wait(milliseconds: number): Promise<void> {
+  return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
+}
 
 async function withTimeout<T>(
   promise: PromiseLike<T>,
@@ -68,6 +75,7 @@ async function withTimeout<T>(
 
 export function AuthProvider({ children }: PropsWithChildren) {
   const [session, setSession] = useState<Session | null>(null);
+  const sessionRef = useRef<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [contextLoading, setContextLoading] = useState(false);
   const [profile, setProfile] = useState<AppProfile | null>(null);
@@ -209,41 +217,106 @@ export function AuthProvider({ children }: PropsWithChildren) {
   );
 
   useEffect(() => {
+    sessionRef.current = session;
+  }, [session]);
+
+  useEffect(() => {
     if (!supabase) {
       setLoading(false);
       return;
     }
 
+    const authClient = supabase;
     let mounted = true;
+    let recoveryRunning = false;
 
-    void withTimeout(
-      supabase.auth.getSession(),
-      AUTH_INITIALIZATION_TIMEOUT_MS,
-      "Die gespeicherte Sitzung konnte nicht geladen werden. Bitte melde dich erneut an.",
-    )
-      .then(({ data, error }) => {
+    async function restoreSession(initialLoad: boolean) {
+      if (recoveryRunning) return;
+      recoveryRunning = true;
+      if (initialLoad) setLoading(true);
+
+      let lastError: unknown = null;
+
+      try {
+        for (let attempt = 1; attempt <= AUTH_RESTORE_ATTEMPTS; attempt += 1) {
+          try {
+            const { data, error } = await withTimeout(
+              authClient.auth.getSession(),
+              AUTH_INITIALIZATION_TIMEOUT_MS,
+              "Die gespeicherte Sitzung konnte nicht rechtzeitig geladen werden.",
+            );
+            if (error) throw error;
+            if (!mounted) return;
+
+            if (data.session) {
+              setSession(data.session);
+              setAccessError(null);
+            } else if (initialLoad || !sessionRef.current) {
+              setSession(null);
+            }
+
+            setLoading(false);
+            return;
+          } catch (error) {
+            lastError = error;
+            if (attempt < AUTH_RESTORE_ATTEMPTS) {
+              await wait(900 * attempt);
+            }
+          }
+        }
+
         if (!mounted) return;
-        if (error) setAccessError(error.message);
-        setSession(data.session);
+        setAccessError(
+          `${errorMessage(lastError)} Die Sitzung wird beim nächsten Online-Kontakt erneut geprüft.`,
+        );
         setLoading(false);
-      })
-      .catch((error: unknown) => {
-        if (!mounted) return;
+      } finally {
+        recoveryRunning = false;
+      }
+    }
+
+    void restoreSession(true);
+
+    const { data: subscription } = authClient.auth.onAuthStateChange((event, nextSession) => {
+      if (!mounted) return;
+
+      if (nextSession) {
+        setSession(nextSession);
+        setAccessError(null);
+        setLoading(false);
+        return;
+      }
+
+      if (event === "SIGNED_OUT") {
         setSession(null);
-        setAccessError(errorMessage(error));
+        clearAppData();
         setLoading(false);
-      });
-
-    const { data: subscription } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      setSession(nextSession);
-      setLoading(false);
+      }
     });
+
+    const recoverWhenActive = () => {
+      if (document.visibilityState === "visible") {
+        void restoreSession(false);
+      }
+    };
+
+    const recoverWhenOnline = () => void restoreSession(false);
+    const recoverFromPageCache = () => void restoreSession(false);
+
+    document.addEventListener("visibilitychange", recoverWhenActive);
+    window.addEventListener("online", recoverWhenOnline);
+    window.addEventListener("pageshow", recoverFromPageCache);
+    window.addEventListener("focus", recoverWhenOnline);
 
     return () => {
       mounted = false;
+      document.removeEventListener("visibilitychange", recoverWhenActive);
+      window.removeEventListener("online", recoverWhenOnline);
+      window.removeEventListener("pageshow", recoverFromPageCache);
+      window.removeEventListener("focus", recoverWhenOnline);
       subscription.subscription.unsubscribe();
     };
-  }, []);
+  }, [clearAppData]);
 
   useEffect(() => {
     void loadContext(session);

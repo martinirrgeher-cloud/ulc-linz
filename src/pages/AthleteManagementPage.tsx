@@ -460,27 +460,29 @@ export function AthleteManagementPage() {
                   )}
                 </div>
 
-                <div className="athlete-notes">
-                  {athlete.notes ? athlete.notes : "Keine interne Notiz"}
-                </div>
+                {athlete.notes && <div className="athlete-notes">{athlete.notes}</div>}
 
-                <div className="athlete-card-actions">
-                  <span className={`record-status ${athlete.isActive ? "active" : "inactive"}`}>
-                    {athlete.isActive ? "Aktiv" : "Inaktiv"}
-                  </span>
+                <div className="athlete-card-top-actions">
+                  <span
+                    className={`athlete-status-dot ${athlete.isActive ? "active" : "inactive"}`}
+                    role="status"
+                    aria-label={athlete.isActive ? "Athlet aktiv" : "Athlet inaktiv"}
+                    title={athlete.isActive ? "Aktiv" : "Inaktiv"}
+                  />
                   {canEdit && (
                     <button
                       type="button"
-                      className="secondary-button"
+                      className="icon-button athlete-edit-button"
                       onClick={() => {
                         setSuccess(null);
                         setGroupEditor(null);
                         setAthleteEditor({ type: "edit", athlete });
                         window.scrollTo({ top: 0, behavior: "smooth" });
                       }}
+                      aria-label={`${athleteName(athlete)} bearbeiten`}
+                      title="Bearbeiten"
                     >
                       <Pencil aria-hidden="true" />
-                      Bearbeiten
                     </button>
                   )}
                 </div>

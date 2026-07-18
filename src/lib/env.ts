@@ -3,7 +3,7 @@ const supabasePublishableKey =
   import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY?.trim() ?? "";
 
 export const env = {
-  appName: import.meta.env.VITE_APP_NAME?.trim() || "ULC Linz",
+  appName: import.meta.env.VITE_APP_NAME?.trim() || "ULC Linz Oberbank",
   supabaseUrl,
   supabasePublishableKey,
   allowSelfSignup:

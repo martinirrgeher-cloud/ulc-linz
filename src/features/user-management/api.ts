@@ -62,7 +62,14 @@ async function functionErrorMessage(error: unknown): Promise<string> {
     }
   }
 
-  return error instanceof Error ? error.message : "Die Aktion ist fehlgeschlagen.";
+  if (error instanceof Error) {
+    if (error.message.includes("Failed to send a request to the Edge Function")) {
+      return "Die Einladungsfunktion ist nicht erreichbar. Prüfe, ob die Edge Function bereitgestellt und die aktuelle App-Adresse für CORS freigegeben ist.";
+    }
+    return error.message;
+  }
+
+  return "Die Aktion ist fehlgeschlagen.";
 }
 
 export async function loadUserManagement(
