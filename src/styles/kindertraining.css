@@ -1,0 +1,543 @@
+/* Kindertraining – erster Mobile-First-Oberflächenentwurf */
+
+.kindertraining-page {
+  display: grid;
+  gap: 22px;
+  padding-bottom: 96px;
+}
+
+.kindertraining-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+}
+
+.kindertraining-heading h1,
+.attendance-list-heading h2 {
+  margin: 0;
+  color: var(--green-950);
+}
+
+.kindertraining-heading p:not(.eyebrow) {
+  max-width: 720px;
+  margin: 10px 0 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.draft-badge {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  padding: 8px 12px;
+  color: #78550e;
+  background: #fff4d2;
+  border: 1px solid #ead89d;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.training-control-card,
+.attendance-workspace,
+.training-note-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  box-shadow: 0 8px 26px rgba(15, 62, 38, 0.06);
+}
+
+.training-control-card {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.8fr) minmax(380px, 1.5fr);
+  align-items: end;
+  gap: 20px;
+  padding: 20px;
+}
+
+.training-group-field,
+.training-date-control {
+  display: grid;
+  gap: 8px;
+  color: var(--green-950);
+  font-weight: 800;
+}
+
+.training-group-field select {
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 42px 10px 14px;
+  color: var(--green-950);
+  background: #fff;
+  border: 1px solid #b9cdc0;
+  border-radius: 12px;
+  font: inherit;
+}
+
+.training-date-control {
+  position: relative;
+}
+
+.training-date-buttons {
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr) 46px;
+  align-items: center;
+  gap: 8px;
+}
+
+.date-picker-button {
+  position: relative;
+  min-width: 0;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 10px 14px;
+  color: var(--green-950);
+  background: var(--green-50);
+  border: 1px solid #b9cdc0;
+  border-radius: 12px;
+  cursor: pointer;
+  text-transform: capitalize;
+}
+
+.date-picker-button > svg {
+  width: 20px;
+  flex: 0 0 auto;
+  color: var(--green-700);
+}
+
+.date-picker-button span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.date-picker-button input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.today-button {
+  justify-self: center;
+  margin-bottom: -8px;
+}
+
+.attendance-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.attendance-summary-card {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 82px;
+  padding: 15px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 17px;
+}
+
+.attendance-summary-card > svg {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  padding: 9px;
+  color: #fff;
+  background: var(--green-700);
+  border-radius: 12px;
+}
+
+.attendance-summary-card.excused > svg {
+  color: #775300;
+  background: #ffe9aa;
+}
+
+.attendance-summary-card.open > svg {
+  color: #56635c;
+  background: #e7ece9;
+}
+
+.attendance-summary-card span {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.attendance-summary-card small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.78rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attendance-summary-card strong {
+  color: var(--green-950);
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.attendance-workspace {
+  display: grid;
+  gap: 18px;
+  padding: 20px;
+}
+
+.attendance-list-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 18px;
+}
+
+.attendance-search {
+  width: min(100%, 310px);
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 13px;
+  background: #fff;
+  border: 1px solid #b9cdc0;
+  border-radius: 12px;
+}
+
+.attendance-search > svg {
+  width: 20px;
+  flex: 0 0 auto;
+  color: var(--green-700);
+}
+
+.attendance-search input {
+  min-width: 0;
+  width: 100%;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  color: var(--green-950);
+  background: transparent;
+}
+
+.cancel-training-toggle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 14px;
+  color: #7b2525;
+  background: #fff4f4;
+  border: 1px solid #edcccc;
+  border-radius: 13px;
+  cursor: pointer;
+}
+
+.cancel-training-toggle input {
+  width: 22px;
+  height: 22px;
+  flex: 0 0 auto;
+  accent-color: #a72a2a;
+}
+
+.cancel-training-toggle span {
+  display: grid;
+  gap: 3px;
+}
+
+.cancel-training-toggle small {
+  color: #8b5c5c;
+  line-height: 1.35;
+}
+
+.attendance-list {
+  display: grid;
+  gap: 11px;
+}
+
+.attendance-athlete-card {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.75fr) minmax(430px, 1.6fr);
+  align-items: center;
+  gap: 16px;
+  padding: 14px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-left: 5px solid #aab5af;
+  border-radius: 16px;
+  transition: border-color 120ms ease, background 120ms ease;
+}
+
+.attendance-athlete-card.status-present {
+  border-left-color: var(--green-600);
+  background: #fbfefc;
+}
+
+.attendance-athlete-card.status-excused {
+  border-left-color: #d3a126;
+  background: #fffdf7;
+}
+
+.attendance-athlete-card.status-absent {
+  border-left-color: #bd4d4d;
+  background: #fffafa;
+}
+
+.attendance-athlete-name {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+.attendance-athlete-name > span:last-child {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.attendance-athlete-name strong,
+.attendance-athlete-name small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attendance-athlete-name strong {
+  color: var(--green-950);
+}
+
+.attendance-athlete-name small {
+  color: var(--muted);
+}
+
+.attendance-status-picker {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.attendance-status-picker button {
+  min-width: 0;
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px;
+  color: #56635c;
+  background: #f2f5f3;
+  border: 1px solid transparent;
+  border-radius: 11px;
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.attendance-status-picker button > svg {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+}
+
+.attendance-status-picker button.active[data-status="open"] {
+  color: #45524b;
+  background: #e3e9e5;
+  border-color: #b5c1ba;
+}
+
+.attendance-status-picker button.active[data-status="present"] {
+  color: #fff;
+  background: var(--green-700);
+}
+
+.attendance-status-picker button.active[data-status="excused"] {
+  color: #6d4d00;
+  background: #ffe5a0;
+  border-color: #e5c562;
+}
+
+.attendance-status-picker button.active[data-status="absent"] {
+  color: #fff;
+  background: #a94242;
+}
+
+.attendance-status-picker button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.status-short-label {
+  display: none;
+}
+
+.training-note-card {
+  padding: 20px;
+}
+
+.training-note-card label {
+  display: grid;
+  gap: 8px;
+  color: var(--green-950);
+  font-weight: 800;
+}
+
+.training-note-card textarea {
+  width: 100%;
+  resize: vertical;
+  min-height: 104px;
+  padding: 12px 14px;
+  color: var(--green-950);
+  background: #fff;
+  border: 1px solid #b9cdc0;
+  border-radius: 12px;
+  font: inherit;
+  line-height: 1.45;
+}
+
+.training-note-card small {
+  justify-self: end;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.training-action-bar {
+  position: fixed;
+  z-index: 9;
+  left: 50%;
+  bottom: max(10px, env(safe-area-inset-bottom));
+  width: min(calc(100% - 24px), 760px);
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 12px 34px rgba(15, 62, 38, 0.18);
+  backdrop-filter: blur(14px);
+  transform: translateX(-50%);
+}
+
+@media (max-width: 900px) {
+  .training-control-card {
+    grid-template-columns: 1fr;
+  }
+
+  .attendance-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .attendance-athlete-card {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 620px) {
+  .kindertraining-page {
+    gap: 16px;
+    padding-bottom: 126px;
+  }
+
+  .kindertraining-heading,
+  .attendance-list-heading {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 13px;
+  }
+
+  .draft-badge {
+    align-self: flex-start;
+  }
+
+  .training-control-card,
+  .attendance-workspace,
+  .training-note-card {
+    padding: 14px;
+    border-radius: 17px;
+  }
+
+  .date-picker-button {
+    padding-inline: 9px;
+    font-size: 0.88rem;
+  }
+
+  .attendance-search {
+    width: 100%;
+  }
+
+  .attendance-summary-card {
+    min-height: 76px;
+    padding: 12px;
+  }
+
+  .attendance-summary-card > svg {
+    width: 34px;
+    height: 34px;
+    padding: 8px;
+  }
+
+  .attendance-athlete-card {
+    gap: 12px;
+    padding: 12px;
+  }
+
+  .attendance-status-picker {
+    gap: 5px;
+  }
+
+  .attendance-status-picker button {
+    min-height: 52px;
+    flex-direction: column;
+    gap: 3px;
+    padding: 6px 3px;
+    font-size: 0.7rem;
+  }
+
+  .status-long-label {
+    display: none;
+  }
+
+  .status-short-label {
+    display: inline;
+  }
+
+  .training-action-bar {
+    flex-direction: column-reverse;
+  }
+
+  .training-action-bar .primary-button,
+  .training-action-bar .secondary-button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 360px) {
+  .attendance-summary {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .attendance-summary-card {
+    gap: 8px;
+  }
+
+  .attendance-summary-card small {
+    font-size: 0.7rem;
+  }
+
+  .attendance-status-picker button > svg {
+    width: 17px;
+    height: 17px;
+  }
+}

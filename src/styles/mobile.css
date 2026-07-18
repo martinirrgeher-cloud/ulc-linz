@@ -1,0 +1,527 @@
+/*
+ * Mobile-First-Ergänzungen für die ULC-Linz-App.
+ *
+ * Diese Datei wird bewusst nach global.css geladen. Sie verändert keine
+ * Fachlogik und überschreibt die bestehenden Desktop-Regeln nur auf kleinen
+ * Bildschirmen beziehungsweise bei Touch-Bedienung.
+ */
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  overflow-x: hidden;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  touch-action: manipulation;
+}
+
+@media (pointer: coarse) {
+  .primary-button,
+  .secondary-button,
+  .icon-button,
+  .status-filter button,
+  .management-tabs button,
+  .back-link {
+    min-height: 46px;
+  }
+
+  .icon-button {
+    width: 46px;
+    height: 46px;
+  }
+}
+
+@media (max-width: 760px) {
+  .auth-page,
+  .setup-page,
+  .status-page,
+  .loading-screen {
+    min-height: 100svh;
+    padding-top: max(14px, env(safe-area-inset-top));
+    padding-right: max(14px, env(safe-area-inset-right));
+    padding-bottom: max(14px, env(safe-area-inset-bottom));
+    padding-left: max(14px, env(safe-area-inset-left));
+  }
+
+  .auth-card,
+  .setup-card,
+  .status-card {
+    width: 100%;
+    border-radius: 18px;
+    padding: 24px 18px;
+  }
+
+  .auth-logo {
+    width: 76px;
+    height: 76px;
+    margin-bottom: 16px;
+  }
+
+  .auth-heading {
+    margin-bottom: 20px;
+  }
+
+  .auth-heading h1,
+  .setup-card h1,
+  .status-card h1,
+  .page-heading h1,
+  .management-page-heading h1,
+  .placeholder-card h1 {
+    font-size: clamp(1.55rem, 7vw, 1.9rem);
+    overflow-wrap: anywhere;
+  }
+
+  .management-editor-heading h2,
+  .empty-state h2,
+  .training-group-card-heading h2 {
+    overflow-wrap: anywhere;
+  }
+
+  .form-stack,
+  .management-form {
+    gap: 18px;
+  }
+
+  .form-stack input,
+  .form-grid input,
+  .form-grid select,
+  .search-field input,
+  .toolbar-select,
+  .full-width-field textarea {
+    min-height: 48px;
+    font-size: 16px;
+  }
+
+  .full-width-field textarea {
+    min-height: 108px;
+  }
+
+  .app-header {
+    min-height: 64px;
+    gap: 8px;
+    padding-top: max(8px, env(safe-area-inset-top));
+    padding-right: max(12px, env(safe-area-inset-right));
+    padding-bottom: 8px;
+    padding-left: max(12px, env(safe-area-inset-left));
+  }
+
+  .brand {
+    gap: 9px;
+    max-width: calc(100% - 54px);
+  }
+
+  .brand img {
+    width: 42px;
+    height: 42px;
+  }
+
+  .brand strong {
+    font-size: 0.95rem;
+  }
+
+  .user-area {
+    gap: 6px;
+  }
+
+  .app-content {
+    width: 100%;
+    padding-top: 18px;
+    padding-right: max(12px, env(safe-area-inset-right));
+    padding-bottom: calc(28px + env(safe-area-inset-bottom));
+    padding-left: max(12px, env(safe-area-inset-left));
+  }
+
+  .page-heading,
+  .management-page-heading,
+  .management-editor-heading,
+  .management-toolbar {
+    gap: 14px;
+  }
+
+  .page-heading,
+  .management-page-heading {
+    margin-bottom: 20px;
+  }
+
+  .page-heading p,
+  .management-page-heading p:not(.eyebrow),
+  .management-editor-heading p:not(.eyebrow) {
+    margin-bottom: 0;
+  }
+
+  .back-link {
+    width: fit-content;
+    padding: 4px 2px;
+  }
+
+  .primary-button,
+  .secondary-button {
+    min-height: 48px;
+    padding: 12px 15px;
+  }
+
+  .module-grid {
+    gap: 12px;
+  }
+
+  .module-card {
+    min-height: 108px;
+    gap: 12px;
+    padding: 16px;
+    border-radius: 16px;
+  }
+
+  .module-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 13px;
+  }
+
+  .module-copy {
+    gap: 5px;
+  }
+
+  .module-copy strong {
+    font-size: 1rem;
+  }
+
+  .module-copy small {
+    font-size: 0.86rem;
+  }
+
+  .empty-state,
+  .placeholder-card {
+    padding: 30px 16px;
+    border-radius: 16px;
+  }
+
+  .button-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .button-row .primary-button,
+  .button-row .secondary-button,
+  .button-row .link-button {
+    width: 100%;
+  }
+
+  .management-editor {
+    padding: 18px 14px;
+    border-radius: 16px;
+  }
+
+  .management-editor-heading {
+    padding-right: 52px;
+  }
+
+  .management-editor-heading .icon-button {
+    top: 0;
+    right: 0;
+  }
+
+  .management-page-heading .primary-button,
+  .management-toolbar .secondary-button {
+    width: 100%;
+  }
+
+  .status-filter {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .status-filter::-webkit-scrollbar {
+    display: none;
+  }
+
+  .status-filter button {
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+  }
+
+  .summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .summary-card {
+    min-height: 82px;
+    gap: 10px;
+    padding: 12px;
+    border-radius: 15px;
+  }
+
+  .summary-card:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+
+  .summary-card > svg {
+    width: 38px;
+    height: 38px;
+    padding: 9px;
+    border-radius: 12px;
+  }
+
+  .summary-card span {
+    font-size: 0.8rem;
+  }
+
+  .summary-card strong {
+    font-size: 1.28rem;
+  }
+
+  .management-tabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+    padding: 5px;
+  }
+
+  .management-tabs button {
+    min-width: 0;
+    min-height: 46px;
+    gap: 5px;
+    padding: 9px 6px;
+    font-size: 0.84rem;
+  }
+
+  .management-tabs button svg {
+    width: 17px;
+    height: 17px;
+  }
+
+  .management-tabs button span {
+    min-width: 21px;
+    padding: 2px 5px;
+  }
+
+  .athlete-toolbar {
+    gap: 8px;
+  }
+
+  .member-card,
+  .athlete-card,
+  .training-group-card {
+    padding: 14px;
+    border-radius: 16px;
+  }
+
+  .member-primary,
+  .athlete-identity,
+  .training-group-card-heading {
+    gap: 10px;
+  }
+
+  .member-avatar,
+  .athlete-avatar,
+  .group-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+  }
+
+  .member-name h2,
+  .member-name a,
+  .athlete-identity h2 {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .member-details {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .member-details div:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+
+  .member-details dd {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .athlete-groups {
+    gap: 5px;
+  }
+
+  .training-group-description {
+    min-height: 0;
+  }
+
+  .training-group-details {
+    gap: 8px;
+    padding: 11px;
+  }
+
+  .group-checkbox {
+    min-height: 58px;
+  }
+
+  .permission-header {
+    display: none;
+  }
+
+  .permission-row:not(.permission-header) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    min-height: 0;
+  }
+
+  .permission-row:not(.permission-header) + .permission-row {
+    border-top: 1px solid var(--border);
+  }
+
+  .permission-module {
+    grid-column: 1 / -1;
+    padding: 12px !important;
+  }
+
+  .permission-module small:not(.permission-note) {
+    display: block;
+  }
+
+  .check-cell {
+    position: relative;
+    min-height: 56px;
+    padding-top: 25px !important;
+    border-top: 1px solid var(--border);
+    border-left: 0;
+  }
+
+  .check-cell + .check-cell {
+    border-left: 1px solid var(--border);
+  }
+
+  .check-cell::before {
+    position: absolute;
+    top: 7px;
+    left: 50%;
+    color: var(--muted);
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    transform: translateX(-50%);
+  }
+
+  .permission-row .check-cell:nth-child(2)::before {
+    content: "Lesen";
+  }
+
+  .permission-row .check-cell:nth-child(3)::before {
+    content: "Bearbeiten";
+  }
+
+  .check-cell input,
+  .group-checkbox input {
+    width: 22px;
+    height: 22px;
+  }
+
+  .management-actions {
+    gap: 10px;
+  }
+}
+
+@media (max-width: 380px) {
+  .app-content {
+    padding-right: max(10px, env(safe-area-inset-right));
+    padding-left: max(10px, env(safe-area-inset-left));
+  }
+
+  .brand {
+    max-width: calc(100% - 50px);
+  }
+
+  .brand img {
+    width: 38px;
+    height: 38px;
+  }
+
+  .brand strong {
+    font-size: 0.9rem;
+  }
+
+  .module-card {
+    grid-template-columns: 40px minmax(0, 1fr) 18px;
+    padding: 14px;
+  }
+
+  .module-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .module-copy small {
+    font-size: 0.82rem;
+  }
+
+  .summary-card {
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .summary-card > svg {
+    width: 34px;
+    height: 34px;
+    padding: 8px;
+  }
+
+  .management-tabs button {
+    font-size: 0.78rem;
+  }
+
+  .management-tabs button svg {
+    display: none;
+  }
+
+  .member-details {
+    grid-template-columns: 1fr;
+  }
+
+  .member-details div:last-child:nth-child(odd) {
+    grid-column: auto;
+  }
+
+  .training-group-details {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-height: 500px) and (orientation: landscape) {
+  .auth-page,
+  .setup-page,
+  .status-page {
+    place-items: start center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -6,6 +6,7 @@ import { DashboardPage } from "@/pages/DashboardPage";
 import { AthleteManagementPage } from "@/pages/AthleteManagementPage";
 import { ForgotPasswordPage } from "@/pages/ForgotPasswordPage";
 import { LoginPage } from "@/pages/LoginPage";
+import { KindertrainingDraftPage } from "@/pages/KindertrainingDraftPage";
 import { ModulePlaceholderPage } from "@/pages/ModulePlaceholderPage";
 import { NoAccessPage } from "@/pages/NoAccessPage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
@@ -41,6 +42,14 @@ export function App() {
             }
           >
             <Route index element={<DashboardPage />} />
+            <Route
+              path="module/kindertraining"
+              element={
+                <ProtectedRoute moduleKey="kindertraining">
+                  <KindertrainingDraftPage />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="module/athletes"
               element={

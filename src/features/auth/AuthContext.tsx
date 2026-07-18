@@ -44,6 +44,28 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Ein unbekannter Fehler ist aufgetreten.";
 }
 
+const AUTH_INITIALIZATION_TIMEOUT_MS = 12_000;
+const CONTEXT_LOADING_TIMEOUT_MS = 15_000;
+
+async function withTimeout<T>(
+  promise: PromiseLike<T>,
+  timeoutMs: number,
+  message: string,
+): Promise<T> {
+  let timeoutId: number | undefined;
+
+  try {
+    return await Promise.race([
+      Promise.resolve(promise),
+      new Promise<never>((_, reject) => {
+        timeoutId = window.setTimeout(() => reject(new Error(message)), timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeoutId !== undefined) window.clearTimeout(timeoutId);
+  }
+}
+
 export function AuthProvider({ children }: PropsWithChildren) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
@@ -81,25 +103,33 @@ export function AuthProvider({ children }: PropsWithChildren) {
       try {
         const userId = activeSession.user.id;
 
-        const activationResult = await supabase.rpc("activate_current_memberships");
+        const activationResult = await withTimeout(
+          supabase.rpc("activate_current_memberships"),
+          CONTEXT_LOADING_TIMEOUT_MS,
+          "Die Vereinszuordnung konnte nicht rechtzeitig geladen werden.",
+        );
         if (activationResult.error) throw activationResult.error;
 
-        const [profileResult, initializedResult, membershipResult] = await Promise.all([
-          supabase
-            .from("profiles")
-            .select("id, display_name, avatar_url")
-            .eq("id", userId)
-            .maybeSingle(),
-          supabase.rpc("is_app_initialized"),
-          supabase
-            .from("organization_members")
-            .select("id, organization_id, role, status")
-            .eq("user_id", userId)
-            .eq("status", "active")
-            .order("created_at", { ascending: true })
-            .limit(1)
-            .maybeSingle(),
-        ]);
+        const [profileResult, initializedResult, membershipResult] = await withTimeout(
+          Promise.all([
+            supabase
+              .from("profiles")
+              .select("id, display_name, avatar_url")
+              .eq("id", userId)
+              .maybeSingle(),
+            supabase.rpc("is_app_initialized"),
+            supabase
+              .from("organization_members")
+              .select("id, organization_id, role, status")
+              .eq("user_id", userId)
+              .eq("status", "active")
+              .order("created_at", { ascending: true })
+              .limit(1)
+              .maybeSingle(),
+          ]),
+          CONTEXT_LOADING_TIMEOUT_MS,
+          "Benutzerprofil und Berechtigungen konnten nicht rechtzeitig geladen werden.",
+        );
 
         if (profileResult.error) throw profileResult.error;
         if (initializedResult.error) throw initializedResult.error;
@@ -136,17 +166,21 @@ export function AuthProvider({ children }: PropsWithChildren) {
         };
         setMembership(membershipData);
 
-        const [organizationResult, permissionResult] = await Promise.all([
-          supabase
-            .from("organizations")
-            .select("id, name, slug")
-            .eq("id", membershipData.organizationId)
-            .single(),
-          supabase
-            .from("member_module_permissions")
-            .select("module_key, can_view, can_edit")
-            .eq("membership_id", membershipData.id),
-        ]);
+        const [organizationResult, permissionResult] = await withTimeout(
+          Promise.all([
+            supabase
+              .from("organizations")
+              .select("id, name, slug")
+              .eq("id", membershipData.organizationId)
+              .single(),
+            supabase
+              .from("member_module_permissions")
+              .select("module_key, can_view, can_edit")
+              .eq("membership_id", membershipData.id),
+          ]),
+          CONTEXT_LOADING_TIMEOUT_MS,
+          "Verein und Modulrechte konnten nicht rechtzeitig geladen werden.",
+        );
 
         if (organizationResult.error) throw organizationResult.error;
         if (permissionResult.error) throw permissionResult.error;
@@ -182,12 +216,23 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
     let mounted = true;
 
-    void supabase.auth.getSession().then(({ data, error }) => {
-      if (!mounted) return;
-      if (error) setAccessError(error.message);
-      setSession(data.session);
-      setLoading(false);
-    });
+    void withTimeout(
+      supabase.auth.getSession(),
+      AUTH_INITIALIZATION_TIMEOUT_MS,
+      "Die gespeicherte Sitzung konnte nicht geladen werden. Bitte melde dich erneut an.",
+    )
+      .then(({ data, error }) => {
+        if (!mounted) return;
+        if (error) setAccessError(error.message);
+        setSession(data.session);
+        setLoading(false);
+      })
+      .catch((error: unknown) => {
+        if (!mounted) return;
+        setSession(null);
+        setAccessError(errorMessage(error));
+        setLoading(false);
+      });
 
     const { data: subscription } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       setSession(nextSession);
