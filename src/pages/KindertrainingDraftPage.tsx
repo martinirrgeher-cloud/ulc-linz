@@ -6,7 +6,6 @@ import {
   CheckCheck,
   ChevronLeft,
   ChevronRight,
-  CircleHelp,
   Clock3,
   CloudCheck,
   MapPin,
@@ -16,7 +15,6 @@ import {
   Search,
   Settings2,
   Trash2,
-  UserCheck,
   UserMinus,
   UserPlus,
   UsersRound,
@@ -50,12 +48,11 @@ const STATUS_OPTIONS: Array<{
   value: AttendanceStatus;
   label: string;
   shortLabel: string;
-  icon: typeof CircleHelp;
 }> = [
-  { value: "open", label: "Offen", shortLabel: "Offen", icon: CircleHelp },
-  { value: "present", label: "Da", shortLabel: "Da", icon: UserCheck },
-  { value: "excused", label: "Entschuldigt", shortLabel: "Entsch.", icon: Clock3 },
-  { value: "absent", label: "Fehlt", shortLabel: "Fehlt", icon: UserMinus },
+  { value: "open", label: "Offen", shortLabel: "Offen" },
+  { value: "present", label: "Da", shortLabel: "Da" },
+  { value: "excused", label: "Entschuldigt", shortLabel: "Entsch." },
+  { value: "absent", label: "Fehlt", shortLabel: "Fehlt" },
 ];
 
 const SORT_STORAGE_KEY = "ulc-kindertraining-name-sort";
@@ -1052,23 +1049,19 @@ export function KindertrainingDraftPage() {
               <section className="attendance-workspace compact">
                 <div className="attendance-toolbar">
                   <div className="attendance-category-tabs" role="tablist" aria-label="Status">
-                    {STATUS_OPTIONS.map((status) => {
-                      const Icon = status.icon;
-                      return (
-                        <button
-                          type="button"
-                          role="tab"
-                          aria-selected={activeCategory === status.value}
-                          className={`${status.value} ${activeCategory === status.value ? "active" : ""}`}
-                          onClick={() => setActiveCategory(status.value)}
-                          key={status.value}
-                        >
-                          <Icon aria-hidden="true" />
-                          <span>{status.label}</span>
-                          <strong>{counts[status.value]}</strong>
-                        </button>
-                      );
-                    })}
+                    {STATUS_OPTIONS.map((status) => (
+                      <button
+                        type="button"
+                        role="tab"
+                        aria-selected={activeCategory === status.value}
+                        className={`${status.value} ${activeCategory === status.value ? "active" : ""}`}
+                        onClick={() => setActiveCategory(status.value)}
+                        key={status.value}
+                      >
+                        <span>{status.label}</span>
+                        <strong>{counts[status.value]}</strong>
+                      </button>
+                    ))}
                   </div>
 
                   <div className="attendance-list-tools">

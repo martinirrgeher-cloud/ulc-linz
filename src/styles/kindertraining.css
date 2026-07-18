@@ -222,38 +222,38 @@
   min-width: 0;
   min-height: 45px;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 5px;
-  padding: 6px 8px;
+  grid-template-rows: auto auto;
+  place-items: center;
+  gap: 2px;
+  padding: 5px 4px;
   color: #59655f;
   background: #f2f5f3;
   border: 1px solid transparent;
   border-radius: 10px;
   cursor: pointer;
-  font-size: 0.73rem;
+  font-size: 0.69rem;
   font-weight: 850;
-}
-
-.attendance-category-tabs button svg {
-  width: 16px;
-  height: 16px;
+  line-height: 1.05;
 }
 
 .attendance-category-tabs button span {
+  max-width: 100%;
   overflow: hidden;
-  text-align: left;
+  text-align: center;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .attendance-category-tabs button strong {
   min-width: 22px;
+  min-height: 20px;
   display: grid;
   place-items: center;
-  padding: 2px 4px;
-  background: rgba(255, 255, 255, 0.72);
+  padding: 1px 6px;
+  background: rgba(255, 255, 255, 0.78);
   border-radius: 999px;
+  font-size: 0.72rem;
+  line-height: 1;
 }
 
 .attendance-category-tabs button.active.open {
@@ -819,29 +819,16 @@
   }
 
   .attendance-category-tabs button {
-    min-height: 49px;
-    grid-template-columns: 1fr auto;
-    grid-template-rows: auto auto;
-    gap: 1px 4px;
-    padding: 4px 5px;
-    font-size: 0.65rem;
-  }
-
-  .attendance-category-tabs button svg {
-    grid-row: 1 / 3;
-    width: 15px;
-    height: 15px;
-  }
-
-  .attendance-category-tabs button span {
-    align-self: end;
+    min-height: 47px;
+    gap: 2px;
+    padding: 4px 2px;
+    font-size: clamp(0.56rem, 2.55vw, 0.65rem);
   }
 
   .attendance-category-tabs button strong {
-    align-self: start;
-    justify-self: start;
-    min-width: 18px;
-    padding: 0 4px;
+    min-width: 20px;
+    min-height: 19px;
+    padding: 1px 5px;
     font-size: 0.67rem;
   }
 
@@ -1391,12 +1378,16 @@
 }
 /* Sichere Athletenverwaltung direkt in Kindertraining, U12 und U14 */
 .compact-attendance-row {
-  grid-template-columns: minmax(72px, 1fr) auto minmax(145px, 1.45fr);
+  grid-template-columns: minmax(72px, 1fr) 60px minmax(140px, 1.45fr);
 }
 
 .compact-athlete-actions {
-  display: flex;
+  width: 60px;
+  min-width: 60px;
+  display: grid;
+  grid-template-columns: repeat(2, 29px);
   align-items: center;
+  justify-content: end;
   gap: 2px;
 }
 
@@ -1406,6 +1397,7 @@
   width: 29px;
   height: 32px;
   min-width: 29px;
+  flex: none;
 }
 
 .compact-athlete-actions .contact-button svg,
@@ -1474,7 +1466,13 @@
 
 @media (max-width: 370px) {
   .compact-attendance-row {
-    grid-template-columns: minmax(60px, 1fr) auto minmax(132px, 1.45fr);
+    grid-template-columns: minmax(58px, 1fr) 56px minmax(128px, 1.45fr);
+  }
+
+  .compact-athlete-actions {
+    width: 56px;
+    min-width: 56px;
+    grid-template-columns: repeat(2, 27px);
   }
 
   .compact-athlete-actions .contact-button,
