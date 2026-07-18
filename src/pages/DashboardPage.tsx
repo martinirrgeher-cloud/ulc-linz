@@ -1,4 +1,4 @@
-import { ArrowRight, ChevronDown, LockKeyhole } from "lucide-react";
+import { ChevronDown, ChevronRight, LockKeyhole } from "lucide-react";
 import { Link } from "react-router-dom";
 import { APP_MODULE_GROUPS, APP_MODULES } from "@/config/modules";
 import { useAuth } from "@/features/auth/AuthContext";
@@ -31,8 +31,8 @@ export function DashboardPage() {
 
       {groups.length > 0 ? (
         <div className="module-sections">
-          {groups.map((group) => (
-            <details className="module-section" open key={group.key}>
+          {groups.map((group, groupIndex) => (
+            <details className="module-section" open={groupIndex === 0} key={group.key}>
               <summary>
                 <span className="module-section-copy">
                   <strong>{group.title}</strong>
@@ -50,9 +50,8 @@ export function DashboardPage() {
                     <span className="module-icon">{module.icon}</span>
                     <span className="module-copy">
                       <strong>{module.title}</strong>
-                      <small>{module.description}</small>
                     </span>
-                    <ArrowRight className="module-arrow" aria-hidden="true" />
+                    <ChevronRight className="module-arrow" aria-hidden="true" />
                   </Link>
                 ))}
               </div>
