@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { Save, X } from "lucide-react";
+import { CalendarDays, Save, X } from "lucide-react";
 import type {
   TrainingGroup,
   TrainingGroupInput,
@@ -16,6 +16,16 @@ type TrainingGroupEditorProps = {
   onSubmit: (values: TrainingGroupInput) => Promise<void>;
 };
 
+const WEEKDAYS = [
+  { value: 1, label: "Mo" },
+  { value: 2, label: "Di" },
+  { value: 3, label: "Mi" },
+  { value: 4, label: "Do" },
+  { value: 5, label: "Fr" },
+  { value: 6, label: "Sa" },
+  { value: 7, label: "So" },
+] as const;
+
 function initialValues(mode: TrainingGroupEditorMode): TrainingGroupInput {
   if (mode.type === "create") {
     return {
@@ -24,6 +34,9 @@ function initialValues(mode: TrainingGroupEditorMode): TrainingGroupInput {
       description: "",
       isActive: true,
       sortOrder: 100,
+      moduleKey: null,
+      regularWeekdays: [],
+      allowSpecialTraining: true,
     };
   }
 
@@ -33,6 +46,9 @@ function initialValues(mode: TrainingGroupEditorMode): TrainingGroupInput {
     description: mode.group.description ?? "",
     isActive: mode.group.isActive,
     sortOrder: mode.group.sortOrder,
+    moduleKey: mode.group.moduleKey,
+    regularWeekdays: mode.group.regularWeekdays,
+    allowSpecialTraining: mode.group.allowSpecialTraining,
   };
 }
 
@@ -44,7 +60,10 @@ export function TrainingGroupEditor({
 }: TrainingGroupEditorProps) {
   const [values, setValues] = useState<TrainingGroupInput>(() => initialValues(mode));
   const [error, setError] = useState<string | null>(null);
-  const canSave = values.name.trim().length >= 2 && values.sortOrder >= 0;
+  const canSave =
+    values.name.trim().length >= 2 &&
+    values.sortOrder >= 0 &&
+    (values.moduleKey !== "kindertraining" || values.regularWeekdays.length > 0);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -62,6 +81,15 @@ export function TrainingGroupEditor({
     }
   }
 
+  function toggleWeekday(weekday: number): void {
+    setValues((current) => ({
+      ...current,
+      regularWeekdays: current.regularWeekdays.includes(weekday)
+        ? current.regularWeekdays.filter((item) => item !== weekday)
+        : [...current.regularWeekdays, weekday].sort((left, right) => left - right),
+    }));
+  }
+
   return (
     <section className="management-editor" aria-labelledby="group-editor-title">
       <div className="management-editor-heading">
@@ -70,7 +98,7 @@ export function TrainingGroupEditor({
           <h2 id="group-editor-title">
             {mode.type === "create" ? "Gruppe anlegen" : "Gruppe bearbeiten"}
           </h2>
-          <p>Gruppen werden später von Kindertraining und Leistungsgruppe gemeinsam genutzt.</p>
+          <p>Gruppenzuordnung und regelmäßige Trainingstage zentral verwalten.</p>
         </div>
         <button
           type="button"
@@ -96,7 +124,7 @@ export function TrainingGroupEditor({
                 setValues((current) => ({ ...current, name: event.target.value }))
               }
               maxLength={100}
-              placeholder="z. B. Kindertraining Montag"
+              placeholder="z. B. Kindertraining"
               required
             />
           </label>
@@ -110,7 +138,7 @@ export function TrainingGroupEditor({
                 setValues((current) => ({ ...current, shortName: event.target.value }))
               }
               maxLength={20}
-              placeholder="z. B. KT-MO"
+              placeholder="z. B. KT"
             />
           </label>
 
@@ -150,6 +178,73 @@ export function TrainingGroupEditor({
             </label>
           )}
         </div>
+
+        <fieldset className="group-schedule-fieldset">
+          <legend>
+            <CalendarDays aria-hidden="true" /> Regelmäßige Trainingstage
+          </legend>
+          <p className="field-hint">
+            Diese Wochentage steuern später die auswählbaren Trainingstermine.
+          </p>
+          <div className="weekday-selector" aria-label="Trainingstage auswählen">
+            {WEEKDAYS.map((weekday) => {
+              const selected = values.regularWeekdays.includes(weekday.value);
+              return (
+                <button
+                  type="button"
+                  className={selected ? "selected" : ""}
+                  aria-pressed={selected}
+                  onClick={() => toggleWeekday(weekday.value)}
+                  key={weekday.value}
+                >
+                  {weekday.label}
+                </button>
+              );
+            })}
+          </div>
+        </fieldset>
+
+        <div className="group-module-settings">
+          <label className="setting-checkbox">
+            <input
+              type="checkbox"
+              checked={values.moduleKey === "kindertraining"}
+              onChange={(event) =>
+                setValues((current) => ({
+                  ...current,
+                  moduleKey: event.target.checked ? "kindertraining" : null,
+                }))
+              }
+            />
+            <span>
+              <strong>Diese Gruppe im Modul Kindertraining verwenden</strong>
+              <small>Pro Verein kann genau eine Gruppe fest zugeordnet werden.</small>
+            </span>
+          </label>
+
+          <label className="setting-checkbox">
+            <input
+              type="checkbox"
+              checked={values.allowSpecialTraining}
+              onChange={(event) =>
+                setValues((current) => ({
+                  ...current,
+                  allowSpecialTraining: event.target.checked,
+                }))
+              }
+            />
+            <span>
+              <strong>Sondertrainingstage erlauben</strong>
+              <small>Erlaubt einzelne Termine außerhalb der gewählten Wochentage.</small>
+            </span>
+          </label>
+        </div>
+
+        {values.moduleKey === "kindertraining" && values.regularWeekdays.length === 0 && (
+          <div className="alert warning compact-alert">
+            Für das Kindertraining muss mindestens ein Wochentag ausgewählt sein.
+          </div>
+        )}
 
         <label className="full-width-field">
           Beschreibung

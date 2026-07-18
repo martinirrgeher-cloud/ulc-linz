@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   ArrowLeft,
-  CalendarDays,
+  CalendarPlus,
   ChevronLeft,
   ChevronRight,
   CircleHelp,
@@ -12,21 +12,28 @@ import {
   RotateCcw,
   Save,
   Search,
+  Settings2,
   UserCheck,
   UserMinus,
+  UserPlus,
   UsersRound,
 } from "lucide-react";
 import { Link, Navigate } from "react-router-dom";
 import {
-  loadKindertrainingGroups,
+  createKindertrainingAthlete,
+  loadKindertrainingConfiguration,
   loadKindertrainingSession,
   saveKindertrainingSession,
 } from "@/features/kindertraining/api";
+import { QuickAthleteDialog } from "@/features/kindertraining/QuickAthleteDialog";
 import type {
+  AthleteNameSort,
   AttendanceStatus,
+  KindertrainingConfiguration,
   KindertrainingDraft,
   KindertrainingParticipant,
   KindertrainingSession,
+  QuickAthleteResult,
 } from "@/features/kindertraining/types";
 import { useAuth } from "@/features/auth/AuthContext";
 
@@ -36,11 +43,23 @@ const STATUS_OPTIONS: Array<{
   shortLabel: string;
   icon: typeof CircleHelp;
 }> = [
-  { value: "open", label: "Noch offen", shortLabel: "Offen", icon: CircleHelp },
-  { value: "present", label: "Anwesend", shortLabel: "Da", icon: UserCheck },
+  { value: "open", label: "Offen", shortLabel: "Offen", icon: CircleHelp },
+  { value: "present", label: "Da", shortLabel: "Da", icon: UserCheck },
   { value: "excused", label: "Entschuldigt", shortLabel: "Entsch.", icon: Clock3 },
-  { value: "absent", label: "Abwesend", shortLabel: "Fehlt", icon: UserMinus },
+  { value: "absent", label: "Fehlt", shortLabel: "Fehlt", icon: UserMinus },
 ];
+
+const WEEKDAY_LABELS: Record<number, string> = {
+  1: "Montag",
+  2: "Dienstag",
+  3: "Mittwoch",
+  4: "Donnerstag",
+  5: "Freitag",
+  6: "Samstag",
+  7: "Sonntag",
+};
+
+const SORT_STORAGE_KEY = "ulc-kindertraining-name-sort";
 
 function errorMessage(error: unknown): string {
   const message =
@@ -79,6 +98,11 @@ function addDays(value: string, amount: number): string {
   return isoDate(date);
 }
 
+function isoWeekday(value: string): number {
+  const weekday = parseIsoDate(value).getDay();
+  return weekday === 0 ? 7 : weekday;
+}
+
 function formatLongDate(value: string): string {
   return new Intl.DateTimeFormat("de-AT", {
     weekday: "long",
@@ -95,6 +119,32 @@ function formatSavedAt(value: string): string {
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date(value));
+}
+
+function formatRegularWeekdays(weekdays: number[]): string {
+  return weekdays.map((weekday) => WEEKDAY_LABELS[weekday] ?? "?").join(" · ");
+}
+
+function isRegularDate(value: string, weekdays: number[]): boolean {
+  return weekdays.includes(isoWeekday(value));
+}
+
+function findTrainingDate(
+  fromDate: string,
+  direction: -1 | 1,
+  weekdays: number[],
+  specialDates: string[],
+  includeStart = false,
+): string {
+  let candidate = includeStart ? fromDate : addDays(fromDate, direction);
+  const specialDateSet = new Set(specialDates);
+
+  for (let index = 0; index < 740; index += 1) {
+    if (isRegularDate(candidate, weekdays) || specialDateSet.has(candidate)) return candidate;
+    candidate = addDays(candidate, direction);
+  }
+
+  return fromDate;
 }
 
 function makeDraft(session: KindertrainingSession): KindertrainingDraft {
@@ -121,15 +171,62 @@ function draftSignature(
   });
 }
 
+function readInitialSort(): AthleteNameSort {
+  try {
+    return window.localStorage.getItem(SORT_STORAGE_KEY) === "lastName"
+      ? "lastName"
+      : "firstName";
+  } catch {
+    return "firstName";
+  }
+}
+
+function compareText(left: string, right: string): number {
+  return left.localeCompare(right, "de-AT", { sensitivity: "base" });
+}
+
+function sortParticipants(
+  participants: KindertrainingParticipant[],
+  mode: AthleteNameSort,
+): KindertrainingParticipant[] {
+  return [...participants].sort((left, right) => {
+    if (mode === "lastName") {
+      return (
+        compareText(left.lastName, right.lastName) ||
+        compareText(left.firstName, right.firstName)
+      );
+    }
+
+    return (
+      compareText(left.firstName, right.firstName) ||
+      compareText(left.lastName, right.lastName)
+    );
+  });
+}
+
+function athleteDisplayName(
+  participant: KindertrainingParticipant,
+  mode: AthleteNameSort,
+): string {
+  return mode === "lastName"
+    ? `${participant.lastName} ${participant.firstName}`
+    : `${participant.firstName} ${participant.lastName}`;
+}
+
 export function KindertrainingDraftPage() {
   const { appContext, canViewModule, canEditModule } = useAuth();
   const organizationId = appContext?.organization?.id;
   const canView = canViewModule("kindertraining");
   const canEdit = canEditModule("kindertraining");
 
-  const [groups, setGroups] = useState<Awaited<ReturnType<typeof loadKindertrainingGroups>>>([]);
-  const [selectedGroupId, setSelectedGroupId] = useState("");
+  const [configuration, setConfiguration] = useState<KindertrainingConfiguration | null>(null);
   const [selectedDate, setSelectedDate] = useState(() => isoDate(new Date()));
+  const [transientSpecialDates, setTransientSpecialDates] = useState<string[]>([]);
+  const [specialDateInput, setSpecialDateInput] = useState(() => isoDate(new Date()));
+  const [showSpecialDatePicker, setShowSpecialDatePicker] = useState(false);
+  const [showQuickAthlete, setShowQuickAthlete] = useState(false);
+  const [activeCategory, setActiveCategory] = useState<AttendanceStatus>("open");
+  const [sortMode, setSortMode] = useState<AthleteNameSort>(() => readInitialSort());
   const [searchTerm, setSearchTerm] = useState("");
   const [session, setSession] = useState<KindertrainingSession | null>(null);
   const [participants, setParticipants] = useState<KindertrainingParticipant[]>([]);
@@ -139,30 +236,23 @@ export function KindertrainingDraftPage() {
     attendance: {},
   });
   const [baseline, setBaseline] = useState<KindertrainingDraft | null>(null);
-  const [groupsLoading, setGroupsLoading] = useState(true);
+  const [configurationLoading, setConfigurationLoading] = useState(true);
   const [sessionLoading, setSessionLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const requestIdRef = useRef(0);
 
+  const group = configuration?.group ?? null;
+  const allSpecialDates = useMemo(
+    () => [...new Set([...(configuration?.specialDates ?? []), ...transientSpecialDates])],
+    [configuration?.specialDates, transientSpecialDates],
+  );
+
   const dirty = useMemo(() => {
     if (!baseline) return false;
     return draftSignature(draft, participants) !== draftSignature(baseline, participants);
   }, [baseline, draft, participants]);
-
-  const selectedGroup = groups.find((group) => group.id === selectedGroupId) ?? null;
-
-  const visibleParticipants = useMemo(() => {
-    const normalizedSearch = searchTerm.trim().toLocaleLowerCase("de-AT");
-    if (!normalizedSearch) return participants;
-
-    return participants.filter((participant) =>
-      `${participant.firstName} ${participant.lastName}`
-        .toLocaleLowerCase("de-AT")
-        .includes(normalizedSearch),
-    );
-  }, [participants, searchTerm]);
 
   const counts = useMemo(() => {
     const result: Record<AttendanceStatus, number> = {
@@ -179,27 +269,57 @@ export function KindertrainingDraftPage() {
     return result;
   }, [draft.attendance, participants]);
 
-  const loadGroups = useCallback(async () => {
+  const categoryParticipants = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLocaleLowerCase("de-AT");
+    const filtered = participants.filter((participant) => {
+      const status = draft.attendance[participant.athleteId] ?? "open";
+      if (status !== activeCategory) return false;
+      if (!normalizedSearch) return true;
+
+      return `${participant.firstName} ${participant.lastName} ${participant.birthYear ?? ""}`
+        .toLocaleLowerCase("de-AT")
+        .includes(normalizedSearch);
+    });
+
+    return sortParticipants(filtered, sortMode);
+  }, [activeCategory, draft.attendance, participants, searchTerm, sortMode]);
+
+  const selectedDateIsRegular = group
+    ? isRegularDate(selectedDate, group.regularWeekdays)
+    : false;
+  const today = isoDate(new Date());
+  const todayIsVisible = group
+    ? isRegularDate(today, group.regularWeekdays) || allSpecialDates.includes(today)
+    : false;
+
+  const loadConfiguration = useCallback(async () => {
     if (!organizationId || !canView) return;
 
-    setGroupsLoading(true);
+    setConfigurationLoading(true);
     setError(null);
     try {
-      const loadedGroups = await loadKindertrainingGroups(organizationId);
-      setGroups(loadedGroups);
-      setSelectedGroupId((current) => {
-        if (current && loadedGroups.some((group) => group.id === current)) return current;
-        return loadedGroups[0]?.id ?? "";
-      });
+      const loadedConfiguration = await loadKindertrainingConfiguration(organizationId);
+      setConfiguration(loadedConfiguration);
+
+      if (loadedConfiguration.group) {
+        const startDate = findTrainingDate(
+          isoDate(new Date()),
+          -1,
+          loadedConfiguration.group.regularWeekdays,
+          loadedConfiguration.specialDates,
+          true,
+        );
+        setSelectedDate(startDate);
+      }
     } catch (loadError) {
       setError(errorMessage(loadError));
     } finally {
-      setGroupsLoading(false);
+      setConfigurationLoading(false);
     }
   }, [canView, organizationId]);
 
   const loadSession = useCallback(async () => {
-    if (!organizationId || !selectedGroupId || !canView) return;
+    if (!organizationId || !group?.id || !canView) return;
 
     const requestId = ++requestIdRef.current;
     setSessionLoading(true);
@@ -209,7 +329,7 @@ export function KindertrainingDraftPage() {
     try {
       const loadedSession = await loadKindertrainingSession(
         organizationId,
-        selectedGroupId,
+        group.id,
         selectedDate,
       );
       if (requestId !== requestIdRef.current) return;
@@ -219,6 +339,8 @@ export function KindertrainingDraftPage() {
       setParticipants(loadedSession.participants);
       setDraft(loadedDraft);
       setBaseline(loadedDraft);
+      setActiveCategory("open");
+      setSearchTerm("");
     } catch (loadError) {
       if (requestId !== requestIdRef.current) return;
       setSession(null);
@@ -228,15 +350,23 @@ export function KindertrainingDraftPage() {
     } finally {
       if (requestId === requestIdRef.current) setSessionLoading(false);
     }
-  }, [canView, organizationId, selectedDate, selectedGroupId]);
+  }, [canView, group?.id, organizationId, selectedDate]);
 
   useEffect(() => {
-    void loadGroups();
-  }, [loadGroups]);
+    void loadConfiguration();
+  }, [loadConfiguration]);
 
   useEffect(() => {
-    if (selectedGroupId) void loadSession();
-  }, [loadSession, selectedGroupId]);
+    if (group?.id) void loadSession();
+  }, [group?.id, loadSession]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(SORT_STORAGE_KEY, sortMode);
+    } catch {
+      // Lokale Speicherung ist optional; die Sortierung funktioniert trotzdem.
+    }
+  }, [sortMode]);
 
   useEffect(() => {
     function preventAccidentalClose(event: BeforeUnloadEvent) {
@@ -253,16 +383,30 @@ export function KindertrainingDraftPage() {
     return !dirty || window.confirm("Ungespeicherte Änderungen wirklich verwerfen?");
   }
 
-  function changeGroup(groupId: string): void {
-    if (!mayDiscardChanges()) return;
-    setSearchTerm("");
-    setSelectedGroupId(groupId);
-  }
-
   function changeDate(date: string): void {
     if (!date || !mayDiscardChanges()) return;
-    setSearchTerm("");
     setSelectedDate(date);
+  }
+
+  function moveDate(direction: -1 | 1): void {
+    if (!group) return;
+    changeDate(
+      findTrainingDate(
+        selectedDate,
+        direction,
+        group.regularWeekdays,
+        allSpecialDates,
+      ),
+    );
+  }
+
+  function confirmSpecialDate(): void {
+    if (!group || !specialDateInput) return;
+    if (!isRegularDate(specialDateInput, group.regularWeekdays)) {
+      setTransientSpecialDates((current) => [...new Set([...current, specialDateInput])]);
+    }
+    setShowSpecialDatePicker(false);
+    changeDate(specialDateInput);
   }
 
   function updateDraft(updater: (current: KindertrainingDraft) => KindertrainingDraft): void {
@@ -289,14 +433,7 @@ export function KindertrainingDraftPage() {
   }
 
   async function saveTraining(): Promise<void> {
-    if (
-      !organizationId ||
-      !selectedGroupId ||
-      !canEdit ||
-      !baseline ||
-      saving ||
-      sessionLoading
-    ) {
+    if (!organizationId || !group || !canEdit || !baseline || saving || sessionLoading) {
       return;
     }
 
@@ -307,7 +444,7 @@ export function KindertrainingDraftPage() {
     try {
       const savedSession = await saveKindertrainingSession({
         organizationId,
-        groupId: selectedGroupId,
+        groupId: group.id,
         sessionDate: selectedDate,
         state: draft.state,
         note: draft.note,
@@ -321,11 +458,39 @@ export function KindertrainingDraftPage() {
       setDraft(savedDraft);
       setBaseline(savedDraft);
       setSuccessMessage("Training wurde gespeichert.");
+
+      if (savedSession.isSpecial) {
+        setTransientSpecialDates((current) => [...new Set([...current, selectedDate])]);
+      }
     } catch (saveError) {
       setError(errorMessage(saveError));
     } finally {
       setSaving(false);
     }
+  }
+
+  async function handleQuickAthlete(
+    values: { firstName: string; lastName: string; birthYear: number },
+    attachExisting: boolean,
+  ): Promise<QuickAthleteResult> {
+    if (!organizationId) throw new Error("Der Verein ist nicht geladen.");
+
+    return createKindertrainingAthlete(organizationId, {
+      ...values,
+      sessionDate: selectedDate,
+      attachExisting,
+    });
+  }
+
+  async function completeQuickAthlete(result: QuickAthleteResult): Promise<void> {
+    setShowQuickAthlete(false);
+    const messages: Record<Exclude<QuickAthleteResult["status"], "duplicate">, string> = {
+      created: "Das Kind wurde angelegt und dem Kindertraining zugeordnet.",
+      attached: "Das vorhandene Kind wurde aktiviert und dem Kindertraining zugeordnet.",
+      already_assigned: "Das Kind war bereits dem Kindertraining zugeordnet.",
+    };
+    await loadSession();
+    if (result.status !== "duplicate") setSuccessMessage(messages[result.status]);
   }
 
   if (!canView) return <Navigate to="/kein-zugriff" replace />;
@@ -347,12 +512,10 @@ export function KindertrainingDraftPage() {
         <div>
           <p className="eyebrow">Training erfassen</p>
           <h1>Kindertraining</h1>
-          <p>Anwesenheit, Absagen und Tagesnotizen direkt am Handy verwalten.</p>
+          <p>Anwesenheit schnell erfassen und direkt am Handy verwalten.</p>
         </div>
         <span
-          className={`training-save-badge ${
-            dirty ? "dirty" : session?.id ? "saved" : "new"
-          }`}
+          className={`training-save-badge ${dirty ? "dirty" : session?.id ? "saved" : "new"}`}
           aria-live="polite"
         >
           {dirty ? (
@@ -378,7 +541,7 @@ export function KindertrainingDraftPage() {
       {error && (
         <div className="alert error training-alert" role="alert">
           <span>{error}</span>
-          {selectedGroupId && (
+          {group?.id && (
             <button type="button" className="text-button" onClick={() => void loadSession()}>
               <RefreshCw aria-hidden="true" /> Neu laden
             </button>
@@ -392,81 +555,119 @@ export function KindertrainingDraftPage() {
         </div>
       )}
 
-      {groupsLoading ? (
+      {configurationLoading ? (
         <div className="management-loading">
           <span className="spinner" aria-hidden="true" />
-          Trainingsgruppen werden geladen …
+          Kindertraining wird eingerichtet …
         </div>
-      ) : groups.length === 0 ? (
+      ) : !group ? (
+        <div className="empty-state">
+          <Settings2 aria-hidden="true" />
+          <h2>Kindertrainingsgruppe noch nicht zugeordnet</h2>
+          <p>
+            Öffne „Athleten und Trainingsgruppen“, bearbeite die gewünschte Gruppe und aktiviere
+            „Diese Gruppe im Modul Kindertraining verwenden“.
+          </p>
+          <Link className="primary-button link-button" to="/module/athletes">
+            Trainingsgruppe einrichten
+          </Link>
+        </div>
+      ) : !group.isActive ? (
         <div className="empty-state">
           <UsersRound aria-hidden="true" />
-          <h2>Noch keine aktive Trainingsgruppe</h2>
-          <p>Lege zuerst im Modul „Athleten“ eine aktive Trainingsgruppe an.</p>
+          <h2>Kindertrainingsgruppe ist deaktiviert</h2>
+          <p>Aktiviere die Gruppe in der Trainingsgruppenverwaltung wieder.</p>
           <Link className="primary-button link-button" to="/module/athletes">
-            Zu Athleten und Gruppen
+            Zur Gruppenverwaltung
           </Link>
         </div>
       ) : (
         <>
-          <section className="training-control-card" aria-label="Training auswählen">
-            <label className="training-group-field">
-              <span>Trainingsgruppe</span>
-              <select
-                value={selectedGroupId}
-                disabled={sessionLoading || saving}
-                onChange={(event) => changeGroup(event.target.value)}
-              >
-                {groups.map((group) => (
-                  <option value={group.id} key={group.id}>
-                    {group.name}
-                  </option>
-                ))}
-              </select>
-            </label>
+          <section className="training-control-card compact" aria-label="Trainingstag auswählen">
+            <div className="fixed-training-group">
+              <span className="eyebrow">Trainingsgruppe</span>
+              <strong>{group.name}</strong>
+              <small>{formatRegularWeekdays(group.regularWeekdays)}</small>
+            </div>
 
-            <div className="training-date-control">
-              <span>Trainingstag</span>
+            <div className="training-date-control compact">
               <div className="training-date-buttons">
                 <button
                   type="button"
                   className="icon-button"
                   disabled={sessionLoading || saving}
-                  onClick={() => changeDate(addDays(selectedDate, -1))}
-                  aria-label="Vorheriger Tag"
+                  onClick={() => moveDate(-1)}
+                  aria-label="Vorheriger Trainingstag"
                 >
                   <ChevronLeft aria-hidden="true" />
                 </button>
-                <label className="date-picker-button">
-                  <CalendarDays aria-hidden="true" />
-                  <span>{formatLongDate(selectedDate)}</span>
-                  <input
-                    type="date"
-                    value={selectedDate}
-                    disabled={sessionLoading || saving}
-                    onChange={(event) => changeDate(event.target.value)}
-                    aria-label="Trainingstag auswählen"
-                  />
-                </label>
+                <div className="training-date-display">
+                  <strong>{formatLongDate(selectedDate)}</strong>
+                  {!selectedDateIsRegular && <span>Sondertraining</span>}
+                </div>
                 <button
                   type="button"
                   className="icon-button"
                   disabled={sessionLoading || saving}
-                  onClick={() => changeDate(addDays(selectedDate, 1))}
-                  aria-label="Nächster Tag"
+                  onClick={() => moveDate(1)}
+                  aria-label="Nächster Trainingstag"
                 >
                   <ChevronRight aria-hidden="true" />
                 </button>
               </div>
-              <button
-                type="button"
-                className="text-button today-button"
-                disabled={sessionLoading || saving}
-                onClick={() => changeDate(isoDate(new Date()))}
-              >
-                Heute
-              </button>
+
+              <div className="training-date-shortcuts">
+                {todayIsVisible && selectedDate !== today && (
+                  <button
+                    type="button"
+                    className="text-button"
+                    disabled={sessionLoading || saving}
+                    onClick={() => changeDate(today)}
+                  >
+                    Heute
+                  </button>
+                )}
+                {group.allowSpecialTraining && canEdit && (
+                  <button
+                    type="button"
+                    className="text-button"
+                    disabled={sessionLoading || saving}
+                    onClick={() => {
+                      setSpecialDateInput(today);
+                      setShowSpecialDatePicker(true);
+                    }}
+                  >
+                    <CalendarPlus aria-hidden="true" /> Sondertraining
+                  </button>
+                )}
+              </div>
             </div>
           </section>
+
+          {showSpecialDatePicker && (
+            <section className="special-training-picker" role="dialog" aria-modal="true">
+              <div>
+                <strong>Sondertraining auswählen</strong>
+                <input
+                  type="date"
+                  value={specialDateInput}
+                  onChange={(event) => setSpecialDateInput(event.target.value)}
+                />
+              </div>
+              <div>
+                <button
+                  type="button"
+                  className="secondary-button"
+                  onClick={() => setShowSpecialDatePicker(false)}
+                >
+                  Abbrechen
+                </button>
+                <button type="button" className="primary-button" onClick={confirmSpecialDate}>
+                  Datum öffnen
+                </button>
+              </div>
+            </section>
+          )}
 
           {sessionLoading ? (
             <div className="management-loading">
@@ -475,126 +676,119 @@ export function KindertrainingDraftPage() {
             </div>
           ) : baseline ? (
             <>
-              <section className="attendance-summary" aria-label="Anwesenheitsübersicht">
-                <article className="attendance-summary-card total">
-                  <UsersRound aria-hidden="true" />
-                  <span>
-                    <small>Teilnehmer</small>
-                    <strong>{participants.length}</strong>
-                  </span>
-                </article>
-                <article className="attendance-summary-card present">
-                  <UserCheck aria-hidden="true" />
-                  <span>
-                    <small>Anwesend</small>
-                    <strong>{counts.present}</strong>
-                  </span>
-                </article>
-                <article className="attendance-summary-card excused">
-                  <Clock3 aria-hidden="true" />
-                  <span>
-                    <small>Entschuldigt</small>
-                    <strong>{counts.excused}</strong>
-                  </span>
-                </article>
-                <article className="attendance-summary-card open">
-                  <CircleHelp aria-hidden="true" />
-                  <span>
-                    <small>Noch offen</small>
-                    <strong>{counts.open}</strong>
-                  </span>
-                </article>
-              </section>
-
-              <section className="attendance-workspace">
-                <div className="attendance-list-heading">
-                  <div>
-                    <p className="eyebrow">{selectedGroup?.name}</p>
-                    <h2>Anwesenheit</h2>
+              <section className="attendance-workspace compact">
+                <div className="attendance-toolbar">
+                  <div className="attendance-category-tabs" role="tablist" aria-label="Status">
+                    {STATUS_OPTIONS.map((status) => {
+                      const Icon = status.icon;
+                      return (
+                        <button
+                          type="button"
+                          role="tab"
+                          aria-selected={activeCategory === status.value}
+                          className={`${status.value} ${activeCategory === status.value ? "active" : ""}`}
+                          onClick={() => setActiveCategory(status.value)}
+                          key={status.value}
+                        >
+                          <Icon aria-hidden="true" />
+                          <span>{status.label}</span>
+                          <strong>{counts[status.value]}</strong>
+                        </button>
+                      );
+                    })}
                   </div>
-                  <label className="attendance-search">
-                    <Search aria-hidden="true" />
-                    <input
-                      type="search"
-                      value={searchTerm}
-                      onChange={(event) => setSearchTerm(event.target.value)}
-                      placeholder="Name suchen"
-                    />
-                  </label>
+
+                  <div className="attendance-list-tools">
+                    <label className="attendance-search compact">
+                      <Search aria-hidden="true" />
+                      <input
+                        type="search"
+                        value={searchTerm}
+                        onChange={(event) => setSearchTerm(event.target.value)}
+                        placeholder="Name suchen"
+                      />
+                    </label>
+                    <div className="name-sort-toggle" aria-label="Namenssortierung">
+                      <button
+                        type="button"
+                        className={sortMode === "firstName" ? "active" : ""}
+                        onClick={() => setSortMode("firstName")}
+                      >
+                        Vorname
+                      </button>
+                      <button
+                        type="button"
+                        className={sortMode === "lastName" ? "active" : ""}
+                        onClick={() => setSortMode("lastName")}
+                      >
+                        Nachname
+                      </button>
+                    </div>
+                  </div>
+
+                  {canEdit && (
+                    <button
+                      type="button"
+                      className="secondary-button add-child-button"
+                      onClick={() => setShowQuickAthlete(true)}
+                      disabled={dirty || saving || sessionLoading}
+                      title={dirty ? "Bitte zuerst die Anwesenheit speichern." : "Kind hinzufügen"}
+                    >
+                      <UserPlus aria-hidden="true" />
+                      Kind hinzufügen
+                    </button>
+                  )}
                 </div>
 
-                <label className="cancel-training-toggle">
-                  <input
-                    type="checkbox"
-                    checked={draft.state === "cancelled"}
-                    disabled={!canEdit || saving}
-                    onChange={(event) =>
-                      updateDraft((current) => ({
-                        ...current,
-                        state: event.target.checked ? "cancelled" : "scheduled",
-                      }))
-                    }
-                  />
-                  <span>
-                    <strong>Training abgesagt</strong>
-                    <small>Die gespeicherte Teilnehmerliste bleibt erhalten.</small>
-                  </span>
-                </label>
+                {dirty && canEdit && (
+                  <p className="inline-hint">
+                    Neue Kinder können nach dem Speichern der aktuellen Änderungen hinzugefügt werden.
+                  </p>
+                )}
 
-                {participants.length === 0 ? (
-                  <div className="inline-empty-state">
-                    Für diesen Tag sind keine aktiven Athleten in der Gruppe erfasst.
+                {draft.state === "cancelled" ? (
+                  <div className="training-cancelled-state">
+                    <AlertTriangle aria-hidden="true" />
+                    <div>
+                      <strong>Training abgesagt</strong>
+                      <p>Die Anwesenheitsauswahl ist gesperrt, bis die Absage aufgehoben wird.</p>
+                    </div>
                   </div>
-                ) : visibleParticipants.length === 0 ? (
-                  <div className="inline-empty-state">Kein Athlet entspricht der Suche.</div>
+                ) : categoryParticipants.length === 0 ? (
+                  <div className="inline-empty-state attendance-empty">
+                    {searchTerm
+                      ? "Keine passenden Kinder in dieser Kategorie."
+                      : activeCategory === "open"
+                        ? "Alle Kinder wurden bereits zugeordnet."
+                        : "In dieser Kategorie befinden sich noch keine Kinder."}
+                  </div>
                 ) : (
-                  <div className="attendance-list">
-                    {visibleParticipants.map((participant) => {
-                      const status = draft.attendance[participant.athleteId] ?? "open";
+                  <div className="compact-attendance-list">
+                    {categoryParticipants.map((participant) => {
+                      const currentStatus = draft.attendance[participant.athleteId] ?? "open";
                       return (
-                        <article
-                          className={`attendance-athlete-card status-${status}`}
-                          key={participant.athleteId}
-                        >
-                          <div className="attendance-athlete-name">
-                            <span className="athlete-avatar" aria-hidden="true">
-                              {participant.firstName.slice(0, 1)}
-                              {participant.lastName.slice(0, 1)}
-                            </span>
-                            <span>
-                              <strong>{participant.firstName}</strong>
-                              <small>
-                                {participant.lastName}
-                                {participant.birthYear ? ` · Jg. ${participant.birthYear}` : ""}
-                                {!participant.isActive ? " · inaktiv" : ""}
-                              </small>
-                            </span>
+                        <article className="compact-attendance-row" key={participant.athleteId}>
+                          <div className="compact-athlete-name">
+                            <strong>{athleteDisplayName(participant, sortMode)}</strong>
+                            <small>
+                              {participant.birthYear ? `Jahrgang ${participant.birthYear}` : "Kein Jahrgang"}
+                            </small>
                           </div>
 
-                          <div
-                            className="attendance-status-picker"
-                            role="group"
-                            aria-label={`Status für ${participant.firstName} ${participant.lastName}`}
-                          >
-                            {STATUS_OPTIONS.map((option) => {
-                              const Icon = option.icon;
-                              return (
+                          <div className="compact-status-actions" aria-label="Status wählen">
+                            {STATUS_OPTIONS.filter((status) => status.value !== currentStatus).map(
+                              (status) => (
                                 <button
                                   type="button"
-                                  className={status === option.value ? "active" : ""}
-                                  data-status={option.value}
-                                  disabled={!canEdit || saving || draft.state === "cancelled"}
-                                  onClick={() => setAttendance(participant.athleteId, option.value)}
-                                  aria-pressed={status === option.value}
-                                  title={option.label}
-                                  key={option.value}
+                                  className={status.value}
+                                  onClick={() => setAttendance(participant.athleteId, status.value)}
+                                  disabled={!canEdit || saving}
+                                  key={status.value}
                                 >
-                                  <Icon aria-hidden="true" />
-                                  <span className="status-long-label">{option.label}</span>
-                                  <span className="status-short-label">{option.shortLabel}</span>
+                                  {status.shortLabel}
                                 </button>
-                              );
-                            })}
+                              ),
+                            )}
                           </div>
                         </article>
                       );
@@ -603,65 +797,98 @@ export function KindertrainingDraftPage() {
                 )}
               </section>
 
-              <section className="training-note-card">
-                <label>
-                  <span>Notiz zum Training</span>
-                  <textarea
-                    rows={3}
-                    value={draft.note}
-                    disabled={!canEdit || saving}
-                    maxLength={3000}
-                    placeholder="Besonderheiten, Trainingsinhalt oder organisatorische Hinweise …"
-                    onChange={(event) =>
-                      updateDraft((current) => ({ ...current, note: event.target.value }))
-                    }
-                  />
-                  <small>{draft.note.length}/3000 Zeichen</small>
-                </label>
-              </section>
+              <details
+                className="training-details-panel"
+                open={draft.state === "cancelled" || draft.note.length > 0}
+              >
+                <summary>
+                  <Settings2 aria-hidden="true" />
+                  Trainingseinstellungen und Notiz
+                </summary>
+                <div className="training-details-content">
+                  <label className="cancel-training-toggle">
+                    <input
+                      type="checkbox"
+                      checked={draft.state === "cancelled"}
+                      disabled={!canEdit || saving}
+                      onChange={(event) =>
+                        updateDraft((current) => ({
+                          ...current,
+                          state: event.target.checked ? "cancelled" : "scheduled",
+                        }))
+                      }
+                    />
+                    <span>
+                      <strong>Training absagen</strong>
+                      <small>Die Teilnehmerstände bleiben gespeichert.</small>
+                    </span>
+                  </label>
 
-              <div className="training-action-bar">
-                <div className="training-action-status" aria-live="polite">
-                  {saving ? (
-                    <>
-                      <span className="spinner" aria-hidden="true" /> Wird gespeichert …
-                    </>
-                  ) : dirty ? (
-                    <>
-                      <AlertTriangle aria-hidden="true" /> Änderungen noch nicht gespeichert
-                    </>
-                  ) : session?.updatedAt ? (
-                    <>
-                      <CloudCheck aria-hidden="true" /> Gespeichert {formatSavedAt(session.updatedAt)}
-                    </>
-                  ) : (
-                    <>Noch kein Eintrag für diesen Tag</>
-                  )}
+                  <label className="training-note-field">
+                    Tagesnotiz
+                    <textarea
+                      value={draft.note}
+                      disabled={!canEdit || saving}
+                      onChange={(event) =>
+                        updateDraft((current) => ({ ...current, note: event.target.value }))
+                      }
+                      maxLength={3000}
+                      rows={3}
+                      placeholder="Optional"
+                    />
+                    <small>{draft.note.length} / 3000 Zeichen</small>
+                  </label>
                 </div>
-                <div className="training-action-buttons">
-                  <button
-                    type="button"
-                    className="secondary-button"
-                    onClick={discardChanges}
-                    disabled={!canEdit || !dirty || saving}
-                  >
-                    <RotateCcw aria-hidden="true" />
-                    Verwerfen
-                  </button>
-                  <button
-                    type="button"
-                    className="primary-button"
-                    onClick={() => void saveTraining()}
-                    disabled={!canEdit || !dirty || saving}
-                  >
-                    <Save aria-hidden="true" />
-                    Speichern
-                  </button>
+              </details>
+
+              {canEdit && (
+                <div className="training-save-bar">
+                  <div>
+                    {dirty ? (
+                      <span className="dirty-message">
+                        <AlertTriangle aria-hidden="true" /> Änderungen noch nicht gespeichert
+                      </span>
+                    ) : session?.updatedAt ? (
+                      <span className="saved-message">
+                        <CloudCheck aria-hidden="true" /> Gespeichert {formatSavedAt(session.updatedAt)}
+                      </span>
+                    ) : (
+                      <span>Noch nicht gespeichert</span>
+                    )}
+                  </div>
+                  <div className="training-save-actions">
+                    <button
+                      type="button"
+                      className="secondary-button"
+                      disabled={!dirty || saving}
+                      onClick={discardChanges}
+                    >
+                      <RotateCcw aria-hidden="true" />
+                      Verwerfen
+                    </button>
+                    <button
+                      type="button"
+                      className="primary-button"
+                      disabled={!dirty || saving || sessionLoading}
+                      onClick={() => void saveTraining()}
+                    >
+                      <Save aria-hidden="true" />
+                      {saving ? "Speichert …" : "Speichern"}
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
             </>
           ) : null}
         </>
+      )}
+
+      {showQuickAthlete && (
+        <QuickAthleteDialog
+          onClose={() => setShowQuickAthlete(false)}
+          onSubmit={handleQuickAthlete}
+          onCompleted={(result) => void completeQuickAthlete(result)}
+        />
       )}
     </section>
   );

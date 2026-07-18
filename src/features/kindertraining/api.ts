@@ -2,13 +2,15 @@ import { requireSupabase } from "@/lib/supabase";
 import type { Json } from "@/types/database.generated";
 import type {
   AttendanceStatus,
-  KindertrainingGroup,
+  KindertrainingConfiguration,
   KindertrainingParticipant,
   KindertrainingSession,
+  QuickAthleteInput,
+  QuickAthleteResult,
+  QuickAthleteResultStatus,
   SaveKindertrainingInput,
   TrainingSessionState,
 } from "@/features/kindertraining/types";
-
 
 type JsonRpcResponse = {
   data: Json;
@@ -38,6 +40,13 @@ const ATTENDANCE_STATUSES: AttendanceStatus[] = [
   "absent",
 ];
 
+const QUICK_RESULT_STATUSES: QuickAthleteResultStatus[] = [
+  "created",
+  "duplicate",
+  "attached",
+  "already_assigned",
+];
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
@@ -54,6 +63,13 @@ function parseStatus(value: unknown): AttendanceStatus {
 
 function parseState(value: unknown): TrainingSessionState {
   return value === "cancelled" ? "cancelled" : "scheduled";
+}
+
+function parseWeekdays(value: unknown): number[] {
+  if (!Array.isArray(value)) return [];
+  return [...new Set(value.filter((item): item is number => (
+    typeof item === "number" && Number.isInteger(item) && item >= 1 && item <= 7
+  )))].sort((left, right) => left - right);
 }
 
 function parseParticipants(value: unknown): KindertrainingParticipant[] {
@@ -93,40 +109,46 @@ function parseSessionPayload(value: Json): KindertrainingSession {
     id: rawSession && typeof rawSession.id === "string" ? rawSession.id : null,
     state: parseState(rawSession?.state),
     note: rawSession && typeof rawSession.note === "string" ? rawSession.note : "",
+    isSpecial: rawSession?.is_special === true,
+    isRegularDay: value.is_regular_day === true,
     createdAt: asNullableString(rawSession?.created_at),
     updatedAt: asNullableString(rawSession?.updated_at),
     participants: parseParticipants(value.participants),
   };
 }
 
-export async function loadKindertrainingGroups(
+export async function loadKindertrainingConfiguration(
   organizationId: string,
-): Promise<KindertrainingGroup[]> {
-  const supabase = requireSupabase();
-  const { data, error } = await supabase.rpc("training_group_overview", {
+): Promise<KindertrainingConfiguration> {
+  const data = await callJsonRpc("kindertraining_configuration_overview", {
     p_organization_id: organizationId,
   });
 
-  if (error) throw error;
+  if (!isRecord(data)) {
+    throw new Error("Die Kindertraining-Konfiguration besitzt ein ungültiges Format.");
+  }
 
-  return data
-    .map((group) => ({
-      id: group.id,
-      name: group.name,
-      shortName: group.short_name,
-      description: group.description,
-      isActive: group.is_active,
-      sortOrder: group.sort_order,
-      athleteCount: Number(group.athlete_count),
-      createdAt: group.created_at,
-      updatedAt: group.updated_at,
-    }))
-    .filter((group) => group.isActive)
-    .sort(
-      (left, right) =>
-        left.sortOrder - right.sortOrder ||
-        left.name.localeCompare(right.name, "de-AT", { sensitivity: "base" }),
-    );
+  const rawGroup = isRecord(data.group) ? data.group : null;
+  const specialDates = Array.isArray(data.special_dates)
+    ? data.special_dates.filter((item): item is string => typeof item === "string")
+    : [];
+
+  if (!rawGroup) return { group: null, specialDates };
+  if (typeof rawGroup.id !== "string" || typeof rawGroup.name !== "string") {
+    throw new Error("Die zugeordnete Kindertrainingsgruppe ist ungültig.");
+  }
+
+  return {
+    group: {
+      id: rawGroup.id,
+      name: rawGroup.name,
+      shortName: typeof rawGroup.short_name === "string" ? rawGroup.short_name : null,
+      isActive: rawGroup.is_active === true,
+      regularWeekdays: parseWeekdays(rawGroup.regular_weekdays),
+      allowSpecialTraining: rawGroup.allow_special_training !== false,
+    },
+    specialDates,
+  };
 }
 
 export async function loadKindertrainingSession(
@@ -162,4 +184,48 @@ export async function saveKindertrainingSession(
   });
 
   return parseSessionPayload(data);
+}
+
+export async function createKindertrainingAthlete(
+  organizationId: string,
+  input: QuickAthleteInput,
+): Promise<QuickAthleteResult> {
+  const data = await callJsonRpc("create_kindertraining_athlete", {
+    p_organization_id: organizationId,
+    p_first_name: input.firstName.trim(),
+    p_last_name: input.lastName.trim(),
+    p_birth_year: input.birthYear,
+    p_session_date: input.sessionDate,
+    p_attach_existing: input.attachExisting === true,
+  });
+
+  if (!isRecord(data) || !isRecord(data.athlete)) {
+    throw new Error("Die Rückgabe der Athletenanlage ist ungültig.");
+  }
+
+  const status = QUICK_RESULT_STATUSES.includes(data.status as QuickAthleteResultStatus)
+    ? (data.status as QuickAthleteResultStatus)
+    : null;
+  const athlete = data.athlete;
+
+  if (
+    !status ||
+    typeof athlete.id !== "string" ||
+    typeof athlete.first_name !== "string" ||
+    typeof athlete.last_name !== "string" ||
+    typeof athlete.birth_year !== "number"
+  ) {
+    throw new Error("Die Rückgabe der Athletenanlage ist unvollständig.");
+  }
+
+  return {
+    status,
+    athlete: {
+      id: athlete.id,
+      firstName: athlete.first_name,
+      lastName: athlete.last_name,
+      birthYear: athlete.birth_year,
+      isActive: athlete.is_active !== false,
+    },
+  };
 }

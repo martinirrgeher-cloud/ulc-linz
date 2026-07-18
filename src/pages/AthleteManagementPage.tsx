@@ -50,6 +50,21 @@ function compareText(left: string, right: string): number {
   return left.localeCompare(right, "de-AT", { sensitivity: "base" });
 }
 
+const WEEKDAY_LABELS: Record<number, string> = {
+  1: "Mo",
+  2: "Di",
+  3: "Mi",
+  4: "Do",
+  5: "Fr",
+  6: "Sa",
+  7: "So",
+};
+
+function formatWeekdays(weekdays: number[]): string {
+  if (weekdays.length === 0) return "Keine Tage";
+  return weekdays.map((weekday) => WEEKDAY_LABELS[weekday] ?? "?").join(", ");
+}
+
 function sortAthletes(items: Athlete[], mode: AthleteSort): Athlete[] {
   return [...items].sort((left, right) => {
     if (left.isActive !== right.isActive) return left.isActive ? -1 : 1;
@@ -509,7 +524,11 @@ export function AthleteManagementPage() {
                 </div>
                 <div>
                   <h2>{group.name}</h2>
-                  {group.shortName && <p>{group.shortName}</p>}
+                  <p>
+                    {[group.shortName, group.moduleKey === "kindertraining" ? "Kindertraining" : null]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </p>
                 </div>
               </div>
 
@@ -527,9 +546,19 @@ export function AthleteManagementPage() {
                   <dd>{group.sortOrder}</dd>
                 </div>
                 <div>
+                  <dt>Trainingstage</dt>
+                  <dd>{formatWeekdays(group.regularWeekdays)}</dd>
+                </div>
+                <div>
                   <dt>Status</dt>
                   <dd>{group.isActive ? "Aktiv" : "Inaktiv"}</dd>
                 </div>
+                {group.moduleKey === "kindertraining" && (
+                  <div>
+                    <dt>Sondertraining</dt>
+                    <dd>{group.allowSpecialTraining ? "Erlaubt" : "Deaktiviert"}</dd>
+                  </div>
+                )}
               </dl>
 
               {canEdit && (

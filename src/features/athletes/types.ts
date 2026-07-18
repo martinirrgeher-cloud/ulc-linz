@@ -17,6 +17,8 @@ export type Athlete = {
   groups: AthleteGroupSummary[];
 };
 
+export type TrainingGroupModuleKey = "kindertraining" | null;
+
 export type TrainingGroup = {
   id: string;
   name: string;
@@ -25,6 +27,9 @@ export type TrainingGroup = {
   isActive: boolean;
   sortOrder: number;
   athleteCount: number;
+  moduleKey: TrainingGroupModuleKey;
+  regularWeekdays: number[];
+  allowSpecialTraining: boolean;
   createdAt: string;
   updatedAt: string;
 };
@@ -44,4 +49,7 @@ export type TrainingGroupInput = {
   description: string;
   isActive: boolean;
   sortOrder: number;
+  moduleKey: TrainingGroupModuleKey;
+  regularWeekdays: number[];
+  allowSpecialTraining: boolean;
 };
