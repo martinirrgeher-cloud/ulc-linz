@@ -1,33 +1,34 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  AlertTriangle,
   ArrowLeft,
   CalendarDays,
-  Check,
   ChevronLeft,
   ChevronRight,
   CircleHelp,
   Clock3,
+  CloudCheck,
+  RefreshCw,
   RotateCcw,
+  Save,
   Search,
   UserCheck,
   UserMinus,
   UsersRound,
-  X,
 } from "lucide-react";
 import { Link, Navigate } from "react-router-dom";
-import { loadAthleteManagement } from "@/features/athletes/api";
-import type { Athlete, TrainingGroup } from "@/features/athletes/types";
-import { useAuth } from "@/features/auth/AuthContext";
+import {
+  loadKindertrainingGroups,
+  loadKindertrainingSession,
+  saveKindertrainingSession,
+} from "@/features/kindertraining/api";
 import type {
   AttendanceStatus,
-  DraftTrainingEntry,
+  KindertrainingDraft,
+  KindertrainingParticipant,
+  KindertrainingSession,
 } from "@/features/kindertraining/types";
-
-const EMPTY_TRAINING: DraftTrainingEntry = {
-  attendance: {},
-  note: "",
-  cancelled: false,
-};
+import { useAuth } from "@/features/auth/AuthContext";
 
 const STATUS_OPTIONS: Array<{
   value: AttendanceStatus;
@@ -42,9 +43,20 @@ const STATUS_OPTIONS: Array<{
 ];
 
 function errorMessage(error: unknown): string {
-  return error instanceof Error
-    ? error.message
-    : "Die Trainingsdaten konnten nicht geladen werden.";
+  const message =
+    error instanceof Error
+      ? error.message
+      : "Die Trainingsdaten konnten nicht verarbeitet werden.";
+
+  if (message.includes("inzwischen")) {
+    return "Dieses Training wurde zwischenzeitlich geändert. Bitte lade den aktuellen Stand neu.";
+  }
+
+  if (message.includes("Teilnehmerliste ist nicht mehr aktuell")) {
+    return "Die Gruppenzusammensetzung hat sich geändert. Bitte lade das Training neu.";
+  }
+
+  return message;
 }
 
 function isoDate(date: Date): string {
@@ -58,10 +70,7 @@ function parseIsoDate(value: string): Date {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
   if (!match) return new Date();
 
-  const year = Number(match[1]);
-  const month = Number(match[2]);
-  const day = Number(match[3]);
-  return new Date(year, month - 1, day, 12, 0, 0);
+  return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]), 12, 0, 0);
 }
 
 function addDays(value: string, amount: number): string {
@@ -79,15 +88,37 @@ function formatLongDate(value: string): string {
   }).format(parseIsoDate(value));
 }
 
-function compareAthletes(left: Athlete, right: Athlete): number {
-  return (
-    left.firstName.localeCompare(right.firstName, "de-AT", { sensitivity: "base" }) ||
-    left.lastName.localeCompare(right.lastName, "de-AT", { sensitivity: "base" })
-  );
+function formatSavedAt(value: string): string {
+  return new Intl.DateTimeFormat("de-AT", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
 }
 
-function entryKey(groupId: string, date: string): string {
-  return `${groupId}:${date}`;
+function makeDraft(session: KindertrainingSession): KindertrainingDraft {
+  return {
+    state: session.state,
+    note: session.note,
+    attendance: Object.fromEntries(
+      session.participants.map((participant) => [participant.athleteId, participant.status]),
+    ),
+  };
+}
+
+function draftSignature(
+  draft: KindertrainingDraft,
+  participants: KindertrainingParticipant[],
+): string {
+  return JSON.stringify({
+    state: draft.state,
+    note: draft.note,
+    attendance: participants.map((participant) => [
+      participant.athleteId,
+      draft.attendance[participant.athleteId] ?? "open",
+    ]),
+  });
 }
 
 export function KindertrainingDraftPage() {
@@ -96,64 +127,42 @@ export function KindertrainingDraftPage() {
   const canView = canViewModule("kindertraining");
   const canEdit = canEditModule("kindertraining");
 
-  const [athletes, setAthletes] = useState<Athlete[]>([]);
-  const [groups, setGroups] = useState<TrainingGroup[]>([]);
+  const [groups, setGroups] = useState<Awaited<ReturnType<typeof loadKindertrainingGroups>>>([]);
   const [selectedGroupId, setSelectedGroupId] = useState("");
   const [selectedDate, setSelectedDate] = useState(() => isoDate(new Date()));
   const [searchTerm, setSearchTerm] = useState("");
-  const [drafts, setDrafts] = useState<Record<string, DraftTrainingEntry>>({});
-  const [loading, setLoading] = useState(true);
+  const [session, setSession] = useState<KindertrainingSession | null>(null);
+  const [participants, setParticipants] = useState<KindertrainingParticipant[]>([]);
+  const [draft, setDraft] = useState<KindertrainingDraft>({
+    state: "scheduled",
+    note: "",
+    attendance: {},
+  });
+  const [baseline, setBaseline] = useState<KindertrainingDraft | null>(null);
+  const [groupsLoading, setGroupsLoading] = useState(true);
+  const [sessionLoading, setSessionLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const requestIdRef = useRef(0);
 
-  const loadData = useCallback(async () => {
-    if (!organizationId || !canView) return;
-
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await loadAthleteManagement(organizationId);
-      const activeGroups = data.groups
-        .filter((group) => group.isActive)
-        .sort((left, right) => left.sortOrder - right.sortOrder || left.name.localeCompare(right.name));
-
-      setAthletes(data.athletes);
-      setGroups(activeGroups);
-      setSelectedGroupId((current) => {
-        if (current && activeGroups.some((group) => group.id === current)) return current;
-        return activeGroups[0]?.id ?? "";
-      });
-    } catch (loadError) {
-      setError(errorMessage(loadError));
-    } finally {
-      setLoading(false);
-    }
-  }, [canView, organizationId]);
-
-  useEffect(() => {
-    void loadData();
-  }, [loadData]);
-
-  const currentKey = selectedGroupId ? entryKey(selectedGroupId, selectedDate) : "";
-  const currentDraft = currentKey ? drafts[currentKey] ?? EMPTY_TRAINING : EMPTY_TRAINING;
+  const dirty = useMemo(() => {
+    if (!baseline) return false;
+    return draftSignature(draft, participants) !== draftSignature(baseline, participants);
+  }, [baseline, draft, participants]);
 
   const selectedGroup = groups.find((group) => group.id === selectedGroupId) ?? null;
 
-  const groupAthletes = useMemo(() => {
+  const visibleParticipants = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLocaleLowerCase("de-AT");
+    if (!normalizedSearch) return participants;
 
-    return athletes
-      .filter(
-        (athlete) =>
-          athlete.isActive && athlete.groups.some((group) => group.id === selectedGroupId),
-      )
-      .filter((athlete) => {
-        if (!normalizedSearch) return true;
-        return `${athlete.firstName} ${athlete.lastName}`
-          .toLocaleLowerCase("de-AT")
-          .includes(normalizedSearch);
-      })
-      .sort(compareAthletes);
-  }, [athletes, searchTerm, selectedGroupId]);
+    return participants.filter((participant) =>
+      `${participant.firstName} ${participant.lastName}`
+        .toLocaleLowerCase("de-AT")
+        .includes(normalizedSearch),
+    );
+  }, [participants, searchTerm]);
 
   const counts = useMemo(() => {
     const result: Record<AttendanceStatus, number> = {
@@ -163,26 +172,107 @@ export function KindertrainingDraftPage() {
       absent: 0,
     };
 
-    groupAthletes.forEach((athlete) => {
-      result[currentDraft.attendance[athlete.id] ?? "open"] += 1;
+    participants.forEach((participant) => {
+      result[draft.attendance[participant.athleteId] ?? "open"] += 1;
     });
 
     return result;
-  }, [currentDraft.attendance, groupAthletes]);
+  }, [draft.attendance, participants]);
 
-  function updateCurrentDraft(
-    updater: (current: DraftTrainingEntry) => DraftTrainingEntry,
-  ): void {
-    if (!canEdit || !currentKey) return;
+  const loadGroups = useCallback(async () => {
+    if (!organizationId || !canView) return;
 
-    setDrafts((currentDrafts) => ({
-      ...currentDrafts,
-      [currentKey]: updater(currentDrafts[currentKey] ?? EMPTY_TRAINING),
-    }));
+    setGroupsLoading(true);
+    setError(null);
+    try {
+      const loadedGroups = await loadKindertrainingGroups(organizationId);
+      setGroups(loadedGroups);
+      setSelectedGroupId((current) => {
+        if (current && loadedGroups.some((group) => group.id === current)) return current;
+        return loadedGroups[0]?.id ?? "";
+      });
+    } catch (loadError) {
+      setError(errorMessage(loadError));
+    } finally {
+      setGroupsLoading(false);
+    }
+  }, [canView, organizationId]);
+
+  const loadSession = useCallback(async () => {
+    if (!organizationId || !selectedGroupId || !canView) return;
+
+    const requestId = ++requestIdRef.current;
+    setSessionLoading(true);
+    setError(null);
+    setSuccessMessage(null);
+
+    try {
+      const loadedSession = await loadKindertrainingSession(
+        organizationId,
+        selectedGroupId,
+        selectedDate,
+      );
+      if (requestId !== requestIdRef.current) return;
+
+      const loadedDraft = makeDraft(loadedSession);
+      setSession(loadedSession);
+      setParticipants(loadedSession.participants);
+      setDraft(loadedDraft);
+      setBaseline(loadedDraft);
+    } catch (loadError) {
+      if (requestId !== requestIdRef.current) return;
+      setSession(null);
+      setParticipants([]);
+      setBaseline(null);
+      setError(errorMessage(loadError));
+    } finally {
+      if (requestId === requestIdRef.current) setSessionLoading(false);
+    }
+  }, [canView, organizationId, selectedDate, selectedGroupId]);
+
+  useEffect(() => {
+    void loadGroups();
+  }, [loadGroups]);
+
+  useEffect(() => {
+    if (selectedGroupId) void loadSession();
+  }, [loadSession, selectedGroupId]);
+
+  useEffect(() => {
+    function preventAccidentalClose(event: BeforeUnloadEvent) {
+      if (!dirty) return;
+      event.preventDefault();
+      event.returnValue = "";
+    }
+
+    window.addEventListener("beforeunload", preventAccidentalClose);
+    return () => window.removeEventListener("beforeunload", preventAccidentalClose);
+  }, [dirty]);
+
+  function mayDiscardChanges(): boolean {
+    return !dirty || window.confirm("Ungespeicherte Änderungen wirklich verwerfen?");
+  }
+
+  function changeGroup(groupId: string): void {
+    if (!mayDiscardChanges()) return;
+    setSearchTerm("");
+    setSelectedGroupId(groupId);
+  }
+
+  function changeDate(date: string): void {
+    if (!date || !mayDiscardChanges()) return;
+    setSearchTerm("");
+    setSelectedDate(date);
+  }
+
+  function updateDraft(updater: (current: KindertrainingDraft) => KindertrainingDraft): void {
+    if (!canEdit || saving || sessionLoading) return;
+    setSuccessMessage(null);
+    setDraft(updater);
   }
 
   function setAttendance(athleteId: string, status: AttendanceStatus): void {
-    updateCurrentDraft((current) => ({
+    updateDraft((current) => ({
       ...current,
       attendance: {
         ...current.attendance,
@@ -191,48 +281,121 @@ export function KindertrainingDraftPage() {
     }));
   }
 
-  function resetCurrentDraft(): void {
-    if (!canEdit || !currentKey) return;
-    setDrafts((currentDrafts) => {
-      const next = { ...currentDrafts };
-      delete next[currentKey];
-      return next;
-    });
+  function discardChanges(): void {
+    if (!baseline || !dirty || !mayDiscardChanges()) return;
+    setDraft(baseline);
+    setError(null);
+    setSuccessMessage("Lokale Änderungen wurden verworfen.");
+  }
+
+  async function saveTraining(): Promise<void> {
+    if (
+      !organizationId ||
+      !selectedGroupId ||
+      !canEdit ||
+      !baseline ||
+      saving ||
+      sessionLoading
+    ) {
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+    setSuccessMessage(null);
+
+    try {
+      const savedSession = await saveKindertrainingSession({
+        organizationId,
+        groupId: selectedGroupId,
+        sessionDate: selectedDate,
+        state: draft.state,
+        note: draft.note,
+        participants,
+        attendance: draft.attendance,
+        expectedUpdatedAt: session?.updatedAt ?? null,
+      });
+      const savedDraft = makeDraft(savedSession);
+      setSession(savedSession);
+      setParticipants(savedSession.participants);
+      setDraft(savedDraft);
+      setBaseline(savedDraft);
+      setSuccessMessage("Training wurde gespeichert.");
+    } catch (saveError) {
+      setError(errorMessage(saveError));
+    } finally {
+      setSaving(false);
+    }
   }
 
   if (!canView) return <Navigate to="/kein-zugriff" replace />;
 
   return (
     <section className="kindertraining-page">
-      <Link to="/" className="back-link">
+      <Link
+        to="/"
+        className="back-link"
+        onClick={(event) => {
+          if (!mayDiscardChanges()) event.preventDefault();
+        }}
+      >
         <ArrowLeft size={18} aria-hidden="true" />
         Zur Modulübersicht
       </Link>
 
       <div className="kindertraining-heading">
         <div>
-          <p className="eyebrow">Erster Oberflächenentwurf</p>
+          <p className="eyebrow">Training erfassen</p>
           <h1>Kindertraining</h1>
-          <p>
-            Anwesenheit direkt am Handy erfassen. Dieser Entwurf liest bereits echte
-            Gruppen und Athleten, speichert Änderungen aber noch nicht in Supabase.
-          </p>
+          <p>Anwesenheit, Absagen und Tagesnotizen direkt am Handy verwalten.</p>
         </div>
-        <span className="draft-badge">Entwurf · keine Speicherung</span>
+        <span
+          className={`training-save-badge ${
+            dirty ? "dirty" : session?.id ? "saved" : "new"
+          }`}
+          aria-live="polite"
+        >
+          {dirty ? (
+            <>
+              <AlertTriangle aria-hidden="true" /> Ungespeichert
+            </>
+          ) : session?.updatedAt ? (
+            <>
+              <CloudCheck aria-hidden="true" /> {formatSavedAt(session.updatedAt)}
+            </>
+          ) : (
+            <>Noch nicht gespeichert</>
+          )}
+        </span>
       </div>
 
       {!canEdit && (
         <div className="read-only-notice">
-          Du besitzt für dieses Modul nur Leserechte. Eingaben sind daher deaktiviert.
+          Du besitzt für dieses Modul nur Leserechte. Eingaben sind deaktiviert.
         </div>
       )}
 
-      {error && <div className="alert error">{error}</div>}
+      {error && (
+        <div className="alert error training-alert" role="alert">
+          <span>{error}</span>
+          {selectedGroupId && (
+            <button type="button" className="text-button" onClick={() => void loadSession()}>
+              <RefreshCw aria-hidden="true" /> Neu laden
+            </button>
+          )}
+        </div>
+      )}
 
-      {loading ? (
+      {successMessage && (
+        <div className="alert success" role="status">
+          {successMessage}
+        </div>
+      )}
+
+      {groupsLoading ? (
         <div className="management-loading">
           <span className="spinner" aria-hidden="true" />
-          Trainingsgruppen und Athleten werden geladen …
+          Trainingsgruppen werden geladen …
         </div>
       ) : groups.length === 0 ? (
         <div className="empty-state">
@@ -250,7 +413,8 @@ export function KindertrainingDraftPage() {
               <span>Trainingsgruppe</span>
               <select
                 value={selectedGroupId}
-                onChange={(event) => setSelectedGroupId(event.target.value)}
+                disabled={sessionLoading || saving}
+                onChange={(event) => changeGroup(event.target.value)}
               >
                 {groups.map((group) => (
                   <option value={group.id} key={group.id}>
@@ -266,7 +430,8 @@ export function KindertrainingDraftPage() {
                 <button
                   type="button"
                   className="icon-button"
-                  onClick={() => setSelectedDate((date) => addDays(date, -1))}
+                  disabled={sessionLoading || saving}
+                  onClick={() => changeDate(addDays(selectedDate, -1))}
                   aria-label="Vorheriger Tag"
                 >
                   <ChevronLeft aria-hidden="true" />
@@ -277,14 +442,16 @@ export function KindertrainingDraftPage() {
                   <input
                     type="date"
                     value={selectedDate}
-                    onChange={(event) => setSelectedDate(event.target.value)}
+                    disabled={sessionLoading || saving}
+                    onChange={(event) => changeDate(event.target.value)}
                     aria-label="Trainingstag auswählen"
                   />
                 </label>
                 <button
                   type="button"
                   className="icon-button"
-                  onClick={() => setSelectedDate((date) => addDays(date, 1))}
+                  disabled={sessionLoading || saving}
+                  onClick={() => changeDate(addDays(selectedDate, 1))}
                   aria-label="Nächster Tag"
                 >
                   <ChevronRight aria-hidden="true" />
@@ -293,162 +460,207 @@ export function KindertrainingDraftPage() {
               <button
                 type="button"
                 className="text-button today-button"
-                onClick={() => setSelectedDate(isoDate(new Date()))}
+                disabled={sessionLoading || saving}
+                onClick={() => changeDate(isoDate(new Date()))}
               >
                 Heute
               </button>
             </div>
           </section>
 
-          <section className="attendance-summary" aria-label="Anwesenheitsübersicht">
-            <article className="attendance-summary-card total">
-              <UsersRound aria-hidden="true" />
-              <span>
-                <small>Teilnehmer</small>
-                <strong>{groupAthletes.length}</strong>
-              </span>
-            </article>
-            <article className="attendance-summary-card present">
-              <UserCheck aria-hidden="true" />
-              <span>
-                <small>Anwesend</small>
-                <strong>{counts.present}</strong>
-              </span>
-            </article>
-            <article className="attendance-summary-card excused">
-              <Clock3 aria-hidden="true" />
-              <span>
-                <small>Entschuldigt</small>
-                <strong>{counts.excused}</strong>
-              </span>
-            </article>
-            <article className="attendance-summary-card open">
-              <CircleHelp aria-hidden="true" />
-              <span>
-                <small>Noch offen</small>
-                <strong>{counts.open}</strong>
-              </span>
-            </article>
-          </section>
-
-          <section className="attendance-workspace">
-            <div className="attendance-list-heading">
-              <div>
-                <p className="eyebrow">{selectedGroup?.name}</p>
-                <h2>Anwesenheit erfassen</h2>
-              </div>
-              <label className="attendance-search">
-                <Search aria-hidden="true" />
-                <input
-                  type="search"
-                  value={searchTerm}
-                  onChange={(event) => setSearchTerm(event.target.value)}
-                  placeholder="Name suchen"
-                />
-              </label>
+          {sessionLoading ? (
+            <div className="management-loading">
+              <span className="spinner" aria-hidden="true" />
+              Training wird geladen …
             </div>
+          ) : baseline ? (
+            <>
+              <section className="attendance-summary" aria-label="Anwesenheitsübersicht">
+                <article className="attendance-summary-card total">
+                  <UsersRound aria-hidden="true" />
+                  <span>
+                    <small>Teilnehmer</small>
+                    <strong>{participants.length}</strong>
+                  </span>
+                </article>
+                <article className="attendance-summary-card present">
+                  <UserCheck aria-hidden="true" />
+                  <span>
+                    <small>Anwesend</small>
+                    <strong>{counts.present}</strong>
+                  </span>
+                </article>
+                <article className="attendance-summary-card excused">
+                  <Clock3 aria-hidden="true" />
+                  <span>
+                    <small>Entschuldigt</small>
+                    <strong>{counts.excused}</strong>
+                  </span>
+                </article>
+                <article className="attendance-summary-card open">
+                  <CircleHelp aria-hidden="true" />
+                  <span>
+                    <small>Noch offen</small>
+                    <strong>{counts.open}</strong>
+                  </span>
+                </article>
+              </section>
 
-            <label className="cancel-training-toggle">
-              <input
-                type="checkbox"
-                checked={currentDraft.cancelled}
-                disabled={!canEdit}
-                onChange={(event) =>
-                  updateCurrentDraft((current) => ({
-                    ...current,
-                    cancelled: event.target.checked,
-                  }))
-                }
-              />
-              <span>
-                <strong>Training abgesagt</strong>
-                <small>Die Teilnehmerliste bleibt sichtbar, kann aber nicht bearbeitet werden.</small>
-              </span>
-            </label>
+              <section className="attendance-workspace">
+                <div className="attendance-list-heading">
+                  <div>
+                    <p className="eyebrow">{selectedGroup?.name}</p>
+                    <h2>Anwesenheit</h2>
+                  </div>
+                  <label className="attendance-search">
+                    <Search aria-hidden="true" />
+                    <input
+                      type="search"
+                      value={searchTerm}
+                      onChange={(event) => setSearchTerm(event.target.value)}
+                      placeholder="Name suchen"
+                    />
+                  </label>
+                </div>
 
-            {groupAthletes.length === 0 ? (
-              <div className="inline-empty-state">
-                In dieser Gruppe sind aktuell keine aktiven Athleten zugeordnet.
+                <label className="cancel-training-toggle">
+                  <input
+                    type="checkbox"
+                    checked={draft.state === "cancelled"}
+                    disabled={!canEdit || saving}
+                    onChange={(event) =>
+                      updateDraft((current) => ({
+                        ...current,
+                        state: event.target.checked ? "cancelled" : "scheduled",
+                      }))
+                    }
+                  />
+                  <span>
+                    <strong>Training abgesagt</strong>
+                    <small>Die gespeicherte Teilnehmerliste bleibt erhalten.</small>
+                  </span>
+                </label>
+
+                {participants.length === 0 ? (
+                  <div className="inline-empty-state">
+                    Für diesen Tag sind keine aktiven Athleten in der Gruppe erfasst.
+                  </div>
+                ) : visibleParticipants.length === 0 ? (
+                  <div className="inline-empty-state">Kein Athlet entspricht der Suche.</div>
+                ) : (
+                  <div className="attendance-list">
+                    {visibleParticipants.map((participant) => {
+                      const status = draft.attendance[participant.athleteId] ?? "open";
+                      return (
+                        <article
+                          className={`attendance-athlete-card status-${status}`}
+                          key={participant.athleteId}
+                        >
+                          <div className="attendance-athlete-name">
+                            <span className="athlete-avatar" aria-hidden="true">
+                              {participant.firstName.slice(0, 1)}
+                              {participant.lastName.slice(0, 1)}
+                            </span>
+                            <span>
+                              <strong>{participant.firstName}</strong>
+                              <small>
+                                {participant.lastName}
+                                {participant.birthYear ? ` · Jg. ${participant.birthYear}` : ""}
+                                {!participant.isActive ? " · inaktiv" : ""}
+                              </small>
+                            </span>
+                          </div>
+
+                          <div
+                            className="attendance-status-picker"
+                            role="group"
+                            aria-label={`Status für ${participant.firstName} ${participant.lastName}`}
+                          >
+                            {STATUS_OPTIONS.map((option) => {
+                              const Icon = option.icon;
+                              return (
+                                <button
+                                  type="button"
+                                  className={status === option.value ? "active" : ""}
+                                  data-status={option.value}
+                                  disabled={!canEdit || saving || draft.state === "cancelled"}
+                                  onClick={() => setAttendance(participant.athleteId, option.value)}
+                                  aria-pressed={status === option.value}
+                                  title={option.label}
+                                  key={option.value}
+                                >
+                                  <Icon aria-hidden="true" />
+                                  <span className="status-long-label">{option.label}</span>
+                                  <span className="status-short-label">{option.shortLabel}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </article>
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
+
+              <section className="training-note-card">
+                <label>
+                  <span>Notiz zum Training</span>
+                  <textarea
+                    rows={3}
+                    value={draft.note}
+                    disabled={!canEdit || saving}
+                    maxLength={3000}
+                    placeholder="Besonderheiten, Trainingsinhalt oder organisatorische Hinweise …"
+                    onChange={(event) =>
+                      updateDraft((current) => ({ ...current, note: event.target.value }))
+                    }
+                  />
+                  <small>{draft.note.length}/3000 Zeichen</small>
+                </label>
+              </section>
+
+              <div className="training-action-bar">
+                <div className="training-action-status" aria-live="polite">
+                  {saving ? (
+                    <>
+                      <span className="spinner" aria-hidden="true" /> Wird gespeichert …
+                    </>
+                  ) : dirty ? (
+                    <>
+                      <AlertTriangle aria-hidden="true" /> Änderungen noch nicht gespeichert
+                    </>
+                  ) : session?.updatedAt ? (
+                    <>
+                      <CloudCheck aria-hidden="true" /> Gespeichert {formatSavedAt(session.updatedAt)}
+                    </>
+                  ) : (
+                    <>Noch kein Eintrag für diesen Tag</>
+                  )}
+                </div>
+                <div className="training-action-buttons">
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    onClick={discardChanges}
+                    disabled={!canEdit || !dirty || saving}
+                  >
+                    <RotateCcw aria-hidden="true" />
+                    Verwerfen
+                  </button>
+                  <button
+                    type="button"
+                    className="primary-button"
+                    onClick={() => void saveTraining()}
+                    disabled={!canEdit || !dirty || saving}
+                  >
+                    <Save aria-hidden="true" />
+                    Speichern
+                  </button>
+                </div>
               </div>
-            ) : (
-              <div className="attendance-list">
-                {groupAthletes.map((athlete) => {
-                  const status = currentDraft.attendance[athlete.id] ?? "open";
-                  return (
-                    <article className={`attendance-athlete-card status-${status}`} key={athlete.id}>
-                      <div className="attendance-athlete-name">
-                        <span className="athlete-avatar" aria-hidden="true">
-                          {athlete.firstName.slice(0, 1)}{athlete.lastName.slice(0, 1)}
-                        </span>
-                        <span>
-                          <strong>{athlete.firstName}</strong>
-                          <small>
-                            {athlete.lastName}
-                            {athlete.birthYear ? ` · Jg. ${athlete.birthYear}` : ""}
-                          </small>
-                        </span>
-                      </div>
-
-                      <div className="attendance-status-picker" role="group" aria-label={`Status für ${athlete.firstName} ${athlete.lastName}`}>
-                        {STATUS_OPTIONS.map((option) => {
-                          const Icon = option.icon;
-                          return (
-                            <button
-                              type="button"
-                              className={status === option.value ? "active" : ""}
-                              data-status={option.value}
-                              disabled={!canEdit || currentDraft.cancelled}
-                              onClick={() => setAttendance(athlete.id, option.value)}
-                              aria-pressed={status === option.value}
-                              title={option.label}
-                              key={option.value}
-                            >
-                              <Icon aria-hidden="true" />
-                              <span className="status-long-label">{option.label}</span>
-                              <span className="status-short-label">{option.shortLabel}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </article>
-                  );
-                })}
-              </div>
-            )}
-          </section>
-
-          <section className="training-note-card">
-            <label>
-              <span>Notiz zum Training</span>
-              <textarea
-                rows={4}
-                value={currentDraft.note}
-                disabled={!canEdit}
-                maxLength={1000}
-                placeholder="Besonderheiten, Trainingsinhalt oder organisatorische Hinweise …"
-                onChange={(event) =>
-                  updateCurrentDraft((current) => ({ ...current, note: event.target.value }))
-                }
-              />
-              <small>{currentDraft.note.length}/1000 Zeichen</small>
-            </label>
-          </section>
-
-          <div className="training-action-bar">
-            <button
-              type="button"
-              className="secondary-button"
-              onClick={resetCurrentDraft}
-              disabled={!canEdit || (!drafts[currentKey] && !currentDraft.cancelled)}
-            >
-              <RotateCcw aria-hidden="true" />
-              Entwurf zurücksetzen
-            </button>
-            <button type="button" className="primary-button" disabled>
-              <Check aria-hidden="true" />
-              Speichern folgt nach Freigabe
-            </button>
-          </div>
+            </>
+          ) : null}
         </>
       )}
     </section>

@@ -1,16 +1,16 @@
-/* Kindertraining – erster Mobile-First-Oberflächenentwurf */
+/* Kindertraining – speicherfähige Mobile-First-Version */
 
 .kindertraining-page {
   display: grid;
-  gap: 22px;
-  padding-bottom: 96px;
+  gap: 16px;
+  padding-bottom: 108px;
 }
 
 .kindertraining-heading {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 24px;
+  gap: 20px;
 }
 
 .kindertraining-heading h1,
@@ -20,25 +20,46 @@
 }
 
 .kindertraining-heading p:not(.eyebrow) {
-  max-width: 720px;
-  margin: 10px 0 0;
+  max-width: 660px;
+  margin: 7px 0 0;
   color: var(--muted);
-  line-height: 1.55;
+  line-height: 1.45;
 }
 
-.draft-badge {
+.training-save-badge {
   flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
-  min-height: 38px;
-  padding: 8px 12px;
-  color: #78550e;
-  background: #fff4d2;
-  border: 1px solid #ead89d;
+  gap: 6px;
+  min-height: 34px;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
   border-radius: 999px;
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   font-weight: 800;
   white-space: nowrap;
+}
+
+.training-save-badge svg {
+  width: 16px;
+  height: 16px;
+}
+
+.training-save-badge.saved {
+  color: var(--green-800);
+  background: var(--green-50);
+  border-color: #b8d7c5;
+}
+
+.training-save-badge.dirty {
+  color: #78550e;
+  background: #fff4d2;
+  border-color: #ead89d;
+}
+
+.training-save-badge.new {
+  color: var(--muted);
+  background: #f5f7f6;
 }
 
 .training-control-card,
@@ -46,34 +67,34 @@
 .training-note-card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 20px;
-  box-shadow: 0 8px 26px rgba(15, 62, 38, 0.06);
+  border-radius: 17px;
+  box-shadow: 0 6px 20px rgba(15, 62, 38, 0.05);
 }
 
 .training-control-card {
   display: grid;
-  grid-template-columns: minmax(220px, 0.8fr) minmax(380px, 1.5fr);
+  grid-template-columns: minmax(210px, 0.8fr) minmax(360px, 1.4fr);
   align-items: end;
-  gap: 20px;
-  padding: 20px;
+  gap: 16px;
+  padding: 16px;
 }
 
 .training-group-field,
 .training-date-control {
   display: grid;
-  gap: 8px;
+  gap: 7px;
   color: var(--green-950);
   font-weight: 800;
 }
 
 .training-group-field select {
   width: 100%;
-  min-height: 48px;
-  padding: 10px 42px 10px 14px;
+  min-height: 46px;
+  padding: 9px 40px 9px 12px;
   color: var(--green-950);
   background: #fff;
   border: 1px solid #b9cdc0;
-  border-radius: 12px;
+  border-radius: 11px;
   font: inherit;
 }
 
@@ -83,30 +104,30 @@
 
 .training-date-buttons {
   display: grid;
-  grid-template-columns: 46px minmax(0, 1fr) 46px;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
 }
 
 .date-picker-button {
   position: relative;
   min-width: 0;
-  min-height: 48px;
+  min-height: 46px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 9px;
-  padding: 10px 14px;
+  gap: 8px;
+  padding: 9px 12px;
   color: var(--green-950);
   background: var(--green-50);
   border: 1px solid #b9cdc0;
-  border-radius: 12px;
+  border-radius: 11px;
   cursor: pointer;
   text-transform: capitalize;
 }
 
 .date-picker-button > svg {
-  width: 20px;
+  width: 19px;
   flex: 0 0 auto;
   color: var(--green-700);
 }
@@ -128,35 +149,52 @@
 
 .today-button {
   justify-self: center;
-  margin-bottom: -8px;
+  min-height: 28px;
+  margin-bottom: -6px;
+}
+
+.training-alert {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.training-alert .text-button {
+  flex: 0 0 auto;
+}
+
+.training-alert .text-button svg {
+  width: 16px;
+  height: 16px;
 }
 
 .attendance-summary {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
+  gap: 9px;
 }
 
 .attendance-summary-card {
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: 12px;
-  min-height: 82px;
-  padding: 15px;
+  gap: 9px;
+  min-height: 66px;
+  padding: 11px;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 17px;
+  border-radius: 14px;
 }
 
 .attendance-summary-card > svg {
-  width: 38px;
-  height: 38px;
+  width: 32px;
+  height: 32px;
   flex: 0 0 auto;
-  padding: 9px;
+  padding: 7px;
   color: #fff;
   background: var(--green-700);
-  border-radius: 12px;
+  border-radius: 10px;
 }
 
 .attendance-summary-card.excused > svg {
@@ -172,50 +210,50 @@
 .attendance-summary-card span {
   min-width: 0;
   display: grid;
-  gap: 3px;
+  gap: 2px;
 }
 
 .attendance-summary-card small {
   overflow: hidden;
   color: var(--muted);
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .attendance-summary-card strong {
   color: var(--green-950);
-  font-size: 1.35rem;
+  font-size: 1.22rem;
   line-height: 1;
 }
 
 .attendance-workspace {
   display: grid;
-  gap: 18px;
-  padding: 20px;
+  gap: 14px;
+  padding: 16px;
 }
 
 .attendance-list-heading {
   display: flex;
   justify-content: space-between;
   align-items: end;
-  gap: 18px;
+  gap: 14px;
 }
 
 .attendance-search {
-  width: min(100%, 310px);
-  min-height: 46px;
+  width: min(100%, 280px);
+  min-height: 44px;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 0 13px;
+  gap: 8px;
+  padding: 0 11px;
   background: #fff;
   border: 1px solid #b9cdc0;
-  border-radius: 12px;
+  border-radius: 11px;
 }
 
 .attendance-search > svg {
-  width: 20px;
+  width: 18px;
   flex: 0 0 auto;
   color: var(--green-700);
 }
@@ -223,7 +261,7 @@
 .attendance-search input {
   min-width: 0;
   width: 100%;
-  height: 44px;
+  height: 42px;
   padding: 0;
   border: 0;
   outline: 0;
@@ -234,47 +272,47 @@
 .cancel-training-toggle {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 13px 14px;
+  gap: 10px;
+  padding: 10px 12px;
   color: #7b2525;
   background: #fff4f4;
   border: 1px solid #edcccc;
-  border-radius: 13px;
+  border-radius: 12px;
   cursor: pointer;
 }
 
 .cancel-training-toggle input {
-  width: 22px;
-  height: 22px;
+  width: 21px;
+  height: 21px;
   flex: 0 0 auto;
   accent-color: #a72a2a;
 }
 
 .cancel-training-toggle span {
   display: grid;
-  gap: 3px;
+  gap: 1px;
 }
 
 .cancel-training-toggle small {
   color: #8b5c5c;
-  line-height: 1.35;
+  line-height: 1.3;
 }
 
 .attendance-list {
   display: grid;
-  gap: 11px;
+  gap: 8px;
 }
 
 .attendance-athlete-card {
   display: grid;
-  grid-template-columns: minmax(180px, 0.75fr) minmax(430px, 1.6fr);
+  grid-template-columns: minmax(170px, 0.7fr) minmax(410px, 1.6fr);
   align-items: center;
-  gap: 16px;
-  padding: 14px;
+  gap: 12px;
+  padding: 10px 11px;
   background: #fff;
   border: 1px solid var(--border);
-  border-left: 5px solid #aab5af;
-  border-radius: 16px;
+  border-left: 4px solid #aab5af;
+  border-radius: 13px;
   transition: border-color 120ms ease, background 120ms ease;
 }
 
@@ -297,13 +335,19 @@
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: 11px;
+  gap: 9px;
+}
+
+.attendance-athlete-name .athlete-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
 }
 
 .attendance-athlete-name > span:last-child {
   min-width: 0;
   display: grid;
-  gap: 2px;
+  gap: 1px;
 }
 
 .attendance-athlete-name strong,
@@ -319,34 +363,35 @@
 
 .attendance-athlete-name small {
   color: var(--muted);
+  font-size: 0.78rem;
 }
 
 .attendance-status-picker {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 7px;
+  gap: 6px;
 }
 
 .attendance-status-picker button {
   min-width: 0;
-  min-height: 48px;
+  min-height: 44px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 8px;
+  gap: 5px;
+  padding: 7px 5px;
   color: #56635c;
   background: #f2f5f3;
   border: 1px solid transparent;
-  border-radius: 11px;
+  border-radius: 10px;
   cursor: pointer;
-  font-size: 0.78rem;
+  font-size: 0.74rem;
   font-weight: 800;
 }
 
 .attendance-status-picker button > svg {
-  width: 18px;
-  height: 18px;
+  width: 17px;
+  height: 17px;
   flex: 0 0 auto;
 }
 
@@ -382,12 +427,12 @@
 }
 
 .training-note-card {
-  padding: 20px;
+  padding: 16px;
 }
 
 .training-note-card label {
   display: grid;
-  gap: 8px;
+  gap: 7px;
   color: var(--green-950);
   font-weight: 800;
 }
@@ -395,14 +440,14 @@
 .training-note-card textarea {
   width: 100%;
   resize: vertical;
-  min-height: 104px;
-  padding: 12px 14px;
+  min-height: 88px;
+  padding: 11px 12px;
   color: var(--green-950);
   background: #fff;
   border: 1px solid #b9cdc0;
-  border-radius: 12px;
+  border-radius: 11px;
   font: inherit;
-  line-height: 1.45;
+  line-height: 1.4;
 }
 
 .training-note-card small {
@@ -415,18 +460,49 @@
   position: fixed;
   z-index: 9;
   left: 50%;
-  bottom: max(10px, env(safe-area-inset-bottom));
-  width: min(calc(100% - 24px), 760px);
+  bottom: max(9px, env(safe-area-inset-bottom));
+  width: min(calc(100% - 24px), 820px);
   display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  padding: 10px;
-  background: rgba(255, 255, 255, 0.96);
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px;
+  background: rgba(255, 255, 255, 0.97);
   border: 1px solid var(--border);
-  border-radius: 16px;
-  box-shadow: 0 12px 34px rgba(15, 62, 38, 0.18);
+  border-radius: 15px;
+  box-shadow: 0 10px 30px rgba(15, 62, 38, 0.17);
   backdrop-filter: blur(14px);
   transform: translateX(-50%);
+}
+
+.training-action-status {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding-left: 5px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.training-action-status svg,
+.training-action-status .spinner {
+  width: 17px;
+  height: 17px;
+  flex: 0 0 auto;
+}
+
+.training-action-buttons {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 8px;
+}
+
+.training-action-buttons .primary-button,
+.training-action-buttons .secondary-button {
+  min-height: 44px;
+  padding: 9px 13px;
 }
 
 @media (max-width: 900px) {
@@ -445,63 +521,67 @@
 
 @media (max-width: 620px) {
   .kindertraining-page {
-    gap: 16px;
-    padding-bottom: 126px;
+    gap: 13px;
+    padding-bottom: 116px;
   }
 
   .kindertraining-heading,
   .attendance-list-heading {
     flex-direction: column;
     align-items: stretch;
-    gap: 13px;
+    gap: 10px;
   }
 
-  .draft-badge {
+  .training-save-badge {
     align-self: flex-start;
   }
 
   .training-control-card,
   .attendance-workspace,
   .training-note-card {
-    padding: 14px;
-    border-radius: 17px;
+    padding: 12px;
+    border-radius: 15px;
   }
 
   .date-picker-button {
-    padding-inline: 9px;
-    font-size: 0.88rem;
+    padding-inline: 7px;
+    font-size: 0.84rem;
   }
 
   .attendance-search {
     width: 100%;
   }
 
+  .attendance-summary {
+    gap: 7px;
+  }
+
   .attendance-summary-card {
-    min-height: 76px;
-    padding: 12px;
+    min-height: 60px;
+    padding: 9px;
   }
 
   .attendance-summary-card > svg {
-    width: 34px;
-    height: 34px;
-    padding: 8px;
+    width: 29px;
+    height: 29px;
+    padding: 6px;
   }
 
   .attendance-athlete-card {
-    gap: 12px;
-    padding: 12px;
+    gap: 9px;
+    padding: 9px;
   }
 
   .attendance-status-picker {
-    gap: 5px;
+    gap: 4px;
   }
 
   .attendance-status-picker button {
-    min-height: 52px;
+    min-height: 46px;
     flex-direction: column;
-    gap: 3px;
-    padding: 6px 3px;
-    font-size: 0.7rem;
+    gap: 2px;
+    padding: 4px 2px;
+    font-size: 0.68rem;
   }
 
   .status-long-label {
@@ -512,32 +592,60 @@
     display: inline;
   }
 
-  .training-action-bar {
-    flex-direction: column-reverse;
+  .training-alert {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
-  .training-action-bar .primary-button,
-  .training-action-bar .secondary-button {
+  .training-action-bar {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 7px;
+    padding: 7px;
+  }
+
+  .training-action-status {
+    justify-content: center;
+    min-height: 20px;
+    padding: 0 4px;
+    text-align: center;
+  }
+
+  .training-action-buttons {
+    display: grid;
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1fr);
+    gap: 7px;
+  }
+
+  .training-action-buttons .primary-button,
+  .training-action-buttons .secondary-button {
     width: 100%;
+    min-width: 0;
   }
 }
 
 @media (max-width: 360px) {
   .attendance-summary {
     grid-template-columns: 1fr 1fr;
-    gap: 8px;
   }
 
   .attendance-summary-card {
-    gap: 8px;
+    gap: 6px;
+    padding: 8px;
   }
 
   .attendance-summary-card small {
-    font-size: 0.7rem;
+    font-size: 0.66rem;
   }
 
   .attendance-status-picker button > svg {
-    width: 17px;
-    height: 17px;
+    width: 16px;
+    height: 16px;
+  }
+
+  .training-action-buttons .primary-button,
+  .training-action-buttons .secondary-button {
+    padding-inline: 8px;
+    font-size: 0.8rem;
   }
 }
