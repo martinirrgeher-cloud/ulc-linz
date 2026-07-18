@@ -315,7 +315,6 @@ export function AthleteManagementPage() {
         <div>
           <p className="eyebrow">Gemeinsame Stammdaten</p>
           <h1>Athleten, Trainer &amp; Gruppen</h1>
-          <p>Zentrale Grundlage für Kindertraining, Leistungsgruppe und Trainingsplanung.</p>
         </div>
         {canEdit && (
           <button type="button" className="primary-button" onClick={openCreateEditor} disabled={loading || busy}>

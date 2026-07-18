@@ -56,16 +56,6 @@ const STATUS_OPTIONS: Array<{
   { value: "absent", label: "Fehlt", shortLabel: "Fehlt", icon: UserMinus },
 ];
 
-const WEEKDAY_LABELS: Record<number, string> = {
-  1: "Montag",
-  2: "Dienstag",
-  3: "Mittwoch",
-  4: "Donnerstag",
-  5: "Freitag",
-  6: "Samstag",
-  7: "Sonntag",
-};
-
 const SORT_STORAGE_KEY = "ulc-kindertraining-name-sort";
 
 function errorMessage(error: unknown): string {
@@ -126,10 +116,6 @@ function formatSavedAt(value: string): string {
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date(value));
-}
-
-function formatRegularWeekdays(weekdays: number[]): string {
-  return weekdays.map((weekday) => WEEKDAY_LABELS[weekday] ?? "?").join(" · ");
 }
 
 function isRegularDate(value: string, weekdays: number[]): boolean {
@@ -931,12 +917,6 @@ export function KindertrainingDraftPage() {
       ) : (
         <>
           <section className="training-control-card compact" aria-label="Trainingstag auswählen">
-            <div className="fixed-training-group">
-              <span className="eyebrow">Trainingsgruppe</span>
-              <strong>{group.name}</strong>
-              <small>{formatRegularWeekdays(group.regularWeekdays)}</small>
-            </div>
-
             <div className="training-date-control compact">
               <div className="training-date-buttons">
                 <button
@@ -961,10 +941,37 @@ export function KindertrainingDraftPage() {
                 >
                   <ChevronRight aria-hidden="true" />
                 </button>
+                {group.allowSpecialTraining && canEdit && (
+                  <button
+                    type="button"
+                    className="icon-button special-training-action"
+                    disabled={sessionLoading}
+                    onClick={() => {
+                      setSpecialDateInput(today);
+                      setShowSpecialDatePicker(true);
+                    }}
+                    aria-label="Sondertraining anlegen"
+                    title="Sondertraining anlegen"
+                  >
+                    <CalendarPlus aria-hidden="true" />
+                  </button>
+                )}
+                {session?.isSpecial && session.id && canEdit && (
+                  <button
+                    type="button"
+                    className="icon-button special-training-action danger"
+                    disabled={sessionLoading || deletingSpecial}
+                    onClick={() => void deleteSpecialTraining()}
+                    aria-label="Sondertraining löschen"
+                    title="Sondertraining löschen"
+                  >
+                    <Trash2 aria-hidden="true" />
+                  </button>
+                )}
               </div>
 
-              <div className="training-date-shortcuts">
-                {todayIsVisible && selectedDate !== today && (
+              {todayIsVisible && selectedDate !== today && (
+                <div className="training-date-shortcuts">
                   <button
                     type="button"
                     className="text-button"
@@ -973,32 +980,8 @@ export function KindertrainingDraftPage() {
                   >
                     Heute
                   </button>
-                )}
-                {group.allowSpecialTraining && canEdit && (
-                  <button
-                    type="button"
-                    className="text-button"
-                    disabled={sessionLoading}
-                    onClick={() => {
-                      setSpecialDateInput(today);
-                      setShowSpecialDatePicker(true);
-                    }}
-                  >
-                    <CalendarPlus aria-hidden="true" /> Sondertraining
-                  </button>
-                )}
-                {session?.isSpecial && session.id && canEdit && (
-                  <button
-                    type="button"
-                    className="text-button danger-text-button"
-                    disabled={sessionLoading || deletingSpecial}
-                    onClick={() => void deleteSpecialTraining()}
-                  >
-                    <Trash2 aria-hidden="true" />
-                    {deletingSpecial ? "Löscht …" : "Sondertraining löschen"}
-                  </button>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </section>
 
@@ -1057,6 +1040,37 @@ export function KindertrainingDraftPage() {
                   </div>
 
                   <div className="attendance-list-tools">
+                    <div className="attendance-sort-row">
+                      <div className="name-sort-toggle" aria-label="Namenssortierung">
+                        <button
+                          type="button"
+                          className={sortMode === "firstName" ? "active" : ""}
+                          onClick={() => setSortMode("firstName")}
+                        >
+                          Vorname
+                        </button>
+                        <button
+                          type="button"
+                          className={sortMode === "lastName" ? "active" : ""}
+                          onClick={() => setSortMode("lastName")}
+                        >
+                          Nachname
+                        </button>
+                      </div>
+                      {canEdit && (
+                        <button
+                          type="button"
+                          className="icon-button add-child-icon-button"
+                          onClick={() => void openQuickAthlete()}
+                          disabled={sessionLoading}
+                          title="Kind hinzufügen"
+                          aria-label="Kind hinzufügen"
+                        >
+                          <UserPlus aria-hidden="true" />
+                        </button>
+                      )}
+                    </div>
+
                     <label className="attendance-search compact">
                       <Search aria-hidden="true" />
                       <input
@@ -1066,36 +1080,8 @@ export function KindertrainingDraftPage() {
                         placeholder="Name suchen"
                       />
                     </label>
-                    <div className="name-sort-toggle" aria-label="Namenssortierung">
-                      <button
-                        type="button"
-                        className={sortMode === "firstName" ? "active" : ""}
-                        onClick={() => setSortMode("firstName")}
-                      >
-                        Vorname
-                      </button>
-                      <button
-                        type="button"
-                        className={sortMode === "lastName" ? "active" : ""}
-                        onClick={() => setSortMode("lastName")}
-                      >
-                        Nachname
-                      </button>
-                    </div>
                   </div>
 
-                  {canEdit && (
-                    <button
-                      type="button"
-                      className="secondary-button add-child-button"
-                      onClick={() => void openQuickAthlete()}
-                      disabled={sessionLoading}
-                      title="Kind hinzufügen"
-                    >
-                      <UserPlus aria-hidden="true" />
-                      Kind hinzufügen
-                    </button>
-                  )}
                   <div className="attendance-progress-row">
                     <span>
                       <CheckCheck aria-hidden="true" />

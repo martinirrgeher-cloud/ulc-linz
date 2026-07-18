@@ -1242,3 +1242,150 @@
     font-size: 0.57rem;
   }
 }
+
+
+/* Trainingsmodule – kompakter Bedienaufbau für Kindertraining, U12 und U14 */
+.training-control-card.compact {
+  display: block;
+  padding: 10px;
+}
+
+.training-date-control.compact {
+  width: 100%;
+}
+
+.training-date-buttons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.training-date-buttons > .icon-button {
+  width: 42px;
+  min-width: 42px;
+  flex: 0 0 42px;
+}
+
+.training-date-buttons .training-date-display {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.special-training-action {
+  width: 38px;
+  height: 42px;
+  color: var(--green-800);
+  background: var(--green-50);
+  border-color: #c8ddd0;
+}
+
+.special-training-action.danger {
+  color: #9f2f2f;
+  background: #fff2f1;
+  border-color: #f0c9c6;
+}
+
+.attendance-list-tools {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 7px;
+}
+
+.attendance-sort-row {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.attendance-sort-row .name-sort-toggle {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.add-child-icon-button {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  flex: 0 0 40px;
+  color: var(--green-900);
+  background: var(--green-100);
+  border-color: #c6ddce;
+}
+
+.attendance-search.compact {
+  width: min(100%, 360px);
+}
+
+.attendance-progress-row {
+  min-width: 0;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  padding-top: 2px;
+  white-space: nowrap;
+}
+
+.attendance-progress-row > span,
+.attendance-progress-row .text-button {
+  font-size: 0.72rem;
+}
+
+.attendance-progress-row .text-button {
+  min-width: 0;
+  padding-inline: 2px;
+}
+
+@media (max-width: 520px) {
+  .training-date-buttons {
+    gap: 5px;
+  }
+
+  .training-date-buttons > .icon-button {
+    width: 38px;
+    min-width: 38px;
+    flex-basis: 38px;
+  }
+
+  .special-training-action {
+    width: 36px;
+    height: 40px;
+  }
+
+  .attendance-search.compact {
+    width: 100%;
+  }
+
+  .attendance-progress-row {
+    flex-direction: row;
+    justify-content: space-between;
+    gap: 5px;
+  }
+
+  .attendance-progress-row > span,
+  .attendance-progress-row .text-button {
+    font-size: 0.66rem;
+  }
+}
+
+@media (max-width: 370px) {
+  .training-date-buttons {
+    gap: 3px;
+  }
+
+  .training-date-buttons > .icon-button {
+    width: 34px;
+    min-width: 34px;
+    flex-basis: 34px;
+  }
+
+  .special-training-action {
+    width: 33px;
+    height: 38px;
+  }
+
+  .attendance-progress-row > span,
+  .attendance-progress-row .text-button {
+    font-size: 0.61rem;
+  }
+}
