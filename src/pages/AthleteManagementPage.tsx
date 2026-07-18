@@ -484,7 +484,23 @@ export function AthleteManagementPage() {
               <article className={`training-group-card ${group.isActive ? "" : "inactive"}`} key={group.id}>
                 <div className="training-group-card-heading">
                   <div className="group-icon" aria-hidden="true"><UsersRound /></div>
-                  <div><h2>{group.name}</h2><p>{[group.shortName, group.moduleKey === "kindertraining" ? "Kindertraining" : null].filter(Boolean).join(" · ")}</p></div>
+                  <div>
+                    <h2>{group.name}</h2>
+                    <p>
+                      {[
+                        group.shortName,
+                        group.moduleKey === "kindertraining"
+                          ? "Kindertraining"
+                          : group.moduleKey === "u12"
+                            ? "U12"
+                            : group.moduleKey === "u14"
+                              ? "U14"
+                              : null,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </p>
+                  </div>
                 </div>
                 <p className="training-group-description">{group.description || "Keine Beschreibung hinterlegt."}</p>
                 <dl className="training-group-details">
@@ -492,7 +508,12 @@ export function AthleteManagementPage() {
                   <div><dt>Reihenfolge</dt><dd>{group.sortOrder}</dd></div>
                   <div><dt>Trainingstage</dt><dd>{formatWeekdays(group.regularWeekdays)}</dd></div>
                   <div><dt>Status</dt><dd>{group.isActive ? "Aktiv" : "Inaktiv"}</dd></div>
-                  {group.moduleKey === "kindertraining" && <div><dt>Sondertraining</dt><dd>{group.allowSpecialTraining ? "Erlaubt" : "Deaktiviert"}</dd></div>}
+                  {group.moduleKey !== null && (
+                    <div>
+                      <dt>Sondertraining</dt>
+                      <dd>{group.allowSpecialTraining ? "Erlaubt" : "Deaktiviert"}</dd>
+                    </div>
+                  )}
                 </dl>
                 {canEdit && (
                   <button type="button" className="secondary-button" onClick={() => { setSuccess(null); closeEditors(); setGroupEditor({ type: "edit", group }); window.scrollTo({ top: 0, behavior: "smooth" }); }}>

@@ -8,6 +8,8 @@ import { ForgotPasswordPage } from "@/pages/ForgotPasswordPage";
 import { LoginPage } from "@/pages/LoginPage";
 import { KindertrainingDraftPage } from "@/pages/KindertrainingDraftPage";
 import { KindertrainingStatisticsPage } from "@/pages/KindertrainingStatisticsPage";
+import { GroupTrainingPage } from "@/pages/GroupTrainingPage";
+import { GroupTrainingStatisticsPage } from "@/pages/GroupTrainingStatisticsPage";
 import { ModulePlaceholderPage } from "@/pages/ModulePlaceholderPage";
 import { NoAccessPage } from "@/pages/NoAccessPage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
@@ -56,6 +58,58 @@ export function App() {
               element={
                 <ProtectedRoute>
                   <KindertrainingStatisticsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="module/u12"
+              element={
+                <ProtectedRoute moduleKey="u12">
+                  <GroupTrainingPage
+                    moduleKey="u12"
+                    statisticsModuleKey="u12_statistics"
+                    title="U12"
+                    statisticsRoute="/module/u12/statistik"
+                  />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="module/u14"
+              element={
+                <ProtectedRoute moduleKey="u14">
+                  <GroupTrainingPage
+                    moduleKey="u14"
+                    statisticsModuleKey="u14_statistics"
+                    title="U14"
+                    statisticsRoute="/module/u14/statistik"
+                  />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="module/u12/statistik"
+              element={
+                <ProtectedRoute>
+                  <GroupTrainingStatisticsPage
+                    moduleKey="u12"
+                    statisticsModuleKey="u12_statistics"
+                    title="U12"
+                    trainingRoute="/module/u12"
+                  />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="module/u14/statistik"
+              element={
+                <ProtectedRoute>
+                  <GroupTrainingStatisticsPage
+                    moduleKey="u14"
+                    statisticsModuleKey="u14_statistics"
+                    title="U14"
+                    trainingRoute="/module/u14"
+                  />
                 </ProtectedRoute>
               }
             />

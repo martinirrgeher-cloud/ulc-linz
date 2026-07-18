@@ -87,7 +87,9 @@ function parseAthleteContacts(value: unknown): AthleteContact[] {
 }
 
 function parseModuleKey(value: unknown): TrainingGroupModuleKey {
-  return value === "kindertraining" ? "kindertraining" : null;
+  return value === "kindertraining" || value === "u12" || value === "u14"
+    ? value
+    : null;
 }
 
 function parseWeekdays(value: unknown): number[] {

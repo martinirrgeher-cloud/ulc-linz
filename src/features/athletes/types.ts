@@ -28,7 +28,7 @@ export type Athlete = {
   contacts: AthleteContact[];
 };
 
-export type TrainingGroupModuleKey = "kindertraining" | null;
+export type TrainingGroupModuleKey = "kindertraining" | "u12" | "u14" | null;
 
 export type TrainingGroup = {
   id: string;

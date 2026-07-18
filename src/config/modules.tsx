@@ -14,7 +14,11 @@ import {
 
 export type AppModuleKey =
   | "kindertraining"
+  | "u12"
+  | "u14"
   | "kindertraining_statistics"
+  | "u12_statistics"
+  | "u14_statistics"
   | "athletes"
   | "performance_registration"
   | "exercise_catalog"
@@ -93,13 +97,31 @@ export const APP_MODULES: AppModuleDefinition[] = [
     sortOrder: 10,
   },
   {
+    key: "u12",
+    title: "U12",
+    description: "Anwesenheit, Notizen und Statistik",
+    route: "/module/u12",
+    icon: <Users aria-hidden="true" />,
+    groupKey: "training",
+    sortOrder: 20,
+  },
+  {
+    key: "u14",
+    title: "U14",
+    description: "Anwesenheit, Notizen und Statistik",
+    route: "/module/u14",
+    icon: <Users aria-hidden="true" />,
+    groupKey: "training",
+    sortOrder: 30,
+  },
+  {
     key: "performance_registration",
     title: "Anmeldung Leistungsgruppe",
     description: "Wochenweise Trainingsanmeldung",
     route: "/module/performance_registration",
     icon: <CalendarCheck aria-hidden="true" />,
     groupKey: "training",
-    sortOrder: 20,
+    sortOrder: 40,
   },
   {
     key: "training_documentation",
@@ -108,7 +130,7 @@ export const APP_MODULES: AppModuleDefinition[] = [
     route: "/module/training_documentation",
     icon: <Dumbbell aria-hidden="true" />,
     groupKey: "training",
-    sortOrder: 30,
+    sortOrder: 50,
   },
   {
     key: "training_planning",
@@ -163,6 +185,24 @@ export const APP_MODULES: AppModuleDefinition[] = [
     icon: <ChartNoAxesCombined aria-hidden="true" />,
     groupKey: "statistics",
     sortOrder: 10,
+  },
+  {
+    key: "u12_statistics",
+    title: "U12",
+    description: "Trainings-, Athleten- und Trainerstatistik",
+    route: "/module/u12/statistik",
+    icon: <ChartNoAxesCombined aria-hidden="true" />,
+    groupKey: "statistics",
+    sortOrder: 20,
+  },
+  {
+    key: "u14_statistics",
+    title: "U14",
+    description: "Trainings-, Athleten- und Trainerstatistik",
+    route: "/module/u14/statistik",
+    icon: <ChartNoAxesCombined aria-hidden="true" />,
+    groupKey: "statistics",
+    sortOrder: 30,
   },
   {
     key: "athletes",

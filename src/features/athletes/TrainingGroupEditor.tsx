@@ -63,7 +63,7 @@ export function TrainingGroupEditor({
   const canSave =
     values.name.trim().length >= 2 &&
     values.sortOrder >= 0 &&
-    (values.moduleKey !== "kindertraining" || values.regularWeekdays.length > 0);
+    (values.moduleKey === null || values.regularWeekdays.length > 0);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -205,21 +205,28 @@ export function TrainingGroupEditor({
         </fieldset>
 
         <div className="group-module-settings">
-          <label className="setting-checkbox">
-            <input
-              type="checkbox"
-              checked={values.moduleKey === "kindertraining"}
+          <label>
+            Trainingsmodul
+            <select
+              value={values.moduleKey ?? ""}
               onChange={(event) =>
                 setValues((current) => ({
                   ...current,
-                  moduleKey: event.target.checked ? "kindertraining" : null,
+                  moduleKey:
+                    event.target.value === "kindertraining" ||
+                    event.target.value === "u12" ||
+                    event.target.value === "u14"
+                      ? event.target.value
+                      : null,
                 }))
               }
-            />
-            <span>
-              <strong>Diese Gruppe im Modul Kindertraining verwenden</strong>
-              <small>Pro Verein kann genau eine Gruppe fest zugeordnet werden.</small>
-            </span>
+            >
+              <option value="">Keinem Trainingsmodul zugeordnet</option>
+              <option value="kindertraining">Kindertraining</option>
+              <option value="u12">U12</option>
+              <option value="u14">U14</option>
+            </select>
+            <small>Pro Trainingsmodul kann genau eine Gruppe fest zugeordnet werden.</small>
           </label>
 
           <label className="setting-checkbox">
@@ -240,9 +247,9 @@ export function TrainingGroupEditor({
           </label>
         </div>
 
-        {values.moduleKey === "kindertraining" && values.regularWeekdays.length === 0 && (
+        {values.moduleKey !== null && values.regularWeekdays.length === 0 && (
           <div className="alert warning compact-alert">
-            Für das Kindertraining muss mindestens ein Wochentag ausgewählt sein.
+            Für ein zugeordnetes Trainingsmodul muss mindestens ein Wochentag ausgewählt sein.
           </div>
         )}
 
