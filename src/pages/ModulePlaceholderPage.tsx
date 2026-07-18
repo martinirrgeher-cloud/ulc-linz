@@ -1,5 +1,5 @@
-import { ArrowLeft, Construction } from "lucide-react";
-import { Link, Navigate, useParams } from "react-router-dom";
+import { Construction } from "lucide-react";
+import { Navigate, useParams } from "react-router-dom";
 import { getModuleDefinition } from "@/config/modules";
 import { useAuth } from "@/features/auth/AuthContext";
 
@@ -13,10 +13,6 @@ export function ModulePlaceholderPage() {
 
   return (
     <section className="module-placeholder">
-      <Link to="/" className="back-link">
-        <ArrowLeft aria-hidden="true" />
-        Zur Modulübersicht
-      </Link>
       <div className="placeholder-card">
         <Construction aria-hidden="true" />
         <p className="eyebrow">Architektur steht</p>

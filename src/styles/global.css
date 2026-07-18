@@ -283,6 +283,18 @@ input:focus-visible {
   text-decoration: none;
 }
 
+.brand-button {
+  padding: 0;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  text-align: left;
+}
+
+.brand-button:hover {
+  background: transparent;
+}
+
 .brand img {
   width: 52px;
   height: 52px;

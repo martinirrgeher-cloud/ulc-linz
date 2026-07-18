@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  ArrowLeft,
   CalendarDays,
   Layers3,
   Pencil,
@@ -10,7 +9,7 @@ import {
   UserRound,
   UsersRound,
 } from "lucide-react";
-import { Link, Navigate } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 import { useAuth } from "@/features/auth/AuthContext";
 import {
   createAthlete,
@@ -240,11 +239,6 @@ export function AthleteManagementPage() {
 
   return (
     <section className="athlete-management-page">
-      <Link to="/" className="back-link">
-        <ArrowLeft aria-hidden="true" />
-        Zur Modulübersicht
-      </Link>
-
       <div className="management-page-heading">
         <div>
           <p className="eyebrow">Gemeinsame Stammdaten</p>

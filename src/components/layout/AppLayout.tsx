@@ -1,5 +1,9 @@
-import { LogOut, ShieldCheck } from "lucide-react";
-import { Link, Outlet } from "react-router-dom";
+import { Home, LogOut, ShieldCheck } from "lucide-react";
+import { Outlet, useNavigate } from "react-router-dom";
+import {
+  NavigationGuardProvider,
+  useNavigationGuardController,
+} from "@/components/layout/NavigationGuardContext";
 import { useAuth } from "@/features/auth/AuthContext";
 import { env } from "@/lib/env";
 
@@ -10,23 +14,39 @@ const roleNames = {
   parent: "Elternteil",
 } as const;
 
-export function AppLayout() {
+function AppLayoutContent() {
   const { appContext, signOut } = useAuth();
+  const { runGuard } = useNavigationGuardController();
+  const navigate = useNavigate();
 
   const displayName =
     appContext?.profile?.displayName || appContext?.authUser.email || "Benutzer";
   const role = appContext?.membership?.role;
 
+  async function goHome() {
+    if (await runGuard()) navigate("/");
+  }
+
+  async function handleSignOut() {
+    if (await runGuard()) await signOut();
+  }
+
   return (
     <div className="app-shell">
       <header className="app-header">
-        <Link to="/" className="brand" aria-label="Zur Startseite">
+        <button
+          type="button"
+          className="brand brand-button"
+          onClick={() => void goHome()}
+          aria-label="Zur Modulübersicht"
+          title="Zur Modulübersicht"
+        >
           <img src="/logo.png" alt="ULC Linz Oberbank" />
           <span>
             <strong>{env.appName}</strong>
             <small>Vereins-App</small>
           </span>
-        </Link>
+        </button>
 
         <div className="user-area">
           <div className="user-meta">
@@ -41,7 +61,16 @@ export function AppLayout() {
           <button
             type="button"
             className="icon-button"
-            onClick={() => void signOut()}
+            onClick={() => void goHome()}
+            aria-label="Zur Modulübersicht"
+            title="Zur Modulübersicht"
+          >
+            <Home aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            className="icon-button"
+            onClick={() => void handleSignOut()}
             aria-label="Abmelden"
             title="Abmelden"
           >
@@ -54,5 +83,13 @@ export function AppLayout() {
         <Outlet />
       </main>
     </div>
+  );
+}
+
+export function AppLayout() {
+  return (
+    <NavigationGuardProvider>
+      <AppLayoutContent />
+    </NavigationGuardProvider>
   );
 }

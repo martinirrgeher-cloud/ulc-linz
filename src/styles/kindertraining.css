@@ -3,7 +3,7 @@
 .kindertraining-page {
   display: grid;
   gap: 13px;
-  padding-bottom: 108px;
+  padding-bottom: 24px;
 }
 
 .kindertraining-heading {
@@ -607,6 +607,45 @@
   padding: 8px 11px;
 }
 
+
+.training-autosave-status {
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 7px;
+  padding: 6px 4px;
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.training-autosave-status svg {
+  width: 16px;
+  height: 16px;
+}
+
+.training-autosave-status.saved {
+  color: var(--green-700);
+}
+
+.training-autosave-status.pending,
+.training-autosave-status.saving {
+  color: #795711;
+}
+
+.training-autosave-status.error {
+  color: var(--danger);
+}
+
+.training-autosave-status .text-button {
+  margin-left: 3px;
+}
+
+.spin-icon {
+  animation: spin 0.8s linear infinite;
+}
+
 .dialog-backdrop {
   position: fixed;
   z-index: 30;
@@ -738,7 +777,7 @@
 @media (max-width: 520px) {
   .kindertraining-page {
     gap: 10px;
-    padding-bottom: 112px;
+    padding-bottom: 28px;
   }
 
   .kindertraining-heading {
@@ -849,6 +888,12 @@
     grid-template-columns: 0.8fr 1fr;
   }
 
+
+  .training-autosave-status {
+    justify-content: center;
+    min-height: 34px;
+    padding: 4px 2px;
+  }
   .quick-athlete-dialog {
     width: 100%;
     padding: 13px;

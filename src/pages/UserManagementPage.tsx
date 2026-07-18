@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  ArrowLeft,
   CheckCircle2,
   Clock3,
   MailPlus,
@@ -11,7 +10,7 @@ import {
   UserRoundX,
   UsersRound,
 } from "lucide-react";
-import { Link, Navigate } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 import { useAuth } from "@/features/auth/AuthContext";
 import {
   inviteMember,
@@ -159,11 +158,6 @@ export function UserManagementPage() {
 
   return (
     <section className="user-management-page">
-      <Link to="/" className="back-link">
-        <ArrowLeft aria-hidden="true" />
-        Zur Modulübersicht
-      </Link>
-
       <div className="management-page-heading">
         <div>
           <p className="eyebrow">Administration</p>

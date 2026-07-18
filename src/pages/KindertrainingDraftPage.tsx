@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
-  ArrowLeft,
   CalendarPlus,
   ChevronLeft,
   ChevronRight,
@@ -9,8 +8,6 @@ import {
   Clock3,
   CloudCheck,
   RefreshCw,
-  RotateCcw,
-  Save,
   Search,
   Settings2,
   UserCheck,
@@ -19,6 +16,7 @@ import {
   UsersRound,
 } from "lucide-react";
 import { Link, Navigate } from "react-router-dom";
+import { useNavigationGuard } from "@/components/layout/NavigationGuardContext";
 import {
   createKindertrainingAthlete,
   loadKindertrainingConfiguration,
@@ -213,6 +211,22 @@ function athleteDisplayName(
     : `${participant.firstName} ${participant.lastName}`;
 }
 
+type AutoSaveState = "idle" | "pending" | "saving" | "saved" | "error";
+
+type SaveSnapshot = {
+  organizationId: string;
+  groupId: string;
+  sessionDate: string;
+  state: KindertrainingDraft["state"];
+  note: string;
+  attendance: Record<string, AttendanceStatus>;
+  participants: KindertrainingParticipant[];
+  revision: number;
+  forceCreate: boolean;
+};
+
+const AUTOSAVE_DELAY_MS = 700;
+
 export function KindertrainingDraftPage() {
   const { appContext, canViewModule, canEditModule } = useAuth();
   const organizationId = appContext?.organization?.id;
@@ -236,12 +250,29 @@ export function KindertrainingDraftPage() {
     attendance: {},
   });
   const [baseline, setBaseline] = useState<KindertrainingDraft | null>(null);
+  const [forceCreateSpecial, setForceCreateSpecial] = useState(false);
   const [configurationLoading, setConfigurationLoading] = useState(true);
   const [sessionLoading, setSessionLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [autoSaveState, setAutoSaveState] = useState<AutoSaveState>("idle");
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
   const requestIdRef = useRef(0);
+  const initializedDateRef = useRef(false);
+  const pendingSpecialDateRef = useRef<string | null>(null);
+  const autosaveTimerRef = useRef<number | null>(null);
+  const saveQueueRef = useRef<Promise<boolean>>(Promise.resolve(true));
+  const queuedSaveKeyRef = useRef<string | null>(null);
+  const revisionRef = useRef(0);
+  const selectedDateRef = useRef(selectedDate);
+  const sessionRef = useRef<KindertrainingSession | null>(session);
+  const participantsRef = useRef(participants);
+  const draftRef = useRef(draft);
+  const baselineRef = useRef<KindertrainingDraft | null>(baseline);
+  const dirtyRef = useRef(false);
+  const forceCreateSpecialRef = useRef(forceCreateSpecial);
+  const sessionByDateRef = useRef<Record<string, KindertrainingSession | null>>({});
 
   const group = configuration?.group ?? null;
   const allSpecialDates = useMemo(
@@ -253,6 +284,14 @@ export function KindertrainingDraftPage() {
     if (!baseline) return false;
     return draftSignature(draft, participants) !== draftSignature(baseline, participants);
   }, [baseline, draft, participants]);
+
+  selectedDateRef.current = selectedDate;
+  sessionRef.current = session;
+  participantsRef.current = participants;
+  draftRef.current = draft;
+  baselineRef.current = baseline;
+  dirtyRef.current = dirty;
+  forceCreateSpecialRef.current = forceCreateSpecial;
 
   const counts = useMemo(() => {
     const result: Record<AttendanceStatus, number> = {
@@ -292,6 +331,13 @@ export function KindertrainingDraftPage() {
     ? isRegularDate(today, group.regularWeekdays) || allSpecialDates.includes(today)
     : false;
 
+  const clearAutosaveTimer = useCallback(() => {
+    if (autosaveTimerRef.current !== null) {
+      window.clearTimeout(autosaveTimerRef.current);
+      autosaveTimerRef.current = null;
+    }
+  }, []);
+
   const loadConfiguration = useCallback(async () => {
     if (!organizationId || !canView) return;
 
@@ -301,7 +347,8 @@ export function KindertrainingDraftPage() {
       const loadedConfiguration = await loadKindertrainingConfiguration(organizationId);
       setConfiguration(loadedConfiguration);
 
-      if (loadedConfiguration.group) {
+      if (loadedConfiguration.group && !initializedDateRef.current) {
+        initializedDateRef.current = true;
         const startDate = findTrainingDate(
           isoDate(new Date()),
           -1,
@@ -321,7 +368,9 @@ export function KindertrainingDraftPage() {
   const loadSession = useCallback(async () => {
     if (!organizationId || !group?.id || !canView) return;
 
+    const loadingDate = selectedDate;
     const requestId = ++requestIdRef.current;
+    clearAutosaveTimer();
     setSessionLoading(true);
     setError(null);
     setSuccessMessage(null);
@@ -330,27 +379,157 @@ export function KindertrainingDraftPage() {
       const loadedSession = await loadKindertrainingSession(
         organizationId,
         group.id,
-        selectedDate,
+        loadingDate,
       );
-      if (requestId !== requestIdRef.current) return;
+      if (requestId !== requestIdRef.current || selectedDateRef.current !== loadingDate) return;
 
       const loadedDraft = makeDraft(loadedSession);
+      const shouldCreateSpecial =
+        pendingSpecialDateRef.current === loadingDate &&
+        !loadedSession.id &&
+        !loadedSession.isRegularDay;
+
+      sessionByDateRef.current[loadingDate] = loadedSession;
+      revisionRef.current = 0;
       setSession(loadedSession);
       setParticipants(loadedSession.participants);
       setDraft(loadedDraft);
       setBaseline(loadedDraft);
+      setForceCreateSpecial(shouldCreateSpecial);
+      setAutoSaveState(loadedSession.updatedAt ? "saved" : shouldCreateSpecial ? "pending" : "idle");
       setActiveCategory("open");
       setSearchTerm("");
+
+      if (!shouldCreateSpecial) pendingSpecialDateRef.current = null;
     } catch (loadError) {
-      if (requestId !== requestIdRef.current) return;
+      if (requestId !== requestIdRef.current || selectedDateRef.current !== loadingDate) return;
       setSession(null);
       setParticipants([]);
       setBaseline(null);
+      setForceCreateSpecial(false);
+      setAutoSaveState("error");
       setError(errorMessage(loadError));
     } finally {
       if (requestId === requestIdRef.current) setSessionLoading(false);
     }
-  }, [canView, group?.id, organizationId, selectedDate]);
+  }, [canView, clearAutosaveTimer, group?.id, organizationId, selectedDate]);
+
+  const createSaveSnapshot = useCallback((): SaveSnapshot | null => {
+    if (
+      !organizationId ||
+      !group?.id ||
+      !canEdit ||
+      !baselineRef.current ||
+      sessionLoading
+    ) {
+      return null;
+    }
+
+    return {
+      organizationId,
+      groupId: group.id,
+      sessionDate: selectedDateRef.current,
+      state: draftRef.current.state,
+      note: draftRef.current.note,
+      attendance: { ...draftRef.current.attendance },
+      participants: [...participantsRef.current],
+      revision: revisionRef.current,
+      forceCreate: forceCreateSpecialRef.current,
+    };
+  }, [canEdit, group?.id, organizationId, sessionLoading]);
+
+  const executeSave = useCallback(async (snapshot: SaveSnapshot): Promise<boolean> => {
+    const isCurrentDate = selectedDateRef.current === snapshot.sessionDate;
+    if (isCurrentDate) {
+      setSaving(true);
+      setAutoSaveState("saving");
+      setError(null);
+    }
+
+    try {
+      const expectedSession = sessionByDateRef.current[snapshot.sessionDate] ?? null;
+      const savedSession = await saveKindertrainingSession({
+        organizationId: snapshot.organizationId,
+        groupId: snapshot.groupId,
+        sessionDate: snapshot.sessionDate,
+        state: snapshot.state,
+        note: snapshot.note,
+        participants: snapshot.participants,
+        attendance: snapshot.attendance,
+        expectedUpdatedAt: expectedSession?.updatedAt ?? null,
+      });
+
+      sessionByDateRef.current[snapshot.sessionDate] = savedSession;
+
+      if (selectedDateRef.current === snapshot.sessionDate) {
+        const savedDraft = makeDraft(savedSession);
+        setSession(savedSession);
+        setParticipants(savedSession.participants);
+        setBaseline(savedDraft);
+        setForceCreateSpecial(false);
+        pendingSpecialDateRef.current = null;
+
+        if (revisionRef.current === snapshot.revision) {
+          setDraft(savedDraft);
+          setAutoSaveState("saved");
+        } else {
+          setAutoSaveState("pending");
+        }
+
+        if (savedSession.isSpecial) {
+          setTransientSpecialDates((current) => [
+            ...new Set([...current, snapshot.sessionDate]),
+          ]);
+        }
+      }
+
+      return true;
+    } catch (saveError) {
+      if (selectedDateRef.current === snapshot.sessionDate) {
+        setAutoSaveState("error");
+        setError(errorMessage(saveError));
+      }
+      return false;
+    } finally {
+      if (selectedDateRef.current === snapshot.sessionDate) setSaving(false);
+    }
+  }, []);
+
+  const enqueueSave = useCallback((snapshot: SaveSnapshot): Promise<boolean> => {
+    const saveKey = `${snapshot.sessionDate}:${snapshot.revision}:${snapshot.forceCreate ? "create" : "update"}`;
+    if (queuedSaveKeyRef.current === saveKey) return saveQueueRef.current;
+
+    queuedSaveKeyRef.current = saveKey;
+    const operation = saveQueueRef.current.then(() => executeSave(snapshot));
+    saveQueueRef.current = operation;
+
+    void operation.finally(() => {
+      if (queuedSaveKeyRef.current === saveKey) queuedSaveKeyRef.current = null;
+    });
+
+    return operation;
+  }, [executeSave]);
+
+  const flushPendingSave = useCallback(async (): Promise<boolean> => {
+    clearAutosaveTimer();
+
+    if (!canEdit) return true;
+    if (!dirtyRef.current && !forceCreateSpecialRef.current) {
+      return saveQueueRef.current;
+    }
+
+    const snapshot = createSaveSnapshot();
+    if (!snapshot) return false;
+    return enqueueSave(snapshot);
+  }, [canEdit, clearAutosaveTimer, createSaveSnapshot, enqueueSave]);
+
+  useNavigationGuard(useCallback(async () => {
+    const saved = await flushPendingSave();
+    if (!saved) {
+      setError((current) => current ?? "Die letzten Änderungen konnten nicht gespeichert werden.");
+    }
+    return saved;
+  }, [flushPendingSave]));
 
   useEffect(() => {
     void loadConfiguration();
@@ -369,28 +548,77 @@ export function KindertrainingDraftPage() {
   }, [sortMode]);
 
   useEffect(() => {
+    if (
+      !canEdit ||
+      sessionLoading ||
+      !baseline ||
+      (!dirty && !forceCreateSpecial)
+    ) {
+      clearAutosaveTimer();
+      return undefined;
+    }
+
+    setAutoSaveState("pending");
+    clearAutosaveTimer();
+    autosaveTimerRef.current = window.setTimeout(() => {
+      autosaveTimerRef.current = null;
+      const snapshot = createSaveSnapshot();
+      if (snapshot) void enqueueSave(snapshot);
+    }, AUTOSAVE_DELAY_MS);
+
+    return clearAutosaveTimer;
+  }, [
+    baseline,
+    canEdit,
+    clearAutosaveTimer,
+    createSaveSnapshot,
+    draft,
+    dirty,
+    enqueueSave,
+    forceCreateSpecial,
+    participants,
+    sessionLoading,
+  ]);
+
+  useEffect(() => {
     function preventAccidentalClose(event: BeforeUnloadEvent) {
-      if (!dirty) return;
+      if (!dirtyRef.current && !forceCreateSpecialRef.current && !saving) return;
       event.preventDefault();
       event.returnValue = "";
     }
 
+    function flushWhenHidden() {
+      if (document.visibilityState === "hidden") void flushPendingSave();
+    }
+
     window.addEventListener("beforeunload", preventAccidentalClose);
-    return () => window.removeEventListener("beforeunload", preventAccidentalClose);
-  }, [dirty]);
+    document.addEventListener("visibilitychange", flushWhenHidden);
+    return () => {
+      window.removeEventListener("beforeunload", preventAccidentalClose);
+      document.removeEventListener("visibilitychange", flushWhenHidden);
+      clearAutosaveTimer();
+    };
+  }, [clearAutosaveTimer, flushPendingSave, saving]);
 
-  function mayDiscardChanges(): boolean {
-    return !dirty || window.confirm("Ungespeicherte Änderungen wirklich verwerfen?");
-  }
+  async function changeDate(date: string, markAsSpecial = false): Promise<boolean> {
+    if (!date || date === selectedDateRef.current) return true;
+    if (!(await flushPendingSave())) return false;
 
-  function changeDate(date: string): void {
-    if (!date || !mayDiscardChanges()) return;
+    if (markAsSpecial && group && !isRegularDate(date, group.regularWeekdays)) {
+      pendingSpecialDateRef.current = date;
+      setTransientSpecialDates((current) => [...new Set([...current, date])]);
+    } else {
+      pendingSpecialDateRef.current = null;
+    }
+
+    setAutoSaveState("idle");
     setSelectedDate(date);
+    return true;
   }
 
   function moveDate(direction: -1 | 1): void {
     if (!group) return;
-    changeDate(
+    void changeDate(
       findTrainingDate(
         selectedDate,
         direction,
@@ -402,15 +630,18 @@ export function KindertrainingDraftPage() {
 
   function confirmSpecialDate(): void {
     if (!group || !specialDateInput) return;
-    if (!isRegularDate(specialDateInput, group.regularWeekdays)) {
-      setTransientSpecialDates((current) => [...new Set([...current, specialDateInput])]);
-    }
     setShowSpecialDatePicker(false);
-    changeDate(specialDateInput);
+    void changeDate(
+      specialDateInput,
+      !isRegularDate(specialDateInput, group.regularWeekdays),
+    );
   }
 
   function updateDraft(updater: (current: KindertrainingDraft) => KindertrainingDraft): void {
-    if (!canEdit || saving || sessionLoading) return;
+    if (!canEdit || sessionLoading) return;
+    revisionRef.current += 1;
+    setAutoSaveState("pending");
+    setError(null);
     setSuccessMessage(null);
     setDraft(updater);
   }
@@ -425,48 +656,13 @@ export function KindertrainingDraftPage() {
     }));
   }
 
-  function discardChanges(): void {
-    if (!baseline || !dirty || !mayDiscardChanges()) return;
-    setDraft(baseline);
-    setError(null);
-    setSuccessMessage("Lokale Änderungen wurden verworfen.");
+  async function retrySave(): Promise<void> {
+    const snapshot = createSaveSnapshot();
+    if (snapshot) await enqueueSave(snapshot);
   }
 
-  async function saveTraining(): Promise<void> {
-    if (!organizationId || !group || !canEdit || !baseline || saving || sessionLoading) {
-      return;
-    }
-
-    setSaving(true);
-    setError(null);
-    setSuccessMessage(null);
-
-    try {
-      const savedSession = await saveKindertrainingSession({
-        organizationId,
-        groupId: group.id,
-        sessionDate: selectedDate,
-        state: draft.state,
-        note: draft.note,
-        participants,
-        attendance: draft.attendance,
-        expectedUpdatedAt: session?.updatedAt ?? null,
-      });
-      const savedDraft = makeDraft(savedSession);
-      setSession(savedSession);
-      setParticipants(savedSession.participants);
-      setDraft(savedDraft);
-      setBaseline(savedDraft);
-      setSuccessMessage("Training wurde gespeichert.");
-
-      if (savedSession.isSpecial) {
-        setTransientSpecialDates((current) => [...new Set([...current, selectedDate])]);
-      }
-    } catch (saveError) {
-      setError(errorMessage(saveError));
-    } finally {
-      setSaving(false);
-    }
+  async function openQuickAthlete(): Promise<void> {
+    if (await flushPendingSave()) setShowQuickAthlete(true);
   }
 
   async function handleQuickAthlete(
@@ -493,21 +689,46 @@ export function KindertrainingDraftPage() {
     if (result.status !== "duplicate") setSuccessMessage(messages[result.status]);
   }
 
+  function autosaveLabel() {
+    if (autoSaveState === "error") {
+      return (
+        <>
+          <AlertTriangle aria-hidden="true" /> Fehler
+        </>
+      );
+    }
+
+    if (autoSaveState === "saving") {
+      return (
+        <>
+          <RefreshCw className="spin-icon" aria-hidden="true" /> Speichert …
+        </>
+      );
+    }
+
+    if (autoSaveState === "pending" || dirty || forceCreateSpecial) {
+      return (
+        <>
+          <Clock3 aria-hidden="true" /> Wird gespeichert …
+        </>
+      );
+    }
+
+    if (session?.updatedAt) {
+      return (
+        <>
+          <CloudCheck aria-hidden="true" /> {formatSavedAt(session.updatedAt)}
+        </>
+      );
+    }
+
+    return <>Bereit</>;
+  }
+
   if (!canView) return <Navigate to="/kein-zugriff" replace />;
 
   return (
     <section className="kindertraining-page">
-      <Link
-        to="/"
-        className="back-link"
-        onClick={(event) => {
-          if (!mayDiscardChanges()) event.preventDefault();
-        }}
-      >
-        <ArrowLeft size={18} aria-hidden="true" />
-        Zur Modulübersicht
-      </Link>
-
       <div className="kindertraining-heading">
         <div>
           <p className="eyebrow">Training erfassen</p>
@@ -515,20 +736,20 @@ export function KindertrainingDraftPage() {
           <p>Anwesenheit schnell erfassen und direkt am Handy verwalten.</p>
         </div>
         <span
-          className={`training-save-badge ${dirty ? "dirty" : session?.id ? "saved" : "new"}`}
+          className={`training-save-badge ${
+            autoSaveState === "error" ||
+            autoSaveState === "pending" ||
+            autoSaveState === "saving" ||
+            dirty ||
+            forceCreateSpecial
+              ? "dirty"
+              : autoSaveState === "saved" || session?.updatedAt
+                ? "saved"
+                : "new"
+          }`}
           aria-live="polite"
         >
-          {dirty ? (
-            <>
-              <AlertTriangle aria-hidden="true" /> Ungespeichert
-            </>
-          ) : session?.updatedAt ? (
-            <>
-              <CloudCheck aria-hidden="true" /> {formatSavedAt(session.updatedAt)}
-            </>
-          ) : (
-            <>Noch nicht gespeichert</>
-          )}
+          {autosaveLabel()}
         </span>
       </div>
 
@@ -542,8 +763,21 @@ export function KindertrainingDraftPage() {
         <div className="alert error training-alert" role="alert">
           <span>{error}</span>
           {group?.id && (
-            <button type="button" className="text-button" onClick={() => void loadSession()}>
-              <RefreshCw aria-hidden="true" /> Neu laden
+            <button
+              type="button"
+              className="text-button"
+              onClick={() => {
+                if (autoSaveState === "error" && (dirty || forceCreateSpecial)) {
+                  void retrySave();
+                } else {
+                  void loadSession();
+                }
+              }}
+            >
+              <RefreshCw aria-hidden="true" />
+              {autoSaveState === "error" && (dirty || forceCreateSpecial)
+                ? "Erneut speichern"
+                : "Neu laden"}
             </button>
           )}
         </div>
@@ -595,7 +829,7 @@ export function KindertrainingDraftPage() {
                 <button
                   type="button"
                   className="icon-button"
-                  disabled={sessionLoading || saving}
+                  disabled={sessionLoading}
                   onClick={() => moveDate(-1)}
                   aria-label="Vorheriger Trainingstag"
                 >
@@ -608,7 +842,7 @@ export function KindertrainingDraftPage() {
                 <button
                   type="button"
                   className="icon-button"
-                  disabled={sessionLoading || saving}
+                  disabled={sessionLoading}
                   onClick={() => moveDate(1)}
                   aria-label="Nächster Trainingstag"
                 >
@@ -621,8 +855,8 @@ export function KindertrainingDraftPage() {
                   <button
                     type="button"
                     className="text-button"
-                    disabled={sessionLoading || saving}
-                    onClick={() => changeDate(today)}
+                    disabled={sessionLoading}
+                    onClick={() => void changeDate(today)}
                   >
                     Heute
                   </button>
@@ -631,7 +865,7 @@ export function KindertrainingDraftPage() {
                   <button
                     type="button"
                     className="text-button"
-                    disabled={sessionLoading || saving}
+                    disabled={sessionLoading}
                     onClick={() => {
                       setSpecialDateInput(today);
                       setShowSpecialDatePicker(true);
@@ -663,7 +897,7 @@ export function KindertrainingDraftPage() {
                   Abbrechen
                 </button>
                 <button type="button" className="primary-button" onClick={confirmSpecialDate}>
-                  Datum öffnen
+                  Datum anlegen
                 </button>
               </div>
             </section>
@@ -730,21 +964,15 @@ export function KindertrainingDraftPage() {
                     <button
                       type="button"
                       className="secondary-button add-child-button"
-                      onClick={() => setShowQuickAthlete(true)}
-                      disabled={dirty || saving || sessionLoading}
-                      title={dirty ? "Bitte zuerst die Anwesenheit speichern." : "Kind hinzufügen"}
+                      onClick={() => void openQuickAthlete()}
+                      disabled={sessionLoading}
+                      title="Kind hinzufügen"
                     >
                       <UserPlus aria-hidden="true" />
                       Kind hinzufügen
                     </button>
                   )}
                 </div>
-
-                {dirty && canEdit && (
-                  <p className="inline-hint">
-                    Neue Kinder können nach dem Speichern der aktuellen Änderungen hinzugefügt werden.
-                  </p>
-                )}
 
                 {draft.state === "cancelled" ? (
                   <div className="training-cancelled-state">
@@ -782,7 +1010,7 @@ export function KindertrainingDraftPage() {
                                   type="button"
                                   className={status.value}
                                   onClick={() => setAttendance(participant.athleteId, status.value)}
-                                  disabled={!canEdit || saving}
+                                  disabled={!canEdit}
                                   key={status.value}
                                 >
                                   {status.shortLabel}
@@ -810,7 +1038,7 @@ export function KindertrainingDraftPage() {
                     <input
                       type="checkbox"
                       checked={draft.state === "cancelled"}
-                      disabled={!canEdit || saving}
+                      disabled={!canEdit}
                       onChange={(event) =>
                         updateDraft((current) => ({
                           ...current,
@@ -828,7 +1056,7 @@ export function KindertrainingDraftPage() {
                     Tagesnotiz
                     <textarea
                       value={draft.note}
-                      disabled={!canEdit || saving}
+                      disabled={!canEdit}
                       onChange={(event) =>
                         updateDraft((current) => ({ ...current, note: event.target.value }))
                       }
@@ -842,40 +1070,36 @@ export function KindertrainingDraftPage() {
               </details>
 
               {canEdit && (
-                <div className="training-save-bar">
-                  <div>
-                    {dirty ? (
-                      <span className="dirty-message">
-                        <AlertTriangle aria-hidden="true" /> Änderungen noch nicht gespeichert
-                      </span>
-                    ) : session?.updatedAt ? (
-                      <span className="saved-message">
-                        <CloudCheck aria-hidden="true" /> Gespeichert {formatSavedAt(session.updatedAt)}
-                      </span>
-                    ) : (
-                      <span>Noch nicht gespeichert</span>
-                    )}
-                  </div>
-                  <div className="training-save-actions">
-                    <button
-                      type="button"
-                      className="secondary-button"
-                      disabled={!dirty || saving}
-                      onClick={discardChanges}
-                    >
-                      <RotateCcw aria-hidden="true" />
-                      Verwerfen
-                    </button>
-                    <button
-                      type="button"
-                      className="primary-button"
-                      disabled={!dirty || saving || sessionLoading}
-                      onClick={() => void saveTraining()}
-                    >
-                      <Save aria-hidden="true" />
-                      {saving ? "Speichert …" : "Speichern"}
-                    </button>
-                  </div>
+                <div className={`training-autosave-status ${autoSaveState}`} aria-live="polite">
+                  {autoSaveState === "error" ? (
+                    <>
+                      <AlertTriangle aria-hidden="true" />
+                      <span>Speichern fehlgeschlagen</span>
+                      <button type="button" className="text-button" onClick={() => void retrySave()}>
+                        Erneut versuchen
+                      </button>
+                    </>
+                  ) : autoSaveState === "saving" ? (
+                    <>
+                      <RefreshCw className="spin-icon" aria-hidden="true" />
+                      <span>Wird gespeichert …</span>
+                    </>
+                  ) : autoSaveState === "pending" || dirty || forceCreateSpecial ? (
+                    <>
+                      <Clock3 aria-hidden="true" />
+                      <span>Wird gleich gespeichert …</span>
+                    </>
+                  ) : session?.updatedAt ? (
+                    <>
+                      <CloudCheck aria-hidden="true" />
+                      <span>Gespeichert {formatSavedAt(session.updatedAt)}</span>
+                    </>
+                  ) : (
+                    <>
+                      <CloudCheck aria-hidden="true" />
+                      <span>Automatisches Speichern ist aktiv</span>
+                    </>
+                  )}
                 </div>
               )}
             </>
