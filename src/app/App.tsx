@@ -7,6 +7,7 @@ import { AthleteManagementPage } from "@/pages/AthleteManagementPage";
 import { ForgotPasswordPage } from "@/pages/ForgotPasswordPage";
 import { LoginPage } from "@/pages/LoginPage";
 import { KindertrainingDraftPage } from "@/pages/KindertrainingDraftPage";
+import { KindertrainingStatisticsPage } from "@/pages/KindertrainingStatisticsPage";
 import { ModulePlaceholderPage } from "@/pages/ModulePlaceholderPage";
 import { NoAccessPage } from "@/pages/NoAccessPage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
@@ -47,6 +48,14 @@ export function App() {
               element={
                 <ProtectedRoute moduleKey="kindertraining">
                   <KindertrainingDraftPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="module/kindertraining/statistik"
+              element={
+                <ProtectedRoute>
+                  <KindertrainingStatisticsPage />
                 </ProtectedRoute>
               }
             />

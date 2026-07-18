@@ -1,14 +1,18 @@
 import { requireSupabase } from "@/lib/supabase";
 import type { Json } from "@/types/database.generated";
 import type {
+  AthleteEmergencyContact,
   AttendanceStatus,
+  DeleteSpecialTrainingResult,
   KindertrainingConfiguration,
   KindertrainingParticipant,
   KindertrainingSession,
+  KindertrainingTrainer,
   QuickAthleteInput,
   QuickAthleteResult,
   QuickAthleteResultStatus,
   SaveKindertrainingInput,
+  TrainingEnvironment,
   TrainingSessionState,
 } from "@/features/kindertraining/types";
 
@@ -28,23 +32,21 @@ async function callJsonRpc(
   ) => PromiseLike<JsonRpcResponse>;
 
   const { data, error } = await rpc(functionName, args);
-
   if (error) throw error;
   return data;
 }
 
-const ATTENDANCE_STATUSES: AttendanceStatus[] = [
-  "open",
-  "present",
-  "excused",
-  "absent",
-];
-
+const ATTENDANCE_STATUSES: AttendanceStatus[] = ["open", "present", "excused", "absent"];
 const QUICK_RESULT_STATUSES: QuickAthleteResultStatus[] = [
   "created",
   "duplicate",
   "attached",
   "already_assigned",
+];
+const DELETE_RESULT_STATUSES: DeleteSpecialTrainingResult[] = [
+  "deleted",
+  "archived",
+  "not_found",
 ];
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -65,11 +67,45 @@ function parseState(value: unknown): TrainingSessionState {
   return value === "cancelled" ? "cancelled" : "scheduled";
 }
 
+function parseEnvironment(value: unknown): TrainingEnvironment {
+  return value === "indoor" || value === "outdoor" || value === "mixed" ? value : null;
+}
+
 function parseWeekdays(value: unknown): number[] {
   if (!Array.isArray(value)) return [];
   return [...new Set(value.filter((item): item is number => (
     typeof item === "number" && Number.isInteger(item) && item >= 1 && item <= 7
   )))].sort((left, right) => left - right);
+}
+
+function parseStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return [...new Set(value.filter((item): item is string => typeof item === "string"))];
+}
+
+function parseContacts(value: unknown): AthleteEmergencyContact[] {
+  if (!Array.isArray(value)) return [];
+
+  return value.flatMap((item, index) => {
+    if (
+      !isRecord(item) ||
+      typeof item.id !== "string" ||
+      typeof item.contact_name !== "string" ||
+      typeof item.phone !== "string"
+    ) {
+      return [];
+    }
+
+    return [{
+      id: item.id,
+      contactName: item.contact_name,
+      relationship: typeof item.relationship === "string" ? item.relationship : "",
+      phone: item.phone,
+      isEmergency: item.is_emergency !== false,
+      priority: typeof item.priority === "number" ? item.priority : index + 1,
+      notes: typeof item.notes === "string" ? item.notes : "",
+    }];
+  });
 }
 
 function parseParticipants(value: unknown): KindertrainingParticipant[] {
@@ -85,16 +121,39 @@ function parseParticipants(value: unknown): KindertrainingParticipant[] {
       return [];
     }
 
-    return [
-      {
-        athleteId: item.athlete_id,
-        firstName: item.first_name,
-        lastName: item.last_name,
-        birthYear: typeof item.birth_year === "number" ? item.birth_year : null,
-        isActive: item.is_active !== false,
-        status: parseStatus(item.status),
-      },
-    ];
+    return [{
+      athleteId: item.athlete_id,
+      firstName: item.first_name,
+      lastName: item.last_name,
+      birthYear: typeof item.birth_year === "number" ? item.birth_year : null,
+      isActive: item.is_active !== false,
+      status: parseStatus(item.status),
+      contacts: parseContacts(item.contacts),
+    }];
+  });
+}
+
+function parseTrainers(value: unknown): KindertrainingTrainer[] {
+  if (!Array.isArray(value)) return [];
+
+  return value.flatMap((item) => {
+    if (
+      !isRecord(item) ||
+      typeof item.id !== "string" ||
+      typeof item.first_name !== "string" ||
+      typeof item.last_name !== "string"
+    ) {
+      return [];
+    }
+
+    return [{
+      id: item.id,
+      firstName: item.first_name,
+      lastName: item.last_name,
+      phone: asNullableString(item.phone),
+      email: asNullableString(item.email),
+      isActive: item.is_active === true,
+    }];
   });
 }
 
@@ -104,6 +163,10 @@ function parseSessionPayload(value: Json): KindertrainingSession {
   }
 
   const rawSession = isRecord(value.session) ? value.session : null;
+  const storedTrainerIds = parseStringArray(rawSession?.trainer_ids);
+  const defaultTrainerIds = parseStringArray(value.default_trainer_ids);
+  const storedEnvironment = parseEnvironment(rawSession?.environment);
+  const defaultEnvironment = parseEnvironment(value.default_environment);
 
   return {
     id: rawSession && typeof rawSession.id === "string" ? rawSession.id : null,
@@ -111,6 +174,10 @@ function parseSessionPayload(value: Json): KindertrainingSession {
     note: rawSession && typeof rawSession.note === "string" ? rawSession.note : "",
     isSpecial: rawSession?.is_special === true,
     isRegularDay: value.is_regular_day === true,
+    environment: rawSession ? storedEnvironment : defaultEnvironment,
+    trainerIds: rawSession ? storedTrainerIds : defaultTrainerIds,
+    availableTrainers: parseTrainers(value.trainers),
+    usesDefaults: !rawSession && (defaultTrainerIds.length > 0 || defaultEnvironment !== null),
     createdAt: asNullableString(rawSession?.created_at),
     updatedAt: asNullableString(rawSession?.updated_at),
     participants: parseParticipants(value.participants),
@@ -173,17 +240,37 @@ export async function saveKindertrainingSession(
     status: input.attendance[participant.athleteId] ?? "open",
   }));
 
-  const data = await callJsonRpc("save_kindertraining_session", {
+  const data = await callJsonRpc("save_kindertraining_session_v3", {
     p_organization_id: input.organizationId,
     p_group_id: input.groupId,
     p_session_date: input.sessionDate,
     p_state: input.state,
     p_note: input.note,
     p_attendance: attendance,
+    p_trainer_ids: input.trainerIds,
+    p_environment: input.environment,
     p_expected_updated_at: input.expectedUpdatedAt,
   });
 
   return parseSessionPayload(data);
+}
+
+export async function deleteKindertrainingSpecialSession(
+  organizationId: string,
+  groupId: string,
+  sessionDate: string,
+): Promise<DeleteSpecialTrainingResult> {
+  const data = await callJsonRpc("delete_kindertraining_special_session", {
+    p_organization_id: organizationId,
+    p_group_id: groupId,
+    p_session_date: sessionDate,
+  });
+
+  if (!isRecord(data) || !DELETE_RESULT_STATUSES.includes(data.mode as DeleteSpecialTrainingResult)) {
+    throw new Error("Das Ergebnis der Löschung ist ungültig.");
+  }
+
+  return data.mode as DeleteSpecialTrainingResult;
 }
 
 export async function createKindertrainingAthlete(

@@ -2,19 +2,15 @@ import { requireSupabase } from "@/lib/supabase";
 import type { Json } from "@/types/database.generated";
 import type {
   Athlete,
+  AthleteContact,
   AthleteGroupSummary,
   AthleteInput,
+  Trainer,
+  TrainerInput,
   TrainingGroup,
   TrainingGroupInput,
   TrainingGroupModuleKey,
 } from "@/features/athletes/types";
-
-type RawAthleteGroup = {
-  id?: unknown;
-  name?: unknown;
-  short_name?: unknown;
-  is_active?: unknown;
-};
 
 type JsonRpcResponse = {
   data: Json;
@@ -40,22 +36,48 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
-function parseAthleteGroups(value: Json): AthleteGroupSummary[] {
+function nullableString(value: unknown): string | null {
+  return typeof value === "string" && value.trim().length > 0 ? value : null;
+}
+
+function parseAthleteGroups(value: unknown): AthleteGroupSummary[] {
   if (!Array.isArray(value)) return [];
 
   return value.flatMap((item) => {
-    if (!item || typeof item !== "object" || Array.isArray(item)) return [];
-    const group = item as RawAthleteGroup;
-    if (typeof group.id !== "string" || typeof group.name !== "string") return [];
+    if (!isRecord(item) || typeof item.id !== "string" || typeof item.name !== "string") {
+      return [];
+    }
 
-    return [
-      {
-        id: group.id,
-        name: group.name,
-        shortName: typeof group.short_name === "string" ? group.short_name : null,
-        isActive: group.is_active === true,
-      },
-    ];
+    return [{
+      id: item.id,
+      name: item.name,
+      shortName: nullableString(item.short_name),
+      isActive: item.is_active === true,
+    }];
+  });
+}
+
+function parseAthleteContacts(value: unknown): AthleteContact[] {
+  if (!Array.isArray(value)) return [];
+
+  return value.flatMap((item, index) => {
+    if (
+      !isRecord(item) ||
+      typeof item.contact_name !== "string" ||
+      typeof item.phone !== "string"
+    ) {
+      return [];
+    }
+
+    return [{
+      id: typeof item.id === "string" ? item.id : null,
+      contactName: item.contact_name,
+      relationship: typeof item.relationship === "string" ? item.relationship : "",
+      phone: item.phone,
+      isEmergency: item.is_emergency !== false,
+      priority: typeof item.priority === "number" ? item.priority : index + 1,
+      notes: typeof item.notes === "string" ? item.notes : "",
+    }];
   });
 }
 
@@ -70,6 +92,34 @@ function parseWeekdays(value: unknown): number[] {
   )))].sort((left, right) => left - right);
 }
 
+function parseAthletes(value: Json): Athlete[] {
+  if (!Array.isArray(value)) return [];
+
+  return value.flatMap((item) => {
+    if (
+      !isRecord(item) ||
+      typeof item.id !== "string" ||
+      typeof item.first_name !== "string" ||
+      typeof item.last_name !== "string"
+    ) {
+      return [];
+    }
+
+    return [{
+      id: item.id,
+      firstName: item.first_name,
+      lastName: item.last_name,
+      birthYear: typeof item.birth_year === "number" ? item.birth_year : null,
+      notes: nullableString(item.notes),
+      isActive: item.is_active === true,
+      createdAt: typeof item.created_at === "string" ? item.created_at : "",
+      updatedAt: typeof item.updated_at === "string" ? item.updated_at : "",
+      groups: parseAthleteGroups(item.groups),
+      contacts: parseAthleteContacts(item.contacts),
+    }];
+  });
+}
+
 function parseTrainingGroups(value: Json): TrainingGroup[] {
   if (!Array.isArray(value)) return [];
 
@@ -81,8 +131,8 @@ function parseTrainingGroups(value: Json): TrainingGroup[] {
     return [{
       id: item.id,
       name: item.name,
-      shortName: typeof item.short_name === "string" ? item.short_name : null,
-      description: typeof item.description === "string" ? item.description : null,
+      shortName: nullableString(item.short_name),
+      description: nullableString(item.description),
       isActive: item.is_active === true,
       sortOrder: typeof item.sort_order === "number" ? item.sort_order : 100,
       athleteCount: typeof item.athlete_count === "number" ? item.athlete_count : 0,
@@ -95,34 +145,58 @@ function parseTrainingGroups(value: Json): TrainingGroup[] {
   });
 }
 
+function parseTrainers(value: Json): Trainer[] {
+  if (!Array.isArray(value)) return [];
+
+  return value.flatMap((item) => {
+    if (
+      !isRecord(item) ||
+      typeof item.id !== "string" ||
+      typeof item.first_name !== "string" ||
+      typeof item.last_name !== "string"
+    ) {
+      return [];
+    }
+
+    return [{
+      id: item.id,
+      firstName: item.first_name,
+      lastName: item.last_name,
+      phone: nullableString(item.phone),
+      email: nullableString(item.email),
+      notes: nullableString(item.notes),
+      isActive: item.is_active === true,
+      linkedUserId: nullableString(item.linked_user_id),
+      createdAt: typeof item.created_at === "string" ? item.created_at : "",
+      updatedAt: typeof item.updated_at === "string" ? item.updated_at : "",
+    }];
+  });
+}
+
+function contactsToJson(contacts: AthleteContact[]): Json {
+  return contacts.map((contact, index) => ({
+    contact_name: contact.contactName.trim(),
+    relationship: contact.relationship.trim() || null,
+    phone: contact.phone.trim(),
+    is_emergency: contact.isEmergency,
+    priority: index + 1,
+    notes: contact.notes.trim() || null,
+  }));
+}
+
 export async function loadAthleteManagement(
   organizationId: string,
-): Promise<{ athletes: Athlete[]; groups: TrainingGroup[] }> {
-  const supabase = requireSupabase();
-  const [athletesResult, groupsData] = await Promise.all([
-    supabase.rpc("athlete_overview", {
-      p_organization_id: organizationId,
-    }),
-    callJsonRpc("training_group_overview_v2", {
-      p_organization_id: organizationId,
-    }),
+): Promise<{ athletes: Athlete[]; groups: TrainingGroup[]; trainers: Trainer[] }> {
+  const [athletesData, groupsData, trainersData] = await Promise.all([
+    callJsonRpc("athlete_overview", { p_organization_id: organizationId }),
+    callJsonRpc("training_group_overview_v2", { p_organization_id: organizationId }),
+    callJsonRpc("trainer_overview", { p_organization_id: organizationId }),
   ]);
 
-  if (athletesResult.error) throw athletesResult.error;
-
   return {
-    athletes: athletesResult.data.map((athlete) => ({
-      id: athlete.id,
-      firstName: athlete.first_name,
-      lastName: athlete.last_name,
-      birthYear: athlete.birth_year,
-      notes: athlete.notes,
-      isActive: athlete.is_active,
-      createdAt: athlete.created_at,
-      updatedAt: athlete.updated_at,
-      groups: parseAthleteGroups(athlete.groups),
-    })),
+    athletes: parseAthletes(athletesData),
     groups: parseTrainingGroups(groupsData),
+    trainers: parseTrainers(trainersData),
   };
 }
 
@@ -130,17 +204,19 @@ export async function createAthlete(
   organizationId: string,
   values: AthleteInput,
 ): Promise<string> {
-  const supabase = requireSupabase();
-  const { data, error } = await supabase.rpc("create_athlete", {
+  const data = await callJsonRpc("create_athlete_v2", {
     p_organization_id: organizationId,
     p_first_name: values.firstName.trim(),
     p_last_name: values.lastName.trim(),
     p_birth_year: values.birthYear,
     p_notes: values.notes.trim() || null,
     p_group_ids: values.groupIds,
+    p_contacts: contactsToJson(values.contacts),
   });
 
-  if (error) throw error;
+  if (typeof data !== "string") {
+    throw new Error("Der Athlet wurde gespeichert, aber die Rückgabe ist ungültig.");
+  }
   return data;
 }
 
@@ -149,8 +225,7 @@ export async function updateAthlete(
   athleteId: string,
   values: AthleteInput,
 ): Promise<void> {
-  const supabase = requireSupabase();
-  const { error } = await supabase.rpc("update_athlete", {
+  await callJsonRpc("update_athlete_v2", {
     p_organization_id: organizationId,
     p_athlete_id: athleteId,
     p_first_name: values.firstName.trim(),
@@ -159,9 +234,8 @@ export async function updateAthlete(
     p_notes: values.notes.trim() || null,
     p_is_active: values.isActive,
     p_group_ids: values.groupIds,
+    p_contacts: contactsToJson(values.contacts),
   });
-
-  if (error) throw error;
 }
 
 export async function createTrainingGroup(
@@ -201,5 +275,41 @@ export async function updateTrainingGroup(
     p_module_key: values.moduleKey,
     p_regular_weekdays: values.regularWeekdays,
     p_allow_special_training: values.allowSpecialTraining,
+  });
+}
+
+export async function createTrainer(
+  organizationId: string,
+  values: TrainerInput,
+): Promise<string> {
+  const data = await callJsonRpc("create_trainer", {
+    p_organization_id: organizationId,
+    p_first_name: values.firstName.trim(),
+    p_last_name: values.lastName.trim(),
+    p_phone: values.phone.trim() || null,
+    p_email: values.email.trim() || null,
+    p_notes: values.notes.trim() || null,
+  });
+
+  if (typeof data !== "string") {
+    throw new Error("Der Trainer wurde gespeichert, aber die Rückgabe ist ungültig.");
+  }
+  return data;
+}
+
+export async function updateTrainer(
+  organizationId: string,
+  trainerId: string,
+  values: TrainerInput,
+): Promise<void> {
+  await callJsonRpc("update_trainer", {
+    p_organization_id: organizationId,
+    p_trainer_id: trainerId,
+    p_first_name: values.firstName.trim(),
+    p_last_name: values.lastName.trim(),
+    p_phone: values.phone.trim() || null,
+    p_email: values.email.trim() || null,
+    p_notes: values.notes.trim() || null,
+    p_is_active: values.isActive,
   });
 }

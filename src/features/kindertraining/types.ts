@@ -1,6 +1,7 @@
 export type AttendanceStatus = "open" | "present" | "excused" | "absent";
 export type TrainingSessionState = "scheduled" | "cancelled";
 export type AthleteNameSort = "firstName" | "lastName";
+export type TrainingEnvironment = "indoor" | "outdoor" | "mixed" | null;
 
 export type KindertrainingGroupConfiguration = {
   id: string;
@@ -16,6 +17,16 @@ export type KindertrainingConfiguration = {
   specialDates: string[];
 };
 
+export type AthleteEmergencyContact = {
+  id: string;
+  contactName: string;
+  relationship: string;
+  phone: string;
+  isEmergency: boolean;
+  priority: number;
+  notes: string;
+};
+
 export type KindertrainingParticipant = {
   athleteId: string;
   firstName: string;
@@ -23,6 +34,16 @@ export type KindertrainingParticipant = {
   birthYear: number | null;
   isActive: boolean;
   status: AttendanceStatus;
+  contacts: AthleteEmergencyContact[];
+};
+
+export type KindertrainingTrainer = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  phone: string | null;
+  email: string | null;
+  isActive: boolean;
 };
 
 export type KindertrainingSession = {
@@ -31,6 +52,10 @@ export type KindertrainingSession = {
   note: string;
   isSpecial: boolean;
   isRegularDay: boolean;
+  environment: TrainingEnvironment;
+  trainerIds: string[];
+  availableTrainers: KindertrainingTrainer[];
+  usesDefaults: boolean;
   createdAt: string | null;
   updatedAt: string | null;
   participants: KindertrainingParticipant[];
@@ -40,6 +65,8 @@ export type KindertrainingDraft = {
   state: TrainingSessionState;
   note: string;
   attendance: Record<string, AttendanceStatus>;
+  environment: TrainingEnvironment;
+  trainerIds: string[];
 };
 
 export type SaveKindertrainingInput = {
@@ -50,6 +77,8 @@ export type SaveKindertrainingInput = {
   note: string;
   participants: KindertrainingParticipant[];
   attendance: Record<string, AttendanceStatus>;
+  environment: TrainingEnvironment;
+  trainerIds: string[];
   expectedUpdatedAt: string | null;
 };
 
@@ -77,3 +106,5 @@ export type QuickAthleteResult = {
     isActive: boolean;
   };
 };
+
+export type DeleteSpecialTrainingResult = "deleted" | "archived" | "not_found";

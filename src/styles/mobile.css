@@ -589,3 +589,38 @@ textarea {
     font-size: 0.91rem;
   }
 }
+
+/* Stammdaten-Erweiterung */
+@media (max-width: 760px) {
+  .management-tabs.three-tabs {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .management-tabs.three-tabs button {
+    padding-inline: 4px;
+    font-size: 0.76rem;
+  }
+
+  .trainer-card {
+    padding: 12px;
+    border-radius: 15px;
+  }
+
+  .fieldset-heading {
+    align-items: stretch;
+  }
+}
+
+@media (max-width: 380px) {
+  .management-tabs.three-tabs button {
+    font-size: 0.7rem;
+  }
+
+  .management-tabs.three-tabs button span {
+    display: none;
+  }
+
+  .fieldset-heading {
+    flex-direction: column;
+  }
+}

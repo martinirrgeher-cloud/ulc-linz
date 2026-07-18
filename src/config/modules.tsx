@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import {
   BookOpen,
   CalendarCheck,
+  ChartNoAxesCombined,
   ClipboardCheck,
   Dumbbell,
   LayoutDashboard,
@@ -13,6 +14,7 @@ import {
 
 export type AppModuleKey =
   | "kindertraining"
+  | "kindertraining_statistics"
   | "athletes"
   | "performance_registration"
   | "exercise_catalog"
@@ -27,6 +29,7 @@ export type AppModuleGroupKey =
   | "training"
   | "planning"
   | "exercises"
+  | "statistics"
   | "master_data";
 
 export type AppModuleGroupDefinition = {
@@ -66,10 +69,16 @@ export const APP_MODULE_GROUPS: AppModuleGroupDefinition[] = [
     sortOrder: 30,
   },
   {
+    key: "statistics",
+    title: "Statistik",
+    description: "Entwicklung, Anwesenheit und Einsätze",
+    sortOrder: 40,
+  },
+  {
     key: "master_data",
     title: "Stammdaten",
-    description: "Athleten, Trainingsgruppen und Benutzer",
-    sortOrder: 40,
+    description: "Athleten, Trainingsgruppen, Trainer und Benutzer",
+    sortOrder: 50,
   },
 ];
 
@@ -145,6 +154,15 @@ export const APP_MODULES: AppModuleDefinition[] = [
     icon: <Settings aria-hidden="true" />,
     groupKey: "exercises",
     sortOrder: 20,
+  },
+  {
+    key: "kindertraining_statistics",
+    title: "Kindertraining",
+    description: "Trainings-, Athleten- und Trainerstatistik",
+    route: "/module/kindertraining/statistik",
+    icon: <ChartNoAxesCombined aria-hidden="true" />,
+    groupKey: "statistics",
+    sortOrder: 10,
   },
   {
     key: "athletes",

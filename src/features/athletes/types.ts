@@ -5,6 +5,16 @@ export type AthleteGroupSummary = {
   isActive: boolean;
 };
 
+export type AthleteContact = {
+  id: string | null;
+  contactName: string;
+  relationship: string;
+  phone: string;
+  isEmergency: boolean;
+  priority: number;
+  notes: string;
+};
+
 export type Athlete = {
   id: string;
   firstName: string;
@@ -15,6 +25,7 @@ export type Athlete = {
   createdAt: string;
   updatedAt: string;
   groups: AthleteGroupSummary[];
+  contacts: AthleteContact[];
 };
 
 export type TrainingGroupModuleKey = "kindertraining" | null;
@@ -34,6 +45,19 @@ export type TrainingGroup = {
   updatedAt: string;
 };
 
+export type Trainer = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  phone: string | null;
+  email: string | null;
+  notes: string | null;
+  isActive: boolean;
+  linkedUserId: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type AthleteInput = {
   firstName: string;
   lastName: string;
@@ -41,6 +65,7 @@ export type AthleteInput = {
   notes: string;
   isActive: boolean;
   groupIds: string[];
+  contacts: AthleteContact[];
 };
 
 export type TrainingGroupInput = {
@@ -52,4 +77,13 @@ export type TrainingGroupInput = {
   moduleKey: TrainingGroupModuleKey;
   regularWeekdays: number[];
   allowSpecialTraining: boolean;
+};
+
+export type TrainerInput = {
+  firstName: string;
+  lastName: string;
+  phone: string;
+  email: string;
+  notes: string;
+  isActive: boolean;
 };

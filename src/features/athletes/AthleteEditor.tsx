@@ -1,7 +1,8 @@
 import { useMemo, useState, type FormEvent } from "react";
-import { Save, X } from "lucide-react";
+import { Phone, Plus, Save, ShieldAlert, Trash2, X } from "lucide-react";
 import type {
   Athlete,
+  AthleteContact,
   AthleteInput,
   TrainingGroup,
 } from "@/features/athletes/types";
@@ -18,6 +19,18 @@ type AthleteEditorProps = {
   onSubmit: (values: AthleteInput) => Promise<void>;
 };
 
+function emptyContact(): AthleteContact {
+  return {
+    id: null,
+    contactName: "",
+    relationship: "",
+    phone: "",
+    isEmergency: true,
+    priority: 1,
+    notes: "",
+  };
+}
+
 function initialValues(mode: AthleteEditorMode): AthleteInput {
   if (mode.type === "create") {
     return {
@@ -27,6 +40,7 @@ function initialValues(mode: AthleteEditorMode): AthleteInput {
       notes: "",
       isActive: true,
       groupIds: [],
+      contacts: [],
     };
   }
 
@@ -37,6 +51,7 @@ function initialValues(mode: AthleteEditorMode): AthleteInput {
     notes: mode.athlete.notes ?? "",
     isActive: mode.athlete.isActive,
     groupIds: mode.athlete.groups.map((group) => group.id),
+    contacts: mode.athlete.contacts.map((contact) => ({ ...contact })),
   };
 }
 
@@ -58,16 +73,18 @@ export function AthleteEditor({
   const currentYear = new Date().getFullYear();
 
   const selectableGroups = useMemo(
-    () =>
-      groups.filter(
-        (group) => group.isActive || values.groupIds.includes(group.id),
-      ),
+    () => groups.filter((group) => group.isActive || values.groupIds.includes(group.id)),
     [groups, values.groupIds],
+  );
+
+  const contactsValid = values.contacts.every(
+    (contact) => contact.contactName.trim().length > 0 && contact.phone.trim().length >= 3,
   );
 
   const canSave =
     values.firstName.trim().length > 0 &&
     values.lastName.trim().length > 0 &&
+    contactsValid &&
     (values.birthYear === null ||
       (values.birthYear >= 1900 && values.birthYear <= currentYear));
 
@@ -96,6 +113,31 @@ export function AthleteEditor({
     }));
   }
 
+  function addContact() {
+    setValues((current) => ({
+      ...current,
+      contacts: [...current.contacts, { ...emptyContact(), priority: current.contacts.length + 1 }],
+    }));
+  }
+
+  function updateContact(index: number, changes: Partial<AthleteContact>) {
+    setValues((current) => ({
+      ...current,
+      contacts: current.contacts.map((contact, contactIndex) =>
+        contactIndex === index ? { ...contact, ...changes } : contact,
+      ),
+    }));
+  }
+
+  function removeContact(index: number) {
+    setValues((current) => ({
+      ...current,
+      contacts: current.contacts
+        .filter((_, contactIndex) => contactIndex !== index)
+        .map((contact, contactIndex) => ({ ...contact, priority: contactIndex + 1 })),
+    }));
+  }
+
   return (
     <section className="management-editor athlete-editor" aria-labelledby="athlete-editor-title">
       <div className="management-editor-heading">
@@ -104,7 +146,7 @@ export function AthleteEditor({
           <h2 id="athlete-editor-title">
             {mode.type === "create" ? "Athlet anlegen" : "Athlet bearbeiten"}
           </h2>
-          <p>Stammdaten und aktuelle Gruppenzuordnungen zentral verwalten.</p>
+          <p>Stammdaten, Gruppen und Notfallkontakte zentral verwalten.</p>
         </div>
         <button
           type="button"
@@ -165,7 +207,7 @@ export function AthleteEditor({
               }
               placeholder="z. B. 2014"
             />
-            <small>Das Geburtsjahr genügt für Altersklassen und reduziert sensible Daten.</small>
+            <small>Das Geburtsjahr genügt für Altersklassen.</small>
           </label>
 
           {mode.type === "edit" && (
@@ -183,7 +225,7 @@ export function AthleteEditor({
                 <option value="active">Aktiv</option>
                 <option value="inactive">Inaktiv</option>
               </select>
-              <small>Inaktive Athleten bleiben für spätere Auswertungen erhalten.</small>
+              <small>Inaktive Athleten bleiben für Auswertungen erhalten.</small>
             </label>
           )}
         </div>
@@ -196,11 +238,110 @@ export function AthleteEditor({
               setValues((current) => ({ ...current, notes: event.target.value }))
             }
             maxLength={3000}
-            rows={4}
+            rows={3}
             placeholder="Optional, nur für berechtigte Vereinsmitglieder"
           />
           <small>{values.notes.length} / 3000 Zeichen</small>
         </label>
+
+        <fieldset className="contact-selection">
+          <div className="fieldset-heading">
+            <div>
+              <legend>Kontakte und Notfallkontakte</legend>
+              <p className="field-hint">
+                Telefonnummern sind im Kindertraining direkt beim Kind abrufbar.
+              </p>
+            </div>
+            <button
+              type="button"
+              className="secondary-button compact-button"
+              onClick={addContact}
+              disabled={values.contacts.length >= 10}
+            >
+              <Plus aria-hidden="true" /> Kontakt
+            </button>
+          </div>
+
+          {values.contacts.length === 0 ? (
+            <div className="inline-empty-state compact-empty-state">
+              <Phone aria-hidden="true" /> Noch kein Kontakt hinterlegt.
+            </div>
+          ) : (
+            <div className="contact-editor-list">
+              {values.contacts.map((contact, index) => (
+                <article className="contact-editor-card" key={contact.id ?? `new-${index}`}>
+                  <div className="contact-editor-card-heading">
+                    <strong>Kontakt {index + 1}</strong>
+                    <button
+                      type="button"
+                      className="icon-button danger-icon-button"
+                      onClick={() => removeContact(index)}
+                      aria-label={`Kontakt ${index + 1} entfernen`}
+                    >
+                      <Trash2 aria-hidden="true" />
+                    </button>
+                  </div>
+                  <div className="form-grid contact-grid">
+                    <label>
+                      Name
+                      <input
+                        type="text"
+                        value={contact.contactName}
+                        onChange={(event) => updateContact(index, { contactName: event.target.value })}
+                        maxLength={120}
+                        placeholder="z. B. Maria Mustermann"
+                        required
+                      />
+                    </label>
+                    <label>
+                      Beziehung
+                      <input
+                        type="text"
+                        value={contact.relationship}
+                        onChange={(event) => updateContact(index, { relationship: event.target.value })}
+                        maxLength={80}
+                        placeholder="z. B. Mutter"
+                      />
+                    </label>
+                    <label>
+                      Telefonnummer
+                      <input
+                        type="tel"
+                        value={contact.phone}
+                        onChange={(event) => updateContact(index, { phone: event.target.value })}
+                        maxLength={40}
+                        autoComplete="tel"
+                        placeholder="+43 …"
+                        required
+                      />
+                    </label>
+                    <label className="contact-emergency-toggle">
+                      <input
+                        type="checkbox"
+                        checked={contact.isEmergency}
+                        onChange={(event) => updateContact(index, { isEmergency: event.target.checked })}
+                      />
+                      <span>
+                        <ShieldAlert aria-hidden="true" />
+                        <strong>Notfallkontakt</strong>
+                      </span>
+                    </label>
+                  </div>
+                  <label className="full-width-field">
+                    Kurze Notiz
+                    <input
+                      type="text"
+                      value={contact.notes}
+                      onChange={(event) => updateContact(index, { notes: event.target.value })}
+                      maxLength={500}
+                      placeholder="Optional"
+                    />
+                  </label>
+                </article>
+              ))}
+            </div>
+          )}
+        </fieldset>
 
         <fieldset className="group-selection">
           <legend>Aktuelle Trainingsgruppen</legend>
@@ -237,12 +378,7 @@ export function AthleteEditor({
         </fieldset>
 
         <div className="management-actions">
-          <button
-            type="button"
-            className="secondary-button"
-            onClick={onCancel}
-            disabled={busy}
-          >
+          <button type="button" className="secondary-button" onClick={onCancel} disabled={busy}>
             Abbrechen
           </button>
           <button type="submit" className="primary-button" disabled={!canSave || busy}>

@@ -1,30 +1,38 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
+  BarChart3,
   CalendarPlus,
+  CheckCheck,
   ChevronLeft,
   ChevronRight,
   CircleHelp,
   Clock3,
   CloudCheck,
+  MapPin,
+  Phone,
   RefreshCw,
   Search,
   Settings2,
+  Trash2,
   UserCheck,
   UserMinus,
   UserPlus,
   UsersRound,
+  X,
 } from "lucide-react";
 import { Link, Navigate } from "react-router-dom";
 import { useNavigationGuard } from "@/components/layout/NavigationGuardContext";
 import {
   createKindertrainingAthlete,
+  deleteKindertrainingSpecialSession,
   loadKindertrainingConfiguration,
   loadKindertrainingSession,
   saveKindertrainingSession,
 } from "@/features/kindertraining/api";
 import { QuickAthleteDialog } from "@/features/kindertraining/QuickAthleteDialog";
 import type {
+  AthleteEmergencyContact,
   AthleteNameSort,
   AttendanceStatus,
   KindertrainingConfiguration,
@@ -32,6 +40,7 @@ import type {
   KindertrainingParticipant,
   KindertrainingSession,
   QuickAthleteResult,
+  TrainingEnvironment,
 } from "@/features/kindertraining/types";
 import { useAuth } from "@/features/auth/AuthContext";
 
@@ -152,6 +161,8 @@ function makeDraft(session: KindertrainingSession): KindertrainingDraft {
     attendance: Object.fromEntries(
       session.participants.map((participant) => [participant.athleteId, participant.status]),
     ),
+    environment: session.environment,
+    trainerIds: session.trainerIds,
   };
 }
 
@@ -166,6 +177,8 @@ function draftSignature(
       participant.athleteId,
       draft.attendance[participant.athleteId] ?? "open",
     ]),
+    environment: draft.environment,
+    trainerIds: [...draft.trainerIds].sort(),
   });
 }
 
@@ -220,6 +233,8 @@ type SaveSnapshot = {
   state: KindertrainingDraft["state"];
   note: string;
   attendance: Record<string, AttendanceStatus>;
+  environment: TrainingEnvironment;
+  trainerIds: string[];
   participants: KindertrainingParticipant[];
   revision: number;
   forceCreate: boolean;
@@ -248,6 +263,8 @@ export function KindertrainingDraftPage() {
     state: "scheduled",
     note: "",
     attendance: {},
+    environment: null,
+    trainerIds: [],
   });
   const [baseline, setBaseline] = useState<KindertrainingDraft | null>(null);
   const [forceCreateSpecial, setForceCreateSpecial] = useState(false);
@@ -257,6 +274,11 @@ export function KindertrainingDraftPage() {
   const [autoSaveState, setAutoSaveState] = useState<AutoSaveState>("idle");
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [selectedContacts, setSelectedContacts] = useState<{
+    athleteName: string;
+    contacts: AthleteEmergencyContact[];
+  } | null>(null);
+  const [deletingSpecial, setDeletingSpecial] = useState(false);
 
   const requestIdRef = useRef(0);
   const initializedDateRef = useRef(false);
@@ -432,6 +454,8 @@ export function KindertrainingDraftPage() {
       state: draftRef.current.state,
       note: draftRef.current.note,
       attendance: { ...draftRef.current.attendance },
+      environment: draftRef.current.environment,
+      trainerIds: [...draftRef.current.trainerIds],
       participants: [...participantsRef.current],
       revision: revisionRef.current,
       forceCreate: forceCreateSpecialRef.current,
@@ -456,6 +480,8 @@ export function KindertrainingDraftPage() {
         note: snapshot.note,
         participants: snapshot.participants,
         attendance: snapshot.attendance,
+        environment: snapshot.environment,
+        trainerIds: snapshot.trainerIds,
         expectedUpdatedAt: expectedSession?.updatedAt ?? null,
       });
 
@@ -689,6 +715,77 @@ export function KindertrainingDraftPage() {
     if (result.status !== "duplicate") setSuccessMessage(messages[result.status]);
   }
 
+  function toggleTrainer(trainerId: string, checked: boolean): void {
+    updateDraft((current) => ({
+      ...current,
+      trainerIds: checked
+        ? [...new Set([...current.trainerIds, trainerId])]
+        : current.trainerIds.filter((id) => id !== trainerId),
+    }));
+  }
+
+  function setEnvironment(environment: TrainingEnvironment): void {
+    updateDraft((current) => ({ ...current, environment }));
+  }
+
+  function markAllOpenAbsent(): void {
+    const openCount = participants.filter(
+      (participant) => (draft.attendance[participant.athleteId] ?? "open") === "open",
+    ).length;
+    if (openCount === 0) return;
+    if (!window.confirm(`${openCount} offene Kinder wirklich auf „Fehlt“ setzen?`)) return;
+
+    updateDraft((current) => ({
+      ...current,
+      attendance: Object.fromEntries(
+        participants.map((participant) => [
+          participant.athleteId,
+          (current.attendance[participant.athleteId] ?? "open") === "open"
+            ? "absent"
+            : (current.attendance[participant.athleteId] ?? "open"),
+        ]),
+      ),
+    }));
+  }
+
+  async function deleteSpecialTraining(): Promise<void> {
+    if (!organizationId || !group?.id || !session?.isSpecial || !session.id) return;
+    if (!window.confirm(`Sondertraining am ${formatLongDate(selectedDate)} löschen?`)) return;
+    if (!(await flushPendingSave())) return;
+
+    setDeletingSpecial(true);
+    setError(null);
+    try {
+      const result = await deleteKindertrainingSpecialSession(
+        organizationId,
+        group.id,
+        selectedDate,
+      );
+      const remainingSpecialDates = allSpecialDates.filter((date) => date !== selectedDate);
+      setTransientSpecialDates((current) => current.filter((date) => date !== selectedDate));
+      setConfiguration((current) => current
+        ? { ...current, specialDates: current.specialDates.filter((date) => date !== selectedDate) }
+        : current);
+      sessionByDateRef.current[selectedDate] = null;
+      setSuccessMessage(
+        result === "archived"
+          ? "Das Sondertraining wurde aus der Planung entfernt und für die Historie archiviert."
+          : "Das Sondertraining wurde gelöscht.",
+      );
+      const previousDate = findTrainingDate(
+        selectedDate,
+        -1,
+        group.regularWeekdays,
+        remainingSpecialDates,
+      );
+      setSelectedDate(previousDate);
+    } catch (deleteError) {
+      setError(errorMessage(deleteError));
+    } finally {
+      setDeletingSpecial(false);
+    }
+  }
+
   function autosaveLabel() {
     if (autoSaveState === "error") {
       return (
@@ -735,22 +832,32 @@ export function KindertrainingDraftPage() {
           <h1>Kindertraining</h1>
           <p>Anwesenheit schnell erfassen und direkt am Handy verwalten.</p>
         </div>
-        <span
-          className={`training-save-badge ${
-            autoSaveState === "error" ||
-            autoSaveState === "pending" ||
-            autoSaveState === "saving" ||
-            dirty ||
-            forceCreateSpecial
-              ? "dirty"
-              : autoSaveState === "saved" || session?.updatedAt
-                ? "saved"
-                : "new"
-          }`}
-          aria-live="polite"
-        >
-          {autosaveLabel()}
-        </span>
+        <div className="kindertraining-heading-actions">
+          <Link
+            className="icon-button statistics-link"
+            to="/module/kindertraining/statistik"
+            aria-label="Kindertraining-Statistik öffnen"
+            title="Statistik"
+          >
+            <BarChart3 aria-hidden="true" />
+          </Link>
+          <span
+            className={`training-save-badge ${
+              autoSaveState === "error" ||
+              autoSaveState === "pending" ||
+              autoSaveState === "saving" ||
+              dirty ||
+              forceCreateSpecial
+                ? "dirty"
+                : autoSaveState === "saved" || session?.updatedAt
+                  ? "saved"
+                  : "new"
+            }`}
+            aria-live="polite"
+          >
+            {autosaveLabel()}
+          </span>
+        </div>
       </div>
 
       {!canEdit && (
@@ -874,6 +981,17 @@ export function KindertrainingDraftPage() {
                     <CalendarPlus aria-hidden="true" /> Sondertraining
                   </button>
                 )}
+                {session?.isSpecial && session.id && canEdit && (
+                  <button
+                    type="button"
+                    className="text-button danger-text-button"
+                    disabled={sessionLoading || deletingSpecial}
+                    onClick={() => void deleteSpecialTraining()}
+                  >
+                    <Trash2 aria-hidden="true" />
+                    {deletingSpecial ? "Löscht …" : "Sondertraining löschen"}
+                  </button>
+                )}
               </div>
             </div>
           </section>
@@ -972,6 +1090,17 @@ export function KindertrainingDraftPage() {
                       Kind hinzufügen
                     </button>
                   )}
+                  <div className="attendance-progress-row">
+                    <span>
+                      <CheckCheck aria-hidden="true" />
+                      {participants.length - counts.open} von {participants.length} erfasst
+                    </span>
+                    {canEdit && counts.open > 0 && draft.state !== "cancelled" && (
+                      <button type="button" className="text-button" onClick={markAllOpenAbsent}>
+                        Alle offenen auf Fehlt
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {draft.state === "cancelled" ? (
@@ -1002,6 +1131,21 @@ export function KindertrainingDraftPage() {
                               {participant.birthYear ? `Jahrgang ${participant.birthYear}` : "Kein Jahrgang"}
                             </small>
                           </div>
+
+                          {participant.contacts.length > 0 && (
+                            <button
+                              type="button"
+                              className="icon-button contact-button"
+                              onClick={() => setSelectedContacts({
+                                athleteName: athleteDisplayName(participant, sortMode),
+                                contacts: participant.contacts,
+                              })}
+                              aria-label={`Kontaktdaten von ${athleteDisplayName(participant, sortMode)} anzeigen`}
+                              title="Notfallkontakte"
+                            >
+                              <Phone aria-hidden="true" />
+                            </button>
+                          )}
 
                           <div className="compact-status-actions" aria-label="Status wählen">
                             {STATUS_OPTIONS.filter((status) => status.value !== currentStatus).map(
@@ -1034,6 +1178,58 @@ export function KindertrainingDraftPage() {
                   Trainingseinstellungen und Notiz
                 </summary>
                 <div className="training-details-content">
+                  <fieldset className="training-environment-field">
+                    <legend><MapPin aria-hidden="true" /> Trainingsort</legend>
+                    <div className="segmented-control four-options">
+                      {([
+                        [null, "Offen"],
+                        ["indoor", "Indoor"],
+                        ["outdoor", "Outdoor"],
+                        ["mixed", "Gemischt"],
+                      ] as const).map(([value, label]) => (
+                        <button
+                          type="button"
+                          className={draft.environment === value ? "active" : ""}
+                          onClick={() => setEnvironment(value)}
+                          disabled={!canEdit}
+                          key={label}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </fieldset>
+
+                  <fieldset className="training-trainer-field">
+                    <legend><UsersRound aria-hidden="true" /> Anwesende Trainer</legend>
+                    {(session?.availableTrainers ?? []).length === 0 ? (
+                      <div className="inline-empty-state compact-empty-state">
+                        Noch keine Trainer angelegt.
+                        <Link to="/module/athletes?tab=trainers">Trainer verwalten</Link>
+                      </div>
+                    ) : (
+                      <div className="trainer-checkbox-grid">
+                        {(session?.availableTrainers ?? []).map((trainer) => (
+                          <label className="trainer-checkbox" key={trainer.id}>
+                            <input
+                              type="checkbox"
+                              checked={draft.trainerIds.includes(trainer.id)}
+                              onChange={(event) => toggleTrainer(trainer.id, event.target.checked)}
+                              disabled={!canEdit}
+                            />
+                            <span>
+                              <strong>{trainer.firstName} {trainer.lastName}</strong>
+                              {!trainer.isActive && <small>Inaktiv</small>}
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                    {session?.usesDefaults && !session?.id && (
+                      <small>Auswahl aus dem letzten Training vorgeschlagen.</small>
+                    )}
+                  </fieldset>
+
                   <label className="cancel-training-toggle">
                     <input
                       type="checkbox"
@@ -1105,6 +1301,42 @@ export function KindertrainingDraftPage() {
             </>
           ) : null}
         </>
+      )}
+
+      {selectedContacts && (
+        <div className="contact-dialog-backdrop" role="presentation" onMouseDown={() => setSelectedContacts(null)}>
+          <section
+            className="contact-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="contact-dialog-title"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <div className="contact-dialog-heading">
+              <div>
+                <p className="eyebrow">Kontakt</p>
+                <h2 id="contact-dialog-title">{selectedContacts.athleteName}</h2>
+              </div>
+              <button type="button" className="icon-button" onClick={() => setSelectedContacts(null)} aria-label="Kontakte schließen">
+                <X aria-hidden="true" />
+              </button>
+            </div>
+            <div className="contact-dialog-list">
+              {selectedContacts.contacts.map((contact) => (
+                <article key={contact.id}>
+                  <div>
+                    <strong>{contact.contactName}</strong>
+                    <small>{[contact.relationship, contact.isEmergency ? "Notfallkontakt" : null].filter(Boolean).join(" · ")}</small>
+                  </div>
+                  <a className="primary-button link-button" href={`tel:${contact.phone}`}>
+                    <Phone aria-hidden="true" /> {contact.phone}
+                  </a>
+                  {contact.notes && <p>{contact.notes}</p>}
+                </article>
+              ))}
+            </div>
+          </section>
+        </div>
       )}
 
       {showQuickAthlete && (

@@ -2115,3 +2115,199 @@ input:focus-visible {
     font-size: 0.75rem;
   }
 }
+
+/* Kindertraining-Ausbau: Kontakte und Trainerstammdaten */
+.contact-selection {
+  margin: 0;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--green-50);
+}
+
+.fieldset-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.fieldset-heading legend {
+  padding: 0;
+  font-weight: 800;
+  color: var(--green-950);
+}
+
+.compact-button {
+  min-height: 38px;
+  padding: 0.45rem 0.7rem;
+}
+
+.compact-empty-state {
+  min-height: auto;
+  padding: 0.8rem;
+}
+
+.compact-empty-state svg {
+  width: 18px;
+  height: 18px;
+}
+
+.contact-editor-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.contact-editor-card {
+  display: grid;
+  gap: 0.7rem;
+  padding: 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: #fff;
+}
+
+.contact-editor-card-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.contact-grid {
+  align-items: end;
+}
+
+.contact-emergency-toggle {
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--green-50);
+}
+
+.contact-emergency-toggle > span {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.contact-emergency-toggle svg {
+  width: 18px;
+  height: 18px;
+  color: var(--danger);
+}
+
+.danger-icon-button,
+.danger-text-button {
+  color: var(--danger) !important;
+}
+
+.emergency-contact-badge {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 0.3rem;
+  border-color: #ffd3d0 !important;
+  background: #fff3f2 !important;
+  color: #9d2420 !important;
+}
+
+.emergency-contact-badge svg {
+  width: 14px;
+  height: 14px;
+}
+
+.management-tabs.three-tabs {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.trainer-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 0.8rem;
+}
+
+.trainer-card {
+  position: relative;
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: var(--shadow);
+}
+
+.trainer-card.inactive {
+  opacity: 0.68;
+  background: var(--green-50);
+}
+
+.trainer-card-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding-right: 2.7rem;
+}
+
+.trainer-card-heading h2,
+.trainer-card-heading p {
+  margin: 0;
+}
+
+.trainer-card-heading h2 {
+  font-size: 1rem;
+}
+
+.trainer-card-heading p {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.trainer-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: var(--primary-soft);
+  color: var(--green-800);
+  font-weight: 800;
+}
+
+.trainer-contact-lines {
+  display: grid;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+}
+
+.trainer-contact-lines a,
+.trainer-contact-lines span {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--text-color);
+  text-decoration: none;
+}
+
+.trainer-contact-lines svg {
+  width: 16px;
+  height: 16px;
+  color: var(--green-800);
+}
+
+.trainer-notes {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.trainer-edit-button {
+  position: absolute;
+  top: 0.7rem;
+  right: 0.7rem;
+}

@@ -917,3 +917,233 @@
     grid-template-columns: 0.65fr 1.35fr;
   }
 }
+
+/* Kindertraining – Trainer, Kontakte, Sondertraining und Statistiklink */
+.kindertraining-heading-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.statistics-link {
+  flex: 0 0 auto;
+  background: #fff;
+  border: 1px solid var(--border);
+  color: var(--green-800);
+  text-decoration: none;
+}
+
+.attendance-progress-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.7rem;
+  min-height: 34px;
+  padding: 0.35rem 0.2rem 0;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.attendance-progress-row > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-weight: 700;
+}
+
+.attendance-progress-row svg {
+  width: 16px;
+  height: 16px;
+  color: var(--green-800);
+}
+
+.compact-attendance-row .contact-button {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  flex: 0 0 auto;
+  color: #9c2d27;
+  background: #fff4f3;
+  border-color: #ffd8d4;
+}
+
+.training-environment-field,
+.training-trainer-field {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.training-environment-field legend,
+.training-trainer-field legend {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.45rem;
+  font-weight: 800;
+  color: var(--green-950);
+}
+
+.training-environment-field legend svg,
+.training-trainer-field legend svg {
+  width: 18px;
+  height: 18px;
+  color: var(--green-800);
+}
+
+.segmented-control {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--green-50);
+}
+
+.segmented-control.four-options {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.segmented-control button {
+  min-height: 38px;
+  padding: 0.4rem 0.35rem;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 750;
+}
+
+.segmented-control button.active {
+  background: #fff;
+  color: var(--green-800);
+  box-shadow: var(--shadow);
+}
+
+.trainer-checkbox-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 0.45rem;
+}
+
+.trainer-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-height: 44px;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: #fff;
+}
+
+.trainer-checkbox span {
+  display: grid;
+}
+
+.trainer-checkbox small,
+.training-trainer-field > small {
+  color: var(--muted);
+}
+
+.contact-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(15, 35, 25, 0.48);
+  backdrop-filter: blur(3px);
+}
+
+.contact-dialog {
+  width: min(460px, 100%);
+  max-height: min(80vh, 680px);
+  overflow: auto;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 24px 60px rgba(8, 34, 21, 0.24);
+}
+
+.contact-dialog-heading {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem;
+  border-bottom: 1px solid var(--border);
+  background: #fff;
+}
+
+.contact-dialog-heading h2,
+.contact-dialog-heading p {
+  margin: 0;
+}
+
+.contact-dialog-list {
+  display: grid;
+  gap: 0.7rem;
+  padding: 0.9rem;
+}
+
+.contact-dialog-list article {
+  display: grid;
+  gap: 0.55rem;
+  padding: 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--green-50);
+}
+
+.contact-dialog-list article > div {
+  display: grid;
+}
+
+.contact-dialog-list small {
+  color: var(--muted);
+}
+
+.contact-dialog-list p {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.contact-dialog-list .link-button {
+  justify-content: center;
+}
+
+@media (max-width: 640px) {
+  .kindertraining-heading-actions {
+    align-self: flex-start;
+  }
+
+  .attendance-progress-row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .segmented-control.four-options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .trainer-checkbox-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .contact-dialog-backdrop {
+    align-items: end;
+    padding: 0;
+  }
+
+  .contact-dialog {
+    width: 100%;
+    max-height: 88vh;
+    border-radius: 20px 20px 0 0;
+  }
+}
