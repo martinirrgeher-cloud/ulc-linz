@@ -5,6 +5,7 @@ import "@/styles/global.css";
 import "@/styles/mobile.css";
 import "@/styles/kindertraining.css";
 import "@/styles/statistics.css";
+import "@/styles/performance-registration.css";
 
 const rootElement = document.getElementById("root");
 if (!rootElement) throw new Error("Root-Element wurde nicht gefunden.");

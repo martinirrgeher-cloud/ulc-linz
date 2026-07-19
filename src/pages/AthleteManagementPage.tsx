@@ -37,6 +37,7 @@ import {
 import type {
   Athlete,
   AthleteInput,
+  LinkableUser,
   Trainer,
   TrainerInput,
   TrainingGroup,
@@ -111,6 +112,7 @@ export function AthleteManagementPage() {
   const [athletes, setAthletes] = useState<Athlete[]>([]);
   const [groups, setGroups] = useState<TrainingGroup[]>([]);
   const [trainers, setTrainers] = useState<Trainer[]>([]);
+  const [linkableUsers, setLinkableUsers] = useState<LinkableUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -130,16 +132,17 @@ export function AthleteManagementPage() {
     setLoading(true);
     setError(null);
     try {
-      const data = await loadAthleteManagement(organizationId);
+      const data = await loadAthleteManagement(organizationId, canEdit);
       setAthletes(data.athletes);
       setGroups(data.groups);
       setTrainers(data.trainers);
+      setLinkableUsers(data.linkableUsers);
     } catch (loadError) {
       setError(errorMessage(loadError));
     } finally {
       setLoading(false);
     }
-  }, [canView, organizationId]);
+  }, [canEdit, canView, organizationId]);
 
   useEffect(() => {
     void loadData();
@@ -343,6 +346,7 @@ export function AthleteManagementPage() {
           key={athleteEditor.type === "create" ? "new-athlete" : `athlete-${athleteEditor.athlete.id}`}
           mode={athleteEditor}
           groups={groups}
+          linkableUsers={linkableUsers}
           busy={busy}
           onCancel={closeEditors}
           onSubmit={handleAthleteSubmit}
@@ -364,6 +368,7 @@ export function AthleteManagementPage() {
           key={trainerEditor.type === "create" ? "new-trainer" : `trainer-${trainerEditor.trainer.id}`}
           mode={trainerEditor}
           groups={groups}
+          linkableUsers={linkableUsers}
           busy={busy}
           onCancel={closeEditors}
           onSubmit={handleTrainerSubmit}
@@ -483,6 +488,7 @@ export function AthleteManagementPage() {
                             : group.moduleKey === "u14"
                               ? "U14"
                               : null,
+                        group.isPerformanceGroup ? "Leistungsgruppe" : null,
                       ]
                         .filter(Boolean)
                         .join(" · ")}
@@ -495,6 +501,12 @@ export function AthleteManagementPage() {
                   <div><dt>Reihenfolge</dt><dd>{group.sortOrder}</dd></div>
                   <div><dt>Trainingstage</dt><dd>{formatWeekdays(group.regularWeekdays)}</dd></div>
                   <div><dt>Status</dt><dd>{group.isActive ? "Aktiv" : "Inaktiv"}</dd></div>
+                  {group.isPerformanceGroup && (
+                    <div>
+                      <dt>Anmeldeschluss</dt>
+                      <dd>{WEEKDAY_LABELS[group.registrationDeadlineWeekday]} {group.registrationDeadlineTime}</dd>
+                    </div>
+                  )}
                   {group.moduleKey !== null && (
                     <div>
                       <dt>Sondertraining</dt>

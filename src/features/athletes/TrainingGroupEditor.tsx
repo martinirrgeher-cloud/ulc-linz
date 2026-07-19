@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { CalendarDays, Save, X } from "lucide-react";
+import { CalendarClock, CalendarDays, Save, X } from "lucide-react";
 import type {
   TrainingGroup,
   TrainingGroupInput,
@@ -37,6 +37,11 @@ function initialValues(mode: TrainingGroupEditorMode): TrainingGroupInput {
       moduleKey: null,
       regularWeekdays: [],
       allowSpecialTraining: true,
+      isPerformanceGroup: false,
+      registrationDeadlineWeekday: 7,
+      registrationDeadlineTime: "18:00",
+      performanceWeeksAhead: 4,
+      allowLateRegistration: true,
     };
   }
 
@@ -49,6 +54,11 @@ function initialValues(mode: TrainingGroupEditorMode): TrainingGroupInput {
     moduleKey: mode.group.moduleKey,
     regularWeekdays: mode.group.regularWeekdays,
     allowSpecialTraining: mode.group.allowSpecialTraining,
+    isPerformanceGroup: mode.group.isPerformanceGroup,
+    registrationDeadlineWeekday: mode.group.registrationDeadlineWeekday,
+    registrationDeadlineTime: mode.group.registrationDeadlineTime,
+    performanceWeeksAhead: mode.group.performanceWeeksAhead,
+    allowLateRegistration: mode.group.allowLateRegistration,
   };
 }
 
@@ -63,7 +73,7 @@ export function TrainingGroupEditor({
   const canSave =
     values.name.trim().length >= 2 &&
     values.sortOrder >= 0 &&
-    (values.moduleKey === null || values.regularWeekdays.length > 0);
+    ((values.moduleKey === null && !values.isPerformanceGroup) || values.regularWeekdays.length > 0);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -247,9 +257,101 @@ export function TrainingGroupEditor({
           </label>
         </div>
 
-        {values.moduleKey !== null && values.regularWeekdays.length === 0 && (
+        <fieldset className="performance-group-fieldset">
+          <legend>
+            <CalendarClock aria-hidden="true" /> Leistungsgruppe
+          </legend>
+
+          <label className="setting-checkbox">
+            <input
+              type="checkbox"
+              checked={values.isPerformanceGroup}
+              onChange={(event) =>
+                setValues((current) => ({
+                  ...current,
+                  isPerformanceGroup: event.target.checked,
+                }))
+              }
+            />
+            <span>
+              <strong>Trainingsanmeldung für diese Gruppe aktivieren</strong>
+              <small>Athleten und Trainer können ihre Verfügbarkeit wochenweise eintragen.</small>
+            </span>
+          </label>
+
+          {values.isPerformanceGroup && (
+            <div className="performance-settings-grid">
+              <label>
+                Anmeldeschluss
+                <select
+                  value={values.registrationDeadlineWeekday}
+                  onChange={(event) =>
+                    setValues((current) => ({
+                      ...current,
+                      registrationDeadlineWeekday: Number(event.target.value),
+                    }))
+                  }
+                >
+                  {WEEKDAYS.map((weekday) => (
+                    <option value={weekday.value} key={weekday.value}>{weekday.label}</option>
+                  ))}
+                </select>
+                <small>Wochentag vor Beginn der jeweiligen Trainingswoche.</small>
+              </label>
+
+              <label>
+                Uhrzeit
+                <input
+                  type="time"
+                  value={values.registrationDeadlineTime}
+                  onChange={(event) =>
+                    setValues((current) => ({
+                      ...current,
+                      registrationDeadlineTime: event.target.value || "18:00",
+                    }))
+                  }
+                />
+              </label>
+
+              <label>
+                Wochen im Voraus
+                <input
+                  type="number"
+                  min={1}
+                  max={12}
+                  value={values.performanceWeeksAhead}
+                  onChange={(event) =>
+                    setValues((current) => ({
+                      ...current,
+                      performanceWeeksAhead: Math.min(12, Math.max(1, Number(event.target.value) || 1)),
+                    }))
+                  }
+                />
+              </label>
+
+              <label className="setting-checkbox compact-setting-checkbox">
+                <input
+                  type="checkbox"
+                  checked={values.allowLateRegistration}
+                  onChange={(event) =>
+                    setValues((current) => ({
+                      ...current,
+                      allowLateRegistration: event.target.checked,
+                    }))
+                  }
+                />
+                <span>
+                  <strong>Nachmeldungen erlauben</strong>
+                  <small>Späte Änderungen werden in der Übersicht markiert.</small>
+                </span>
+              </label>
+            </div>
+          )}
+        </fieldset>
+
+        {(values.moduleKey !== null || values.isPerformanceGroup) && values.regularWeekdays.length === 0 && (
           <div className="alert warning compact-alert">
-            Für ein zugeordnetes Trainingsmodul muss mindestens ein Wochentag ausgewählt sein.
+            Für ein Trainingsmodul oder eine Leistungsgruppe muss mindestens ein Wochentag ausgewählt sein.
           </div>
         )}
 

@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { Save, X } from "lucide-react";
-import type { Trainer, TrainerInput, TrainingGroup } from "@/features/athletes/types";
+import type { LinkableUser, Trainer, TrainerInput, TrainingGroup } from "@/features/athletes/types";
 
 export type TrainerEditorMode =
   | { type: "create" }
@@ -9,6 +9,7 @@ export type TrainerEditorMode =
 type TrainerEditorProps = {
   mode: TrainerEditorMode;
   groups: TrainingGroup[];
+  linkableUsers: LinkableUser[];
   busy: boolean;
   onCancel: () => void;
   onSubmit: (values: TrainerInput) => Promise<void>;
@@ -23,6 +24,7 @@ function initialValues(mode: TrainerEditorMode): TrainerInput {
       email: "",
       notes: "",
       isActive: true,
+      linkedUserId: null,
       groupIds: [],
     };
   }
@@ -34,6 +36,7 @@ function initialValues(mode: TrainerEditorMode): TrainerInput {
     email: mode.trainer.email ?? "",
     notes: mode.trainer.notes ?? "",
     isActive: mode.trainer.isActive,
+    linkedUserId: mode.trainer.linkedUserId,
     groupIds: mode.trainer.groupIds,
   };
 }
@@ -41,6 +44,7 @@ function initialValues(mode: TrainerEditorMode): TrainerInput {
 export function TrainerEditor({
   mode,
   groups,
+  linkableUsers,
   busy,
   onCancel,
   onSubmit,
@@ -49,6 +53,12 @@ export function TrainerEditor({
   const [error, setError] = useState<string | null>(null);
 
   const canSave = values.firstName.trim().length > 0 && values.lastName.trim().length > 0;
+
+  const availableUsers = linkableUsers.filter((user) => (
+    !user.trainerId ||
+    user.userId === values.linkedUserId ||
+    (mode.type === "edit" && user.trainerId === mode.trainer.id)
+  ));
 
   function toggleGroup(groupId: string, checked: boolean) {
     setValues((current) => ({
@@ -150,6 +160,28 @@ export function TrainerEditor({
               placeholder="Optional"
             />
           </label>
+          <label>
+            App-Benutzerkonto
+            <select
+              value={values.linkedUserId ?? ""}
+              onChange={(event) =>
+                setValues((current) => ({
+                  ...current,
+                  linkedUserId: event.target.value || null,
+                }))
+              }
+            >
+              <option value="">Nicht verknüpft</option>
+              {availableUsers.map((user) => (
+                <option value={user.userId} key={user.userId}>
+                  {user.displayName} · {user.email}
+                  {user.status === "invited" ? " (eingeladen)" : ""}
+                </option>
+              ))}
+            </select>
+            <small>Erforderlich für die eigene Traineranwesenheit.</small>
+          </label>
+
           {mode.type === "edit" && (
             <label>
               Status

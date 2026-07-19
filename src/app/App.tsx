@@ -11,6 +11,7 @@ import { KindertrainingStatisticsPage } from "@/pages/KindertrainingStatisticsPa
 import { GroupTrainingPage } from "@/pages/GroupTrainingPage";
 import { GroupTrainingStatisticsPage } from "@/pages/GroupTrainingStatisticsPage";
 import { ModulePlaceholderPage } from "@/pages/ModulePlaceholderPage";
+import { PerformanceRegistrationPage } from "@/pages/PerformanceRegistrationPage";
 import { NoAccessPage } from "@/pages/NoAccessPage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
 import { RegisterPage } from "@/pages/RegisterPage";
@@ -110,6 +111,14 @@ export function App() {
                     title="U14"
                     trainingRoute="/module/u14"
                   />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="module/performance_registration"
+              element={
+                <ProtectedRoute moduleKey="performance_registration">
+                  <PerformanceRegistrationPage />
                 </ProtectedRoute>
               }
             />

@@ -14,6 +14,7 @@ import type {
   Athlete,
   AthleteContact,
   AthleteInput,
+  LinkableUser,
   TrainingGroup,
 } from "@/features/athletes/types";
 
@@ -24,6 +25,7 @@ export type AthleteEditorMode =
 type AthleteEditorProps = {
   mode: AthleteEditorMode;
   groups: TrainingGroup[];
+  linkableUsers: LinkableUser[];
   busy: boolean;
   onCancel: () => void;
   onSubmit: (values: AthleteInput) => Promise<void>;
@@ -51,6 +53,7 @@ function initialValues(mode: AthleteEditorMode): AthleteInput {
       birthYear: null,
       notes: "",
       isActive: true,
+      linkedUserId: null,
       groupIds: [],
       contacts: [],
     };
@@ -62,6 +65,7 @@ function initialValues(mode: AthleteEditorMode): AthleteInput {
     birthYear: mode.athlete.birthYear,
     notes: mode.athlete.notes ?? "",
     isActive: mode.athlete.isActive,
+    linkedUserId: mode.athlete.linkedUserId,
     groupIds: mode.athlete.groups.map((group) => group.id),
     contacts: mode.athlete.contacts.map((contact) => ({ ...contact })),
   };
@@ -76,6 +80,7 @@ function parseBirthYear(value: string): number | null {
 export function AthleteEditor({
   mode,
   groups,
+  linkableUsers,
   busy,
   onCancel,
   onSubmit,
@@ -84,6 +89,15 @@ export function AthleteEditor({
   const [section, setSection] = useState<EditorSection>("master");
   const [error, setError] = useState<string | null>(null);
   const currentYear = new Date().getFullYear();
+
+  const availableUsers = useMemo(
+    () => linkableUsers.filter((user) => (
+      !user.athleteId ||
+      user.userId === values.linkedUserId ||
+      (mode.type === "edit" && user.athleteId === mode.athlete.id)
+    )),
+    [linkableUsers, mode, values.linkedUserId],
+  );
 
   const selectableGroups = useMemo(
     () => groups.filter((group) => group.isActive || values.groupIds.includes(group.id)),
@@ -256,6 +270,28 @@ export function AthleteEditor({
                   }
                   placeholder="z. B. 2014"
                 />
+              </label>
+
+              <label>
+                App-Benutzerkonto
+                <select
+                  value={values.linkedUserId ?? ""}
+                  onChange={(event) =>
+                    setValues((current) => ({
+                      ...current,
+                      linkedUserId: event.target.value || null,
+                    }))
+                  }
+                >
+                  <option value="">Nicht verknüpft</option>
+                  {availableUsers.map((user) => (
+                    <option value={user.userId} key={user.userId}>
+                      {user.displayName} · {user.email}
+                      {user.status === "invited" ? " (eingeladen)" : ""}
+                    </option>
+                  ))}
+                </select>
+                <small>Erforderlich, damit der Athlet seine Trainingswoche selbst eintragen kann.</small>
               </label>
 
               {mode.type === "edit" && (

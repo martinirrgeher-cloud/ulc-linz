@@ -116,8 +116,8 @@ export const APP_MODULES: AppModuleDefinition[] = [
   },
   {
     key: "performance_registration",
-    title: "Anmeldung Leistungsgruppe",
-    description: "Wochenweise Trainingsanmeldung",
+    title: "Leistungsgruppen",
+    description: "Trainingsanmeldung und Wochenübersicht",
     route: "/module/performance_registration",
     icon: <CalendarCheck aria-hidden="true" />,
     groupKey: "training",

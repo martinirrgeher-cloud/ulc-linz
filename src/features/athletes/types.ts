@@ -15,6 +15,16 @@ export type AthleteContact = {
   notes: string;
 };
 
+export type LinkableUser = {
+  userId: string;
+  email: string;
+  displayName: string;
+  role: "admin" | "trainer" | "athlete" | "parent";
+  status: "invited" | "active" | "disabled";
+  athleteId: string | null;
+  trainerId: string | null;
+};
+
 export type Athlete = {
   id: string;
   firstName: string;
@@ -22,6 +32,7 @@ export type Athlete = {
   birthYear: number | null;
   notes: string | null;
   isActive: boolean;
+  linkedUserId: string | null;
   createdAt: string;
   updatedAt: string;
   groups: AthleteGroupSummary[];
@@ -41,6 +52,11 @@ export type TrainingGroup = {
   moduleKey: TrainingGroupModuleKey;
   regularWeekdays: number[];
   allowSpecialTraining: boolean;
+  isPerformanceGroup: boolean;
+  registrationDeadlineWeekday: number;
+  registrationDeadlineTime: string;
+  performanceWeeksAhead: number;
+  allowLateRegistration: boolean;
   createdAt: string;
   updatedAt: string;
 };
@@ -65,6 +81,7 @@ export type AthleteInput = {
   birthYear: number | null;
   notes: string;
   isActive: boolean;
+  linkedUserId: string | null;
   groupIds: string[];
   contacts: AthleteContact[];
 };
@@ -78,6 +95,11 @@ export type TrainingGroupInput = {
   moduleKey: TrainingGroupModuleKey;
   regularWeekdays: number[];
   allowSpecialTraining: boolean;
+  isPerformanceGroup: boolean;
+  registrationDeadlineWeekday: number;
+  registrationDeadlineTime: string;
+  performanceWeeksAhead: number;
+  allowLateRegistration: boolean;
 };
 
 export type TrainerInput = {
@@ -87,5 +109,6 @@ export type TrainerInput = {
   email: string;
   notes: string;
   isActive: boolean;
+  linkedUserId: string | null;
   groupIds: string[];
 };
