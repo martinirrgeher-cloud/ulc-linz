@@ -7,7 +7,6 @@ import {
   Dumbbell,
   LayoutDashboard,
   ListChecks,
-  Settings,
   UserRoundCog,
   Users,
 } from "lucide-react";
@@ -22,7 +21,6 @@ export type AppModuleKey =
   | "athletes"
   | "performance_registration"
   | "exercise_catalog"
-  | "exercise_management"
   | "training_planning"
   | "training_overview"
   | "training_blocks"
@@ -69,7 +67,7 @@ export const APP_MODULE_GROUPS: AppModuleGroupDefinition[] = [
   {
     key: "exercises",
     title: "Übungen",
-    description: "Übungen ansehen und verwalten",
+    description: "Übungen strukturiert erfassen und verwenden",
     sortOrder: 30,
   },
   {
@@ -162,20 +160,11 @@ export const APP_MODULES: AppModuleDefinition[] = [
   {
     key: "exercise_catalog",
     title: "Übungskatalog",
-    description: "Übungen suchen und ansehen",
+    description: "Übungen strukturiert erfassen und verwenden",
     route: "/module/exercise_catalog",
     icon: <BookOpen aria-hidden="true" />,
     groupKey: "exercises",
     sortOrder: 10,
-  },
-  {
-    key: "exercise_management",
-    title: "Übungspflege",
-    description: "Übungen und Medien verwalten",
-    route: "/module/exercise_management",
-    icon: <Settings aria-hidden="true" />,
-    groupKey: "exercises",
-    sortOrder: 20,
   },
   {
     key: "kindertraining_statistics",

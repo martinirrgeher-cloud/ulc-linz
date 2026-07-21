@@ -12,6 +12,7 @@ import { GroupTrainingPage } from "@/pages/GroupTrainingPage";
 import { GroupTrainingStatisticsPage } from "@/pages/GroupTrainingStatisticsPage";
 import { ModulePlaceholderPage } from "@/pages/ModulePlaceholderPage";
 import { PerformanceRegistrationPage } from "@/pages/PerformanceRegistrationPage";
+import { ExerciseCatalogPage } from "@/pages/ExerciseCatalogPage";
 import { NoAccessPage } from "@/pages/NoAccessPage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
 import { RegisterPage } from "@/pages/RegisterPage";
@@ -119,6 +120,14 @@ export function App() {
               element={
                 <ProtectedRoute moduleKey="performance_registration">
                   <PerformanceRegistrationPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="module/exercise_catalog"
+              element={
+                <ProtectedRoute moduleKey="exercise_catalog">
+                  <ExerciseCatalogPage />
                 </ProtectedRoute>
               }
             />

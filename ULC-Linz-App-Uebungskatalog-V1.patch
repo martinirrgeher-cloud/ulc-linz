@@ -1,0 +1,2864 @@
+diff --git a/UEBUNGSKATALOG-V1.md b/UEBUNGSKATALOG-V1.md
+new file mode 100644
+index 0000000..f248ded
+--- /dev/null
++++ b/UEBUNGSKATALOG-V1.md
+@@ -0,0 +1,59 @@
++# Übungskatalog V1
++
++## Ziel
++
++Der Übungskatalog bildet die strukturierte Grundlage für Trainingsblöcke, Trainingsplanung und Soll-Ist-Dokumentation der Leistungsgruppen.
++
++## Funktionen
++
++- Übungen anlegen, bearbeiten und deaktivieren
++- Kategorien für sprintorientiertes Leichtathletiktraining
++- Unterkategorie, Trainingsziel und Material
++- Durchführung, Trainerhinweise und typische Fehler
++- Video- oder Weblink
++- geeignete Trainingsgruppen
++- persönliche Favoriten je Benutzer
++- Suche sowie Kategorie-, Aktiv- und Favoritenfilter
++- flexible Planungsparameter mit Standardwert, Minimum, Maximum, Schrittweite und Pflichtfeld
++
++## Vorbereitete Parameter
++
++- Sätze
++- Wiederholungen
++- Distanz
++- Gewicht
++- Dauer
++- Zielzeit
++- Intensität
++- Pause
++- Serienpause
++- Anlauf
++- fliegende Distanz
++- Kontakte
++- Widerstand
++- Höhe
++- Tempo
++- Untergrund
++- Startposition
++- Zusatzhinweis
++
++## Historische Sicherheit
++
++Übungen werden deaktiviert statt gelöscht. Spätere Trainingspläne werden beim Einfügen eigene Kopien der relevanten Übungs- und Parameterwerte erhalten, damit Änderungen im Katalog keine vergangenen Trainings verändern.
++
++## Rechte
++
++- Leserecht: Katalog und Details anzeigen, persönliche Favoriten verwalten
++- Bearbeitungsrecht: Übungen anlegen, ändern und deaktivieren
++- Das bisherige Modul `Übungspflege` wird in den `Übungskatalog` integriert.
++
++## Test
++
++1. Erste Übung anlegen.
++2. Kategorie, Anleitung, Material und Video-Link speichern.
++3. mehrere Planungsparameter auswählen und Standardwerte hinterlegen.
++4. Seite neu laden und Daten kontrollieren.
++5. Übung als Favorit markieren.
++6. Suche, Kategorie- und Favoritenfilter prüfen.
++7. Übung deaktivieren und über den Inaktiv-Filter wiederfinden.
++8. Mit einem Benutzer ohne Bearbeitungsrecht die Nur-Lese-Ansicht prüfen.
+diff --git a/src/app/App.tsx b/src/app/App.tsx
+index 53f4d8c..203052a 100644
+--- a/src/app/App.tsx
++++ b/src/app/App.tsx
+@@ -12,6 +12,7 @@ import { GroupTrainingPage } from "@/pages/GroupTrainingPage";
+ import { GroupTrainingStatisticsPage } from "@/pages/GroupTrainingStatisticsPage";
+ import { ModulePlaceholderPage } from "@/pages/ModulePlaceholderPage";
+ import { PerformanceRegistrationPage } from "@/pages/PerformanceRegistrationPage";
++import { ExerciseCatalogPage } from "@/pages/ExerciseCatalogPage";
+ import { NoAccessPage } from "@/pages/NoAccessPage";
+ import { NotFoundPage } from "@/pages/NotFoundPage";
+ import { RegisterPage } from "@/pages/RegisterPage";
+@@ -122,6 +123,14 @@ export function App() {
+                 </ProtectedRoute>
+               }
+             />
++            <Route
++              path="module/exercise_catalog"
++              element={
++                <ProtectedRoute moduleKey="exercise_catalog">
++                  <ExerciseCatalogPage />
++                </ProtectedRoute>
++              }
++            />
+             <Route
+               path="module/athletes"
+               element={
+diff --git a/src/config/modules.tsx b/src/config/modules.tsx
+index 1a9d9a5..6384b87 100644
+--- a/src/config/modules.tsx
++++ b/src/config/modules.tsx
+@@ -7,7 +7,6 @@ import {
+   Dumbbell,
+   LayoutDashboard,
+   ListChecks,
+-  Settings,
+   UserRoundCog,
+   Users,
+ } from "lucide-react";
+@@ -22,7 +21,6 @@ export type AppModuleKey =
+   | "athletes"
+   | "performance_registration"
+   | "exercise_catalog"
+-  | "exercise_management"
+   | "training_planning"
+   | "training_overview"
+   | "training_blocks"
+@@ -69,7 +67,7 @@ export const APP_MODULE_GROUPS: AppModuleGroupDefinition[] = [
+   {
+     key: "exercises",
+     title: "Übungen",
+-    description: "Übungen ansehen und verwalten",
++    description: "Übungen strukturiert erfassen und verwenden",
+     sortOrder: 30,
+   },
+   {
+@@ -162,21 +160,12 @@ export const APP_MODULES: AppModuleDefinition[] = [
+   {
+     key: "exercise_catalog",
+     title: "Übungskatalog",
+-    description: "Übungen suchen und ansehen",
++    description: "Übungen strukturiert erfassen und verwenden",
+     route: "/module/exercise_catalog",
+     icon: <BookOpen aria-hidden="true" />,
+     groupKey: "exercises",
+     sortOrder: 10,
+   },
+-  {
+-    key: "exercise_management",
+-    title: "Übungspflege",
+-    description: "Übungen und Medien verwalten",
+-    route: "/module/exercise_management",
+-    icon: <Settings aria-hidden="true" />,
+-    groupKey: "exercises",
+-    sortOrder: 20,
+-  },
+   {
+     key: "kindertraining_statistics",
+     title: "Kindertraining",
+diff --git a/src/features/exercise-catalog/ExerciseEditor.tsx b/src/features/exercise-catalog/ExerciseEditor.tsx
+new file mode 100644
+index 0000000..9ca8281
+--- /dev/null
++++ b/src/features/exercise-catalog/ExerciseEditor.tsx
+@@ -0,0 +1,482 @@
++import { useMemo, useState, type FormEvent } from "react";
++import {
++  Check,
++  Dumbbell,
++  FileText,
++  ListChecks,
++  Save,
++  Settings2,
++  X,
++} from "lucide-react";
++import {
++  EXERCISE_PARAMETER_OPTIONS,
++  createEmptyExerciseInput,
++  createParameterDefinition,
++  exerciseToInput,
++  type Exercise,
++  type ExerciseCategory,
++  type ExerciseInput,
++  type ExerciseParameterDefinition,
++  type ExerciseParameterKey,
++  type ExerciseTrainingGroup,
++} from "@/features/exercise-catalog/types";
++
++type EditorSection = "basis" | "anleitung" | "parameter";
++
++export type ExerciseEditorProps = {
++  exercise: Exercise | null;
++  categories: ExerciseCategory[];
++  groups: ExerciseTrainingGroup[];
++  canEdit: boolean;
++  busy: boolean;
++  onCancel: () => void;
++  onSubmit: (values: ExerciseInput) => Promise<void>;
++};
++
++function nullableNumber(value: string): number | null {
++  if (!value.trim()) return null;
++  const parsed = Number(value.replace(",", "."));
++  return Number.isFinite(parsed) ? parsed : null;
++}
++
++function numberInputValue(value: number | null): string {
++  return value === null ? "" : String(value);
++}
++
++export function ExerciseEditor({
++  exercise,
++  categories,
++  groups,
++  canEdit,
++  busy,
++  onCancel,
++  onSubmit,
++}: ExerciseEditorProps) {
++  const defaultCategoryKey = categories[0]?.key ?? "warmup";
++  const [section, setSection] = useState<EditorSection>("basis");
++  const [values, setValues] = useState<ExerciseInput>(() =>
++    exercise ? exerciseToInput(exercise) : createEmptyExerciseInput(defaultCategoryKey),
++  );
++  const [validationError, setValidationError] = useState<string | null>(null);
++
++  const selectedParameterKeys = useMemo(
++    () => new Set(values.parameters.map((parameter) => parameter.key)),
++    [values.parameters],
++  );
++
++  function update<K extends keyof ExerciseInput>(key: K, value: ExerciseInput[K]) {
++    setValues((current) => ({ ...current, [key]: value }));
++  }
++
++  function toggleGroup(groupId: string) {
++    update(
++      "groupIds",
++      values.groupIds.includes(groupId)
++        ? values.groupIds.filter((id) => id !== groupId)
++        : [...values.groupIds, groupId],
++    );
++  }
++
++  function toggleParameter(key: ExerciseParameterKey) {
++    setValues((current) => {
++      const exists = current.parameters.some((parameter) => parameter.key === key);
++      if (exists) {
++        return {
++          ...current,
++          parameters: current.parameters.filter((parameter) => parameter.key !== key),
++        };
++      }
++
++      return {
++        ...current,
++        parameters: [
++          ...current.parameters,
++          createParameterDefinition(key, current.parameters.length + 1),
++        ],
++      };
++    });
++  }
++
++  function updateParameter(
++    key: ExerciseParameterKey,
++    patch: Partial<ExerciseParameterDefinition>,
++  ) {
++    setValues((current) => ({
++      ...current,
++      parameters: current.parameters.map((parameter) =>
++        parameter.key === key ? { ...parameter, ...patch } : parameter,
++      ),
++    }));
++  }
++
++  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
++    event.preventDefault();
++    if (!canEdit) {
++      onCancel();
++      return;
++    }
++
++    if (!values.name.trim()) {
++      setValidationError("Bitte einen Übungsnamen eingeben.");
++      setSection("basis");
++      return;
++    }
++    if (!values.categoryKey) {
++      setValidationError("Bitte eine Kategorie auswählen.");
++      setSection("basis");
++      return;
++    }
++    if (values.videoUrl.trim() && !/^https?:\/\//i.test(values.videoUrl.trim())) {
++      setValidationError("Der Video- oder Weblink muss mit http:// oder https:// beginnen.");
++      setSection("anleitung");
++      return;
++    }
++
++    setValidationError(null);
++    await onSubmit(values);
++  }
++
++  return (
++    <div className="exercise-editor-backdrop" role="presentation">
++      <section
++        className="exercise-editor"
++        role="dialog"
++        aria-modal="true"
++        aria-labelledby="exercise-editor-title"
++      >
++        <header className="exercise-editor-header">
++          <div>
++            <p className="eyebrow">Übungskatalog</p>
++            <h2 id="exercise-editor-title">
++              {exercise ? exercise.name : "Übung anlegen"}
++            </h2>
++            {!canEdit && <small>Nur-Lese-Ansicht</small>}
++          </div>
++          <button
++            type="button"
++            className="icon-button"
++            onClick={onCancel}
++            disabled={busy}
++            aria-label="Dialog schließen"
++            title="Schließen"
++          >
++            <X aria-hidden="true" />
++          </button>
++        </header>
++
++        <nav className="exercise-editor-tabs" aria-label="Übungsbereiche">
++          <button
++            type="button"
++            className={section === "basis" ? "active" : ""}
++            onClick={() => setSection("basis")}
++          >
++            <Dumbbell aria-hidden="true" />
++            Basis
++          </button>
++          <button
++            type="button"
++            className={section === "anleitung" ? "active" : ""}
++            onClick={() => setSection("anleitung")}
++          >
++            <FileText aria-hidden="true" />
++            Anleitung
++          </button>
++          <button
++            type="button"
++            className={section === "parameter" ? "active" : ""}
++            onClick={() => setSection("parameter")}
++          >
++            <Settings2 aria-hidden="true" />
++            Parameter
++            <span>{values.parameters.length}</span>
++          </button>
++        </nav>
++
++        <form className="exercise-editor-form" onSubmit={handleSubmit}>
++          {validationError && <div className="alert error">{validationError}</div>}
++
++          <fieldset disabled={!canEdit || busy}>
++            {section === "basis" && (
++              <div className="exercise-editor-panel">
++                <div className="exercise-form-grid">
++                  <label className="exercise-field exercise-field-wide">
++                    <span>Name *</span>
++                    <input
++                      type="text"
++                      value={values.name}
++                      onChange={(event) => update("name", event.target.value)}
++                      maxLength={120}
++                      autoFocus={!exercise}
++                    />
++                  </label>
++
++                  <label className="exercise-field">
++                    <span>Kategorie *</span>
++                    <select
++                      value={values.categoryKey}
++                      onChange={(event) => update("categoryKey", event.target.value)}
++                    >
++                      {categories.map((category) => (
++                        <option value={category.key} key={category.key}>
++                          {category.title}
++                        </option>
++                      ))}
++                    </select>
++                  </label>
++
++                  <label className="exercise-field">
++                    <span>Unterkategorie</span>
++                    <input
++                      type="text"
++                      value={values.subcategory}
++                      onChange={(event) => update("subcategory", event.target.value)}
++                      placeholder="z. B. fliegende Sprints"
++                      maxLength={100}
++                    />
++                  </label>
++
++                  <label className="exercise-field exercise-field-wide">
++                    <span>Trainingsziel</span>
++                    <input
++                      type="text"
++                      value={values.goal}
++                      onChange={(event) => update("goal", event.target.value)}
++                      placeholder="z. B. maximale horizontale Beschleunigung"
++                      maxLength={240}
++                    />
++                  </label>
++
++                  <label className="exercise-field exercise-field-wide">
++                    <span>Material</span>
++                    <input
++                      type="text"
++                      value={values.equipment}
++                      onChange={(event) => update("equipment", event.target.value)}
++                      placeholder="Kommagetrennt, z. B. Startblock, Hütchen"
++                    />
++                  </label>
++                </div>
++
++                <fieldset className="exercise-group-selection">
++                  <legend>Geeignete Trainingsgruppen</legend>
++                  <p>Keine Auswahl bedeutet: für alle Gruppen geeignet.</p>
++                  <div>
++                    {groups.map((group) => (
++                      <label key={group.id}>
++                        <input
++                          type="checkbox"
++                          checked={values.groupIds.includes(group.id)}
++                          onChange={() => toggleGroup(group.id)}
++                        />
++                        <span>{group.shortName || group.name}</span>
++                      </label>
++                    ))}
++                  </div>
++                </fieldset>
++
++                <label className="exercise-active-toggle">
++                  <input
++                    type="checkbox"
++                    checked={values.isActive}
++                    onChange={(event) => update("isActive", event.target.checked)}
++                  />
++                  <span>
++                    <strong>Übung aktiv</strong>
++                    <small>Inaktive Übungen bleiben in alten Trainingsplänen erhalten.</small>
++                  </span>
++                </label>
++              </div>
++            )}
++
++            {section === "anleitung" && (
++              <div className="exercise-editor-panel">
++                <label className="exercise-field">
++                  <span>Durchführung</span>
++                  <textarea
++                    value={values.description}
++                    onChange={(event) => update("description", event.target.value)}
++                    rows={5}
++                    placeholder="Kurze, klare Beschreibung der Durchführung"
++                  />
++                </label>
++
++                <label className="exercise-field">
++                  <span>Trainerhinweise</span>
++                  <textarea
++                    value={values.coachingCues}
++                    onChange={(event) => update("coachingCues", event.target.value)}
++                    rows={4}
++                    placeholder="Worauf soll besonders geachtet werden?"
++                  />
++                </label>
++
++                <label className="exercise-field">
++                  <span>Typische Fehler</span>
++                  <textarea
++                    value={values.commonMistakes}
++                    onChange={(event) => update("commonMistakes", event.target.value)}
++                    rows={4}
++                    placeholder="Häufige Fehler und mögliche Korrekturen"
++                  />
++                </label>
++
++                <label className="exercise-field">
++                  <span>Video- oder Weblink</span>
++                  <input
++                    type="url"
++                    inputMode="url"
++                    value={values.videoUrl}
++                    onChange={(event) => update("videoUrl", event.target.value)}
++                    placeholder="https://…"
++                  />
++                </label>
++              </div>
++            )}
++
++            {section === "parameter" && (
++              <div className="exercise-editor-panel">
++                <div className="parameter-picker-heading">
++                  <div>
++                    <h3>Planungsparameter</h3>
++                    <p>Nur ausgewählte Parameter erscheinen später in der Trainingsplanung.</p>
++                  </div>
++                </div>
++
++                <div className="parameter-picker">
++                  {EXERCISE_PARAMETER_OPTIONS.map((option) => {
++                    const selected = selectedParameterKeys.has(option.key);
++                    return (
++                      <button
++                        type="button"
++                        className={selected ? "selected" : ""}
++                        onClick={() => toggleParameter(option.key)}
++                        key={option.key}
++                      >
++                        {selected && <Check aria-hidden="true" />}
++                        {option.label}
++                        {option.unit && <small>{option.unit}</small>}
++                      </button>
++                    );
++                  })}
++                </div>
++
++                {values.parameters.length === 0 ? (
++                  <div className="exercise-parameter-empty">
++                    <ListChecks aria-hidden="true" />
++                    <p>Diese Übung besitzt noch keine Planungsparameter.</p>
++                  </div>
++                ) : (
++                  <div className="exercise-parameter-list">
++                    {[...values.parameters]
++                      .sort((left, right) => left.sortOrder - right.sortOrder)
++                      .map((parameter) => (
++                        <article className="exercise-parameter-card" key={parameter.key}>
++                          <header>
++                            <div>
++                              <strong>{parameter.label}</strong>
++                              <small>{parameter.unit || parameter.inputType}</small>
++                            </div>
++                            <button
++                              type="button"
++                              className="text-button danger-text"
++                              onClick={() => toggleParameter(parameter.key)}
++                            >
++                              Entfernen
++                            </button>
++                          </header>
++
++                          <div className="parameter-detail-grid">
++                            <label className="exercise-field">
++                              <span>Standardwert</span>
++                              <input
++                                type={parameter.inputType === "number" ? "number" : "text"}
++                                inputMode={parameter.inputType === "number" ? "decimal" : undefined}
++                                step={parameter.stepValue ?? undefined}
++                                value={parameter.defaultValue}
++                                onChange={(event) => updateParameter(parameter.key, {
++                                  defaultValue: event.target.value,
++                                })}
++                              />
++                            </label>
++
++                            {parameter.inputType === "number" && (
++                              <>
++                                <label className="exercise-field">
++                                  <span>Minimum</span>
++                                  <input
++                                    type="number"
++                                    inputMode="decimal"
++                                    step="any"
++                                    value={numberInputValue(parameter.minValue)}
++                                    onChange={(event) => updateParameter(parameter.key, {
++                                      minValue: nullableNumber(event.target.value),
++                                    })}
++                                  />
++                                </label>
++                                <label className="exercise-field">
++                                  <span>Maximum</span>
++                                  <input
++                                    type="number"
++                                    inputMode="decimal"
++                                    step="any"
++                                    value={numberInputValue(parameter.maxValue)}
++                                    onChange={(event) => updateParameter(parameter.key, {
++                                      maxValue: nullableNumber(event.target.value),
++                                    })}
++                                  />
++                                </label>
++                                <label className="exercise-field">
++                                  <span>Schrittweite</span>
++                                  <input
++                                    type="number"
++                                    inputMode="decimal"
++                                    step="any"
++                                    value={numberInputValue(parameter.stepValue)}
++                                    onChange={(event) => updateParameter(parameter.key, {
++                                      stepValue: nullableNumber(event.target.value),
++                                    })}
++                                  />
++                                </label>
++                              </>
++                            )}
++                          </div>
++
++                          <label className="exercise-parameter-required">
++                            <input
++                              type="checkbox"
++                              checked={parameter.isRequired}
++                              onChange={(event) => updateParameter(parameter.key, {
++                                isRequired: event.target.checked,
++                              })}
++                            />
++                            Bei der Trainingsplanung als Pflichtfeld behandeln
++                          </label>
++                        </article>
++                      ))}
++                  </div>
++                )}
++              </div>
++            )}
++          </fieldset>
++
++          <footer className="exercise-editor-actions">
++            <button
++              type="button"
++              className="secondary-button"
++              onClick={onCancel}
++              disabled={busy}
++            >
++              {canEdit ? "Abbrechen" : "Schließen"}
++            </button>
++            {canEdit && (
++              <button type="submit" className="primary-button" disabled={busy}>
++                <Save aria-hidden="true" />
++                {busy ? "Wird gespeichert …" : "Speichern"}
++              </button>
++            )}
++          </footer>
++        </form>
++      </section>
++    </div>
++  );
++}
+diff --git a/src/features/exercise-catalog/api.ts b/src/features/exercise-catalog/api.ts
+new file mode 100644
+index 0000000..18672b6
+--- /dev/null
++++ b/src/features/exercise-catalog/api.ts
+@@ -0,0 +1,218 @@
++import type { Json } from "@/types/database.generated";
++import { requireSupabase } from "@/lib/supabase";
++import {
++  EXERCISE_PARAMETER_OPTIONS,
++  type Exercise,
++  type ExerciseCatalogData,
++  type ExerciseCategory,
++  type ExerciseInput,
++  type ExerciseParameterDefinition,
++  type ExerciseParameterInputType,
++  type ExerciseParameterKey,
++  type ExerciseTrainingGroup,
++} from "@/features/exercise-catalog/types";
++
++type JsonRpc = (
++  functionName: string,
++  args?: Record<string, unknown>,
++) => PromiseLike<{ data: Json | null; error: { message: string } | null }>;
++
++function isRecord(value: unknown): value is Record<string, unknown> {
++  return typeof value === "object" && value !== null && !Array.isArray(value);
++}
++
++function optionalString(value: unknown): string | null {
++  return typeof value === "string" && value.trim() ? value : null;
++}
++
++function numberOrNull(value: unknown): number | null {
++  return typeof value === "number" && Number.isFinite(value) ? value : null;
++}
++
++function parseStringArray(value: unknown): string[] {
++  if (!Array.isArray(value)) return [];
++  return [...new Set(value.filter((item): item is string => typeof item === "string"))];
++}
++
++function parseCategories(value: unknown): ExerciseCategory[] {
++  if (!Array.isArray(value)) return [];
++  return value.flatMap((item) => {
++    if (!isRecord(item) || typeof item.key !== "string" || typeof item.title !== "string") {
++      return [];
++    }
++    return [{
++      key: item.key,
++      title: item.title,
++      sortOrder: typeof item.sort_order === "number" ? item.sort_order : 100,
++    }];
++  });
++}
++
++function parseGroups(value: unknown): ExerciseTrainingGroup[] {
++  if (!Array.isArray(value)) return [];
++  return value.flatMap((item) => {
++    if (!isRecord(item) || typeof item.id !== "string" || typeof item.name !== "string") {
++      return [];
++    }
++    return [{
++      id: item.id,
++      name: item.name,
++      shortName: optionalString(item.short_name),
++    }];
++  });
++}
++
++function isParameterKey(value: unknown): value is ExerciseParameterKey {
++  return typeof value === "string" && EXERCISE_PARAMETER_OPTIONS.some((item) => item.key === value);
++}
++
++function parseParameters(value: unknown): ExerciseParameterDefinition[] {
++  if (!Array.isArray(value)) return [];
++
++  return value.flatMap((item) => {
++    if (!isRecord(item) || !isParameterKey(item.parameter_key)) return [];
++    const option = EXERCISE_PARAMETER_OPTIONS.find((entry) => entry.key === item.parameter_key);
++    if (!option) return [];
++
++    const inputType: ExerciseParameterInputType = item.input_type === "text" ? "text" : "number";
++    return [{
++      key: item.parameter_key,
++      label: typeof item.label === "string" ? item.label : option.label,
++      unit: typeof item.unit === "string" ? item.unit : option.unit,
++      inputType,
++      defaultValue: typeof item.default_value === "string" ? item.default_value : "",
++      minValue: numberOrNull(item.min_value),
++      maxValue: numberOrNull(item.max_value),
++      stepValue: numberOrNull(item.step_value),
++      isRequired: item.is_required === true,
++      sortOrder: typeof item.sort_order === "number" ? item.sort_order : 100,
++    }];
++  }).sort((left, right) => left.sortOrder - right.sortOrder);
++}
++
++function parseExercises(value: unknown): Exercise[] {
++  if (!Array.isArray(value)) return [];
++
++  return value.flatMap((item) => {
++    if (
++      !isRecord(item) ||
++      typeof item.id !== "string" ||
++      typeof item.name !== "string" ||
++      typeof item.category_key !== "string" ||
++      typeof item.category_title !== "string"
++    ) {
++      return [];
++    }
++
++    return [{
++      id: item.id,
++      name: item.name,
++      categoryKey: item.category_key,
++      categoryTitle: item.category_title,
++      subcategory: optionalString(item.subcategory),
++      goal: optionalString(item.goal),
++      description: optionalString(item.description),
++      coachingCues: optionalString(item.coaching_cues),
++      commonMistakes: optionalString(item.common_mistakes),
++      equipment: parseStringArray(item.equipment),
++      videoUrl: optionalString(item.video_url),
++      isActive: item.is_active !== false,
++      isFavorite: item.is_favorite === true,
++      groupIds: parseStringArray(item.group_ids),
++      parameters: parseParameters(item.parameters),
++      createdAt: typeof item.created_at === "string" ? item.created_at : "",
++      updatedAt: typeof item.updated_at === "string" ? item.updated_at : "",
++    }];
++  });
++}
++
++async function callJsonRpc(
++  functionName: string,
++  args: Record<string, unknown>,
++): Promise<Json> {
++  const supabase = requireSupabase();
++  const rpc = supabase.rpc.bind(supabase) as unknown as JsonRpc;
++  const { data, error } = await rpc(functionName, args);
++  if (error) throw new Error(error.message);
++  return data ?? null;
++}
++
++export async function loadExerciseCatalog(
++  organizationId: string,
++  includeInactive = true,
++): Promise<ExerciseCatalogData> {
++  const data = await callJsonRpc("exercise_catalog_overview", {
++    p_organization_id: organizationId,
++    p_include_inactive: includeInactive,
++  });
++
++  if (!isRecord(data)) {
++    throw new Error("Der Übungskatalog konnte nicht gelesen werden.");
++  }
++
++  return {
++    categories: parseCategories(data.categories),
++    groups: parseGroups(data.groups),
++    exercises: parseExercises(data.exercises),
++  };
++}
++
++function parametersToJson(parameters: ExerciseParameterDefinition[]): Json {
++  return [...parameters]
++    .sort((left, right) => left.sortOrder - right.sortOrder)
++    .map((parameter, index) => ({
++      parameter_key: parameter.key,
++      label: parameter.label.trim(),
++      unit: parameter.unit.trim(),
++      input_type: parameter.inputType,
++      default_value: parameter.defaultValue.trim() || null,
++      min_value: parameter.minValue,
++      max_value: parameter.maxValue,
++      step_value: parameter.stepValue,
++      is_required: parameter.isRequired,
++      sort_order: index + 1,
++    }));
++}
++
++export async function saveExercise(
++  organizationId: string,
++  exerciseId: string | null,
++  values: ExerciseInput,
++): Promise<string> {
++  const data = await callJsonRpc("save_exercise_catalog_item", {
++    p_organization_id: organizationId,
++    p_exercise_id: exerciseId,
++    p_name: values.name.trim(),
++    p_category_key: values.categoryKey,
++    p_subcategory: values.subcategory.trim() || null,
++    p_goal: values.goal.trim() || null,
++    p_description: values.description.trim() || null,
++    p_coaching_cues: values.coachingCues.trim() || null,
++    p_common_mistakes: values.commonMistakes.trim() || null,
++    p_equipment: values.equipment
++      .split(",")
++      .map((item) => item.trim())
++      .filter(Boolean),
++    p_video_url: values.videoUrl.trim() || null,
++    p_is_active: values.isActive,
++    p_group_ids: values.groupIds,
++    p_parameters: parametersToJson(values.parameters),
++  });
++
++  if (typeof data !== "string") {
++    throw new Error("Die Übung wurde gespeichert, aber die Rückgabe ist ungültig.");
++  }
++  return data;
++}
++
++export async function setExerciseFavorite(
++  organizationId: string,
++  exerciseId: string,
++  isFavorite: boolean,
++): Promise<void> {
++  await callJsonRpc("set_exercise_favorite", {
++    p_organization_id: organizationId,
++    p_exercise_id: exerciseId,
++    p_is_favorite: isFavorite,
++  });
++}
+diff --git a/src/features/exercise-catalog/types.ts b/src/features/exercise-catalog/types.ts
+new file mode 100644
+index 0000000..57a9d0e
+--- /dev/null
++++ b/src/features/exercise-catalog/types.ts
+@@ -0,0 +1,144 @@
++export const EXERCISE_PARAMETER_OPTIONS = [
++  { key: "sets", label: "Sätze", unit: "", inputType: "number", step: 1 },
++  { key: "repetitions", label: "Wiederholungen", unit: "", inputType: "number", step: 1 },
++  { key: "distance_m", label: "Distanz", unit: "m", inputType: "number", step: 1 },
++  { key: "weight_kg", label: "Gewicht", unit: "kg", inputType: "number", step: 0.5 },
++  { key: "duration_s", label: "Dauer", unit: "s", inputType: "number", step: 1 },
++  { key: "target_time_s", label: "Zielzeit", unit: "s", inputType: "number", step: 0.01 },
++  { key: "intensity_percent", label: "Intensität", unit: "%", inputType: "number", step: 1 },
++  { key: "rest_s", label: "Pause", unit: "s", inputType: "number", step: 5 },
++  { key: "series_rest_s", label: "Serienpause", unit: "s", inputType: "number", step: 5 },
++  { key: "approach_distance_m", label: "Anlauf", unit: "m", inputType: "number", step: 1 },
++  { key: "flying_distance_m", label: "Fliegende Distanz", unit: "m", inputType: "number", step: 1 },
++  { key: "contacts", label: "Kontakte", unit: "", inputType: "number", step: 1 },
++  { key: "resistance_kg", label: "Widerstand", unit: "kg", inputType: "number", step: 0.5 },
++  { key: "height_cm", label: "Höhe", unit: "cm", inputType: "number", step: 1 },
++  { key: "tempo_text", label: "Tempo", unit: "", inputType: "text", step: null },
++  { key: "surface_text", label: "Untergrund", unit: "", inputType: "text", step: null },
++  { key: "start_position_text", label: "Startposition", unit: "", inputType: "text", step: null },
++  { key: "note_text", label: "Zusatzhinweis", unit: "", inputType: "text", step: null },
++] as const;
++
++export type ExerciseParameterKey = typeof EXERCISE_PARAMETER_OPTIONS[number]["key"];
++export type ExerciseParameterInputType = "number" | "text";
++
++export type ExerciseCategory = {
++  key: string;
++  title: string;
++  sortOrder: number;
++};
++
++export type ExerciseTrainingGroup = {
++  id: string;
++  name: string;
++  shortName: string | null;
++};
++
++export type ExerciseParameterDefinition = {
++  key: ExerciseParameterKey;
++  label: string;
++  unit: string;
++  inputType: ExerciseParameterInputType;
++  defaultValue: string;
++  minValue: number | null;
++  maxValue: number | null;
++  stepValue: number | null;
++  isRequired: boolean;
++  sortOrder: number;
++};
++
++export type Exercise = {
++  id: string;
++  name: string;
++  categoryKey: string;
++  categoryTitle: string;
++  subcategory: string | null;
++  goal: string | null;
++  description: string | null;
++  coachingCues: string | null;
++  commonMistakes: string | null;
++  equipment: string[];
++  videoUrl: string | null;
++  isActive: boolean;
++  isFavorite: boolean;
++  groupIds: string[];
++  parameters: ExerciseParameterDefinition[];
++  createdAt: string;
++  updatedAt: string;
++};
++
++export type ExerciseCatalogData = {
++  categories: ExerciseCategory[];
++  groups: ExerciseTrainingGroup[];
++  exercises: Exercise[];
++};
++
++export type ExerciseInput = {
++  name: string;
++  categoryKey: string;
++  subcategory: string;
++  goal: string;
++  description: string;
++  coachingCues: string;
++  commonMistakes: string;
++  equipment: string;
++  videoUrl: string;
++  isActive: boolean;
++  groupIds: string[];
++  parameters: ExerciseParameterDefinition[];
++};
++
++export function createParameterDefinition(
++  key: ExerciseParameterKey,
++  sortOrder: number,
++): ExerciseParameterDefinition {
++  const option = EXERCISE_PARAMETER_OPTIONS.find((item) => item.key === key);
++  if (!option) throw new Error(`Unbekannter Übungsparameter: ${key}`);
++
++  return {
++    key,
++    label: option.label,
++    unit: option.unit,
++    inputType: option.inputType,
++    defaultValue: "",
++    minValue: null,
++    maxValue: null,
++    stepValue: option.step,
++    isRequired: false,
++    sortOrder,
++  };
++}
++
++export function createEmptyExerciseInput(defaultCategoryKey: string): ExerciseInput {
++  return {
++    name: "",
++    categoryKey: defaultCategoryKey,
++    subcategory: "",
++    goal: "",
++    description: "",
++    coachingCues: "",
++    commonMistakes: "",
++    equipment: "",
++    videoUrl: "",
++    isActive: true,
++    groupIds: [],
++    parameters: [],
++  };
++}
++
++export function exerciseToInput(exercise: Exercise): ExerciseInput {
++  return {
++    name: exercise.name,
++    categoryKey: exercise.categoryKey,
++    subcategory: exercise.subcategory ?? "",
++    goal: exercise.goal ?? "",
++    description: exercise.description ?? "",
++    coachingCues: exercise.coachingCues ?? "",
++    commonMistakes: exercise.commonMistakes ?? "",
++    equipment: exercise.equipment.join(", "),
++    videoUrl: exercise.videoUrl ?? "",
++    isActive: exercise.isActive,
++    groupIds: [...exercise.groupIds],
++    parameters: exercise.parameters.map((parameter) => ({ ...parameter })),
++  };
++}
+diff --git a/src/main.tsx b/src/main.tsx
+index a7b6de0..f944e4b 100644
+--- a/src/main.tsx
++++ b/src/main.tsx
+@@ -6,6 +6,7 @@ import "@/styles/mobile.css";
+ import "@/styles/kindertraining.css";
+ import "@/styles/statistics.css";
+ import "@/styles/performance-registration.css";
++import "@/styles/exercise-catalog.css";
+ 
+ const rootElement = document.getElementById("root");
+ if (!rootElement) throw new Error("Root-Element wurde nicht gefunden.");
+diff --git a/src/pages/ExerciseCatalogPage.tsx b/src/pages/ExerciseCatalogPage.tsx
+new file mode 100644
+index 0000000..65264d0
+--- /dev/null
++++ b/src/pages/ExerciseCatalogPage.tsx
+@@ -0,0 +1,369 @@
++import { useCallback, useEffect, useMemo, useState } from "react";
++import {
++  BookOpen,
++  ExternalLink,
++  Filter,
++  Pencil,
++  Plus,
++  RefreshCw,
++  Search,
++  Star,
++  Video,
++} from "lucide-react";
++import { useAuth } from "@/features/auth/AuthContext";
++import {
++  loadExerciseCatalog,
++  saveExercise,
++  setExerciseFavorite,
++} from "@/features/exercise-catalog/api";
++import { ExerciseEditor } from "@/features/exercise-catalog/ExerciseEditor";
++import type {
++  Exercise,
++  ExerciseCatalogData,
++  ExerciseInput,
++} from "@/features/exercise-catalog/types";
++
++type ActivityFilter = "active" | "inactive" | "all";
++
++function errorMessage(error: unknown): string {
++  return error instanceof Error ? error.message : "Der Übungskatalog konnte nicht geladen werden.";
++}
++
++export function ExerciseCatalogPage() {
++  const { appContext, canEditModule } = useAuth();
++  const organizationId = appContext?.organization?.id;
++  const canEdit = canEditModule("exercise_catalog");
++
++  const [data, setData] = useState<ExerciseCatalogData>({
++    categories: [],
++    groups: [],
++    exercises: [],
++  });
++  const [loading, setLoading] = useState(true);
++  const [busy, setBusy] = useState(false);
++  const [error, setError] = useState<string | null>(null);
++  const [success, setSuccess] = useState<string | null>(null);
++  const [searchTerm, setSearchTerm] = useState("");
++  const [categoryFilter, setCategoryFilter] = useState("all");
++  const [activityFilter, setActivityFilter] = useState<ActivityFilter>("active");
++  const [favoritesOnly, setFavoritesOnly] = useState(false);
++  const [editorExercise, setEditorExercise] = useState<Exercise | null | undefined>(undefined);
++
++  const loadData = useCallback(async () => {
++    if (!organizationId) return;
++    setLoading(true);
++    setError(null);
++    try {
++      setData(await loadExerciseCatalog(organizationId, true));
++    } catch (loadError) {
++      setError(errorMessage(loadError));
++    } finally {
++      setLoading(false);
++    }
++  }, [organizationId]);
++
++  useEffect(() => {
++    void loadData();
++  }, [loadData]);
++
++  const counts = useMemo(() => ({
++    active: data.exercises.filter((exercise) => exercise.isActive).length,
++    inactive: data.exercises.filter((exercise) => !exercise.isActive).length,
++    favorites: data.exercises.filter((exercise) => exercise.isFavorite).length,
++  }), [data.exercises]);
++
++  const filteredExercises = useMemo(() => {
++    const search = searchTerm.trim().toLocaleLowerCase("de");
++
++    return data.exercises
++      .filter((exercise) => {
++        if (activityFilter === "active" && !exercise.isActive) return false;
++        if (activityFilter === "inactive" && exercise.isActive) return false;
++        if (favoritesOnly && !exercise.isFavorite) return false;
++        if (categoryFilter !== "all" && exercise.categoryKey !== categoryFilter) return false;
++        if (!search) return true;
++
++        return [
++          exercise.name,
++          exercise.categoryTitle,
++          exercise.subcategory ?? "",
++          exercise.goal ?? "",
++          exercise.description ?? "",
++          exercise.equipment.join(" "),
++        ].some((value) => value.toLocaleLowerCase("de").includes(search));
++      })
++      .sort((left, right) => {
++        if (left.isFavorite !== right.isFavorite) return left.isFavorite ? -1 : 1;
++        return left.name.localeCompare(right.name, "de", { sensitivity: "base" });
++      });
++  }, [activityFilter, categoryFilter, data.exercises, favoritesOnly, searchTerm]);
++
++  async function handleSave(values: ExerciseInput) {
++    if (!organizationId) return;
++    setBusy(true);
++    setError(null);
++    setSuccess(null);
++    try {
++      await saveExercise(organizationId, editorExercise?.id ?? null, values);
++      setEditorExercise(undefined);
++      setSuccess(editorExercise ? "Die Übung wurde gespeichert." : "Die Übung wurde angelegt.");
++      await loadData();
++    } catch (saveError) {
++      setError(errorMessage(saveError));
++    } finally {
++      setBusy(false);
++    }
++  }
++
++  async function handleFavorite(exercise: Exercise) {
++    if (!organizationId || busy) return;
++    const nextFavorite = !exercise.isFavorite;
++    setData((current) => ({
++      ...current,
++      exercises: current.exercises.map((item) =>
++        item.id === exercise.id ? { ...item, isFavorite: nextFavorite } : item,
++      ),
++    }));
++
++    try {
++      await setExerciseFavorite(organizationId, exercise.id, nextFavorite);
++    } catch (favoriteError) {
++      setData((current) => ({
++        ...current,
++        exercises: current.exercises.map((item) =>
++          item.id === exercise.id ? { ...item, isFavorite: exercise.isFavorite } : item,
++        ),
++      }));
++      setError(errorMessage(favoriteError));
++    }
++  }
++
++  return (
++    <section className="exercise-catalog-page">
++      <div className="exercise-catalog-heading">
++        <div>
++          <p className="eyebrow">Trainingsplanung</p>
++          <h1>Übungskatalog</h1>
++          <p>Übungen strukturiert erfassen und für Trainingspläne vorbereiten.</p>
++        </div>
++        {canEdit && (
++          <button
++            type="button"
++            className="primary-button"
++            onClick={() => {
++              setError(null);
++              setSuccess(null);
++              setEditorExercise(null);
++            }}
++            disabled={loading || busy || data.categories.length === 0}
++          >
++            <Plus aria-hidden="true" />
++            Übung
++          </button>
++        )}
++      </div>
++
++      {error && <div className="alert error">{error}</div>}
++      {success && <div className="alert success">{success}</div>}
++
++      <div className="exercise-catalog-toolbar">
++        <label className="exercise-search">
++          <Search aria-hidden="true" />
++          <input
++            type="search"
++            value={searchTerm}
++            onChange={(event) => setSearchTerm(event.target.value)}
++            placeholder="Übung suchen"
++            aria-label="Übung suchen"
++          />
++        </label>
++
++        <label className="exercise-filter-select">
++          <Filter aria-hidden="true" />
++          <select
++            value={categoryFilter}
++            onChange={(event) => setCategoryFilter(event.target.value)}
++            aria-label="Kategorie filtern"
++          >
++            <option value="all">Alle Kategorien</option>
++            {data.categories.map((category) => (
++              <option value={category.key} key={category.key}>
++                {category.title}
++              </option>
++            ))}
++          </select>
++        </label>
++
++        <button
++          type="button"
++          className="secondary-button exercise-refresh"
++          onClick={() => void loadData()}
++          disabled={loading || busy}
++          aria-label="Übungskatalog aktualisieren"
++          title="Aktualisieren"
++        >
++          <RefreshCw aria-hidden="true" />
++          <span>Aktualisieren</span>
++        </button>
++      </div>
++
++      <div className="exercise-filter-row">
++        <div className="status-filter" aria-label="Übungsstatus filtern">
++          <button
++            type="button"
++            className={activityFilter === "active" ? "active" : ""}
++            onClick={() => setActivityFilter("active")}
++          >
++            Aktiv <span>{counts.active}</span>
++          </button>
++          <button
++            type="button"
++            className={activityFilter === "inactive" ? "active" : ""}
++            onClick={() => setActivityFilter("inactive")}
++          >
++            Inaktiv <span>{counts.inactive}</span>
++          </button>
++          <button
++            type="button"
++            className={activityFilter === "all" ? "active" : ""}
++            onClick={() => setActivityFilter("all")}
++          >
++            Alle <span>{data.exercises.length}</span>
++          </button>
++        </div>
++
++        <button
++          type="button"
++          className={`favorite-filter ${favoritesOnly ? "active" : ""}`}
++          onClick={() => setFavoritesOnly((current) => !current)}
++        >
++          <Star aria-hidden="true" fill={favoritesOnly ? "currentColor" : "none"} />
++          Favoriten <span>{counts.favorites}</span>
++        </button>
++      </div>
++
++      {loading ? (
++        <div className="management-loading">
++          <div className="spinner" aria-hidden="true" />
++          Übungen werden geladen …
++        </div>
++      ) : data.categories.length === 0 ? (
++        <div className="empty-state">
++          <BookOpen aria-hidden="true" />
++          <h2>Kategorien fehlen</h2>
++          <p>Bitte zuerst die neue Datenbankmigration für den Übungskatalog ausführen.</p>
++        </div>
++      ) : filteredExercises.length === 0 ? (
++        <div className="empty-state">
++          <BookOpen aria-hidden="true" />
++          <h2>Keine Übungen gefunden</h2>
++          <p>
++            {data.exercises.length === 0
++              ? "Lege die erste Übung für den Trainingskatalog an."
++              : "Passe Suche oder Filter an."}
++          </p>
++          {canEdit && data.exercises.length === 0 && (
++            <button type="button" className="primary-button" onClick={() => setEditorExercise(null)}>
++              <Plus aria-hidden="true" />
++              Erste Übung anlegen
++            </button>
++          )}
++        </div>
++      ) : (
++        <div className="exercise-list">
++          {filteredExercises.map((exercise) => (
++            <article
++              className={`exercise-card ${exercise.isActive ? "" : "inactive"}`}
++              key={exercise.id}
++            >
++              <div className="exercise-card-main">
++                <div className="exercise-card-title-row">
++                  <span className="exercise-status-dot" title={exercise.isActive ? "Aktiv" : "Inaktiv"} />
++                  <div>
++                    <h2>{exercise.name}</h2>
++                    <p>
++                      {exercise.categoryTitle}
++                      {exercise.subcategory ? ` · ${exercise.subcategory}` : ""}
++                    </p>
++                  </div>
++                </div>
++
++                {exercise.goal && <p className="exercise-goal">{exercise.goal}</p>}
++
++                <div className="exercise-card-meta">
++                  {exercise.parameters.slice(0, 5).map((parameter) => (
++                    <span key={parameter.key}>
++                      {parameter.label}
++                      {parameter.defaultValue ? `: ${parameter.defaultValue}${parameter.unit ? ` ${parameter.unit}` : ""}` : ""}
++                    </span>
++                  ))}
++                  {exercise.parameters.length > 5 && (
++                    <span>+{exercise.parameters.length - 5}</span>
++                  )}
++                  {exercise.parameters.length === 0 && <span>Keine Parameter</span>}
++                </div>
++
++                {exercise.equipment.length > 0 && (
++                  <small className="exercise-equipment">
++                    Material: {exercise.equipment.join(", ")}
++                  </small>
++                )}
++              </div>
++
++              <div className="exercise-card-actions">
++                <button
++                  type="button"
++                  className={`exercise-favorite-button ${exercise.isFavorite ? "active" : ""}`}
++                  onClick={() => void handleFavorite(exercise)}
++                  aria-label={exercise.isFavorite ? "Aus Favoriten entfernen" : "Zu Favoriten hinzufügen"}
++                  title={exercise.isFavorite ? "Aus Favoriten entfernen" : "Favorit"}
++                >
++                  <Star aria-hidden="true" fill={exercise.isFavorite ? "currentColor" : "none"} />
++                </button>
++                {exercise.videoUrl && (
++                  <a
++                    className="exercise-action-link"
++                    href={exercise.videoUrl}
++                    target="_blank"
++                    rel="noreferrer"
++                    aria-label={`Video oder Link zu ${exercise.name} öffnen`}
++                    title="Video oder Link öffnen"
++                  >
++                    <Video aria-hidden="true" />
++                    <ExternalLink aria-hidden="true" />
++                  </a>
++                )}
++                <button
++                  type="button"
++                  className="exercise-edit-button"
++                  onClick={() => {
++                    setError(null);
++                    setSuccess(null);
++                    setEditorExercise(exercise);
++                  }}
++                  aria-label={`${exercise.name} ${canEdit ? "bearbeiten" : "anzeigen"}`}
++                  title={canEdit ? "Bearbeiten" : "Anzeigen"}
++                >
++                  {canEdit ? <Pencil aria-hidden="true" /> : <BookOpen aria-hidden="true" />}
++                </button>
++              </div>
++            </article>
++          ))}
++        </div>
++      )}
++
++      {editorExercise !== undefined && (
++        <ExerciseEditor
++          key={editorExercise?.id ?? "new-exercise"}
++          exercise={editorExercise}
++          categories={data.categories}
++          groups={data.groups}
++          canEdit={canEdit}
++          busy={busy}
++          onCancel={() => setEditorExercise(undefined)}
++          onSubmit={handleSave}
++        />
++      )}
++    </section>
++  );
++}
+diff --git a/src/styles/exercise-catalog.css b/src/styles/exercise-catalog.css
+new file mode 100644
+index 0000000..5cdfb1d
+--- /dev/null
++++ b/src/styles/exercise-catalog.css
+@@ -0,0 +1,744 @@
++.exercise-catalog-page {
++  display: grid;
++  gap: 18px;
++}
++
++.exercise-catalog-heading {
++  display: flex;
++  justify-content: space-between;
++  align-items: flex-end;
++  gap: 18px;
++}
++
++.exercise-catalog-heading h1 {
++  margin: 0;
++  color: var(--green-950);
++}
++
++.exercise-catalog-heading p:not(.eyebrow) {
++  margin: 7px 0 0;
++  color: var(--muted);
++}
++
++.exercise-catalog-toolbar {
++  display: grid;
++  grid-template-columns: minmax(220px, 1fr) minmax(210px, 0.55fr) auto;
++  gap: 10px;
++}
++
++.exercise-search,
++.exercise-filter-select {
++  min-width: 0;
++  display: flex;
++  align-items: center;
++  gap: 9px;
++  min-height: 46px;
++  padding: 0 12px;
++  background: #fff;
++  border: 1px solid var(--border);
++  border-radius: 12px;
++}
++
++.exercise-search > svg,
++.exercise-filter-select > svg {
++  width: 19px;
++  flex: 0 0 auto;
++  color: var(--green-700);
++}
++
++.exercise-search input,
++.exercise-filter-select select {
++  width: 100%;
++  min-width: 0;
++  height: 44px;
++  color: var(--green-950);
++  background: transparent;
++  border: 0;
++  outline: 0;
++}
++
++.exercise-filter-row {
++  display: flex;
++  justify-content: space-between;
++  align-items: center;
++  gap: 12px;
++}
++
++.favorite-filter {
++  min-height: 38px;
++  display: inline-flex;
++  align-items: center;
++  gap: 7px;
++  padding: 8px 12px;
++  color: var(--green-950);
++  background: #fff;
++  border: 1px solid var(--border);
++  border-radius: 999px;
++  cursor: pointer;
++  font-weight: 800;
++}
++
++.favorite-filter svg {
++  width: 17px;
++  color: #b98216;
++}
++
++.favorite-filter span {
++  min-width: 24px;
++  padding: 2px 7px;
++  background: rgba(20, 122, 70, 0.12);
++  border-radius: 999px;
++  font-size: 0.78rem;
++  text-align: center;
++}
++
++.favorite-filter.active {
++  color: #fff;
++  background: #9b6b0e;
++  border-color: #9b6b0e;
++}
++
++.favorite-filter.active svg {
++  color: #fff;
++}
++
++.favorite-filter.active span {
++  background: rgba(255, 255, 255, 0.2);
++}
++
++.exercise-list {
++  display: grid;
++  grid-template-columns: repeat(2, minmax(0, 1fr));
++  gap: 12px;
++}
++
++.exercise-card {
++  min-width: 0;
++  display: grid;
++  grid-template-columns: minmax(0, 1fr) auto;
++  gap: 12px;
++  padding: 16px;
++  background: #fff;
++  border: 1px solid var(--border);
++  border-radius: 16px;
++  box-shadow: 0 6px 20px rgba(15, 62, 38, 0.05);
++}
++
++.exercise-card.inactive {
++  background: #f7f9f8;
++  opacity: 0.78;
++}
++
++.exercise-card-main {
++  min-width: 0;
++  display: grid;
++  align-content: start;
++  gap: 9px;
++}
++
++.exercise-card-title-row {
++  min-width: 0;
++  display: flex;
++  align-items: flex-start;
++  gap: 9px;
++}
++
++.exercise-status-dot {
++  width: 10px;
++  height: 10px;
++  flex: 0 0 auto;
++  margin-top: 5px;
++  border-radius: 50%;
++  background: var(--green-600);
++}
++
++.exercise-card.inactive .exercise-status-dot {
++  background: #88968e;
++}
++
++.exercise-card-title-row > div {
++  min-width: 0;
++}
++
++.exercise-card h2 {
++  overflow: hidden;
++  margin: 0;
++  color: var(--green-950);
++  font-size: 1rem;
++  text-overflow: ellipsis;
++  white-space: nowrap;
++}
++
++.exercise-card-title-row p,
++.exercise-goal,
++.exercise-equipment {
++  margin: 3px 0 0;
++  color: var(--muted);
++  line-height: 1.35;
++}
++
++.exercise-card-title-row p {
++  font-size: 0.82rem;
++}
++
++.exercise-goal {
++  display: -webkit-box;
++  overflow: hidden;
++  font-size: 0.88rem;
++  -webkit-box-orient: vertical;
++  -webkit-line-clamp: 2;
++}
++
++.exercise-card-meta {
++  display: flex;
++  flex-wrap: wrap;
++  gap: 5px;
++}
++
++.exercise-card-meta span {
++  max-width: 100%;
++  overflow: hidden;
++  padding: 4px 7px;
++  color: var(--green-800);
++  background: var(--green-50);
++  border: 1px solid #d9ebe0;
++  border-radius: 999px;
++  font-size: 0.7rem;
++  font-weight: 800;
++  text-overflow: ellipsis;
++  white-space: nowrap;
++}
++
++.exercise-equipment {
++  overflow: hidden;
++  font-size: 0.75rem;
++  text-overflow: ellipsis;
++  white-space: nowrap;
++}
++
++.exercise-card-actions {
++  display: flex;
++  flex-direction: column;
++  gap: 6px;
++}
++
++.exercise-favorite-button,
++.exercise-edit-button,
++.exercise-action-link {
++  width: 36px;
++  height: 36px;
++  display: grid;
++  place-items: center;
++  padding: 0;
++  color: var(--green-800);
++  background: var(--green-50);
++  border: 0;
++  border-radius: 10px;
++  cursor: pointer;
++  text-decoration: none;
++}
++
++.exercise-favorite-button svg,
++.exercise-edit-button svg,
++.exercise-action-link > svg:first-child {
++  width: 18px;
++}
++
++.exercise-favorite-button {
++  color: #a8730d;
++  background: #fff8e8;
++}
++
++.exercise-favorite-button.active {
++  color: #fff;
++  background: #a8730d;
++}
++
++.exercise-action-link {
++  position: relative;
++}
++
++.exercise-action-link > svg:last-child {
++  position: absolute;
++  right: 4px;
++  bottom: 4px;
++  width: 8px;
++}
++
++.exercise-editor-backdrop {
++  position: fixed;
++  z-index: 50;
++  inset: 0;
++  display: grid;
++  place-items: center;
++  padding: 20px;
++  background: rgba(8, 36, 22, 0.56);
++  backdrop-filter: blur(5px);
++}
++
++.exercise-editor {
++  width: min(100%, 900px);
++  max-height: calc(100dvh - 40px);
++  overflow: hidden;
++  display: grid;
++  grid-template-rows: auto auto minmax(0, 1fr);
++  background: #fff;
++  border: 1px solid var(--border);
++  border-radius: 20px;
++  box-shadow: 0 24px 70px rgba(8, 36, 22, 0.28);
++}
++
++.exercise-editor-header {
++  display: flex;
++  justify-content: space-between;
++  align-items: flex-start;
++  gap: 16px;
++  padding: 18px 20px 12px;
++}
++
++.exercise-editor-header h2 {
++  margin: 0;
++  color: var(--green-950);
++}
++
++.exercise-editor-header small {
++  color: var(--muted);
++}
++
++.exercise-editor-tabs {
++  display: grid;
++  grid-template-columns: repeat(3, 1fr);
++  gap: 6px;
++  padding: 0 20px 12px;
++  border-bottom: 1px solid var(--border);
++}
++
++.exercise-editor-tabs button {
++  min-width: 0;
++  min-height: 42px;
++  display: flex;
++  justify-content: center;
++  align-items: center;
++  gap: 7px;
++  padding: 8px 10px;
++  color: var(--green-800);
++  background: var(--green-50);
++  border: 0;
++  border-radius: 10px;
++  cursor: pointer;
++  font-weight: 800;
++}
++
++.exercise-editor-tabs button.active {
++  color: #fff;
++  background: var(--green-700);
++}
++
++.exercise-editor-tabs svg {
++  width: 17px;
++}
++
++.exercise-editor-tabs span {
++  min-width: 21px;
++  padding: 1px 5px;
++  color: var(--green-800);
++  background: rgba(255, 255, 255, 0.86);
++  border-radius: 999px;
++  font-size: 0.72rem;
++}
++
++.exercise-editor-form {
++  min-height: 0;
++  display: grid;
++  grid-template-rows: minmax(0, 1fr) auto;
++}
++
++.exercise-editor-form > .alert {
++  margin: 12px 20px 0;
++}
++
++.exercise-editor-form > fieldset {
++  min-width: 0;
++  overflow-y: auto;
++  margin: 0;
++  padding: 0;
++  border: 0;
++}
++
++.exercise-editor-panel {
++  display: grid;
++  gap: 18px;
++  padding: 18px 20px 24px;
++}
++
++.exercise-form-grid,
++.parameter-detail-grid {
++  display: grid;
++  grid-template-columns: repeat(2, minmax(0, 1fr));
++  gap: 14px;
++}
++
++.exercise-field {
++  min-width: 0;
++  display: grid;
++  align-content: start;
++  gap: 6px;
++  color: var(--green-950);
++  font-weight: 800;
++}
++
++.exercise-field-wide {
++  grid-column: 1 / -1;
++}
++
++.exercise-field input,
++.exercise-field select,
++.exercise-field textarea {
++  width: 100%;
++  min-width: 0;
++  min-height: 44px;
++  padding: 10px 12px;
++  color: #153326;
++  background: #fff;
++  border: 1px solid #b9cdc0;
++  border-radius: 11px;
++  resize: vertical;
++}
++
++.exercise-field textarea {
++  min-height: 96px;
++  line-height: 1.45;
++}
++
++.exercise-field input:focus,
++.exercise-field select:focus,
++.exercise-field textarea:focus {
++  border-color: var(--green-700);
++  outline: 3px solid rgba(20, 122, 70, 0.14);
++}
++
++.exercise-group-selection {
++  min-width: 0;
++  margin: 0;
++  padding: 14px;
++  border: 1px solid var(--border);
++  border-radius: 13px;
++}
++
++.exercise-group-selection legend {
++  padding: 0 5px;
++  color: var(--green-950);
++  font-weight: 900;
++}
++
++.exercise-group-selection > p {
++  margin: 0 0 10px;
++  color: var(--muted);
++  font-size: 0.82rem;
++}
++
++.exercise-group-selection > div {
++  display: flex;
++  flex-wrap: wrap;
++  gap: 7px;
++}
++
++.exercise-group-selection label {
++  display: inline-flex;
++  align-items: center;
++  gap: 7px;
++  min-height: 36px;
++  padding: 7px 10px;
++  background: var(--green-50);
++  border-radius: 999px;
++  cursor: pointer;
++  font-weight: 800;
++}
++
++.exercise-group-selection input,
++.exercise-active-toggle input,
++.exercise-parameter-required input {
++  width: 18px;
++  height: 18px;
++  accent-color: var(--green-700);
++}
++
++.exercise-active-toggle {
++  display: flex;
++  align-items: center;
++  gap: 11px;
++  padding: 12px 14px;
++  background: var(--green-50);
++  border-radius: 12px;
++  cursor: pointer;
++}
++
++.exercise-active-toggle > span {
++  display: grid;
++  gap: 2px;
++}
++
++.exercise-active-toggle small {
++  color: var(--muted);
++  font-weight: 500;
++}
++
++.parameter-picker-heading h3 {
++  margin: 0;
++  color: var(--green-950);
++}
++
++.parameter-picker-heading p {
++  margin: 5px 0 0;
++  color: var(--muted);
++}
++
++.parameter-picker {
++  display: flex;
++  flex-wrap: wrap;
++  gap: 7px;
++}
++
++.parameter-picker button {
++  min-height: 36px;
++  display: inline-flex;
++  align-items: center;
++  gap: 5px;
++  padding: 7px 10px;
++  color: var(--green-950);
++  background: #fff;
++  border: 1px solid var(--border);
++  border-radius: 999px;
++  cursor: pointer;
++  font-weight: 800;
++}
++
++.parameter-picker button.selected {
++  color: #fff;
++  background: var(--green-700);
++  border-color: var(--green-700);
++}
++
++.parameter-picker button svg {
++  width: 15px;
++}
++
++.parameter-picker button small {
++  opacity: 0.75;
++}
++
++.exercise-parameter-list {
++  display: grid;
++  gap: 10px;
++}
++
++.exercise-parameter-card {
++  padding: 13px;
++  background: #f8fbf9;
++  border: 1px solid var(--border);
++  border-radius: 13px;
++}
++
++.exercise-parameter-card > header {
++  display: flex;
++  justify-content: space-between;
++  align-items: center;
++  gap: 12px;
++  margin-bottom: 11px;
++}
++
++.exercise-parameter-card > header > div {
++  display: grid;
++  gap: 2px;
++}
++
++.exercise-parameter-card header small {
++  color: var(--muted);
++}
++
++.danger-text {
++  color: var(--danger);
++}
++
++.parameter-detail-grid {
++  grid-template-columns: repeat(4, minmax(0, 1fr));
++}
++
++.exercise-parameter-required {
++  display: flex;
++  align-items: center;
++  gap: 8px;
++  margin-top: 11px;
++  color: var(--green-950);
++  font-size: 0.85rem;
++  font-weight: 700;
++}
++
++.exercise-parameter-empty {
++  display: grid;
++  justify-items: center;
++  gap: 7px;
++  padding: 28px 16px;
++  color: var(--muted);
++  background: #f8fbf9;
++  border: 1px dashed var(--border);
++  border-radius: 13px;
++  text-align: center;
++}
++
++.exercise-parameter-empty svg {
++  width: 32px;
++  color: var(--green-700);
++}
++
++.exercise-parameter-empty p {
++  margin: 0;
++}
++
++.exercise-editor-actions {
++  position: sticky;
++  bottom: 0;
++  display: flex;
++  justify-content: flex-end;
++  gap: 9px;
++  padding: 12px 20px max(12px, env(safe-area-inset-bottom));
++  background: rgba(255, 255, 255, 0.97);
++  border-top: 1px solid var(--border);
++  backdrop-filter: blur(10px);
++}
++
++@media (max-width: 760px) {
++  .exercise-catalog-heading {
++    align-items: stretch;
++  }
++
++  .exercise-catalog-heading .primary-button {
++    flex: 0 0 auto;
++    min-width: 46px;
++    padding-inline: 12px;
++  }
++
++  .exercise-catalog-toolbar {
++    grid-template-columns: minmax(0, 1fr) 48px;
++  }
++
++  .exercise-filter-select {
++    grid-column: 1 / -1;
++    grid-row: 2;
++  }
++
++  .exercise-refresh {
++    grid-column: 2;
++    grid-row: 1;
++    min-width: 48px;
++    padding: 0;
++  }
++
++  .exercise-refresh span {
++    display: none;
++  }
++
++  .exercise-filter-row {
++    align-items: flex-start;
++    flex-direction: column;
++  }
++
++  .favorite-filter {
++    align-self: flex-start;
++  }
++
++  .exercise-list {
++    grid-template-columns: 1fr;
++  }
++
++  .exercise-card {
++    padding: 13px;
++  }
++
++  .exercise-editor-backdrop {
++    align-items: stretch;
++    padding: 0;
++  }
++
++  .exercise-editor {
++    width: 100%;
++    max-height: 100dvh;
++    border: 0;
++    border-radius: 0;
++  }
++
++  .exercise-editor-header {
++    padding-top: max(12px, env(safe-area-inset-top));
++    padding-right: max(12px, env(safe-area-inset-right));
++    padding-left: max(12px, env(safe-area-inset-left));
++  }
++
++  .exercise-editor-header h2 {
++    font-size: 1.25rem;
++  }
++
++  .exercise-editor-tabs {
++    padding-right: max(12px, env(safe-area-inset-right));
++    padding-left: max(12px, env(safe-area-inset-left));
++  }
++
++  .exercise-editor-tabs button {
++    gap: 4px;
++    padding-inline: 5px;
++    font-size: 0.82rem;
++  }
++
++  .exercise-editor-tabs svg {
++    display: none;
++  }
++
++  .exercise-editor-panel {
++    padding: 14px max(12px, env(safe-area-inset-right)) 22px max(12px, env(safe-area-inset-left));
++  }
++
++  .exercise-form-grid,
++  .parameter-detail-grid {
++    grid-template-columns: 1fr;
++  }
++
++  .exercise-field-wide {
++    grid-column: auto;
++  }
++
++  .exercise-field input,
++  .exercise-field select,
++  .exercise-field textarea {
++    font-size: 16px;
++  }
++
++  .parameter-detail-grid {
++    grid-template-columns: repeat(2, minmax(0, 1fr));
++  }
++
++  .exercise-editor-actions {
++    padding-right: max(12px, env(safe-area-inset-right));
++    padding-left: max(12px, env(safe-area-inset-left));
++  }
++
++  .exercise-editor-actions > * {
++    flex: 1;
++  }
++}
++
++@media (max-width: 380px) {
++  .exercise-catalog-heading .primary-button {
++    font-size: 0;
++  }
++
++  .exercise-catalog-heading .primary-button svg {
++    margin: 0;
++  }
++
++  .exercise-editor-tabs button {
++    font-size: 0.76rem;
++  }
++
++  .parameter-detail-grid {
++    grid-template-columns: 1fr;
++  }
++}
+diff --git a/supabase/migrations/202607210013_exercise_catalog_v1.sql b/supabase/migrations/202607210013_exercise_catalog_v1.sql
+new file mode 100644
+index 0000000..d7f61f8
+--- /dev/null
++++ b/supabase/migrations/202607210013_exercise_catalog_v1.sql
+@@ -0,0 +1,715 @@
++-- ULC Linz App – Übungskatalog V1
++-- Strukturierte Übungen, flexible Planungsparameter, Gruppeneignung und persönliche Favoriten.
++
++begin;
++
++-- Die bisher getrennten Module Übungskatalog und Übungspflege werden zusammengeführt.
++insert into public.member_module_permissions (
++  membership_id,
++  module_key,
++  can_view,
++  can_edit
++)
++select
++  permission.membership_id,
++  'exercise_catalog',
++  bool_or(permission.can_view or permission.can_edit),
++  bool_or(permission.can_edit)
++from public.member_module_permissions permission
++where permission.module_key in ('exercise_catalog', 'exercise_management')
++group by permission.membership_id
++on conflict (membership_id, module_key) do update
++set
++  can_view = excluded.can_view,
++  can_edit = excluded.can_edit,
++  updated_at = now();
++
++update public.app_modules
++set
++  title = 'Übungskatalog',
++  description = 'Übungen strukturiert erfassen und verwenden',
++  route = '/module/exercise_catalog',
++  icon = 'book-open',
++  sort_order = 40,
++  is_active = true
++where key = 'exercise_catalog';
++
++update public.app_modules
++set is_active = false
++where key = 'exercise_management';
++
++create table if not exists public.exercise_categories (
++  key text primary key check (key ~ '^[a-z][a-z0-9_]*$'),
++  title text not null check (char_length(trim(title)) between 2 and 80),
++  sort_order integer not null default 100,
++  is_active boolean not null default true,
++  created_at timestamptz not null default now(),
++  updated_at timestamptz not null default now()
++);
++
++insert into public.exercise_categories (key, title, sort_order) values
++  ('warmup', 'Aufwärmen & Lauf-ABC', 10),
++  ('acceleration', 'Beschleunigung', 20),
++  ('max_velocity', 'Maximalgeschwindigkeit', 30),
++  ('speed_endurance', 'Schnelligkeitsausdauer', 40),
++  ('start_reaction', 'Start & Reaktion', 50),
++  ('technique', 'Technik', 60),
++  ('plyometrics', 'Plyometrie', 70),
++  ('strength', 'Kraft', 80),
++  ('stability', 'Stabilisation', 90),
++  ('regeneration', 'Regeneration', 100),
++  ('other', 'Sonstiges', 999)
++on conflict (key) do update
++set
++  title = excluded.title,
++  sort_order = excluded.sort_order,
++  is_active = true,
++  updated_at = now();
++
++create table if not exists public.exercises (
++  id uuid primary key default gen_random_uuid(),
++  organization_id uuid not null references public.organizations(id) on delete cascade,
++  name text not null check (char_length(trim(name)) between 2 and 120),
++  category_key text not null references public.exercise_categories(key),
++  subcategory text check (subcategory is null or char_length(trim(subcategory)) <= 100),
++  goal text check (goal is null or char_length(trim(goal)) <= 240),
++  description text,
++  coaching_cues text,
++  common_mistakes text,
++  equipment text[] not null default '{}',
++  video_url text,
++  is_active boolean not null default true,
++  created_by uuid references auth.users(id) on delete set null,
++  created_at timestamptz not null default now(),
++  updated_at timestamptz not null default now()
++);
++
++create unique index if not exists exercises_org_name_unique_idx
++  on public.exercises (organization_id, lower(name));
++create index if not exists exercises_org_category_idx
++  on public.exercises (organization_id, category_key, is_active);
++create index if not exists exercises_org_active_name_idx
++  on public.exercises (organization_id, is_active, lower(name));
++
++create table if not exists public.exercise_parameter_definitions (
++  id uuid primary key default gen_random_uuid(),
++  organization_id uuid not null references public.organizations(id) on delete cascade,
++  exercise_id uuid not null references public.exercises(id) on delete cascade,
++  parameter_key text not null check (parameter_key in (
++    'sets',
++    'repetitions',
++    'distance_m',
++    'weight_kg',
++    'duration_s',
++    'target_time_s',
++    'intensity_percent',
++    'rest_s',
++    'series_rest_s',
++    'approach_distance_m',
++    'flying_distance_m',
++    'contacts',
++    'resistance_kg',
++    'height_cm',
++    'tempo_text',
++    'surface_text',
++    'start_position_text',
++    'note_text'
++  )),
++  label text not null check (char_length(trim(label)) between 1 and 80),
++  unit text not null default '' check (char_length(unit) <= 20),
++  input_type text not null check (input_type in ('number', 'text')),
++  default_value text,
++  min_value numeric,
++  max_value numeric,
++  step_value numeric,
++  is_required boolean not null default false,
++  sort_order integer not null default 100,
++  created_at timestamptz not null default now(),
++  updated_at timestamptz not null default now(),
++  unique (exercise_id, parameter_key),
++  check (min_value is null or max_value is null or min_value <= max_value),
++  check (step_value is null or step_value > 0)
++);
++
++create index if not exists exercise_parameter_definitions_exercise_idx
++  on public.exercise_parameter_definitions (exercise_id, sort_order);
++
++create table if not exists public.exercise_group_assignments (
++  organization_id uuid not null references public.organizations(id) on delete cascade,
++  exercise_id uuid not null references public.exercises(id) on delete cascade,
++  group_id uuid not null references public.training_groups(id) on delete cascade,
++  created_at timestamptz not null default now(),
++  primary key (exercise_id, group_id)
++);
++
++create index if not exists exercise_group_assignments_group_idx
++  on public.exercise_group_assignments (organization_id, group_id);
++
++create table if not exists public.exercise_user_favorites (
++  organization_id uuid not null references public.organizations(id) on delete cascade,
++  exercise_id uuid not null references public.exercises(id) on delete cascade,
++  user_id uuid not null references auth.users(id) on delete cascade,
++  created_at timestamptz not null default now(),
++  primary key (exercise_id, user_id)
++);
++
++create index if not exists exercise_user_favorites_user_idx
++  on public.exercise_user_favorites (organization_id, user_id);
++
++-- Zeitstempel wie im restlichen Projekt automatisch aktualisieren.
++drop trigger if exists exercise_categories_set_updated_at on public.exercise_categories;
++create trigger exercise_categories_set_updated_at
++before update on public.exercise_categories
++for each row execute function public.set_updated_at();
++
++drop trigger if exists exercises_set_updated_at on public.exercises;
++create trigger exercises_set_updated_at
++before update on public.exercises
++for each row execute function public.set_updated_at();
++
++drop trigger if exists exercise_parameter_definitions_set_updated_at on public.exercise_parameter_definitions;
++create trigger exercise_parameter_definitions_set_updated_at
++before update on public.exercise_parameter_definitions
++for each row execute function public.set_updated_at();
++
++alter table public.exercise_categories enable row level security;
++alter table public.exercises enable row level security;
++alter table public.exercise_parameter_definitions enable row level security;
++alter table public.exercise_group_assignments enable row level security;
++alter table public.exercise_user_favorites enable row level security;
++
++drop policy if exists exercise_categories_read on public.exercise_categories;
++create policy exercise_categories_read
++on public.exercise_categories
++for select
++to authenticated
++using (is_active);
++
++drop policy if exists exercises_read on public.exercises;
++create policy exercises_read
++on public.exercises
++for select
++to authenticated
++using (public.has_module_access(organization_id, 'exercise_catalog', false));
++
++drop policy if exists exercises_write on public.exercises;
++create policy exercises_write
++on public.exercises
++for all
++to authenticated
++using (public.has_module_access(organization_id, 'exercise_catalog', true))
++with check (public.has_module_access(organization_id, 'exercise_catalog', true));
++
++drop policy if exists exercise_parameters_read on public.exercise_parameter_definitions;
++create policy exercise_parameters_read
++on public.exercise_parameter_definitions
++for select
++to authenticated
++using (public.has_module_access(organization_id, 'exercise_catalog', false));
++
++drop policy if exists exercise_parameters_write on public.exercise_parameter_definitions;
++create policy exercise_parameters_write
++on public.exercise_parameter_definitions
++for all
++to authenticated
++using (public.has_module_access(organization_id, 'exercise_catalog', true))
++with check (public.has_module_access(organization_id, 'exercise_catalog', true));
++
++drop policy if exists exercise_groups_read on public.exercise_group_assignments;
++create policy exercise_groups_read
++on public.exercise_group_assignments
++for select
++to authenticated
++using (public.has_module_access(organization_id, 'exercise_catalog', false));
++
++drop policy if exists exercise_groups_write on public.exercise_group_assignments;
++create policy exercise_groups_write
++on public.exercise_group_assignments
++for all
++to authenticated
++using (public.has_module_access(organization_id, 'exercise_catalog', true))
++with check (public.has_module_access(organization_id, 'exercise_catalog', true));
++
++drop policy if exists exercise_favorites_own on public.exercise_user_favorites;
++create policy exercise_favorites_own
++on public.exercise_user_favorites
++for all
++to authenticated
++using (
++  user_id = (select auth.uid())
++  and public.has_module_access(organization_id, 'exercise_catalog', false)
++)
++with check (
++  user_id = (select auth.uid())
++  and public.has_module_access(organization_id, 'exercise_catalog', false)
++);
++
++-- Der Browser arbeitet ausschließlich über die folgenden RPC-Funktionen.
++-- Dadurch können Tabellen nicht an den geprüften Organisations- und Modulrechten vorbei verändert werden.
++revoke all on table public.exercise_categories from anon, authenticated;
++revoke all on table public.exercises from anon, authenticated;
++revoke all on table public.exercise_parameter_definitions from anon, authenticated;
++revoke all on table public.exercise_group_assignments from anon, authenticated;
++revoke all on table public.exercise_user_favorites from anon, authenticated;
++
++create or replace function public.exercise_catalog_overview(
++  p_organization_id uuid,
++  p_include_inactive boolean default true
++)
++returns jsonb
++language plpgsql
++stable
++security definer
++set search_path = ''
++as $$
++declare
++  v_current_user_id uuid := (select auth.uid());
++begin
++  if v_current_user_id is null or not public.has_module_access(
++    p_organization_id,
++    'exercise_catalog',
++    false
++  ) then
++    raise exception 'Für den Übungskatalog fehlen die erforderlichen Rechte.';
++  end if;
++
++  return jsonb_build_object(
++    'categories', coalesce(
++      (
++        select jsonb_agg(
++          jsonb_build_object(
++            'key', category.key,
++            'title', category.title,
++            'sort_order', category.sort_order
++          )
++          order by category.sort_order, category.title
++        )
++        from public.exercise_categories category
++        where category.is_active
++      ),
++      '[]'::jsonb
++    ),
++    'groups', coalesce(
++      (
++        select jsonb_agg(
++          jsonb_build_object(
++            'id', training_group.id,
++            'name', training_group.name,
++            'short_name', training_group.short_name
++          )
++          order by training_group.sort_order, lower(training_group.name)
++        )
++        from public.training_groups training_group
++        where training_group.organization_id = p_organization_id
++          and training_group.is_active
++      ),
++      '[]'::jsonb
++    ),
++    'exercises', coalesce(
++      (
++        select jsonb_agg(
++          jsonb_build_object(
++            'id', exercise.id,
++            'name', exercise.name,
++            'category_key', exercise.category_key,
++            'category_title', category.title,
++            'subcategory', exercise.subcategory,
++            'goal', exercise.goal,
++            'description', exercise.description,
++            'coaching_cues', exercise.coaching_cues,
++            'common_mistakes', exercise.common_mistakes,
++            'equipment', to_jsonb(exercise.equipment),
++            'video_url', exercise.video_url,
++            'is_active', exercise.is_active,
++            'is_favorite', exists (
++              select 1
++              from public.exercise_user_favorites favorite
++              where favorite.exercise_id = exercise.id
++                and favorite.user_id = v_current_user_id
++            ),
++            'group_ids', coalesce(
++              (
++                select jsonb_agg(assignment.group_id order by assignment.group_id)
++                from public.exercise_group_assignments assignment
++                where assignment.exercise_id = exercise.id
++              ),
++              '[]'::jsonb
++            ),
++            'parameters', coalesce(
++              (
++                select jsonb_agg(
++                  jsonb_build_object(
++                    'parameter_key', parameter.parameter_key,
++                    'label', parameter.label,
++                    'unit', parameter.unit,
++                    'input_type', parameter.input_type,
++                    'default_value', parameter.default_value,
++                    'min_value', parameter.min_value,
++                    'max_value', parameter.max_value,
++                    'step_value', parameter.step_value,
++                    'is_required', parameter.is_required,
++                    'sort_order', parameter.sort_order
++                  )
++                  order by parameter.sort_order, parameter.label
++                )
++                from public.exercise_parameter_definitions parameter
++                where parameter.exercise_id = exercise.id
++              ),
++              '[]'::jsonb
++            ),
++            'created_at', exercise.created_at,
++            'updated_at', exercise.updated_at
++          )
++          order by lower(exercise.name)
++        )
++        from public.exercises exercise
++        join public.exercise_categories category
++          on category.key = exercise.category_key
++        where exercise.organization_id = p_organization_id
++          and (p_include_inactive or exercise.is_active)
++      ),
++      '[]'::jsonb
++    )
++  );
++end;
++$$;
++
++create or replace function public.save_exercise_catalog_item(
++  p_organization_id uuid,
++  p_exercise_id uuid default null,
++  p_name text default null,
++  p_category_key text default null,
++  p_subcategory text default null,
++  p_goal text default null,
++  p_description text default null,
++  p_coaching_cues text default null,
++  p_common_mistakes text default null,
++  p_equipment text[] default '{}',
++  p_video_url text default null,
++  p_is_active boolean default true,
++  p_group_ids uuid[] default '{}',
++  p_parameters jsonb default '[]'::jsonb
++)
++returns uuid
++language plpgsql
++security definer
++set search_path = ''
++as $$
++declare
++  v_current_user_id uuid := (select auth.uid());
++  v_exercise_id uuid := p_exercise_id;
++  v_name text := trim(coalesce(p_name, ''));
++  v_category_key text := trim(coalesce(p_category_key, ''));
++  v_before jsonb;
++  v_after jsonb;
++  v_parameter jsonb;
++  v_parameter_key text;
++  v_input_type text;
++  v_min numeric;
++  v_max numeric;
++begin
++  if v_current_user_id is null or not public.has_module_access(
++    p_organization_id,
++    'exercise_catalog',
++    true
++  ) then
++    raise exception 'Du darfst den Übungskatalog nicht bearbeiten.';
++  end if;
++
++  if char_length(v_name) < 2 then
++    raise exception 'Der Übungsname ist zu kurz.';
++  end if;
++
++  if not exists (
++    select 1
++    from public.exercise_categories category
++    where category.key = v_category_key
++      and category.is_active
++  ) then
++    raise exception 'Die ausgewählte Übungskategorie ist ungültig.';
++  end if;
++
++  if p_video_url is not null and trim(p_video_url) <> '' and trim(p_video_url) !~* '^https?://' then
++    raise exception 'Der Video- oder Weblink muss mit http:// oder https:// beginnen.';
++  end if;
++
++  if jsonb_typeof(coalesce(p_parameters, '[]'::jsonb)) <> 'array' then
++    raise exception 'Die Planungsparameter besitzen ein ungültiges Format.';
++  end if;
++
++  if exists (
++    select 1
++    from public.exercises existing
++    where existing.organization_id = p_organization_id
++      and lower(existing.name) = lower(v_name)
++      and (v_exercise_id is null or existing.id <> v_exercise_id)
++  ) then
++    raise exception 'Eine Übung mit diesem Namen existiert bereits.';
++  end if;
++
++  if coalesce(array_length(p_group_ids, 1), 0) > 0 and exists (
++    select 1
++    from unnest(p_group_ids) as requested_groups(requested_group_id)
++    where not exists (
++      select 1
++      from public.training_groups training_group
++      where training_group.id = requested_groups.requested_group_id
++        and training_group.organization_id = p_organization_id
++        and training_group.is_active
++    )
++  ) then
++    raise exception 'Mindestens eine ausgewählte Trainingsgruppe ist ungültig oder inaktiv.';
++  end if;
++
++  if (
++    select count(*)
++    from jsonb_array_elements(coalesce(p_parameters, '[]'::jsonb)) as items(element)
++  ) <> (
++    select count(distinct element ->> 'parameter_key')
++    from jsonb_array_elements(coalesce(p_parameters, '[]'::jsonb)) as items(element)
++  ) then
++    raise exception 'Ein Planungsparameter wurde mehrfach ausgewählt.';
++  end if;
++
++  for v_parameter in
++    select element
++    from jsonb_array_elements(coalesce(p_parameters, '[]'::jsonb)) as items(element)
++  loop
++    v_parameter_key := v_parameter ->> 'parameter_key';
++    v_input_type := v_parameter ->> 'input_type';
++
++    if v_parameter_key is null or v_parameter_key not in (
++      'sets', 'repetitions', 'distance_m', 'weight_kg', 'duration_s',
++      'target_time_s', 'intensity_percent', 'rest_s', 'series_rest_s',
++      'approach_distance_m', 'flying_distance_m', 'contacts', 'resistance_kg',
++      'height_cm', 'tempo_text', 'surface_text', 'start_position_text', 'note_text'
++    ) then
++      raise exception 'Unbekannter Planungsparameter: %', coalesce(v_parameter_key, 'leer');
++    end if;
++
++    if v_input_type not in ('number', 'text') then
++      raise exception 'Ungültiger Eingabetyp für den Parameter %.', v_parameter_key;
++    end if;
++
++    begin
++      v_min := nullif(v_parameter ->> 'min_value', '')::numeric;
++      v_max := nullif(v_parameter ->> 'max_value', '')::numeric;
++    exception when invalid_text_representation then
++      raise exception 'Minimum oder Maximum des Parameters % ist ungültig.', v_parameter_key;
++    end;
++
++    if v_min is not null and v_max is not null and v_min > v_max then
++      raise exception 'Beim Parameter % liegt das Minimum über dem Maximum.', v_parameter_key;
++    end if;
++  end loop;
++
++  if v_exercise_id is null then
++    insert into public.exercises (
++      organization_id,
++      name,
++      category_key,
++      subcategory,
++      goal,
++      description,
++      coaching_cues,
++      common_mistakes,
++      equipment,
++      video_url,
++      is_active,
++      created_by
++    ) values (
++      p_organization_id,
++      v_name,
++      v_category_key,
++      nullif(trim(coalesce(p_subcategory, '')), ''),
++      nullif(trim(coalesce(p_goal, '')), ''),
++      nullif(trim(coalesce(p_description, '')), ''),
++      nullif(trim(coalesce(p_coaching_cues, '')), ''),
++      nullif(trim(coalesce(p_common_mistakes, '')), ''),
++      coalesce(p_equipment, '{}'),
++      nullif(trim(coalesce(p_video_url, '')), ''),
++      coalesce(p_is_active, true),
++      v_current_user_id
++    )
++    returning id into v_exercise_id;
++  else
++    select to_jsonb(existing)
++    into v_before
++    from public.exercises existing
++    where existing.id = v_exercise_id
++      and existing.organization_id = p_organization_id;
++
++    if v_before is null then
++      raise exception 'Die Übung wurde nicht gefunden.';
++    end if;
++
++    update public.exercises
++    set
++      name = v_name,
++      category_key = v_category_key,
++      subcategory = nullif(trim(coalesce(p_subcategory, '')), ''),
++      goal = nullif(trim(coalesce(p_goal, '')), ''),
++      description = nullif(trim(coalesce(p_description, '')), ''),
++      coaching_cues = nullif(trim(coalesce(p_coaching_cues, '')), ''),
++      common_mistakes = nullif(trim(coalesce(p_common_mistakes, '')), ''),
++      equipment = coalesce(p_equipment, '{}'),
++      video_url = nullif(trim(coalesce(p_video_url, '')), ''),
++      is_active = coalesce(p_is_active, true)
++    where id = v_exercise_id
++      and organization_id = p_organization_id;
++  end if;
++
++  delete from public.exercise_parameter_definitions
++  where exercise_id = v_exercise_id;
++
++  insert into public.exercise_parameter_definitions (
++    organization_id,
++    exercise_id,
++    parameter_key,
++    label,
++    unit,
++    input_type,
++    default_value,
++    min_value,
++    max_value,
++    step_value,
++    is_required,
++    sort_order
++  )
++  select
++    p_organization_id,
++    v_exercise_id,
++    parameter ->> 'parameter_key',
++    coalesce(nullif(trim(parameter ->> 'label'), ''), parameter ->> 'parameter_key'),
++    coalesce(parameter ->> 'unit', ''),
++    parameter ->> 'input_type',
++    nullif(parameter ->> 'default_value', ''),
++    nullif(parameter ->> 'min_value', '')::numeric,
++    nullif(parameter ->> 'max_value', '')::numeric,
++    nullif(parameter ->> 'step_value', '')::numeric,
++    coalesce((parameter ->> 'is_required')::boolean, false),
++    coalesce((parameter ->> 'sort_order')::integer, parameter_ordinality::integer)
++  from jsonb_array_elements(coalesce(p_parameters, '[]'::jsonb))
++    with ordinality as parameter_values(parameter, parameter_ordinality);
++
++  delete from public.exercise_group_assignments
++  where exercise_id = v_exercise_id;
++
++  insert into public.exercise_group_assignments (
++    organization_id,
++    exercise_id,
++    group_id
++  )
++  select distinct
++    p_organization_id,
++    v_exercise_id,
++    requested_groups.requested_group_id
++  from unnest(coalesce(p_group_ids, '{}')) as requested_groups(requested_group_id);
++
++  select jsonb_build_object(
++    'exercise', to_jsonb(exercise),
++    'group_ids', coalesce(
++      (
++        select jsonb_agg(assignment.group_id order by assignment.group_id)
++        from public.exercise_group_assignments assignment
++        where assignment.exercise_id = v_exercise_id
++      ),
++      '[]'::jsonb
++    ),
++    'parameters', coalesce(
++      (
++        select jsonb_agg(to_jsonb(parameter) order by parameter.sort_order)
++        from public.exercise_parameter_definitions parameter
++        where parameter.exercise_id = v_exercise_id
++      ),
++      '[]'::jsonb
++    )
++  )
++  into v_after
++  from public.exercises exercise
++  where exercise.id = v_exercise_id;
++
++  insert into public.audit_log (
++    organization_id,
++    actor_user_id,
++    action,
++    entity_type,
++    entity_id,
++    before_data,
++    after_data
++  ) values (
++    p_organization_id,
++    v_current_user_id,
++    case when p_exercise_id is null then 'exercise_created' else 'exercise_updated' end,
++    'exercise',
++    v_exercise_id::text,
++    v_before,
++    v_after
++  );
++
++  return v_exercise_id;
++end;
++$$;
++
++create or replace function public.set_exercise_favorite(
++  p_organization_id uuid,
++  p_exercise_id uuid,
++  p_is_favorite boolean
++)
++returns void
++language plpgsql
++security definer
++set search_path = ''
++as $$
++declare
++  v_current_user_id uuid := (select auth.uid());
++begin
++  if v_current_user_id is null or not public.has_module_access(
++    p_organization_id,
++    'exercise_catalog',
++    false
++  ) then
++    raise exception 'Für den Übungskatalog fehlen die erforderlichen Rechte.';
++  end if;
++
++  if not exists (
++    select 1
++    from public.exercises exercise
++    where exercise.id = p_exercise_id
++      and exercise.organization_id = p_organization_id
++  ) then
++    raise exception 'Die Übung wurde nicht gefunden.';
++  end if;
++
++  if coalesce(p_is_favorite, false) then
++    insert into public.exercise_user_favorites (
++      organization_id,
++      exercise_id,
++      user_id
++    ) values (
++      p_organization_id,
++      p_exercise_id,
++      v_current_user_id
++    )
++    on conflict (exercise_id, user_id) do nothing;
++  else
++    delete from public.exercise_user_favorites
++    where exercise_id = p_exercise_id
++      and user_id = v_current_user_id;
++  end if;
++end;
++$$;
++
++revoke all on function public.exercise_catalog_overview(uuid, boolean) from public;
++revoke all on function public.save_exercise_catalog_item(
++  uuid, uuid, text, text, text, text, text, text, text, text[], text, boolean, uuid[], jsonb
++) from public;
++revoke all on function public.set_exercise_favorite(uuid, uuid, boolean) from public;
++
++grant execute on function public.exercise_catalog_overview(uuid, boolean) to authenticated;
++grant execute on function public.save_exercise_catalog_item(
++  uuid, uuid, text, text, text, text, text, text, text, text[], text, boolean, uuid[], jsonb
++) to authenticated;
++grant execute on function public.set_exercise_favorite(uuid, uuid, boolean) to authenticated;
++
++commit;
