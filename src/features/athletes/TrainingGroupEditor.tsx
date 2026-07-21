@@ -257,65 +257,73 @@ export function TrainingGroupEditor({
           </label>
         </div>
 
-        <fieldset className="performance-group-fieldset">
+        <fieldset className="performance-group-fieldset performance-group-fieldset-v2">
           <legend>
             <CalendarClock aria-hidden="true" /> Leistungsgruppe
           </legend>
 
-          <label className="setting-checkbox">
-            <input
-              type="checkbox"
-              checked={values.isPerformanceGroup}
-              onChange={(event) =>
-                setValues((current) => ({
-                  ...current,
-                  isPerformanceGroup: event.target.checked,
-                }))
-              }
-            />
+          <button
+            type="button"
+            className={`performance-feature-switch ${values.isPerformanceGroup ? "active" : ""}`}
+            role="switch"
+            aria-checked={values.isPerformanceGroup}
+            onClick={() =>
+              setValues((current) => ({
+                ...current,
+                isPerformanceGroup: !current.isPerformanceGroup,
+              }))
+            }
+          >
             <span>
-              <strong>Trainingsanmeldung für diese Gruppe aktivieren</strong>
-              <small>Athleten und Trainer können ihre Verfügbarkeit wochenweise eintragen.</small>
+              <strong>Trainingsanmeldung</strong>
+              <small>Wochenweise Zu- oder Absage der Athleten aktivieren.</small>
             </span>
-          </label>
+            <span className="performance-switch-control" aria-hidden="true"><span /></span>
+          </button>
 
           {values.isPerformanceGroup && (
-            <div className="performance-settings-grid">
-              <label>
-                Anmeldeschluss
-                <select
-                  value={values.registrationDeadlineWeekday}
-                  onChange={(event) =>
-                    setValues((current) => ({
-                      ...current,
-                      registrationDeadlineWeekday: Number(event.target.value),
-                    }))
-                  }
-                >
-                  {WEEKDAYS.map((weekday) => (
-                    <option value={weekday.value} key={weekday.value}>{weekday.label}</option>
-                  ))}
-                </select>
-                <small>Wochentag vor Beginn der jeweiligen Trainingswoche.</small>
-              </label>
+            <div className="performance-settings-panel">
+              <div className="performance-setting-row deadline-row">
+                <div>
+                  <strong>Anmeldeschluss</strong>
+                  <small>Vor Beginn der jeweiligen Trainingswoche.</small>
+                </div>
+                <div className="performance-deadline-inputs">
+                  <select
+                    aria-label="Wochentag des Anmeldeschlusses"
+                    value={values.registrationDeadlineWeekday}
+                    onChange={(event) =>
+                      setValues((current) => ({
+                        ...current,
+                        registrationDeadlineWeekday: Number(event.target.value),
+                      }))
+                    }
+                  >
+                    {WEEKDAYS.map((weekday) => (
+                      <option value={weekday.value} key={weekday.value}>{weekday.label}</option>
+                    ))}
+                  </select>
+                  <input
+                    type="time"
+                    aria-label="Uhrzeit des Anmeldeschlusses"
+                    value={values.registrationDeadlineTime}
+                    onChange={(event) =>
+                      setValues((current) => ({
+                        ...current,
+                        registrationDeadlineTime: event.target.value || "18:00",
+                      }))
+                    }
+                  />
+                </div>
+              </div>
 
-              <label>
-                Uhrzeit
+              <div className="performance-setting-row">
+                <div>
+                  <strong>Wochen im Voraus</strong>
+                  <small>Wie weit Athleten ihre Anmeldung sehen können.</small>
+                </div>
                 <input
-                  type="time"
-                  value={values.registrationDeadlineTime}
-                  onChange={(event) =>
-                    setValues((current) => ({
-                      ...current,
-                      registrationDeadlineTime: event.target.value || "18:00",
-                    }))
-                  }
-                />
-              </label>
-
-              <label>
-                Wochen im Voraus
-                <input
+                  className="performance-weeks-input"
                   type="number"
                   min={1}
                   max={12}
@@ -327,24 +335,26 @@ export function TrainingGroupEditor({
                     }))
                   }
                 />
-              </label>
+              </div>
 
-              <label className="setting-checkbox compact-setting-checkbox">
-                <input
-                  type="checkbox"
-                  checked={values.allowLateRegistration}
-                  onChange={(event) =>
-                    setValues((current) => ({
-                      ...current,
-                      allowLateRegistration: event.target.checked,
-                    }))
-                  }
-                />
+              <button
+                type="button"
+                className={`performance-setting-row performance-inline-switch ${values.allowLateRegistration ? "active" : ""}`}
+                role="switch"
+                aria-checked={values.allowLateRegistration}
+                onClick={() =>
+                  setValues((current) => ({
+                    ...current,
+                    allowLateRegistration: !current.allowLateRegistration,
+                  }))
+                }
+              >
                 <span>
                   <strong>Nachmeldungen erlauben</strong>
-                  <small>Späte Änderungen werden in der Übersicht markiert.</small>
+                  <small>Späte Änderungen bleiben möglich und werden markiert.</small>
                 </span>
-              </label>
+                <span className="performance-switch-control" aria-hidden="true"><span /></span>
+              </button>
             </div>
           )}
         </fieldset>

@@ -12,7 +12,7 @@ export type PerformanceAvailability = {
   availableFrom: string;
   availableUntil: string;
   comment: string;
-  source: "self" | "trainer" | "default" | "copy" | null;
+  source: "self" | "trainer" | "proxy" | "default" | "copy" | null;
   updatedAt: string | null;
   isLate: boolean;
 };

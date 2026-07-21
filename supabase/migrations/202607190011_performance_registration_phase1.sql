@@ -772,7 +772,7 @@ set search_path = ''
 as $$
 declare
   current_user_id uuid := (select auth.uid());
-  current_role public.app_role;
+  v_current_role public.app_role;
   current_athlete_id uuid;
   current_trainer_id uuid;
   can_manage boolean;
@@ -785,7 +785,7 @@ begin
     raise exception 'Für die Leistungsgruppen fehlen die erforderlichen Rechte.';
   end if;
 
-  current_role := public.current_organization_role(p_organization_id);
+  v_current_role := public.current_organization_role(p_organization_id);
   can_manage := public.can_manage_performance_registration(p_organization_id);
 
   select athlete.id
@@ -803,7 +803,7 @@ begin
   limit 1;
 
   return jsonb_build_object(
-    'role', current_role,
+    'role', v_current_role,
     'can_manage', can_manage,
     'athlete', (
       select jsonb_build_object(
@@ -849,9 +849,9 @@ begin
         where training_group.organization_id = p_organization_id
           and training_group.is_active
           and (
-            current_role = 'admin'
+            v_current_role = 'admin'
             or (
-              current_role = 'trainer'
+              v_current_role = 'trainer'
               and (
                 current_trainer_id is null
                 or exists (
@@ -864,7 +864,7 @@ begin
               )
             )
             or (
-              current_role = 'athlete'
+              v_current_role = 'athlete'
               and current_athlete_id is not null
               and exists (
                 select 1
@@ -896,7 +896,7 @@ set search_path = ''
 as $$
 declare
   current_user_id uuid := (select auth.uid());
-  current_role public.app_role;
+  v_current_role public.app_role;
   current_athlete_id uuid;
   current_trainer_id uuid;
   can_manage boolean;
@@ -930,7 +930,7 @@ begin
     raise exception 'Die Leistungsgruppe wurde nicht gefunden oder ist nicht aktiv.';
   end if;
 
-  current_role := public.current_organization_role(p_organization_id);
+  v_current_role := public.current_organization_role(p_organization_id);
   can_manage := public.can_manage_performance_registration(p_organization_id);
 
   select athlete.id
@@ -947,7 +947,7 @@ begin
     and trainer.linked_user_id = current_user_id
   limit 1;
 
-  if not can_manage and current_role = 'athlete' and not exists (
+  if not can_manage and v_current_role = 'athlete' and not exists (
     select 1
     from public.athlete_group_memberships membership
     where membership.organization_id = p_organization_id

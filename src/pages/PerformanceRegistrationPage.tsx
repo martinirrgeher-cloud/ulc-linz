@@ -2,14 +2,9 @@ import {
   CalendarCheck,
   ChevronLeft,
   ChevronRight,
-  Clock3,
   CloudCheck,
   CloudUpload,
-  Copy,
   RefreshCw,
-  RotateCcw,
-  Save,
-  UserCheck,
   UsersRound,
 } from "lucide-react";
 import {
@@ -22,12 +17,9 @@ import {
 import { Navigate } from "react-router-dom";
 import { useNavigationGuard } from "@/components/layout/NavigationGuardContext";
 import {
-  applyPerformanceDefaults,
-  copyPerformancePreviousWeek,
   loadPerformanceContext,
   loadPerformanceWeek,
   savePerformanceAvailability,
-  savePerformanceDefault,
 } from "@/features/performance-registration/api";
 import {
   addWeeks,
@@ -41,36 +33,31 @@ import {
 import type {
   PerformanceAthlete,
   PerformanceAvailability,
-  PerformanceAvailabilityDefault,
   PerformanceAvailabilityDraft,
   PerformanceAvailabilityStatus,
   PerformanceContext,
-  PerformanceSaveTarget,
-  PerformanceTrainer,
   PerformanceWeek,
 } from "@/features/performance-registration/types";
 import { useAuth } from "@/features/auth/AuthContext";
 
-type PageMode = "athlete" | "overview" | "trainer";
+type PageMode = "registration" | "overview";
 type SaveState = "idle" | "pending" | "saving" | "saved" | "error";
-type StatusFilter = PerformanceAvailabilityStatus | "all";
 
 type DraftKeyParts = {
-  target: PerformanceSaveTarget;
-  personId: string;
+  athleteId: string;
   date: string;
 };
 
-const AUTOSAVE_DELAY_MS = 700;
+const AUTOSAVE_DELAY_MS = 650;
 const STATUS_OPTIONS: Array<{
   value: PerformanceAvailabilityStatus;
   label: string;
-  shortLabel: string;
+  matrixLabel: string;
 }> = [
-  { value: "open", label: "Offen", shortLabel: "Offen" },
-  { value: "coming", label: "Komme", shortLabel: "Komme" },
-  { value: "maybe", label: "Vielleicht", shortLabel: "Vielleicht" },
-  { value: "unavailable", label: "Nicht möglich", shortLabel: "Nein" },
+  { value: "open", label: "Offen", matrixLabel: "–" },
+  { value: "coming", label: "Ja", matrixLabel: "Ja" },
+  { value: "maybe", label: "Vielleicht", matrixLabel: "?" },
+  { value: "unavailable", label: "Nein", matrixLabel: "Nein" },
 ];
 
 function errorMessage(error: unknown): string {
@@ -98,66 +85,37 @@ function availabilityToDraft(
   return availability
     ? {
         status: availability.status,
-        availableFrom: availability.availableFrom,
-        availableUntil: availability.availableUntil,
+        availableFrom: "",
+        availableUntil: "",
         comment: availability.comment,
       }
     : emptyDraft();
 }
 
-function defaultToDraft(
-  value: PerformanceAvailabilityDefault | undefined,
-): PerformanceAvailabilityDraft {
-  return value
-    ? {
-        status: value.status,
-        availableFrom: value.availableFrom,
-        availableUntil: value.availableUntil,
-        comment: value.comment,
-      }
-    : emptyDraft();
-}
-
-function draftKey(target: PerformanceSaveTarget, personId: string, date: string): string {
-  return `${target}|${personId}|${date}`;
+function draftKey(athleteId: string, date: string): string {
+  return `${athleteId}|${date}`;
 }
 
 function parseDraftKey(value: string): DraftKeyParts | null {
-  const [target, personId, date] = value.split("|");
-  if (
-    (target !== "athlete" && target !== "trainer") ||
-    !personId ||
-    !date
-  ) {
-    return null;
-  }
-  return { target, personId, date };
+  const [athleteId, date] = value.split("|");
+  return athleteId && date ? { athleteId, date } : null;
 }
 
 function sameDraft(
   left: PerformanceAvailabilityDraft | undefined,
   right: PerformanceAvailabilityDraft,
 ): boolean {
-  return Boolean(left) &&
-    left?.status === right.status &&
-    left.availableFrom === right.availableFrom &&
-    left.availableUntil === right.availableUntil &&
-    left.comment === right.comment;
+  return Boolean(left)
+    && left?.status === right.status
+    && left.comment === right.comment;
 }
 
 function buildDrafts(week: PerformanceWeek): Record<string, PerformanceAvailabilityDraft> {
   const drafts: Record<string, PerformanceAvailabilityDraft> = {};
   for (const athlete of week.athletes) {
     for (const date of week.dates) {
-      drafts[draftKey("athlete", athlete.id, date.date)] = availabilityToDraft(
+      drafts[draftKey(athlete.id, date.date)] = availabilityToDraft(
         athlete.availability.find((item) => item.date === date.date),
-      );
-    }
-  }
-  for (const trainer of week.trainers) {
-    for (const date of week.dates) {
-      drafts[draftKey("trainer", trainer.id, date.date)] = availabilityToDraft(
-        trainer.availability.find((item) => item.date === date.date),
       );
     }
   }
@@ -170,15 +128,6 @@ function statusLabel(status: PerformanceAvailabilityStatus): string {
 
 function statusClass(status: PerformanceAvailabilityStatus): string {
   return `performance-status-${status}`;
-}
-
-function formatTimeRange(draft: PerformanceAvailabilityDraft): string {
-  if (!draft.availableFrom && !draft.availableUntil) return "";
-  if (draft.availableFrom && draft.availableUntil) {
-    return `${draft.availableFrom}–${draft.availableUntil}`;
-  }
-  if (draft.availableFrom) return `ab ${draft.availableFrom}`;
-  return `bis ${draft.availableUntil}`;
 }
 
 function formatDeadline(value: string | null): string {
@@ -208,67 +157,37 @@ function isRegistrationLocked(
 function AvailabilityFields({
   draft,
   disabled,
-  compact = false,
   onChange,
 }: {
   draft: PerformanceAvailabilityDraft;
   disabled: boolean;
-  compact?: boolean;
   onChange: (changes: Partial<PerformanceAvailabilityDraft>) => void;
 }) {
   return (
-    <div className={`performance-availability-fields ${compact ? "compact" : ""}`}>
-      <div className="performance-status-options" role="group" aria-label="Trainingsstatus">
+    <div className="performance-availability-fields compact-registration-fields">
+      <div className="performance-status-options performance-registration-status" role="group" aria-label="Trainingsanmeldung">
         {STATUS_OPTIONS.map((option) => (
           <button
             type="button"
             className={`${statusClass(option.value)} ${draft.status === option.value ? "active" : ""}`}
             aria-pressed={draft.status === option.value}
-            onClick={() => onChange({
-              status: option.value,
-              ...(option.value === "unavailable"
-                ? { availableFrom: "", availableUntil: "" }
-                : {}),
-            })}
+            onClick={() => onChange({ status: option.value })}
             disabled={disabled}
             key={option.value}
           >
-            {compact ? option.shortLabel : option.label}
+            {option.label}
           </button>
         ))}
       </div>
 
-      {draft.status !== "unavailable" && (
-        <div className="performance-time-fields">
-          <label>
-            Von
-            <input
-              type="time"
-              value={draft.availableFrom}
-              onChange={(event) => onChange({ availableFrom: event.target.value })}
-              disabled={disabled}
-            />
-          </label>
-          <label>
-            Bis
-            <input
-              type="time"
-              value={draft.availableUntil}
-              onChange={(event) => onChange({ availableUntil: event.target.value })}
-              disabled={disabled}
-            />
-          </label>
-        </div>
-      )}
-
-      <label className="performance-comment-field">
-        Hinweis
+      <label className="performance-comment-field compact-comment-field">
+        <span>Hinweis</span>
         <input
           type="text"
           value={draft.comment}
           onChange={(event) => onChange({ comment: event.target.value })}
           maxLength={500}
-          placeholder="z. B. ab 17:30, muss früher weg"
+          placeholder="Optionaler Hinweis"
           disabled={disabled}
         />
       </label>
@@ -281,23 +200,17 @@ export function PerformanceRegistrationPage() {
   const organizationId = appContext?.organization?.id;
   const canView = canViewModule("performance_registration");
   const [context, setContext] = useState<PerformanceContext | null>(null);
-  const [mode, setMode] = useState<PageMode>("overview");
+  const [mode, setMode] = useState<PageMode>("registration");
   const [selectedGroupId, setSelectedGroupId] = useState("");
+  const [selectedAthleteId, setSelectedAthleteId] = useState("");
   const [weekStart, setWeekStart] = useState(() => startOfIsoWeek(new Date()));
   const [week, setWeek] = useState<PerformanceWeek | null>(null);
-  const [selectedDate, setSelectedDate] = useState("");
   const [drafts, setDrafts] = useState<Record<string, PerformanceAvailabilityDraft>>({});
   const [dirtyKeys, setDirtyKeys] = useState<Set<string>>(() => new Set());
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [busyAction, setBusyAction] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
-  const [showDefaultWeek, setShowDefaultWeek] = useState(false);
-  const [defaultDrafts, setDefaultDrafts] = useState<Record<number, PerformanceAvailabilityDraft>>({});
-  const [defaultSaving, setDefaultSaving] = useState(false);
   const draftsRef = useRef(drafts);
   const dirtyRef = useRef(dirtyKeys);
   const savingRef = useRef(false);
@@ -322,14 +235,7 @@ export function PerformanceRegistrationPage() {
           ? current
           : loaded.groups[0]?.id ?? ""
       ));
-      setMode((current) => {
-        if (loaded.role === "athlete" && loaded.athlete) return "athlete";
-        if (current === "overview" && loaded.canManage) return current;
-        if (loaded.canManage) return "overview";
-        if (loaded.athlete) return "athlete";
-        if (loaded.trainer) return "trainer";
-        return "overview";
-      });
+      setMode("registration");
     } catch (loadError) {
       setError(errorMessage(loadError));
     } finally {
@@ -356,26 +262,13 @@ export function PerformanceRegistrationPage() {
       setDrafts(buildDrafts(loaded));
       setDirtyKeys(new Set());
       setSaveState("idle");
-      setSelectedDate((current) => (
-        loaded.dates.some((date) => date.date === current)
-          ? current
-          : loaded.dates[0]?.date ?? ""
-      ));
-
-      const selfAthlete = context?.athlete
-        ? loaded.athletes.find((athlete) => athlete.id === context.athlete?.id)
-        : undefined;
-      if (selfAthlete) {
-        const defaults: Record<number, PerformanceAvailabilityDraft> = {};
-        for (const weekday of loaded.group.regularWeekdays) {
-          defaults[weekday] = defaultToDraft(
-            selfAthlete.defaults.find((item) => item.weekday === weekday),
-          );
+      setSelectedAthleteId((current) => {
+        if (loaded.athletes.some((athlete) => athlete.id === current)) return current;
+        if (context?.athlete && loaded.athletes.some((athlete) => athlete.id === context.athlete?.id)) {
+          return context.athlete.id;
         }
-        setDefaultDrafts(defaults);
-      } else {
-        setDefaultDrafts({});
-      }
+        return loaded.athletes[0]?.id ?? "";
+      });
     } catch (loadError) {
       setError(errorMessage(loadError));
     } finally {
@@ -402,19 +295,18 @@ export function PerformanceRegistrationPage() {
     try {
       for (let pass = 0; pass < 4 && dirtyRef.current.size > 0; pass += 1) {
         const keys = [...dirtyRef.current];
-
         for (const key of keys) {
           const parts = parseDraftKey(key);
           const draft = draftsRef.current[key];
           if (!parts || !draft) continue;
-          const snapshot = { ...draft };
+          const snapshot = { ...draft, availableFrom: "", availableUntil: "" };
 
           await savePerformanceAvailability({
             organizationId,
             groupId: selectedGroupId,
-            personId: parts.personId,
+            personId: parts.athleteId,
             trainingDate: parts.date,
-            target: parts.target,
+            target: "athlete",
             draft: snapshot,
           });
 
@@ -446,25 +338,22 @@ export function PerformanceRegistrationPage() {
     return () => window.clearTimeout(timer);
   }, [dirtyKeys, flushDirty]);
 
-  useNavigationGuard(
-    dirtyKeys.size > 0
-      ? async () => flushDirty()
-      : null,
-  );
+  useNavigationGuard(dirtyKeys.size > 0 ? async () => flushDirty() : null);
 
   function updateDraft(
-    target: PerformanceSaveTarget,
-    personId: string,
+    athleteId: string,
     date: string,
     changes: Partial<PerformanceAvailabilityDraft>,
   ) {
-    const key = draftKey(target, personId, date);
+    const key = draftKey(athleteId, date);
     setDrafts((current) => {
       const next = {
         ...current,
         [key]: {
           ...(current[key] ?? emptyDraft()),
           ...changes,
+          availableFrom: "",
+          availableUntil: "",
         },
       };
       draftsRef.current = next;
@@ -476,7 +365,6 @@ export function PerformanceRegistrationPage() {
       return next;
     });
     setSaveState("pending");
-    setSuccess(null);
   }
 
   async function changeWeek(amount: number) {
@@ -489,9 +377,14 @@ export function PerformanceRegistrationPage() {
     setSelectedGroupId(groupId);
   }
 
+  async function changeAthlete(athleteId: string) {
+    if (!(await flushDirty())) return;
+    setSelectedAthleteId(athleteId);
+  }
+
   async function goToCurrentWeek() {
     if (!(await flushDirty())) return;
-    setWeekStart(currentWeekStart);
+    setWeekStart(startOfIsoWeek(new Date()));
   }
 
   async function refreshWeek() {
@@ -499,87 +392,8 @@ export function PerformanceRegistrationPage() {
     await loadWeek(true);
   }
 
-  async function handleCopyPreviousWeek() {
-    if (!organizationId || !selectedGroupId || !context?.athlete) return;
-    if (!window.confirm("Die aktuelle Woche wird durch die Einträge der Vorwoche ersetzt. Fortfahren?")) {
-      return;
-    }
-    if (!(await flushDirty())) return;
-
-    setBusyAction(true);
-    setError(null);
-    try {
-      await copyPerformancePreviousWeek(
-        organizationId,
-        selectedGroupId,
-        context.athlete.id,
-        weekStart,
-      );
-      setSuccess("Die Vorwoche wurde übernommen.");
-      await loadWeek(true);
-    } catch (actionError) {
-      setError(errorMessage(actionError));
-    } finally {
-      setBusyAction(false);
-    }
-  }
-
-  async function handleApplyDefaults() {
-    if (!organizationId || !selectedGroupId || !context?.athlete) return;
-    if (!window.confirm("Die aktuelle Woche wird durch deine Standardwoche ersetzt. Fortfahren?")) {
-      return;
-    }
-    if (!(await flushDirty())) return;
-
-    setBusyAction(true);
-    setError(null);
-    try {
-      await applyPerformanceDefaults(
-        organizationId,
-        selectedGroupId,
-        context.athlete.id,
-        weekStart,
-      );
-      setSuccess("Die Standardwoche wurde angewendet.");
-      await loadWeek(true);
-    } catch (actionError) {
-      setError(errorMessage(actionError));
-    } finally {
-      setBusyAction(false);
-    }
-  }
-
-  async function handleSaveDefaults() {
-    if (!organizationId || !selectedGroupId || !context?.athlete || !week) return;
-    setDefaultSaving(true);
-    setError(null);
-    try {
-      for (const weekday of week.group.regularWeekdays) {
-        await savePerformanceDefault(
-          organizationId,
-          selectedGroupId,
-          context.athlete.id,
-          weekday,
-          defaultDrafts[weekday] ?? emptyDraft(),
-        );
-      }
-      setSuccess("Die Standardwoche wurde gespeichert.");
-      await loadWeek(true);
-    } catch (saveError) {
-      setError(errorMessage(saveError));
-    } finally {
-      setDefaultSaving(false);
-    }
-  }
-
   const selectedGroup = context?.groups.find((group) => group.id === selectedGroupId) ?? null;
-  const selfAthlete = context?.athlete && week
-    ? week.athletes.find((athlete) => athlete.id === context.athlete?.id) ?? null
-    : null;
-  const selfTrainer = context?.trainer && week
-    ? week.trainers.find((trainer) => trainer.id === context.trainer?.id) ?? null
-    : null;
-
+  const selectedAthlete = week?.athletes.find((athlete) => athlete.id === selectedAthleteId) ?? null;
   const currentWeekStart = startOfIsoWeek(new Date());
   const maxAthleteWeek = selectedGroup
     ? addWeeks(currentWeekStart, selectedGroup.weeksAhead)
@@ -589,12 +403,11 @@ export function PerformanceRegistrationPage() {
   if (!canView || !organizationId) return <Navigate to="/kein-zugriff" replace />;
 
   return (
-    <section className="performance-registration-page">
-      <div className="page-heading performance-heading">
+    <section className="performance-registration-page performance-registration-v2">
+      <div className="page-heading performance-heading compact-page-heading">
         <div>
           <p className="eyebrow">Sprint-Leistungsgruppen</p>
           <h1>Leistungsgruppen</h1>
-          <p>Trainingsanmeldung und Wochenübersicht für Athleten und Trainer.</p>
         </div>
         <div className={`performance-save-indicator ${saveState}`} aria-live="polite">
           {saveState === "pending" && <><CloudUpload aria-hidden="true" /> Wird gespeichert …</>}
@@ -605,53 +418,42 @@ export function PerformanceRegistrationPage() {
       </div>
 
       {error && <div className="alert error">{error}</div>}
-      {success && <div className="alert success">{success}</div>}
 
       {loading && !context ? (
         <div className="management-loading"><div className="spinner" aria-hidden="true" /> Leistungsgruppen werden geladen …</div>
-      ) : !context ? null : context.role === "athlete" && !context.athlete ? (
-        <div className="empty-state">
-          <UserCheck aria-hidden="true" />
-          <h2>Dein Konto ist noch keinem Athleten zugeordnet</h2>
-          <p>Ein Administrator muss dein App-Benutzerkonto einmalig in den Athletenstammdaten verknüpfen.</p>
-        </div>
-      ) : context.groups.length === 0 ? (
+      ) : !context ? null : context.groups.length === 0 ? (
         <div className="empty-state">
           <UsersRound aria-hidden="true" />
           <h2>Noch keine Leistungsgruppe verfügbar</h2>
-          <p>
-            Markiere unter „Athleten, Trainer &amp; Gruppen“ mindestens eine Trainingsgruppe als Leistungsgruppe und ordne Athleten beziehungsweise Trainer zu.
-          </p>
+          <p>Aktiviere die Trainingsanmeldung bei mindestens einer Trainingsgruppe.</p>
         </div>
       ) : (
         <>
-          <div className="performance-mode-tabs" role="tablist" aria-label="Leistungsgruppenansicht">
-            {context.athlete && (
-              <button type="button" role="tab" aria-selected={mode === "athlete"} className={mode === "athlete" ? "active" : ""} onClick={() => setMode("athlete")}>
-                <CalendarCheck aria-hidden="true" /> Meine Woche
-              </button>
-            )}
-            {context.canManage && (
-              <button type="button" role="tab" aria-selected={mode === "overview"} className={mode === "overview" ? "active" : ""} onClick={() => setMode("overview")}>
-                <UsersRound aria-hidden="true" /> Wochenübersicht
-              </button>
-            )}
-            {context.trainer && (
-              <button type="button" role="tab" aria-selected={mode === "trainer"} className={mode === "trainer" ? "active" : ""} onClick={() => setMode("trainer")}>
-                <UserCheck aria-hidden="true" /> Eigene Anwesenheit
-              </button>
-            )}
+          <div className="performance-mode-tabs performance-mode-tabs-v2" role="tablist" aria-label="Leistungsgruppenansicht">
+            <button type="button" role="tab" aria-selected={mode === "registration"} className={mode === "registration" ? "active" : ""} onClick={() => setMode("registration")}>
+              <CalendarCheck aria-hidden="true" /> Anmeldung
+            </button>
+            <button type="button" role="tab" aria-selected={mode === "overview"} className={mode === "overview" ? "active" : ""} onClick={() => setMode("overview")}>
+              <UsersRound aria-hidden="true" /> Übersicht
+            </button>
           </div>
 
-          <div className="performance-controls-card">
-            <label className="performance-group-select">
-              Leistungsgruppe
-              <select value={selectedGroupId} onChange={(event) => void changeGroup(event.target.value)}>
-                {context.groups.map((group) => (
-                  <option value={group.id} key={group.id}>{group.name}</option>
-                ))}
-              </select>
-            </label>
+          <div className="performance-controls-card performance-controls-v2">
+            {context.groups.length > 1 ? (
+              <label className="performance-group-select">
+                Leistungsgruppe
+                <select value={selectedGroupId} onChange={(event) => void changeGroup(event.target.value)}>
+                  {context.groups.map((group) => (
+                    <option value={group.id} key={group.id}>{group.name}</option>
+                  ))}
+                </select>
+              </label>
+            ) : (
+              <div className="performance-single-group">
+                <small>Leistungsgruppe</small>
+                <strong>{selectedGroup?.name}</strong>
+              </div>
+            )}
 
             <div className="performance-week-navigation">
               <button type="button" className="icon-button" onClick={() => void changeWeek(-1)} aria-label="Vorherige Woche">
@@ -674,99 +476,40 @@ export function PerformanceRegistrationPage() {
 
           {selectedGroup && (
             <div className="performance-deadline-note">
-              <Clock3 aria-hidden="true" />
               Anmeldung bis {PERFORMANCE_WEEKDAY_LABELS[selectedGroup.deadlineWeekday]} {selectedGroup.deadlineTime} vor Beginn der Trainingswoche.
               {selectedGroup.allowLateRegistration
                 ? " Späte Änderungen werden markiert."
-                : " Danach sind Änderungen nur durch Trainer möglich."}
+                : " Danach sind Änderungen gesperrt."}
             </div>
           )}
 
           {loading || !week ? (
             <div className="management-loading"><div className="spinner" aria-hidden="true" /> Woche wird geladen …</div>
-          ) : mode === "athlete" ? (
-            selfAthlete ? (
-              <SelfWeekPanel
-                target="athlete"
-                person={selfAthlete}
-                week={week}
-                drafts={drafts}
-                disabled={busyAction}
-                canManage={context.canManage}
-                onChange={updateDraft}
-                actions={(
-                  <>
-                    <button type="button" className="secondary-button compact-button" onClick={() => void handleCopyPreviousWeek()} disabled={busyAction}>
-                      <Copy aria-hidden="true" /> Vorwoche
-                    </button>
-                    <button type="button" className="secondary-button compact-button" onClick={() => void handleApplyDefaults()} disabled={busyAction}>
-                      <RotateCcw aria-hidden="true" /> Standardwoche
-                    </button>
-                  </>
-                )}
-              >
-                <section className="performance-default-week">
-                  <button type="button" className="performance-default-toggle" onClick={() => setShowDefaultWeek((current) => !current)} aria-expanded={showDefaultWeek}>
-                    <span><strong>Standardwoche</strong><small>Wiederkehrende Verfügbarkeit je Trainingstag</small></span>
-                    <ChevronRight className={showDefaultWeek ? "open" : ""} aria-hidden="true" />
-                  </button>
-                  {showDefaultWeek && (
-                    <div className="performance-default-content">
-                      {week.group.regularWeekdays.map((weekday) => (
-                        <article className="performance-default-day" key={weekday}>
-                          <h3>{PERFORMANCE_WEEKDAY_LABELS[weekday]}</h3>
-                          <AvailabilityFields
-                            draft={defaultDrafts[weekday] ?? emptyDraft()}
-                            disabled={defaultSaving}
-                            compact
-                            onChange={(changes) => setDefaultDrafts((current) => ({
-                              ...current,
-                              [weekday]: { ...(current[weekday] ?? emptyDraft()), ...changes },
-                            }))}
-                          />
-                        </article>
-                      ))}
-                      <button type="button" className="primary-button" onClick={() => void handleSaveDefaults()} disabled={defaultSaving}>
-                        <Save aria-hidden="true" /> {defaultSaving ? "Speichert …" : "Standardwoche speichern"}
-                      </button>
-                    </div>
-                  )}
-                </section>
-              </SelfWeekPanel>
-            ) : (
-              <div className="empty-state">
-                <UserCheck aria-hidden="true" />
-                <h2>Kein Athletenkonto verknüpft</h2>
-                <p>Verknüpfe dieses App-Konto in den Athletenstammdaten mit einem Athleten.</p>
-              </div>
-            )
-          ) : mode === "trainer" ? (
-            selfTrainer ? (
-              <SelfWeekPanel
-                target="trainer"
-                person={selfTrainer}
-                week={week}
-                drafts={drafts}
-                disabled={busyAction}
-                canManage={context.canManage}
-                onChange={updateDraft}
-              />
-            ) : (
-              <div className="empty-state">
-                <UserCheck aria-hidden="true" />
-                <h2>Kein zugeordneter Trainer</h2>
-                <p>Verknüpfe dieses App-Konto mit einem Trainer und ordne ihn der gewählten Leistungsgruppe zu.</p>
-              </div>
-            )
-          ) : (
-            <TrainerOverview
+          ) : week.athletes.length === 0 ? (
+            <div className="empty-state">
+              <UsersRound aria-hidden="true" />
+              <h2>Keine Athleten in dieser Leistungsgruppe</h2>
+              <p>Ordne der Gruppe zuerst aktive Athleten zu.</p>
+            </div>
+          ) : mode === "registration" ? (
+            <RegistrationPanel
+              context={context}
               week={week}
-              selectedDate={selectedDate}
-              statusFilter={statusFilter}
+              selectedAthlete={selectedAthlete}
+              selectedAthleteId={selectedAthleteId}
               drafts={drafts}
-              onSelectDate={setSelectedDate}
-              onStatusFilter={setStatusFilter}
+              onSelectAthlete={changeAthlete}
               onChange={updateDraft}
+            />
+          ) : (
+            <WeekOverview
+              week={week}
+              drafts={drafts}
+              selectedAthleteId={selectedAthleteId}
+              onOpenAthlete={(athleteId) => {
+                setSelectedAthleteId(athleteId);
+                setMode("registration");
+              }}
             />
           )}
         </>
@@ -775,190 +518,155 @@ export function PerformanceRegistrationPage() {
   );
 }
 
-function SelfWeekPanel({
-  target,
-  person,
+function RegistrationPanel({
+  context,
   week,
+  selectedAthlete,
+  selectedAthleteId,
   drafts,
-  disabled,
-  canManage,
-  actions,
-  children,
+  onSelectAthlete,
   onChange,
 }: {
-  target: PerformanceSaveTarget;
-  person: PerformanceAthlete | PerformanceTrainer;
+  context: PerformanceContext;
   week: PerformanceWeek;
+  selectedAthlete: PerformanceAthlete | null;
+  selectedAthleteId: string;
   drafts: Record<string, PerformanceAvailabilityDraft>;
-  disabled: boolean;
-  canManage: boolean;
-  actions?: React.ReactNode;
-  children?: React.ReactNode;
+  onSelectAthlete: (athleteId: string) => Promise<void>;
   onChange: (
-    target: PerformanceSaveTarget,
-    personId: string,
+    athleteId: string,
     date: string,
     changes: Partial<PerformanceAvailabilityDraft>,
   ) => void;
 }) {
+  if (!selectedAthlete) return null;
+  const editingSomeoneElse = context.athlete?.id && context.athlete.id !== selectedAthlete.id;
+
   return (
-    <div className="performance-self-week">
-      <div className="performance-section-heading">
-        <div>
-          <p className="eyebrow">{target === "athlete" ? "Trainingsanmeldung" : "Traineranwesenheit"}</p>
-          <h2>{personName(person)}</h2>
-        </div>
-        {actions && <div className="performance-inline-actions">{actions}</div>}
+    <div className="performance-registration-panel">
+      <div className="performance-athlete-picker-row">
+        <label>
+          Anmeldung für
+          <select value={selectedAthleteId} onChange={(event) => void onSelectAthlete(event.target.value)}>
+            {week.athletes.map((athlete) => (
+              <option value={athlete.id} key={athlete.id}>{personName(athlete)}</option>
+            ))}
+          </select>
+        </label>
+        {editingSomeoneElse && (
+          <div className="performance-proxy-note">Du bearbeitest die Anmeldung von {personName(selectedAthlete)}.</div>
+        )}
       </div>
 
-      <div className="performance-day-grid">
+      <div className="performance-day-list">
         {week.dates.map((date) => {
-          const draft = drafts[draftKey(target, person.id, date.date)] ?? emptyDraft();
-          const sourceAvailability = person.availability.find((item) => item.date === date.date);
-          const locked = target === "athlete" && isRegistrationLocked(
+          const draft = drafts[draftKey(selectedAthlete.id, date.date)] ?? emptyDraft();
+          const sourceAvailability = selectedAthlete.availability.find((item) => item.date === date.date);
+          const locked = isRegistrationLocked(
             date.deadlineAt,
             week.group.allowLateRegistration,
-            canManage,
+            context.canManage,
           );
           return (
-            <article className={`performance-day-card ${statusClass(draft.status)}`} key={date.date}>
-              <div className="performance-day-heading">
+            <article className={`performance-registration-day ${statusClass(draft.status)}`} key={date.date}>
+              <div className="performance-registration-day-heading">
                 <div>
                   <strong>{formatTrainingDate(date.date)}</strong>
                   <small>Anmeldung bis {formatDeadline(date.deadlineAt)}</small>
                 </div>
                 {locked
-                  ? <span className="locked-badge">Anmeldung geschlossen</span>
+                  ? <span className="locked-badge">Geschlossen</span>
                   : sourceAvailability?.isLate && <span className="late-badge">Nachgemeldet</span>}
               </div>
               <AvailabilityFields
                 draft={draft}
-                disabled={disabled || locked}
-                onChange={(changes) => onChange(target, person.id, date.date, changes)}
+                disabled={locked}
+                onChange={(changes) => onChange(selectedAthlete.id, date.date, changes)}
               />
             </article>
           );
         })}
       </div>
-      {children}
     </div>
   );
 }
 
-function TrainerOverview({
+function WeekOverview({
   week,
-  selectedDate,
-  statusFilter,
   drafts,
-  onSelectDate,
-  onStatusFilter,
-  onChange,
+  selectedAthleteId,
+  onOpenAthlete,
 }: {
   week: PerformanceWeek;
-  selectedDate: string;
-  statusFilter: StatusFilter;
   drafts: Record<string, PerformanceAvailabilityDraft>;
-  onSelectDate: (date: string) => void;
-  onStatusFilter: (status: StatusFilter) => void;
-  onChange: (
-    target: PerformanceSaveTarget,
-    personId: string,
-    date: string,
-    changes: Partial<PerformanceAvailabilityDraft>,
-  ) => void;
+  selectedAthleteId: string;
+  onOpenAthlete: (athleteId: string) => void;
 }) {
-  const activeDate = selectedDate || week.dates[0]?.date || "";
-  const counts = useMemo(() => {
-    const values: Record<PerformanceAvailabilityStatus, number> = {
-      open: 0,
-      coming: 0,
-      maybe: 0,
-      unavailable: 0,
-    };
-    for (const athlete of week.athletes) {
-      const draft = drafts[draftKey("athlete", athlete.id, activeDate)] ?? emptyDraft();
-      values[draft.status] += 1;
-    }
-    return values;
-  }, [activeDate, drafts, week.athletes]);
-
-  const filteredAthletes = week.athletes.filter((athlete) => {
-    const draft = drafts[draftKey("athlete", athlete.id, activeDate)] ?? emptyDraft();
-    return statusFilter === "all" || draft.status === statusFilter;
-  });
+  const daySummaries = useMemo(() => (
+    week.dates.map((date) => {
+      const counts: Record<PerformanceAvailabilityStatus, number> = {
+        open: 0,
+        coming: 0,
+        maybe: 0,
+        unavailable: 0,
+      };
+      for (const athlete of week.athletes) {
+        const draft = drafts[draftKey(athlete.id, date.date)] ?? emptyDraft();
+        counts[draft.status] += 1;
+      }
+      return { date, counts };
+    })
+  ), [drafts, week.athletes, week.dates]);
 
   return (
-    <div className="performance-overview">
-      <div className="performance-date-tabs" role="tablist" aria-label="Trainingstag">
-        {week.dates.map((date) => {
-          const coming = week.athletes.filter((athlete) => (
-            (drafts[draftKey("athlete", athlete.id, date.date)] ?? emptyDraft()).status === "coming"
-          )).length;
-          return (
-            <button type="button" role="tab" aria-selected={activeDate === date.date} className={activeDate === date.date ? "active" : ""} onClick={() => onSelectDate(date.date)} key={date.date}>
-              <span>{formatTrainingDate(date.date)}</span>
-              <strong>{coming} kommen</strong>
-            </button>
-          );
-        })}
-      </div>
-
-      <div className="performance-summary-row">
-        {STATUS_OPTIONS.map((option) => (
-          <button type="button" className={`${statusClass(option.value)} ${statusFilter === option.value ? "active" : ""}`} onClick={() => onStatusFilter(statusFilter === option.value ? "all" : option.value)} key={option.value}>
-            <span>{option.label}</span><strong>{counts[option.value]}</strong>
-          </button>
+    <div className="performance-week-overview-v2">
+      <div className="performance-day-summary-list">
+        {daySummaries.map(({ date, counts }) => (
+          <article key={date.date}>
+            <strong>{formatTrainingDate(date.date)}</strong>
+            <span className="performance-count coming">{counts.coming} Ja</span>
+            <span className="performance-count maybe">{counts.maybe} Vielleicht</span>
+            <span className="performance-count unavailable">{counts.unavailable} Nein</span>
+            <span className="performance-count open">{counts.open} Offen</span>
+          </article>
         ))}
       </div>
 
-      <div className="performance-mobile-roster">
-        {filteredAthletes.length === 0 ? (
-          <div className="inline-empty-state">Keine Athleten für diesen Filter.</div>
-        ) : filteredAthletes.map((athlete) => {
-          const draft = drafts[draftKey("athlete", athlete.id, activeDate)] ?? emptyDraft();
-          const source = athlete.availability.find((item) => item.date === activeDate);
-          return (
-            <details className="performance-roster-card" key={athlete.id}>
-              <summary>
-                <span>
-                  <strong>{personName(athlete)}</strong>
-                  <small>{athlete.birthYear ? `Jahrgang ${athlete.birthYear}` : ""}</small>
-                </span>
-                <span className="performance-roster-meta">
-                  {source?.isLate && <em>Spät</em>}
-                  <span className={`status-pill ${statusClass(draft.status)}`}>{statusLabel(draft.status)}</span>
-                  {formatTimeRange(draft) && <small>{formatTimeRange(draft)}</small>}
-                </span>
-              </summary>
-              <AvailabilityFields
-                draft={draft}
-                disabled={false}
-                compact
-                onChange={(changes) => onChange("athlete", athlete.id, activeDate, changes)}
-              />
-            </details>
-          );
-        })}
-      </div>
-
-      <div className="performance-desktop-matrix">
-        <table>
+      <div className="performance-matrix-scroll" aria-label="Wochenübersicht der Leistungsgruppe">
+        <table className="performance-registration-matrix">
           <thead>
             <tr>
               <th>Athlet</th>
-              {week.dates.map((date) => <th key={date.date}>{formatTrainingDate(date.date)}</th>)}
+              {week.dates.map((date) => (
+                <th key={date.date} title={formatTrainingDate(date.date)}>
+                  <span>{PERFORMANCE_WEEKDAY_LABELS[date.weekday]}</span>
+                  <small>{date.date.slice(8, 10)}.</small>
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
             {week.athletes.map((athlete) => (
-              <tr key={athlete.id}>
-                <th>{personName(athlete)}</th>
+              <tr className={athlete.id === selectedAthleteId ? "selected" : ""} key={athlete.id}>
+                <th>
+                  <button type="button" onClick={() => onOpenAthlete(athlete.id)}>
+                    {personName(athlete)}
+                  </button>
+                </th>
                 {week.dates.map((date) => {
-                  const draft = drafts[draftKey("athlete", athlete.id, date.date)] ?? emptyDraft();
+                  const draft = drafts[draftKey(athlete.id, date.date)] ?? emptyDraft();
+                  const option = STATUS_OPTIONS.find((item) => item.value === draft.status);
                   return (
                     <td key={date.date}>
-                      <span className={`status-pill ${statusClass(draft.status)}`}>{statusLabel(draft.status)}</span>
-                      {formatTimeRange(draft) && <small>{formatTimeRange(draft)}</small>}
+                      <button
+                        type="button"
+                        className={`performance-matrix-status ${statusClass(draft.status)}`}
+                        title={`${personName(athlete)} · ${formatTrainingDate(date.date)} · ${statusLabel(draft.status)}`}
+                        aria-label={`${personName(athlete)} am ${formatTrainingDate(date.date)}: ${statusLabel(draft.status)}. Anmeldung öffnen.`}
+                        onClick={() => onOpenAthlete(athlete.id)}
+                      >
+                        {option?.matrixLabel ?? "–"}
+                      </button>
                     </td>
                   );
                 })}
@@ -967,38 +675,7 @@ function TrainerOverview({
           </tbody>
         </table>
       </div>
-
-      <section className="performance-trainer-overview">
-        <div className="performance-section-heading compact">
-          <div>
-            <p className="eyebrow">Betreuung</p>
-            <h2>Trainer</h2>
-          </div>
-        </div>
-        {week.trainers.length === 0 ? (
-          <div className="inline-empty-state">Dieser Leistungsgruppe ist noch kein Trainer zugeordnet.</div>
-        ) : (
-          <div className="performance-trainer-list">
-            {week.trainers.map((trainer) => {
-              const draft = drafts[draftKey("trainer", trainer.id, activeDate)] ?? emptyDraft();
-              return (
-                <details className="performance-roster-card trainer" key={trainer.id}>
-                  <summary>
-                    <strong>{personName(trainer)}</strong>
-                    <span className={`status-pill ${statusClass(draft.status)}`}>{statusLabel(draft.status)}</span>
-                  </summary>
-                  <AvailabilityFields
-                    draft={draft}
-                    disabled={false}
-                    compact
-                    onChange={(changes) => onChange("trainer", trainer.id, activeDate, changes)}
-                  />
-                </details>
-              );
-            })}
-          </div>
-        )}
-      </section>
+      <p className="performance-matrix-hint">Zelle oder Namen antippen, um die Anmeldung dieser Person zu bearbeiten.</p>
     </div>
   );
 }

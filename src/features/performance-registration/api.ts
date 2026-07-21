@@ -105,6 +105,7 @@ function parseAvailability(value: unknown): PerformanceAvailability | null {
   const source =
     value.source === "self" ||
     value.source === "trainer" ||
+    value.source === "proxy" ||
     value.source === "default" ||
     value.source === "copy"
       ? value.source
