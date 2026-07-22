@@ -20,10 +20,23 @@ export function ProtectedRoute({
     isAuthenticated,
     needsBootstrap,
     appContext,
+    isInitialized,
+    accessError,
     canViewModule,
   } = useAuth();
 
-  if (loading || contextLoading) return <LoadingScreen />;
+  const waitingForInitialContext =
+    isAuthenticated &&
+    !appContext?.membership &&
+    isInitialized === null &&
+    !accessError;
+
+  // Bereits geladene Module bleiben bei einer Hintergrund-Aktualisierung
+  // eingehaengt. Android und iOS loesen nach der Galerie-Auswahl oft
+  // focus/visibilitychange aus.
+  if (loading || waitingForInitialContext || (contextLoading && !appContext?.membership)) {
+    return <LoadingScreen />;
+  }
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace state={{ from: location.pathname }} />;
