@@ -1,0 +1,90 @@
+diff --git a/src/features/exercise-catalog/ExerciseEditor.tsx b/src/features/exercise-catalog/ExerciseEditor.tsx
+index d6a8bde..ad7fff1 100644
+--- a/src/features/exercise-catalog/ExerciseEditor.tsx
++++ b/src/features/exercise-catalog/ExerciseEditor.tsx
+@@ -1,4 +1,4 @@
+-import { useMemo, useState, type FormEvent } from "react";
++import { useMemo, useState } from "react";
+ import {
+   Check,
+   Dumbbell,
+@@ -67,6 +67,7 @@ export function ExerciseEditor({
+   );
+   const [validationError, setValidationError] = useState<string | null>(null);
+   const [videoBusy, setVideoBusy] = useState(false);
++  const [videos, setVideos] = useState<Exercise["videos"]>(exercise?.videos ?? []);
+   const [videoCount, setVideoCount] = useState(exercise?.videos.length ?? 0);
+ 
+   const selectedParameterKeys = useMemo(
+@@ -119,9 +120,7 @@ export function ExerciseEditor({
+     }));
+   }
+ 
+-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+-    event.preventDefault();
+-    if (section === "videos") return;
++  async function handleSave() {
+     if (!canEdit) {
+       onCancel();
+       return;
+@@ -212,7 +211,7 @@ export function ExerciseEditor({
+           </button>
+         </nav>
+ 
+-        <form className="exercise-editor-form" onSubmit={handleSubmit}>
++        <div className="exercise-editor-form">
+           {validationError && <div className="alert error">{validationError}</div>}
+ 
+           <fieldset disabled={!canEdit || busy || videoBusy}>
+@@ -358,11 +357,14 @@ export function ExerciseEditor({
+                 <ExerciseVideoPanel
+                   organizationId={organizationId}
+                   exerciseId={exercise?.id ?? null}
+-                  initialVideos={exercise?.videos ?? []}
++                  initialVideos={videos}
+                   canEdit={canEdit}
+                   disabled={busy}
+                   onBusyChange={setVideoBusy}
+-                  onVideosChanged={onVideosChanged}
++                  onVideosChanged={(nextVideos) => {
++                    setVideos(nextVideos);
++                    onVideosChanged(nextVideos);
++                  }}
+                   onVideoCountChange={setVideoCount}
+                 />
+               </div>
+@@ -504,13 +506,18 @@ export function ExerciseEditor({
+               {canEdit ? "Abbrechen" : "Schließen"}
+             </button>
+             {canEdit && (
+-              <button type="submit" className="primary-button" disabled={busy || videoBusy}>
++              <button
++                type="button"
++                className="primary-button"
++                onClick={() => void handleSave()}
++                disabled={busy || videoBusy}
++              >
+                 <Save aria-hidden="true" />
+                 {busy ? "Wird gespeichert …" : "Speichern"}
+               </button>
+             )}
+           </footer>
+-        </form>
++        </div>
+       </section>
+     </div>
+   );
+diff --git a/src/pages/ExerciseCatalogPage.tsx b/src/pages/ExerciseCatalogPage.tsx
+index 9a7ee1c..cd3df26 100644
+--- a/src/pages/ExerciseCatalogPage.tsx
++++ b/src/pages/ExerciseCatalogPage.tsx
+@@ -134,9 +134,6 @@ export function ExerciseCatalogPage() {
+         exercise.id === exerciseId ? { ...exercise, videos } : exercise,
+       ),
+     }));
+-    setEditorExercise((current) =>
+-      current && current.id === exerciseId ? { ...current, videos } : current,
+-    );
+   }
+ 
+   async function handleFavorite(exercise: Exercise) {

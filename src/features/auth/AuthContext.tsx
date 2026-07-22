@@ -318,9 +318,15 @@ export function AuthProvider({ children }: PropsWithChildren) {
     };
   }, [clearAppData]);
 
+  const sessionUserId = session?.user.id ?? null;
+
   useEffect(() => {
-    void loadContext(session);
-  }, [loadContext, session]);
+    // Token-Erneuerungen und die Rueckkehr aus der Handy-Galerie liefern ein neues
+    // Session-Objekt fuer denselben Benutzer. Der Vereinskontext muss dabei nicht
+    // neu geladen werden, weil ProtectedRoute sonst die aktuelle Seite aushaengt
+    // und lokale Eingaben wie die ausgewaehlte Videodatei verloren gehen.
+    void loadContext(sessionRef.current);
+  }, [loadContext, sessionUserId]);
 
   const signIn = useCallback(async (email: string, password: string) => {
     if (!supabase) throw new Error(configurationError ?? "Supabase fehlt.");

@@ -126,6 +126,16 @@ export function ExerciseCatalogPage() {
     setEditorExercise(exercise);
   }
 
+
+  function handleVideosChanged(exerciseId: string, videos: Exercise["videos"]) {
+    setData((current) => ({
+      ...current,
+      exercises: current.exercises.map((exercise) =>
+        exercise.id === exerciseId ? { ...exercise, videos } : exercise,
+      ),
+    }));
+  }
+
   async function handleFavorite(exercise: Exercise) {
     if (!organizationId || busy) return;
     const nextFavorite = !exercise.isFavorite;
@@ -379,7 +389,9 @@ export function ExerciseCatalogPage() {
           busy={busy}
           onCancel={() => setEditorExercise(undefined)}
           onSubmit={handleSave}
-          onVideosChanged={loadData}
+          onVideosChanged={(videos) => {
+            if (editorExercise?.id) handleVideosChanged(editorExercise.id, videos);
+          }}
         />
       )}
     </section>

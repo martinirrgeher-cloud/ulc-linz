@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from "react";
+import { useMemo, useState } from "react";
 import {
   Check,
   Dumbbell,
@@ -35,7 +35,7 @@ export type ExerciseEditorProps = {
   busy: boolean;
   onCancel: () => void;
   onSubmit: (values: ExerciseInput) => Promise<void>;
-  onVideosChanged: () => void | Promise<void>;
+  onVideosChanged: (videos: Exercise["videos"]) => void;
 };
 
 function nullableNumber(value: string): number | null {
@@ -67,6 +67,7 @@ export function ExerciseEditor({
   );
   const [validationError, setValidationError] = useState<string | null>(null);
   const [videoBusy, setVideoBusy] = useState(false);
+  const [videos, setVideos] = useState<Exercise["videos"]>(exercise?.videos ?? []);
   const [videoCount, setVideoCount] = useState(exercise?.videos.length ?? 0);
 
   const selectedParameterKeys = useMemo(
@@ -119,8 +120,7 @@ export function ExerciseEditor({
     }));
   }
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function handleSave() {
     if (!canEdit) {
       onCancel();
       return;
@@ -211,7 +211,7 @@ export function ExerciseEditor({
           </button>
         </nav>
 
-        <form className="exercise-editor-form" onSubmit={handleSubmit}>
+        <div className="exercise-editor-form">
           {validationError && <div className="alert error">{validationError}</div>}
 
           <fieldset disabled={!canEdit || busy || videoBusy}>
@@ -357,11 +357,14 @@ export function ExerciseEditor({
                 <ExerciseVideoPanel
                   organizationId={organizationId}
                   exerciseId={exercise?.id ?? null}
-                  initialVideos={exercise?.videos ?? []}
+                  initialVideos={videos}
                   canEdit={canEdit}
                   disabled={busy}
                   onBusyChange={setVideoBusy}
-                  onVideosChanged={onVideosChanged}
+                  onVideosChanged={(nextVideos) => {
+                    setVideos(nextVideos);
+                    onVideosChanged(nextVideos);
+                  }}
                   onVideoCountChange={setVideoCount}
                 />
               </div>
@@ -503,13 +506,18 @@ export function ExerciseEditor({
               {canEdit ? "Abbrechen" : "Schließen"}
             </button>
             {canEdit && (
-              <button type="submit" className="primary-button" disabled={busy || videoBusy}>
+              <button
+                type="button"
+                className="primary-button"
+                onClick={() => void handleSave()}
+                disabled={busy || videoBusy}
+              >
                 <Save aria-hidden="true" />
                 {busy ? "Wird gespeichert …" : "Speichern"}
               </button>
             )}
           </footer>
-        </form>
+        </div>
       </section>
     </div>
   );

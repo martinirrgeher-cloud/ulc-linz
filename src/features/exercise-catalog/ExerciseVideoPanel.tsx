@@ -1,4 +1,4 @@
-import { useRef, useState, type ChangeEvent } from "react";
+import { useRef, useState, type ChangeEvent, type MouseEvent } from "react";
 import {
   CheckCircle2,
   Film,
@@ -27,7 +27,7 @@ type ExerciseVideoPanelProps = {
   canEdit: boolean;
   disabled: boolean;
   onBusyChange: (busy: boolean) => void;
-  onVideosChanged: () => void | Promise<void>;
+  onVideosChanged: (videos: ExerciseVideo[]) => void;
   onVideoCountChange: (count: number) => void;
 };
 
@@ -69,7 +69,7 @@ export function ExerciseVideoPanel({
     const nextVideos = await loadExerciseVideosForExercise(organizationId, exerciseId);
     setVideos(nextVideos);
     onVideoCountChange(nextVideos.length);
-    await onVideosChanged();
+    onVideosChanged(nextVideos);
   }
 
   function setOperationBusy(nextBusy: boolean) {
@@ -99,7 +99,9 @@ export function ExerciseVideoPanel({
     }
   }
 
-  async function handleUpload() {
+  async function handleUpload(event?: MouseEvent<HTMLButtonElement>) {
+    event?.preventDefault();
+    event?.stopPropagation();
     if (!exerciseId || !selectedFile || busy) return;
     setOperationBusy(true);
     setError(null);
@@ -229,7 +231,7 @@ export function ExerciseVideoPanel({
               <button
                 type="button"
                 className="primary-button"
-                onClick={() => void handleUpload()}
+                onClick={(event) => void handleUpload(event)}
                 disabled={disabled || busy}
               >
                 <Upload aria-hidden="true" />
