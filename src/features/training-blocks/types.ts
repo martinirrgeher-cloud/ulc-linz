@@ -35,6 +35,7 @@ export type TrainingBlock = {
   isActive: boolean;
   groupIds: string[];
   items: TrainingBlockItem[];
+  usageCount: number;
   createdAt: string;
   updatedAt: string;
 };

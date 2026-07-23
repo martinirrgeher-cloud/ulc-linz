@@ -150,6 +150,7 @@ function parseBlocks(value: unknown): TrainingBlock[] {
       isActive: item.is_active !== false,
       groupIds: parseStringArray(item.group_ids),
       items: parseItems(item.items),
+      usageCount: typeof item.usage_count === "number" ? item.usage_count : 0,
       createdAt: typeof item.created_at === "string" ? item.created_at : "",
       updatedAt: typeof item.updated_at === "string" ? item.updated_at : "",
     }];
@@ -243,4 +244,15 @@ export async function duplicateTrainingBlock(
     throw new Error("Der Trainingsblock wurde dupliziert, aber die Rückgabe ist ungültig.");
   }
   return data;
+}
+
+
+export async function deleteTrainingBlock(
+  organizationId: string,
+  blockId: string,
+): Promise<void> {
+  await callJsonRpc("delete_unused_training_block", {
+    p_organization_id: organizationId,
+    p_block_id: blockId,
+  });
 }

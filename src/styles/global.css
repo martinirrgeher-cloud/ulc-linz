@@ -2612,3 +2612,9 @@ input:focus-visible {
     display: none;
   }
 }
+
+/* Kompakter Header: Logo und Vereinsname oben, Benutzer und Rolle darunter. */
+.brand-copy { display: grid; min-width: 0; line-height: 1.15; }
+.brand-user-line { display: flex; align-items: center; gap: 4px; min-width: 0; margin-top: 3px; }
+.brand-user-line span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.brand-user-line svg { flex: 0 0 auto; }

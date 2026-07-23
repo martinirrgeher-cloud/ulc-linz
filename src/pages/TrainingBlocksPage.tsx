@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  BarChart3,
+  ChevronDown,
+  ChevronUp,
   ClipboardCheck,
   Clock3,
   Copy,
@@ -8,9 +11,11 @@ import {
   Plus,
   RefreshCw,
   Search,
+  Trash2,
 } from "lucide-react";
 import { useAuth } from "@/features/auth/AuthContext";
 import {
+  deleteTrainingBlock,
   duplicateTrainingBlock,
   loadTrainingBlocks,
   saveTrainingBlock,
@@ -23,6 +28,16 @@ import type {
 } from "@/features/training-blocks/types";
 
 type ActivityFilter = "active" | "inactive" | "all";
+type SortMode = "name" | "usage" | "updated";
+
+function formatItemValues(item: TrainingBlock["items"][number]): string {
+  const values = item.parameters.flatMap((parameter) => {
+    const value = item.parameterValues[parameter.key];
+    if (!value) return [];
+    return [`${parameter.label}: ${value}${parameter.unit ? ` ${parameter.unit}` : ""}`];
+  });
+  return values.join(" · ");
+}
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Die Trainingsblöcke konnten nicht geladen werden.";
@@ -42,6 +57,8 @@ export function TrainingBlocksPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [groupFilter, setGroupFilter] = useState("all");
   const [activityFilter, setActivityFilter] = useState<ActivityFilter>("active");
+  const [sortMode, setSortMode] = useState<SortMode>("name");
+  const [expandedBlockIds, setExpandedBlockIds] = useState<Set<string>>(() => new Set());
   const [editorBlock, setEditorBlock] = useState<TrainingBlock | null | undefined>(undefined);
 
   const loadData = useCallback(async (): Promise<TrainingBlockData | null> => {
@@ -91,8 +108,12 @@ export function TrainingBlocksPage() {
           ...block.items.map((item) => item.exerciseName),
         ].some((value) => value.toLocaleLowerCase("de").includes(search));
       })
-      .sort((left, right) => left.name.localeCompare(right.name, "de", { sensitivity: "base" }));
-  }, [activityFilter, data.blocks, groupFilter, searchTerm]);
+      .sort((left, right) => {
+        if (sortMode === "usage") return right.usageCount - left.usageCount || left.name.localeCompare(right.name, "de");
+        if (sortMode === "updated") return right.updatedAt.localeCompare(left.updatedAt);
+        return left.name.localeCompare(right.name, "de", { sensitivity: "base" });
+      });
+  }, [activityFilter, data.blocks, groupFilter, searchTerm, sortMode]);
 
   async function handleSave(values: TrainingBlockInput) {
     if (!organizationId) return;
@@ -109,6 +130,32 @@ export function TrainingBlocksPage() {
     }
   }
 
+
+  function toggleExpanded(blockId: string) {
+    setExpandedBlockIds((current) => {
+      const next = new Set(current);
+      if (next.has(blockId)) next.delete(blockId);
+      else next.add(blockId);
+      return next;
+    });
+  }
+
+  async function handleDelete(block: TrainingBlock) {
+    if (!organizationId || block.usageCount > 0 || busyBlockId) return;
+    if (!window.confirm(`Trainingsblock „${block.name}“ endgültig löschen?`)) return;
+    setBusyBlockId(block.id);
+    setError(null);
+    setSuccess(null);
+    try {
+      await deleteTrainingBlock(organizationId, block.id);
+      setSuccess("Der unbenutzte Trainingsblock wurde gelöscht.");
+      await loadData();
+    } catch (deleteError) {
+      setError(errorMessage(deleteError));
+    } finally {
+      setBusyBlockId(null);
+    }
+  }
   async function handleDuplicate(block: TrainingBlock) {
     if (!organizationId || busyBlockId) return;
     setBusyBlockId(block.id);
@@ -175,6 +222,15 @@ export function TrainingBlocksPage() {
             {data.groups.map((group) => (
               <option value={group.id} key={group.id}>{group.shortName || group.name}</option>
             ))}
+          </select>
+        </label>
+
+        <label className="training-block-group-filter">
+          <BarChart3 aria-hidden="true" />
+          <select value={sortMode} onChange={(event) => setSortMode(event.target.value as SortMode)} aria-label="Trainingsblöcke sortieren">
+            <option value="name">Alphabetisch</option>
+            <option value="usage">Am häufigsten verwendet</option>
+            <option value="updated">Zuletzt bearbeitet</option>
           </select>
         </label>
 
@@ -247,61 +303,57 @@ export function TrainingBlocksPage() {
 
             return (
               <article className={`training-block-card ${block.isActive ? "" : "inactive"}`} key={block.id}>
-                <div className="training-block-card-main">
-                  <div className="training-block-card-title">
-                    <span className="training-block-status-dot" title={block.isActive ? "Aktiv" : "Inaktiv"} />
-                    <div>
-                      <h2>{block.name}</h2>
-                      {block.goal && <p>{block.goal}</p>}
+                <button
+                  type="button"
+                  className="training-block-card-summary"
+                  onClick={() => toggleExpanded(block.id)}
+                  aria-expanded={expandedBlockIds.has(block.id)}
+                >
+                  <span className="training-block-status-dot" title={block.isActive ? "Aktiv" : "Inaktiv"} />
+                  <strong>{block.name}</strong>
+                  <span>{block.items.length} Übung{block.items.length === 1 ? "" : "en"}</span>
+                  {expandedBlockIds.has(block.id) ? <ChevronUp aria-hidden="true" /> : <ChevronDown aria-hidden="true" />}
+                </button>
+
+                {expandedBlockIds.has(block.id) && (
+                  <div className="training-block-card-details">
+                    {block.goal && <p className="training-block-card-goal">{block.goal}</p>}
+                    <div className="training-block-card-detail-head">
+                      <div className="training-block-card-meta">
+                        {block.estimatedMinutes && <span><Clock3 aria-hidden="true" /> {block.estimatedMinutes} min</span>}
+                        <span><BarChart3 aria-hidden="true" /> {block.usageCount}-mal verwendet</span>
+                      </div>
+                      <div className="training-block-card-actions">
+                        {canEdit && (
+                          <>
+                            <button type="button" onClick={() => void handleDuplicate(block)} disabled={busyBlockId === block.id} aria-label={`${block.name} duplizieren`} title="Duplizieren">
+                              <Copy aria-hidden="true" />
+                            </button>
+                            {block.usageCount === 0 && (
+                              <button type="button" className="danger" onClick={() => void handleDelete(block)} disabled={busyBlockId === block.id} aria-label={`${block.name} löschen`} title="Endgültig löschen">
+                                <Trash2 aria-hidden="true" />
+                              </button>
+                            )}
+                          </>
+                        )}
+                        <button type="button" onClick={() => setEditorBlock(block)} aria-label={`${block.name} ${canEdit ? "bearbeiten" : "anzeigen"}`} title={canEdit ? "Bearbeiten" : "Anzeigen"}>
+                          {canEdit ? <Pencil aria-hidden="true" /> : <ClipboardCheck aria-hidden="true" />}
+                        </button>
+                      </div>
                     </div>
-                  </div>
-
-                  <div className="training-block-card-meta">
-                    <span>{block.items.length} Übung{block.items.length === 1 ? "" : "en"}</span>
-                    {block.estimatedMinutes && (
-                      <span><Clock3 aria-hidden="true" /> {block.estimatedMinutes} min</span>
-                    )}
-                  </div>
-
-                  <div className="training-block-card-groups">
-                    {assignedGroups.length === 0 ? (
-                      <span>Vereinsweit</span>
-                    ) : (
-                      assignedGroups.map((group) => (
+                    <div className="training-block-card-groups">
+                      {assignedGroups.length === 0 ? <span>Vereinsweit</span> : assignedGroups.map((group) => (
                         <span key={group.id}>{group.shortName || group.name}</span>
-                      ))
-                    )}
+                      ))}
+                    </div>
+                    <ol className="training-block-card-exercises">
+                      {block.items.map((item) => {
+                        const values = formatItemValues(item);
+                        return <li key={item.id}><strong>{item.exerciseName}</strong>{values && <small>{values}</small>}</li>;
+                      })}
+                    </ol>
                   </div>
-
-                  <ol className="training-block-card-exercises">
-                    {block.items.slice(0, 4).map((item) => (
-                      <li key={item.id}>{item.exerciseName}</li>
-                    ))}
-                  </ol>
-                  {block.items.length > 4 && <small>+ {block.items.length - 4} weitere</small>}
-                </div>
-
-                <div className="training-block-card-actions">
-                  {canEdit && (
-                    <button
-                      type="button"
-                      onClick={() => void handleDuplicate(block)}
-                      disabled={busyBlockId === block.id}
-                      aria-label={`${block.name} duplizieren`}
-                      title="Duplizieren"
-                    >
-                      <Copy aria-hidden="true" />
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => setEditorBlock(block)}
-                    aria-label={`${block.name} ${canEdit ? "bearbeiten" : "anzeigen"}`}
-                    title={canEdit ? "Bearbeiten" : "Anzeigen"}
-                  >
-                    {canEdit ? <Pencil aria-hidden="true" /> : <ClipboardCheck aria-hidden="true" />}
-                  </button>
-                </div>
+                )}
               </article>
             );
           })}

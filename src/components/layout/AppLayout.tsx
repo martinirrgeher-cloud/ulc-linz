@@ -49,22 +49,22 @@ function AppLayoutContent() {
           title="Zur Modulübersicht"
         >
           <img src="/logo.png" alt="ULC Linz Oberbank" />
-          <span>
+          <span className="brand-copy">
             <strong>{env.appName}</strong>
-            <small>Vereins-App</small>
+            <small className="brand-user-line">
+              <span>{displayName}</span>
+              {role && (
+                <>
+                  <span aria-hidden="true">·</span>
+                  <ShieldCheck size={13} aria-hidden="true" />
+                  <span>{roleNames[role]}</span>
+                </>
+              )}
+            </small>
           </span>
         </button>
 
         <div className="user-area">
-          <div className="user-meta">
-            <strong>{displayName}</strong>
-            {role && (
-              <small>
-                <ShieldCheck size={14} aria-hidden="true" />
-                {roleNames[role]}
-              </small>
-            )}
-          </div>
           <button
             type="button"
             className="icon-button"

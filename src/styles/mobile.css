@@ -652,3 +652,11 @@ textarea {
     margin-left: -14px;
   }
 }
+
+@media (max-width: 760px) {
+  .brand { max-width: calc(100% - 96px); }
+  .brand-copy { max-width: 100%; }
+  .brand-user-line { display: flex !important; font-size: .72rem; }
+  .user-area { flex: 0 0 auto; }
+  .user-area .icon-button { width: 40px; height: 40px; }
+}

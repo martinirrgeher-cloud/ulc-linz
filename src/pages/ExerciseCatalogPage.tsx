@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   BookOpen,
+  ChevronDown,
   ExternalLink,
   Filter,
   Pencil,
   Plus,
-  RefreshCw,
   Search,
   Star,
   Video,
@@ -50,6 +50,7 @@ export function ExerciseCatalogPage() {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [activityFilter, setActivityFilter] = useState<ActivityFilter>("active");
   const [favoritesOnly, setFavoritesOnly] = useState(false);
+  const [equipmentFilter, setEquipmentFilter] = useState("all");
   const [editorExercise, setEditorExercise] = useState<Exercise | null | undefined>(undefined);
   const [editorInitialSection, setEditorInitialSection] = useState<EditorSection>("basis");
 
@@ -76,6 +77,13 @@ export function ExerciseCatalogPage() {
     favorites: data.exercises.filter((exercise) => exercise.isFavorite).length,
   }), [data.exercises]);
 
+  const equipmentOptions = useMemo(
+    () => [...new Set(data.exercises.flatMap((exercise) => exercise.equipment))]
+      .filter(Boolean)
+      .sort((left, right) => left.localeCompare(right, "de", { sensitivity: "base" })),
+    [data.exercises],
+  );
+
   const filteredExercises = useMemo(() => {
     const search = searchTerm.trim().toLocaleLowerCase("de");
 
@@ -85,6 +93,7 @@ export function ExerciseCatalogPage() {
         if (activityFilter === "inactive" && exercise.isActive) return false;
         if (favoritesOnly && !exercise.isFavorite) return false;
         if (categoryFilter !== "all" && exercise.categoryKey !== categoryFilter) return false;
+        if (equipmentFilter !== "all" && !exercise.equipment.includes(equipmentFilter)) return false;
         if (!search) return true;
 
         return [
@@ -100,7 +109,7 @@ export function ExerciseCatalogPage() {
         if (left.isFavorite !== right.isFavorite) return left.isFavorite ? -1 : 1;
         return left.name.localeCompare(right.name, "de", { sensitivity: "base" });
       });
-  }, [activityFilter, categoryFilter, data.exercises, favoritesOnly, searchTerm]);
+  }, [activityFilter, categoryFilter, data.exercises, equipmentFilter, favoritesOnly, searchTerm]);
 
   async function handleSave(values: ExerciseInput) {
     if (!organizationId) return;
@@ -197,31 +206,41 @@ export function ExerciseCatalogPage() {
 
         <label className="exercise-filter-select">
           <Filter aria-hidden="true" />
-          <select
-            value={categoryFilter}
-            onChange={(event) => setCategoryFilter(event.target.value)}
-            aria-label="Kategorie filtern"
-          >
-            <option value="all">Alle Kategorien</option>
-            {data.categories.map((category) => (
-              <option value={category.key} key={category.key}>
-                {category.title}
-              </option>
-            ))}
-          </select>
+          <span className="exercise-filter-select-content">
+            <small>Kategorie</small>
+            <select
+              value={categoryFilter}
+              onChange={(event) => setCategoryFilter(event.target.value)}
+              aria-label="Kategorie filtern"
+            >
+              <option value="all">Alle Kategorien</option>
+              {data.categories.map((category) => (
+                <option value={category.key} key={category.key}>
+                  {category.title}
+                </option>
+              ))}
+            </select>
+          </span>
+          <ChevronDown className="exercise-filter-chevron" aria-hidden="true" />
         </label>
 
-        <button
-          type="button"
-          className="secondary-button exercise-refresh"
-          onClick={() => void loadData()}
-          disabled={loading || busy}
-          aria-label="Übungskatalog aktualisieren"
-          title="Aktualisieren"
-        >
-          <RefreshCw aria-hidden="true" />
-          <span>Aktualisieren</span>
-        </button>
+        <label className="exercise-filter-select exercise-material-filter">
+          <Filter aria-hidden="true" />
+          <span className="exercise-filter-select-content">
+            <small>Material</small>
+            <select
+              value={equipmentFilter}
+              onChange={(event) => setEquipmentFilter(event.target.value)}
+              aria-label="Material filtern"
+            >
+              <option value="all">Alle Materialien</option>
+              {equipmentOptions.map((equipment) => (
+                <option value={equipment} key={equipment}>{equipment}</option>
+              ))}
+            </select>
+          </span>
+          <ChevronDown className="exercise-filter-chevron" aria-hidden="true" />
+        </label>
       </div>
 
       <div className="exercise-filter-row">

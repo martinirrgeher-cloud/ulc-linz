@@ -441,24 +441,46 @@ export function TrainingBlockEditor({
                               {exercise.parameters.map((parameter) => (
                                 <label className="training-block-field" key={parameter.key}>
                                   <span>{parameter.label}{parameter.isRequired ? " *" : ""}</span>
-                                  <div className="training-block-parameter-input">
-                                    <input
-                                      type={parameter.inputType === "number" ? "number" : "text"}
-                                      inputMode={parameter.inputType === "number" ? "decimal" : undefined}
-                                      min={parameter.minValue ?? undefined}
-                                      max={parameter.maxValue ?? undefined}
-                                      step={parameter.stepValue ?? undefined}
-                                      value={item.parameterValues[parameter.key] ?? ""}
-                                      onChange={(event) => updateItem(item.clientId, (current) => ({
-                                        ...current,
-                                        parameterValues: {
-                                          ...current.parameterValues,
-                                          [parameter.key]: event.target.value,
-                                        },
-                                      }))}
-                                      placeholder={parameter.defaultValue || undefined}
-                                    />
-                                    {parameter.unit && <span>{parameter.unit}</span>}
+                                  <div className={`training-block-parameter-control ${parameter.inputType === "number" && parameter.minValue !== null && parameter.maxValue !== null ? "has-slider" : ""}`}>
+                                    <div className="training-block-parameter-input">
+                                      <input
+                                        type={parameter.inputType === "number" ? "number" : "text"}
+                                        inputMode={parameter.inputType === "number" ? "decimal" : undefined}
+                                        min={parameter.minValue ?? undefined}
+                                        max={parameter.maxValue ?? undefined}
+                                        step={parameter.stepValue ?? undefined}
+                                        value={item.parameterValues[parameter.key] ?? ""}
+                                        onChange={(event) => updateItem(item.clientId, (current) => ({
+                                          ...current,
+                                          parameterValues: {
+                                            ...current.parameterValues,
+                                            [parameter.key]: event.target.value,
+                                          },
+                                        }))}
+                                        placeholder={parameter.defaultValue || undefined}
+                                      />
+                                      {parameter.unit && <span>{parameter.unit}</span>}
+                                    </div>
+                                    {parameter.inputType === "number" && parameter.minValue !== null && parameter.maxValue !== null && (
+                                      <div className="training-block-slider-inline">
+                                        <input
+                                          type="range"
+                                          min={parameter.minValue}
+                                          max={parameter.maxValue}
+                                          step={parameter.stepValue ?? 1}
+                                          value={item.parameterValues[parameter.key] || parameter.defaultValue || parameter.minValue}
+                                          onChange={(event) => updateItem(item.clientId, (current) => ({
+                                            ...current,
+                                            parameterValues: {
+                                              ...current.parameterValues,
+                                              [parameter.key]: event.target.value,
+                                            },
+                                          }))}
+                                          aria-label={`${parameter.label} mit Schieberegler einstellen`}
+                                        />
+                                        <small>{parameter.minValue}–{parameter.maxValue}{parameter.unit ? ` ${parameter.unit}` : ""}</small>
+                                      </div>
+                                    )}
                                   </div>
                                 </label>
                               ))}

@@ -61,7 +61,7 @@ export const APP_MODULE_GROUPS: AppModuleGroupDefinition[] = [
   {
     key: "planning",
     title: "Trainingsplanung",
-    description: "Pläne, Übersichten und wiederverwendbare Blöcke",
+    description: "Pläne und Übersichten erstellen",
     sortOrder: 20,
   },
   {
@@ -154,8 +154,8 @@ export const APP_MODULES: AppModuleDefinition[] = [
     description: "Wiederverwendbare Vorlagen verwalten",
     route: "/module/training_blocks",
     icon: <ClipboardCheck aria-hidden="true" />,
-    groupKey: "planning",
-    sortOrder: 30,
+    groupKey: "exercises",
+    sortOrder: 20,
   },
   {
     key: "exercise_catalog",

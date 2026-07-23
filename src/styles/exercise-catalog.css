@@ -1010,3 +1010,130 @@
     align-self: flex-end;
   }
 }
+
+/* Kompakte Kartenaktionen und zusätzlicher Materialfilter */
+.exercise-catalog-toolbar { grid-template-columns: minmax(200px, 1fr) repeat(3, minmax(170px, .55fr)); }
+.exercise-card-actions { flex-direction: row; align-items: flex-start; flex-wrap: nowrap; }
+@media (max-width: 900px) {
+  .exercise-catalog-toolbar { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 560px) {
+  .exercise-catalog-toolbar { grid-template-columns: 1fr; }
+  .exercise-card { grid-template-columns: minmax(0, 1fr); }
+  .exercise-card-actions { justify-content: flex-end; }
+}
+
+/* Erkennbare Dropdownfilter und kompakte Aktionen direkt neben der Übung */
+.exercise-catalog-toolbar {
+  grid-template-columns: minmax(220px, 1fr) repeat(2, minmax(185px, 0.58fr));
+}
+
+.exercise-filter-select {
+  position: relative;
+  min-height: 52px;
+}
+
+.exercise-filter-select-content {
+  min-width: 0;
+  flex: 1;
+  display: grid;
+  gap: 0;
+}
+
+.exercise-filter-select-content small {
+  color: var(--muted);
+  font-size: 0.66rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.exercise-filter-select-content select {
+  height: 29px;
+  padding: 0 23px 0 0;
+  appearance: none;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.exercise-filter-chevron {
+  position: absolute;
+  right: 10px;
+  width: 17px !important;
+  pointer-events: none;
+}
+
+.exercise-card {
+  align-items: start;
+  padding: 12px;
+}
+
+.exercise-card-main {
+  gap: 7px;
+}
+
+.exercise-card-actions {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.exercise-favorite-button,
+.exercise-edit-button,
+.exercise-action-link {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+}
+
+.exercise-favorite-button svg,
+.exercise-edit-button svg,
+.exercise-action-link > svg:first-child {
+  width: 16px;
+}
+
+@media (max-width: 900px) {
+  .exercise-catalog-toolbar {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .exercise-search {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 560px) {
+  .exercise-catalog-toolbar {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .exercise-search {
+    grid-column: 1 / -1;
+  }
+
+  .exercise-card {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .exercise-card-actions {
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 390px) {
+  .exercise-filter-select {
+    padding-inline: 9px;
+  }
+
+  .exercise-filter-select > svg:first-child {
+    display: none;
+  }
+
+  .exercise-favorite-button,
+  .exercise-edit-button,
+  .exercise-action-link {
+    width: 30px;
+    height: 30px;
+  }
+}
