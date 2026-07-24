@@ -14,6 +14,7 @@ import { ModulePlaceholderPage } from "@/pages/ModulePlaceholderPage";
 import { PerformanceRegistrationPage } from "@/pages/PerformanceRegistrationPage";
 import { ExerciseCatalogPage } from "@/pages/ExerciseCatalogPage";
 import { TrainingBlocksPage } from "@/pages/TrainingBlocksPage";
+import { DropdownSettingsPage } from "@/pages/DropdownSettingsPage";
 import { NoAccessPage } from "@/pages/NoAccessPage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
 import { RegisterPage } from "@/pages/RegisterPage";
@@ -145,6 +146,14 @@ export function App() {
               element={
                 <ProtectedRoute moduleKey="athletes">
                   <AthleteManagementPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="module/dropdown_settings"
+              element={
+                <ProtectedRoute moduleKey="dropdown_settings">
+                  <DropdownSettingsPage />
                 </ProtectedRoute>
               }
             />

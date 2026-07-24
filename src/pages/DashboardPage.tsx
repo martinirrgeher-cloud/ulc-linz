@@ -1,10 +1,18 @@
 import { ChevronDown, ChevronRight, LockKeyhole } from "lucide-react";
-import { Link } from "react-router-dom";
-import { APP_MODULE_GROUPS, APP_MODULES } from "@/config/modules";
+import { useState } from "react";
+import { Link, useLocation } from "react-router-dom";
+import { APP_MODULE_GROUPS, APP_MODULES, type AppModuleGroupKey } from "@/config/modules";
 import { useAuth } from "@/features/auth/AuthContext";
+
+type DashboardLocationState = {
+  openGroupKey?: AppModuleGroupKey | null;
+};
 
 export function DashboardPage() {
   const { appContext, canViewModule } = useAuth();
+  const location = useLocation();
+  const requestedGroupKey = (location.state as DashboardLocationState | null)?.openGroupKey ?? null;
+  const [openGroupKey, setOpenGroupKey] = useState<AppModuleGroupKey | null>(requestedGroupKey);
   const modules = APP_MODULES.filter((module) => canViewModule(module.key));
   const groups = APP_MODULE_GROUPS
     .map((group) => ({
@@ -31,9 +39,14 @@ export function DashboardPage() {
 
       {groups.length > 0 ? (
         <div className="module-sections">
-          {groups.map((group, groupIndex) => (
-            <details className="module-section" open={groupIndex === 0} key={group.key}>
-              <summary>
+          {groups.map((group) => (
+            <details className="module-section" open={openGroupKey === group.key} key={group.key}>
+              <summary
+                onClick={(event) => {
+                  event.preventDefault();
+                  setOpenGroupKey((current) => current === group.key ? null : group.key);
+                }}
+              >
                 <span className="module-section-copy">
                   <strong>{group.title}</strong>
                   <small>{group.description}</small>

@@ -1,15 +1,15 @@
 import type { Json } from "@/types/database.generated";
 import { requireSupabase } from "@/lib/supabase";
 import {
-  EXERCISE_PARAMETER_OPTIONS,
   type Exercise,
   type ExerciseCatalogData,
   type ExerciseCategory,
   type ExerciseInput,
   type ExerciseParameterDefinition,
   type ExerciseParameterInputType,
-  type ExerciseParameterKey,
   type ExerciseTrainingGroup,
+  type ExerciseListOption,
+  type ExerciseParameterOption,
   type ExerciseVideo,
 } from "@/features/exercise-catalog/types";
 import {
@@ -51,6 +51,7 @@ function parseCategories(value: unknown): ExerciseCategory[] {
       key: item.key,
       title: item.title,
       sortOrder: typeof item.sort_order === "number" ? item.sort_order : 100,
+      isActive: item.is_active !== false,
     }];
   });
 }
@@ -69,23 +70,46 @@ function parseGroups(value: unknown): ExerciseTrainingGroup[] {
   });
 }
 
-function isParameterKey(value: unknown): value is ExerciseParameterKey {
-  return typeof value === "string" && EXERCISE_PARAMETER_OPTIONS.some((item) => item.key === value);
+function parseListOptions(value: unknown): ExerciseListOption[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item) => {
+    if (!isRecord(item) || typeof item.key !== "string" || typeof item.label !== "string") return [];
+    return [{
+      key: item.key,
+      label: item.label,
+      sortOrder: typeof item.sort_order === "number" ? item.sort_order : 100,
+      isActive: item.is_active !== false,
+    }];
+  }).sort((left, right) => left.sortOrder - right.sortOrder || left.label.localeCompare(right.label, "de"));
+}
+
+function parseParameterOptions(value: unknown): ExerciseParameterOption[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item) => {
+    if (!isRecord(item) || typeof item.key !== "string" || typeof item.label !== "string") return [];
+    const inputType: ExerciseParameterInputType = item.input_type === "text" ? "text" : "number";
+    return [{
+      key: item.key,
+      label: item.label,
+      unit: typeof item.unit === "string" ? item.unit : "",
+      inputType,
+      stepValue: numberOrNull(item.step_value),
+      sortOrder: typeof item.sort_order === "number" ? item.sort_order : 100,
+      isActive: item.is_active !== false,
+    }];
+  }).sort((left, right) => left.sortOrder - right.sortOrder || left.label.localeCompare(right.label, "de"));
 }
 
 function parseParameters(value: unknown): ExerciseParameterDefinition[] {
   if (!Array.isArray(value)) return [];
 
   return value.flatMap((item) => {
-    if (!isRecord(item) || !isParameterKey(item.parameter_key)) return [];
-    const option = EXERCISE_PARAMETER_OPTIONS.find((entry) => entry.key === item.parameter_key);
-    if (!option) return [];
-
+    if (!isRecord(item) || typeof item.parameter_key !== "string") return [];
     const inputType: ExerciseParameterInputType = item.input_type === "text" ? "text" : "number";
     return [{
       key: item.parameter_key,
-      label: typeof item.label === "string" ? item.label : option.label,
-      unit: typeof item.unit === "string" ? item.unit : option.unit,
+      label: typeof item.label === "string" ? item.label : item.parameter_key,
+      unit: typeof item.unit === "string" ? item.unit : "",
       inputType,
       defaultValue: typeof item.default_value === "string" ? item.default_value : "",
       minValue: numberOrNull(item.min_value),
@@ -206,7 +230,7 @@ export async function loadExerciseCatalog(
   includeInactive = true,
 ): Promise<ExerciseCatalogData> {
   const [data, videos] = await Promise.all([
-    callJsonRpc("exercise_catalog_overview", {
+    callJsonRpc("exercise_catalog_overview_v2", {
       p_organization_id: organizationId,
       p_include_inactive: includeInactive,
     }),
@@ -226,6 +250,9 @@ export async function loadExerciseCatalog(
 
   return {
     categories: parseCategories(data.categories),
+    subcategories: parseListOptions(data.subcategories),
+    materials: parseListOptions(data.materials),
+    parameterOptions: parseParameterOptions(data.parameter_options),
     groups: parseGroups(data.groups),
     exercises: parseExercises(data.exercises).map((exercise) => ({
       ...exercise,
@@ -263,7 +290,7 @@ export async function saveExercise(
   exerciseId: string | null,
   values: ExerciseInput,
 ): Promise<string> {
-  const data = await callJsonRpc("save_exercise_catalog_item", {
+  const data = await callJsonRpc("save_exercise_catalog_item_v2", {
     p_organization_id: organizationId,
     p_exercise_id: exerciseId,
     p_name: values.name.trim(),
@@ -273,10 +300,7 @@ export async function saveExercise(
     p_description: values.description.trim() || null,
     p_coaching_cues: values.coachingCues.trim() || null,
     p_common_mistakes: values.commonMistakes.trim() || null,
-    p_equipment: values.equipment
-      .split(",")
-      .map((item) => item.trim())
-      .filter(Boolean),
+    p_equipment: values.equipment,
     p_video_url: values.videoUrl.trim() || null,
     p_is_active: values.isActive,
     p_group_ids: values.groupIds,

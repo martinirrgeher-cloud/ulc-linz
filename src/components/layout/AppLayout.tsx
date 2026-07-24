@@ -1,10 +1,11 @@
 import { Home, LogOut, ShieldCheck } from "lucide-react";
-import { Outlet, useNavigate } from "react-router-dom";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   NavigationGuardProvider,
   useNavigationGuardController,
 } from "@/components/layout/NavigationGuardContext";
 import { useAuth } from "@/features/auth/AuthContext";
+import { APP_MODULES } from "@/config/modules";
 import { env } from "@/lib/env";
 
 const roleNames = {
@@ -18,6 +19,7 @@ function AppLayoutContent() {
   const { appContext, signOut } = useAuth();
   const { runGuard } = useNavigationGuardController();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const displayName =
     appContext?.profile?.displayName || appContext?.authUser.email || "Benutzer";
@@ -26,7 +28,17 @@ function AppLayoutContent() {
   async function goHome() {
     if (!(await runGuard())) return;
 
-    navigate("/", { replace: true, flushSync: true });
+    const currentModule = APP_MODULES
+      .filter((module) =>
+        location.pathname === module.route || location.pathname.startsWith(`${module.route}/`),
+      )
+      .sort((left, right) => right.route.length - left.route.length)[0];
+
+    navigate("/", {
+      replace: true,
+      flushSync: true,
+      state: { openGroupKey: currentModule?.groupKey ?? null },
+    });
 
     // Sicherheitsnetz für mobile Browser nach einem asynchronen Autosave.
     window.setTimeout(() => {

@@ -7,6 +7,7 @@ import {
   Dumbbell,
   LayoutDashboard,
   ListChecks,
+  ListPlus,
   UserRoundCog,
   Users,
 } from "lucide-react";
@@ -25,6 +26,7 @@ export type AppModuleKey =
   | "training_overview"
   | "training_blocks"
   | "training_documentation"
+  | "dropdown_settings"
   | "user_management";
 
 export type AppModuleGroupKey =
@@ -203,13 +205,22 @@ export const APP_MODULES: AppModuleDefinition[] = [
     sortOrder: 10,
   },
   {
+    key: "dropdown_settings",
+    title: "Auswahllisten",
+    description: "Dropdownwerte für Übungen und Planung verwalten",
+    route: "/module/dropdown_settings",
+    icon: <ListPlus aria-hidden="true" />,
+    groupKey: "master_data",
+    sortOrder: 20,
+  },
+  {
     key: "user_management",
     title: "Benutzerverwaltung",
     description: "Benutzer, Rollen und Modulrechte verwalten",
     route: "/module/user_management",
     icon: <UserRoundCog aria-hidden="true" />,
     groupKey: "master_data",
-    sortOrder: 20,
+    sortOrder: 30,
   },
 ];
 

@@ -10,6 +10,8 @@ export type TrainingBlockExercise = {
   categoryTitle: string;
   subcategory: string | null;
   goal: string | null;
+  equipment: string[];
+  groupIds: string[];
   isActive: boolean;
   parameters: ExerciseParameterDefinition[];
 };

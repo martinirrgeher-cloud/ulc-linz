@@ -9,9 +9,9 @@ import {
   Filter,
   Pencil,
   Plus,
-  RefreshCw,
   Search,
   Trash2,
+  X,
 } from "lucide-react";
 import { useAuth } from "@/features/auth/AuthContext";
 import {
@@ -29,18 +29,31 @@ import type {
 
 type ActivityFilter = "active" | "inactive" | "all";
 type SortMode = "name" | "usage" | "updated";
+type UsageFilter = "all" | "unused" | "used";
+type DurationFilter = "all" | "none" | "short" | "medium" | "long" | "very_long";
 
 function formatItemValues(item: TrainingBlock["items"][number]): string {
-  const values = item.parameters.flatMap((parameter) => {
-    const value = item.parameterValues[parameter.key];
-    if (!value) return [];
-    return [`${parameter.label}: ${value}${parameter.unit ? ` ${parameter.unit}` : ""}`];
-  });
-  return values.join(" · ");
+  return item.parameters.map((parameter) => {
+    const value = item.parameterValues[parameter.key]?.trim() || parameter.defaultValue.trim();
+    const formattedValue = value
+      ? `${value}${parameter.unit ? ` ${parameter.unit}` : ""}`
+      : "–";
+    return `${parameter.label}: ${formattedValue}`;
+  }).join(" · ");
 }
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Die Trainingsblöcke konnten nicht geladen werden.";
+}
+
+function durationMatches(minutes: number | null, filter: DurationFilter): boolean {
+  if (filter === "all") return true;
+  if (filter === "none") return minutes === null;
+  if (minutes === null) return false;
+  if (filter === "short") return minutes <= 15;
+  if (filter === "medium") return minutes >= 16 && minutes <= 30;
+  if (filter === "long") return minutes >= 31 && minutes <= 60;
+  return minutes > 60;
 }
 
 export function TrainingBlocksPage() {
@@ -55,7 +68,14 @@ export function TrainingBlocksPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [groupFilter, setGroupFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [subcategoryFilter, setSubcategoryFilter] = useState("all");
+  const [materialFilter, setMaterialFilter] = useState("all");
+  const [exerciseFilter, setExerciseFilter] = useState("all");
+  const [usageFilter, setUsageFilter] = useState<UsageFilter>("all");
+  const [durationFilter, setDurationFilter] = useState<DurationFilter>("all");
   const [activityFilter, setActivityFilter] = useState<ActivityFilter>("active");
   const [sortMode, setSortMode] = useState<SortMode>("name");
   const [expandedBlockIds, setExpandedBlockIds] = useState<Set<string>>(() => new Set());
@@ -81,24 +101,53 @@ export function TrainingBlocksPage() {
     void loadData();
   }, [loadData]);
 
-  const groupById = useMemo(
-    () => new Map(data.groups.map((group) => [group.id, group])),
-    [data.groups],
-  );
+  const groupById = useMemo(() => new Map(data.groups.map((group) => [group.id, group])), [data.groups]);
+  const exerciseById = useMemo(() => new Map(data.exercises.map((exercise) => [exercise.id, exercise])), [data.exercises]);
+
+  const categories = useMemo(() => [...new Map(data.exercises.map((exercise) => [exercise.categoryKey, exercise.categoryTitle])).entries()]
+    .sort((left, right) => left[1].localeCompare(right[1], "de")), [data.exercises]);
+  const subcategories = useMemo(() => [...new Set(data.exercises.flatMap((exercise) => exercise.subcategory ? [exercise.subcategory] : []))]
+    .sort((left, right) => left.localeCompare(right, "de")), [data.exercises]);
+  const materials = useMemo(() => [...new Set(data.exercises.flatMap((exercise) => exercise.equipment))]
+    .sort((left, right) => left.localeCompare(right, "de")), [data.exercises]);
 
   const counts = useMemo(() => ({
     active: data.blocks.filter((block) => block.isActive).length,
     inactive: data.blocks.filter((block) => !block.isActive).length,
   }), [data.blocks]);
 
+  const activeFilterCount = [
+    groupFilter !== "all",
+    categoryFilter !== "all",
+    subcategoryFilter !== "all",
+    materialFilter !== "all",
+    exerciseFilter !== "all",
+    usageFilter !== "all",
+    durationFilter !== "all",
+    activityFilter !== "active",
+    sortMode !== "name",
+  ].filter(Boolean).length;
+
   const filteredBlocks = useMemo(() => {
     const search = searchTerm.trim().toLocaleLowerCase("de");
     return data.blocks
       .filter((block) => {
+        const exercises = block.items.flatMap((item) => {
+          const exercise = exerciseById.get(item.exerciseId);
+          return exercise ? [exercise] : [];
+        });
+
         if (activityFilter === "active" && !block.isActive) return false;
         if (activityFilter === "inactive" && block.isActive) return false;
         if (groupFilter === "club" && block.groupIds.length > 0) return false;
-        if (groupFilter !== "all" && groupFilter !== "club" && !block.groupIds.includes(groupFilter)) return false;
+        if (groupFilter !== "all" && groupFilter !== "club" && block.groupIds.length > 0 && !block.groupIds.includes(groupFilter)) return false;
+        if (categoryFilter !== "all" && !exercises.some((exercise) => exercise.categoryKey === categoryFilter)) return false;
+        if (subcategoryFilter !== "all" && !exercises.some((exercise) => exercise.subcategory === subcategoryFilter)) return false;
+        if (materialFilter !== "all" && !exercises.some((exercise) => exercise.equipment.includes(materialFilter))) return false;
+        if (exerciseFilter !== "all" && !block.items.some((item) => item.exerciseId === exerciseFilter)) return false;
+        if (usageFilter === "unused" && block.usageCount !== 0) return false;
+        if (usageFilter === "used" && block.usageCount === 0) return false;
+        if (!durationMatches(block.estimatedMinutes, durationFilter)) return false;
         if (!search) return true;
 
         return [
@@ -106,6 +155,7 @@ export function TrainingBlocksPage() {
           block.goal ?? "",
           block.description ?? "",
           ...block.items.map((item) => item.exerciseName),
+          ...exercises.flatMap((exercise) => [exercise.categoryTitle, exercise.subcategory ?? "", ...exercise.equipment]),
         ].some((value) => value.toLocaleLowerCase("de").includes(search));
       })
       .sort((left, right) => {
@@ -113,7 +163,32 @@ export function TrainingBlocksPage() {
         if (sortMode === "updated") return right.updatedAt.localeCompare(left.updatedAt);
         return left.name.localeCompare(right.name, "de", { sensitivity: "base" });
       });
-  }, [activityFilter, data.blocks, groupFilter, searchTerm, sortMode]);
+  }, [
+    activityFilter,
+    categoryFilter,
+    data.blocks,
+    durationFilter,
+    exerciseById,
+    exerciseFilter,
+    groupFilter,
+    materialFilter,
+    searchTerm,
+    sortMode,
+    subcategoryFilter,
+    usageFilter,
+  ]);
+
+  function resetFilters() {
+    setGroupFilter("all");
+    setCategoryFilter("all");
+    setSubcategoryFilter("all");
+    setMaterialFilter("all");
+    setExerciseFilter("all");
+    setUsageFilter("all");
+    setDurationFilter("all");
+    setActivityFilter("active");
+    setSortMode("name");
+  }
 
   async function handleSave(values: TrainingBlockInput) {
     if (!organizationId) return;
@@ -125,11 +200,12 @@ export function TrainingBlocksPage() {
       setEditorBlock(undefined);
       setSuccess(editorBlock ? "Der Trainingsblock wurde gespeichert." : "Der Trainingsblock wurde angelegt.");
       await loadData();
+    } catch (saveError) {
+      setError(errorMessage(saveError));
     } finally {
       setBusy(false);
     }
   }
-
 
   function toggleExpanded(blockId: string) {
     setExpandedBlockIds((current) => {
@@ -156,6 +232,7 @@ export function TrainingBlocksPage() {
       setBusyBlockId(null);
     }
   }
+
   async function handleDuplicate(block: TrainingBlock) {
     if (!organizationId || busyBlockId) return;
     setBusyBlockId(block.id);
@@ -178,19 +255,13 @@ export function TrainingBlocksPage() {
     <section className="training-blocks-page">
       <div className="training-blocks-heading">
         <div>
-          <p className="eyebrow">Trainingsplanung</p>
+          <p className="eyebrow">Übungen</p>
           <h1>Trainingsblöcke</h1>
           <p>Wiederverwendbare Übungsfolgen erstellen und Leistungsgruppen zuordnen.</p>
         </div>
         {canEdit && (
-          <button
-            type="button"
-            className="primary-button"
-            onClick={() => setEditorBlock(null)}
-            disabled={loading || busy || data.exercises.filter((exercise) => exercise.isActive).length === 0}
-          >
-            <Plus aria-hidden="true" />
-            Block
+          <button type="button" className="primary-button" onClick={() => setEditorBlock(null)} disabled={loading || busy || data.exercises.filter((exercise) => exercise.isActive).length === 0}>
+            <Plus aria-hidden="true" />Block
           </button>
         )}
       </div>
@@ -198,120 +269,59 @@ export function TrainingBlocksPage() {
       {error && <div className="alert error">{error}</div>}
       {success && <div className="alert success">{success}</div>}
 
-      <div className="training-blocks-toolbar">
+      <div className="training-blocks-toolbar training-blocks-toolbar-compact">
         <label className="training-block-search">
           <Search aria-hidden="true" />
-          <input
-            type="search"
-            value={searchTerm}
-            onChange={(event) => setSearchTerm(event.target.value)}
-            placeholder="Block oder Übung suchen"
-            aria-label="Trainingsblock suchen"
-          />
+          <input type="search" value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} placeholder="Block oder Übung suchen" aria-label="Trainingsblock suchen" />
         </label>
-
-        <label className="training-block-group-filter">
-          <Filter aria-hidden="true" />
-          <select
-            value={groupFilter}
-            onChange={(event) => setGroupFilter(event.target.value)}
-            aria-label="Leistungsgruppe filtern"
-          >
-            <option value="all">Alle Gruppen</option>
-            <option value="club">Vereinsweit</option>
-            {data.groups.map((group) => (
-              <option value={group.id} key={group.id}>{group.shortName || group.name}</option>
-            ))}
-          </select>
-        </label>
-
-        <label className="training-block-group-filter">
-          <BarChart3 aria-hidden="true" />
-          <select value={sortMode} onChange={(event) => setSortMode(event.target.value as SortMode)} aria-label="Trainingsblöcke sortieren">
-            <option value="name">Alphabetisch</option>
-            <option value="usage">Am häufigsten verwendet</option>
-            <option value="updated">Zuletzt bearbeitet</option>
-          </select>
-        </label>
-
-        <button
-          type="button"
-          className="secondary-button training-block-refresh"
-          onClick={() => void loadData()}
-          disabled={loading || busy}
-          aria-label="Trainingsblöcke aktualisieren"
-          title="Aktualisieren"
-        >
-          <RefreshCw aria-hidden="true" />
-          <span>Aktualisieren</span>
+        <button type="button" className={`secondary-button training-block-filter-toggle ${filtersOpen ? "active" : ""}`} onClick={() => setFiltersOpen((current) => !current)} aria-expanded={filtersOpen}>
+          <Filter aria-hidden="true" />Filter{activeFilterCount > 0 && <span>{activeFilterCount}</span>}<ChevronDown aria-hidden="true" />
         </button>
       </div>
 
-      <div className="status-filter" aria-label="Status der Trainingsblöcke filtern">
-        <button
-          type="button"
-          className={activityFilter === "active" ? "active" : ""}
-          onClick={() => setActivityFilter("active")}
-        >
-          Aktiv <span>{counts.active}</span>
-        </button>
-        <button
-          type="button"
-          className={activityFilter === "inactive" ? "active" : ""}
-          onClick={() => setActivityFilter("inactive")}
-        >
-          Inaktiv <span>{counts.inactive}</span>
-        </button>
-        <button
-          type="button"
-          className={activityFilter === "all" ? "active" : ""}
-          onClick={() => setActivityFilter("all")}
-        >
-          Alle <span>{data.blocks.length}</span>
-        </button>
-      </div>
+      {filtersOpen && (
+        <section className="training-block-filter-panel" aria-label="Trainingsblöcke filtern">
+          <div className="training-block-filter-grid">
+            <label><span>Leistungsgruppe</span><select value={groupFilter} onChange={(event) => setGroupFilter(event.target.value)}><option value="all">Alle Gruppen</option><option value="club">Vereinsweit</option>{data.groups.map((group) => <option value={group.id} key={group.id}>{group.shortName || group.name}</option>)}</select></label>
+            <label><span>Kategorie</span><select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}><option value="all">Alle Kategorien</option>{categories.map(([key, title]) => <option value={key} key={key}>{title}</option>)}</select></label>
+            <label><span>Unterkategorie</span><select value={subcategoryFilter} onChange={(event) => setSubcategoryFilter(event.target.value)}><option value="all">Alle Unterkategorien</option>{subcategories.map((value) => <option value={value} key={value}>{value}</option>)}</select></label>
+            <label><span>Material</span><select value={materialFilter} onChange={(event) => setMaterialFilter(event.target.value)}><option value="all">Alle Materialien</option>{materials.map((value) => <option value={value} key={value}>{value}</option>)}</select></label>
+            <label><span>Übung</span><select value={exerciseFilter} onChange={(event) => setExerciseFilter(event.target.value)}><option value="all">Alle Übungen</option>{data.exercises.map((exercise) => <option value={exercise.id} key={exercise.id}>{exercise.name}</option>)}</select></label>
+            <label><span>Verwendung</span><select value={usageFilter} onChange={(event) => setUsageFilter(event.target.value as UsageFilter)}><option value="all">Alle</option><option value="unused">Noch nie verwendet</option><option value="used">Bereits verwendet</option></select></label>
+            <label><span>Dauer</span><select value={durationFilter} onChange={(event) => setDurationFilter(event.target.value as DurationFilter)}><option value="all">Alle Dauern</option><option value="none">Ohne Dauer</option><option value="short">Bis 15 min</option><option value="medium">16–30 min</option><option value="long">31–60 min</option><option value="very_long">Über 60 min</option></select></label>
+            <label><span>Sortierung</span><select value={sortMode} onChange={(event) => setSortMode(event.target.value as SortMode)}><option value="name">Alphabetisch</option><option value="usage">Am häufigsten verwendet</option><option value="updated">Zuletzt bearbeitet</option></select></label>
+          </div>
+          <div className="training-block-filter-footer">
+            <div className="status-filter" aria-label="Status der Trainingsblöcke filtern">
+              <button type="button" className={activityFilter === "active" ? "active" : ""} onClick={() => setActivityFilter("active")}>Aktiv <span>{counts.active}</span></button>
+              <button type="button" className={activityFilter === "inactive" ? "active" : ""} onClick={() => setActivityFilter("inactive")}>Inaktiv <span>{counts.inactive}</span></button>
+              <button type="button" className={activityFilter === "all" ? "active" : ""} onClick={() => setActivityFilter("all")}>Alle <span>{data.blocks.length}</span></button>
+            </div>
+            {activeFilterCount > 0 && <button type="button" className="text-button" onClick={resetFilters}><X aria-hidden="true" /> Zurücksetzen</button>}
+          </div>
+        </section>
+      )}
 
       {loading ? (
-        <div className="management-loading">
-          <div className="spinner" aria-hidden="true" />
-          Trainingsblöcke werden geladen …
-        </div>
+        <div className="management-loading"><div className="spinner" aria-hidden="true" />Trainingsblöcke werden geladen …</div>
       ) : data.exercises.length === 0 ? (
-        <div className="empty-state">
-          <ClipboardCheck aria-hidden="true" />
-          <h2>Keine Übungen vorhanden</h2>
-          <p>Lege zuerst Übungen im Übungskatalog an.</p>
-        </div>
+        <div className="empty-state"><ClipboardCheck aria-hidden="true" /><h2>Keine Übungen vorhanden</h2><p>Lege zuerst Übungen im Übungskatalog an.</p></div>
       ) : filteredBlocks.length === 0 ? (
         <div className="empty-state">
-          <ClipboardCheck aria-hidden="true" />
-          <h2>Keine Trainingsblöcke gefunden</h2>
-          <p>{data.blocks.length === 0 ? "Lege den ersten wiederverwendbaren Trainingsblock an." : "Passe Suche oder Filter an."}</p>
-          {canEdit && data.blocks.length === 0 && (
-            <button type="button" className="primary-button" onClick={() => setEditorBlock(null)}>
-              <Plus aria-hidden="true" />
-              Ersten Block anlegen
-            </button>
-          )}
+          <ClipboardCheck aria-hidden="true" /><h2>Keine Trainingsblöcke gefunden</h2><p>{data.blocks.length === 0 ? "Lege den ersten wiederverwendbaren Trainingsblock an." : "Passe Suche oder Filter an."}</p>
+          {canEdit && data.blocks.length === 0 && <button type="button" className="primary-button" onClick={() => setEditorBlock(null)}><Plus aria-hidden="true" />Ersten Block anlegen</button>}
         </div>
       ) : (
         <div className="training-block-list">
           {filteredBlocks.map((block) => {
-            const assignedGroups = block.groupIds
-              .map((groupId) => groupById.get(groupId))
-              .filter((group): group is NonNullable<typeof group> => Boolean(group));
-
+            const assignedGroups = block.groupIds.map((groupId) => groupById.get(groupId)).filter((group): group is NonNullable<typeof group> => Boolean(group));
             return (
               <article className={`training-block-card ${block.isActive ? "" : "inactive"}`} key={block.id}>
-                <button
-                  type="button"
-                  className="training-block-card-summary"
-                  onClick={() => toggleExpanded(block.id)}
-                  aria-expanded={expandedBlockIds.has(block.id)}
-                >
+                <button type="button" className="training-block-card-summary" onClick={() => toggleExpanded(block.id)} aria-expanded={expandedBlockIds.has(block.id)}>
                   <span className="training-block-status-dot" title={block.isActive ? "Aktiv" : "Inaktiv"} />
                   <strong>{block.name}</strong>
                   <span>{block.items.length} Übung{block.items.length === 1 ? "" : "en"}</span>
+                  <span className="training-block-summary-duration"><Clock3 aria-hidden="true" />{block.estimatedMinutes ? `${block.estimatedMinutes} min` : "–"}</span>
                   {expandedBlockIds.has(block.id) ? <ChevronUp aria-hidden="true" /> : <ChevronDown aria-hidden="true" />}
                 </button>
 
@@ -319,38 +329,18 @@ export function TrainingBlocksPage() {
                   <div className="training-block-card-details">
                     {block.goal && <p className="training-block-card-goal">{block.goal}</p>}
                     <div className="training-block-card-detail-head">
-                      <div className="training-block-card-meta">
-                        {block.estimatedMinutes && <span><Clock3 aria-hidden="true" /> {block.estimatedMinutes} min</span>}
-                        <span><BarChart3 aria-hidden="true" /> {block.usageCount}-mal verwendet</span>
-                      </div>
+                      <div className="training-block-card-meta"><span><BarChart3 aria-hidden="true" /> {block.usageCount}-mal verwendet</span></div>
                       <div className="training-block-card-actions">
-                        {canEdit && (
-                          <>
-                            <button type="button" onClick={() => void handleDuplicate(block)} disabled={busyBlockId === block.id} aria-label={`${block.name} duplizieren`} title="Duplizieren">
-                              <Copy aria-hidden="true" />
-                            </button>
-                            {block.usageCount === 0 && (
-                              <button type="button" className="danger" onClick={() => void handleDelete(block)} disabled={busyBlockId === block.id} aria-label={`${block.name} löschen`} title="Endgültig löschen">
-                                <Trash2 aria-hidden="true" />
-                              </button>
-                            )}
-                          </>
-                        )}
-                        <button type="button" onClick={() => setEditorBlock(block)} aria-label={`${block.name} ${canEdit ? "bearbeiten" : "anzeigen"}`} title={canEdit ? "Bearbeiten" : "Anzeigen"}>
-                          {canEdit ? <Pencil aria-hidden="true" /> : <ClipboardCheck aria-hidden="true" />}
-                        </button>
+                        {canEdit && <>
+                          <button type="button" onClick={() => void handleDuplicate(block)} disabled={busyBlockId === block.id} aria-label={`${block.name} duplizieren`} title="Duplizieren"><Copy aria-hidden="true" /></button>
+                          {block.usageCount === 0 && <button type="button" className="danger" onClick={() => void handleDelete(block)} disabled={busyBlockId === block.id} aria-label={`${block.name} löschen`} title="Endgültig löschen"><Trash2 aria-hidden="true" /></button>}
+                        </>}
+                        <button type="button" onClick={() => setEditorBlock(block)} aria-label={`${block.name} ${canEdit ? "bearbeiten" : "anzeigen"}`} title={canEdit ? "Bearbeiten" : "Anzeigen"}>{canEdit ? <Pencil aria-hidden="true" /> : <ClipboardCheck aria-hidden="true" />}</button>
                       </div>
                     </div>
-                    <div className="training-block-card-groups">
-                      {assignedGroups.length === 0 ? <span>Vereinsweit</span> : assignedGroups.map((group) => (
-                        <span key={group.id}>{group.shortName || group.name}</span>
-                      ))}
-                    </div>
+                    <div className="training-block-card-groups">{assignedGroups.length === 0 ? <span>Vereinsweit</span> : assignedGroups.map((group) => <span key={group.id}>{group.shortName || group.name}</span>)}</div>
                     <ol className="training-block-card-exercises">
-                      {block.items.map((item) => {
-                        const values = formatItemValues(item);
-                        return <li key={item.id}><strong>{item.exerciseName}</strong>{values && <small>{values}</small>}</li>;
-                      })}
+                      {block.items.map((item) => { const values = formatItemValues(item); return <li key={item.id}><strong>{item.exerciseName}</strong>{values && <small>{values}</small>}</li>; })}
                     </ol>
                   </div>
                 )}
@@ -361,16 +351,7 @@ export function TrainingBlocksPage() {
       )}
 
       {editorBlock !== undefined && (
-        <TrainingBlockEditor
-          key={editorBlock?.id ?? "new-training-block"}
-          block={editorBlock}
-          groups={data.groups}
-          exercises={data.exercises}
-          canEdit={canEdit}
-          busy={busy}
-          onCancel={() => setEditorBlock(undefined)}
-          onSubmit={handleSave}
-        />
+        <TrainingBlockEditor key={editorBlock?.id ?? "new-training-block"} block={editorBlock} groups={data.groups} exercises={data.exercises} canEdit={canEdit} busy={busy} onCancel={() => setEditorBlock(undefined)} onSubmit={handleSave} />
       )}
     </section>
   );

@@ -1,31 +1,24 @@
-export const EXERCISE_PARAMETER_OPTIONS = [
-  { key: "sets", label: "Sätze", unit: "", inputType: "number", step: 1 },
-  { key: "repetitions", label: "Wiederholungen", unit: "", inputType: "number", step: 1 },
-  { key: "distance_m", label: "Distanz", unit: "m", inputType: "number", step: 1 },
-  { key: "weight_kg", label: "Gewicht", unit: "kg", inputType: "number", step: 0.5 },
-  { key: "duration_s", label: "Dauer", unit: "s", inputType: "number", step: 1 },
-  { key: "target_time_s", label: "Zielzeit", unit: "s", inputType: "number", step: 0.01 },
-  { key: "intensity_percent", label: "Intensität", unit: "%", inputType: "number", step: 1 },
-  { key: "rest_s", label: "Pause", unit: "s", inputType: "number", step: 5 },
-  { key: "series_rest_s", label: "Serienpause", unit: "s", inputType: "number", step: 5 },
-  { key: "approach_distance_m", label: "Anlauf", unit: "m", inputType: "number", step: 1 },
-  { key: "flying_distance_m", label: "Fliegende Distanz", unit: "m", inputType: "number", step: 1 },
-  { key: "contacts", label: "Kontakte", unit: "", inputType: "number", step: 1 },
-  { key: "resistance_kg", label: "Widerstand", unit: "kg", inputType: "number", step: 0.5 },
-  { key: "height_cm", label: "Höhe", unit: "cm", inputType: "number", step: 1 },
-  { key: "tempo_text", label: "Tempo", unit: "", inputType: "text", step: null },
-  { key: "surface_text", label: "Untergrund", unit: "", inputType: "text", step: null },
-  { key: "start_position_text", label: "Startposition", unit: "", inputType: "text", step: null },
-  { key: "note_text", label: "Zusatzhinweis", unit: "", inputType: "text", step: null },
-] as const;
-
-export type ExerciseParameterKey = typeof EXERCISE_PARAMETER_OPTIONS[number]["key"];
+export type ExerciseParameterKey = string;
 export type ExerciseParameterInputType = "number" | "text";
+
+export type ExerciseListOption = {
+  key: string;
+  label: string;
+  sortOrder: number;
+  isActive: boolean;
+};
+
+export type ExerciseParameterOption = ExerciseListOption & {
+  unit: string;
+  inputType: ExerciseParameterInputType;
+  stepValue: number | null;
+};
 
 export type ExerciseCategory = {
   key: string;
   title: string;
   sortOrder: number;
+  isActive?: boolean;
 };
 
 export type ExerciseTrainingGroup = {
@@ -81,6 +74,9 @@ export type Exercise = {
 
 export type ExerciseCatalogData = {
   categories: ExerciseCategory[];
+  subcategories: ExerciseListOption[];
+  materials: ExerciseListOption[];
+  parameterOptions: ExerciseParameterOption[];
   groups: ExerciseTrainingGroup[];
   exercises: Exercise[];
 };
@@ -93,7 +89,7 @@ export type ExerciseInput = {
   description: string;
   coachingCues: string;
   commonMistakes: string;
-  equipment: string;
+  equipment: string[];
   videoUrl: string;
   isActive: boolean;
   groupIds: string[];
@@ -101,21 +97,18 @@ export type ExerciseInput = {
 };
 
 export function createParameterDefinition(
-  key: ExerciseParameterKey,
+  option: ExerciseParameterOption,
   sortOrder: number,
 ): ExerciseParameterDefinition {
-  const option = EXERCISE_PARAMETER_OPTIONS.find((item) => item.key === key);
-  if (!option) throw new Error(`Unbekannter Übungsparameter: ${key}`);
-
   return {
-    key,
+    key: option.key,
     label: option.label,
     unit: option.unit,
     inputType: option.inputType,
     defaultValue: "",
     minValue: null,
     maxValue: null,
-    stepValue: option.step,
+    stepValue: option.stepValue,
     isRequired: false,
     sortOrder,
   };
@@ -130,7 +123,7 @@ export function createEmptyExerciseInput(defaultCategoryKey: string): ExerciseIn
     description: "",
     coachingCues: "",
     commonMistakes: "",
-    equipment: "",
+    equipment: [],
     videoUrl: "",
     isActive: true,
     groupIds: [],
@@ -147,7 +140,7 @@ export function exerciseToInput(exercise: Exercise): ExerciseInput {
     description: exercise.description ?? "",
     coachingCues: exercise.coachingCues ?? "",
     commonMistakes: exercise.commonMistakes ?? "",
-    equipment: exercise.equipment.join(", "),
+    equipment: [...exercise.equipment],
     videoUrl: exercise.videoUrl ?? "",
     isActive: exercise.isActive,
     groupIds: [...exercise.groupIds],

@@ -45,6 +45,19 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Ein unbekannter Fehler ist aufgetreten.";
 }
 
+function isInvalidSessionError(error: unknown): boolean {
+  const message = errorMessage(error).toLocaleLowerCase("de");
+  return [
+    "jwt expired",
+    "invalid jwt",
+    "auth session missing",
+    "session missing",
+    "refresh token",
+    "token has expired",
+    "not authenticated",
+  ].some((fragment) => message.includes(fragment));
+}
+
 const AUTH_INITIALIZATION_TIMEOUT_MS = 12_000;
 const AUTH_RESTORE_ATTEMPTS = 3;
 const CONTEXT_LOADING_TIMEOUT_MS = 15_000;
@@ -207,8 +220,14 @@ export function AuthProvider({ children }: PropsWithChildren) {
           })),
         );
       } catch (error) {
-        clearAppData();
-        setAccessError(errorMessage(error));
+        if (isInvalidSessionError(error)) {
+          sessionRef.current = null;
+          setSession(null);
+          clearAppData();
+        } else {
+          clearAppData();
+          setAccessError(errorMessage(error));
+        }
       } finally {
         setContextLoading(false);
       }
@@ -251,14 +270,24 @@ export function AuthProvider({ children }: PropsWithChildren) {
             if (data.session) {
               setSession(data.session);
               setAccessError(null);
-            } else if (initialLoad || !sessionRef.current) {
+            } else {
+              sessionRef.current = null;
               setSession(null);
+              clearAppData();
             }
 
             setLoading(false);
             return;
           } catch (error) {
             lastError = error;
+            if (isInvalidSessionError(error)) {
+              if (!mounted) return;
+              sessionRef.current = null;
+              setSession(null);
+              clearAppData();
+              setLoading(false);
+              return;
+            }
             if (attempt < AUTH_RESTORE_ATTEMPTS) {
               await wait(900 * attempt);
             }
@@ -287,11 +316,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
         return;
       }
 
-      if (event === "SIGNED_OUT") {
-        setSession(null);
-        clearAppData();
-        setLoading(false);
-      }
+      sessionRef.current = null;
+      setSession(null);
+      clearAppData();
+      setLoading(false);
     });
 
     const recoverWhenActive = () => {
@@ -360,6 +388,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
     if (!supabase) return;
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
+    sessionRef.current = null;
+    setSession(null);
     clearAppData();
   }, [clearAppData]);
 

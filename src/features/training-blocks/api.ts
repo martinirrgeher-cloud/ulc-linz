@@ -1,10 +1,8 @@
 import type { Json } from "@/types/database.generated";
 import { requireSupabase } from "@/lib/supabase";
 import {
-  EXERCISE_PARAMETER_OPTIONS,
   type ExerciseParameterDefinition,
   type ExerciseParameterInputType,
-  type ExerciseParameterKey,
   type ExerciseTrainingGroup,
 } from "@/features/exercise-catalog/types";
 import type {
@@ -37,23 +35,16 @@ function parseStringArray(value: unknown): string[] {
   return [...new Set(value.filter((item): item is string => typeof item === "string"))];
 }
 
-function isParameterKey(value: unknown): value is ExerciseParameterKey {
-  return typeof value === "string" && EXERCISE_PARAMETER_OPTIONS.some((item) => item.key === value);
-}
-
 function parseParameters(value: unknown): ExerciseParameterDefinition[] {
   if (!Array.isArray(value)) return [];
 
   return value.flatMap((item) => {
-    if (!isRecord(item) || !isParameterKey(item.parameter_key)) return [];
-    const option = EXERCISE_PARAMETER_OPTIONS.find((entry) => entry.key === item.parameter_key);
-    if (!option) return [];
-
+    if (!isRecord(item) || typeof item.parameter_key !== "string") return [];
     const inputType: ExerciseParameterInputType = item.input_type === "text" ? "text" : "number";
     return [{
       key: item.parameter_key,
-      label: typeof item.label === "string" ? item.label : option.label,
-      unit: typeof item.unit === "string" ? item.unit : option.unit,
+      label: typeof item.label === "string" ? item.label : item.parameter_key,
+      unit: typeof item.unit === "string" ? item.unit : "",
       inputType,
       defaultValue: typeof item.default_value === "string" ? item.default_value : "",
       minValue: numberOrNull(item.min_value),
@@ -95,6 +86,8 @@ function parseExercises(value: unknown): TrainingBlockExercise[] {
       categoryTitle: item.category_title,
       subcategory: optionalString(item.subcategory),
       goal: optionalString(item.goal),
+      equipment: parseStringArray(item.equipment),
+      groupIds: parseStringArray(item.group_ids),
       isActive: item.is_active !== false,
       parameters: parseParameters(item.parameters),
     }];
@@ -172,7 +165,7 @@ export async function loadTrainingBlocks(
   organizationId: string,
   includeInactive = true,
 ): Promise<TrainingBlockData> {
-  const data = await callJsonRpc("training_block_overview", {
+  const data = await callJsonRpc("training_block_overview_v2", {
     p_organization_id: organizationId,
     p_include_inactive: includeInactive,
   });

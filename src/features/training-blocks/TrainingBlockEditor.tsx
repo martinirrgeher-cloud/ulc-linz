@@ -251,7 +251,6 @@ export function TrainingBlockEditor({
                         max="600"
                         value={values.estimatedMinutes}
                         onChange={(event) => update("estimatedMinutes", event.target.value)}
-                        placeholder="30"
                       />
                       <span>min</span>
                     </div>

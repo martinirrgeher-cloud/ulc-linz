@@ -10,13 +10,14 @@ import {
   X,
 } from "lucide-react";
 import {
-  EXERCISE_PARAMETER_OPTIONS,
   createEmptyExerciseInput,
   createParameterDefinition,
   exerciseToInput,
   type Exercise,
   type ExerciseCategory,
   type ExerciseInput,
+  type ExerciseListOption,
+  type ExerciseParameterOption,
   type ExerciseParameterDefinition,
   type ExerciseParameterKey,
   type ExerciseTrainingGroup,
@@ -28,6 +29,9 @@ export type EditorSection = "basis" | "anleitung" | "parameter" | "videos";
 export type ExerciseEditorProps = {
   exercise: Exercise | null;
   categories: ExerciseCategory[];
+  subcategories: ExerciseListOption[];
+  materials: ExerciseListOption[];
+  parameterOptions: ExerciseParameterOption[];
   groups: ExerciseTrainingGroup[];
   organizationId: string;
   initialSection?: EditorSection;
@@ -51,6 +55,9 @@ function numberInputValue(value: number | null): string {
 export function ExerciseEditor({
   exercise,
   categories,
+  subcategories,
+  materials,
+  parameterOptions,
   groups,
   organizationId,
   initialSection = "basis",
@@ -60,7 +67,7 @@ export function ExerciseEditor({
   onSubmit,
   onVideosChanged,
 }: ExerciseEditorProps) {
-  const defaultCategoryKey = categories[0]?.key ?? "warmup";
+  const defaultCategoryKey = categories.find((category) => category.isActive !== false)?.key ?? categories[0]?.key ?? "warmup";
   const [section, setSection] = useState<EditorSection>(initialSection);
   const [values, setValues] = useState<ExerciseInput>(() =>
     exercise ? exerciseToInput(exercise) : createEmptyExerciseInput(defaultCategoryKey),
@@ -88,6 +95,15 @@ export function ExerciseEditor({
     );
   }
 
+  function toggleMaterial(material: string) {
+    update(
+      "equipment",
+      values.equipment.includes(material)
+        ? values.equipment.filter((item) => item !== material)
+        : [...values.equipment, material],
+    );
+  }
+
   function toggleParameter(key: ExerciseParameterKey) {
     setValues((current) => {
       const exists = current.parameters.some((parameter) => parameter.key === key);
@@ -102,7 +118,12 @@ export function ExerciseEditor({
         ...current,
         parameters: [
           ...current.parameters,
-          createParameterDefinition(key, current.parameters.length + 1),
+          createParameterDefinition(
+            parameterOptions.find((option) => option.key === key) ?? {
+              key, label: key, unit: "", inputType: "text", stepValue: null, sortOrder: 100, isActive: true,
+            },
+            current.parameters.length + 1,
+          ),
         ],
       };
     });
@@ -235,23 +256,32 @@ export function ExerciseEditor({
                       value={values.categoryKey}
                       onChange={(event) => update("categoryKey", event.target.value)}
                     >
-                      {categories.map((category) => (
-                        <option value={category.key} key={category.key}>
-                          {category.title}
-                        </option>
-                      ))}
+                      {categories
+                        .filter((category) => category.isActive !== false || category.key === values.categoryKey)
+                        .map((category) => (
+                          <option value={category.key} key={category.key}>
+                            {category.title}{category.isActive === false ? " (inaktiv)" : ""}
+                          </option>
+                        ))}
                     </select>
                   </label>
 
                   <label className="exercise-field">
                     <span>Unterkategorie</span>
-                    <input
-                      type="text"
+                    <select
                       value={values.subcategory}
                       onChange={(event) => update("subcategory", event.target.value)}
-                      placeholder="z. B. fliegende Sprints"
-                      maxLength={100}
-                    />
+                    >
+                      <option value="">Keine Unterkategorie</option>
+                      {subcategories
+                        .filter((option) => option.isActive || option.label === values.subcategory)
+                        .map((option) => (
+                          <option value={option.label} key={option.key}>{option.label}</option>
+                        ))}
+                      {values.subcategory && !subcategories.some((option) => option.label === values.subcategory) && (
+                        <option value={values.subcategory}>{values.subcategory} (bestehend)</option>
+                      )}
+                    </select>
                   </label>
 
                   <label className="exercise-field exercise-field-wide">
@@ -265,15 +295,39 @@ export function ExerciseEditor({
                     />
                   </label>
 
-                  <label className="exercise-field exercise-field-wide">
-                    <span>Material</span>
-                    <input
-                      type="text"
-                      value={values.equipment}
-                      onChange={(event) => update("equipment", event.target.value)}
-                      placeholder="Kommagetrennt, z. B. Startblock, Hütchen"
-                    />
-                  </label>
+                  <div className="exercise-field exercise-field-wide">
+                    <span>Material (Mehrfachauswahl)</span>
+                    <details className="exercise-multi-select">
+                      <summary>
+                        {values.equipment.length > 0
+                          ? values.equipment.join(", ")
+                          : "Material auswählen"}
+                      </summary>
+                      <div className="exercise-multi-select-options">
+                        {materials
+                          .filter((option) => option.isActive || values.equipment.includes(option.label))
+                          .map((option) => (
+                            <label key={option.key}>
+                              <input
+                                type="checkbox"
+                                checked={values.equipment.includes(option.label)}
+                                onChange={() => toggleMaterial(option.label)}
+                              />
+                              <span>{option.label}</span>
+                            </label>
+                          ))}
+                        {values.equipment
+                          .filter((material) => !materials.some((option) => option.label === material))
+                          .map((material) => (
+                            <label key={material}>
+                              <input type="checkbox" checked onChange={() => toggleMaterial(material)} />
+                              <span>{material} (bestehend)</span>
+                            </label>
+                          ))}
+                        {materials.every((option) => !option.isActive) && values.equipment.length === 0 && <p>Aktive Materialien zuerst in den Auswahllisten anlegen.</p>}
+                      </div>
+                    </details>
+                  </div>
                 </div>
 
                 <fieldset className="exercise-group-selection">
@@ -380,7 +434,7 @@ export function ExerciseEditor({
                 </div>
 
                 <div className="parameter-picker">
-                  {EXERCISE_PARAMETER_OPTIONS.map((option) => {
+                  {parameterOptions.filter((option) => option.isActive || selectedParameterKeys.has(option.key)).map((option) => {
                     const selected = selectedParameterKeys.has(option.key);
                     return (
                       <button
