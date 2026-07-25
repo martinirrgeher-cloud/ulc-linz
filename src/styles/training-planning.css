@@ -1,0 +1,872 @@
+.training-planning-page {
+  display: grid;
+  gap: 18px;
+}
+
+.training-planning-heading h1,
+.training-planning-day-overview h2,
+.training-plan-editor-heading h2,
+.training-plan-picker h2,
+.training-plan-copy-dialog h2 {
+  margin: 0;
+  color: var(--green-950);
+}
+
+.training-planning-heading p:not(.eyebrow) {
+  margin: 7px 0 0;
+  color: var(--muted);
+}
+
+.training-planning-selection {
+  display: grid;
+  grid-template-columns: minmax(170px, .7fr) minmax(220px, 1fr) minmax(240px, 1.15fr);
+  gap: 10px;
+  padding: 14px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 6px 20px rgba(15, 62, 38, .05);
+}
+
+.training-planning-selection label,
+.training-plan-field {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+  color: var(--green-950);
+  font-weight: 800;
+}
+
+.training-planning-selection label > span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: .8rem;
+}
+
+.training-planning-selection label > span svg {
+  width: 16px;
+  color: var(--green-700);
+}
+
+.training-planning-selection input,
+.training-planning-selection select,
+.training-plan-field input,
+.training-plan-field textarea,
+.training-plan-picker-search input,
+.training-plan-copy-search input {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px 12px;
+  color: #153326;
+  background: #fff;
+  border: 1px solid #b9cdc0;
+  border-radius: 11px;
+}
+
+.training-planning-selection input:focus,
+.training-planning-selection select:focus,
+.training-plan-field input:focus,
+.training-plan-field textarea:focus,
+.training-plan-picker-search input:focus,
+.training-plan-copy-search input:focus {
+  border-color: var(--green-700);
+  outline: 3px solid rgba(20, 122, 70, .14);
+}
+
+.training-planning-day-overview {
+  display: grid;
+  gap: 11px;
+  padding: 14px;
+  background: #f8fbf9;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+}
+
+.training-planning-day-overview > header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.training-planning-day-overview > header h2 {
+  font-size: 1rem;
+}
+
+.training-planning-day-overview > header small,
+.training-planning-day-overview > header > span,
+.training-planning-no-plans {
+  color: var(--muted);
+  font-size: .78rem;
+  font-weight: 700;
+}
+
+.training-plan-summary-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.training-plan-summary-list > button {
+  min-width: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 11px;
+  color: var(--green-950);
+  background: #fff;
+  border: 1px solid #d7e5dc;
+  border-radius: 11px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.training-plan-summary-list > button.active {
+  border-color: var(--green-700);
+  box-shadow: 0 0 0 2px rgba(20, 122, 70, .12);
+}
+
+.training-plan-summary-list > button > span:first-child {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.training-plan-summary-list strong,
+.training-plan-summary-list small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.training-plan-summary-list small {
+  color: var(--muted);
+  font-size: .72rem;
+}
+
+.training-plan-summary-list em {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--green-700);
+  font-size: .68rem;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.training-plan-summary-list em svg,
+.training-plan-summary-values svg {
+  width: 13px;
+}
+
+.training-plan-summary-values {
+  flex: 0 0 auto;
+  display: grid;
+  gap: 4px;
+}
+
+.training-plan-summary-values small {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 800;
+}
+
+.training-planning-no-plans {
+  margin: 0;
+}
+
+.training-plan-editor {
+  overflow: hidden;
+  display: grid;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow: 0 8px 28px rgba(15, 62, 38, .07);
+}
+
+.training-plan-editor-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 18px;
+  border-bottom: 1px solid var(--border);
+}
+
+.training-plan-editor-heading small {
+  color: var(--muted);
+}
+
+.training-plan-copy-origin {
+  width: fit-content;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 7px;
+  padding: 5px 8px;
+  color: var(--green-800);
+  background: var(--green-50);
+  border-radius: 999px;
+  font-size: .72rem;
+  font-weight: 800;
+}
+
+.training-plan-copy-origin svg {
+  width: 14px;
+}
+
+.training-plan-summary-chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.training-plan-summary-chips span {
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 9px;
+  color: var(--green-800);
+  background: var(--green-50);
+  border: 1px solid #d8eadf;
+  border-radius: 999px;
+  font-size: .74rem;
+  font-weight: 800;
+}
+
+.training-plan-summary-chips svg {
+  width: 15px;
+}
+
+.training-plan-editor-fields {
+  min-width: 0;
+  display: grid;
+  gap: 16px;
+  margin: 0;
+  padding: 18px;
+  border: 0;
+}
+
+.training-plan-basis-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+}
+
+.training-plan-field > span:first-child {
+  font-size: .8rem;
+}
+
+.training-plan-field textarea {
+  resize: vertical;
+  line-height: 1.45;
+}
+
+.training-plan-add-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.training-plan-empty {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 30px 16px;
+  color: var(--muted);
+  background: #f8fbf9;
+  border: 1px dashed var(--border);
+  border-radius: 14px;
+  text-align: center;
+}
+
+.training-plan-empty svg {
+  width: 34px;
+  color: var(--green-700);
+}
+
+.training-plan-empty h3,
+.training-plan-empty p {
+  margin: 0;
+}
+
+.training-plan-section-list {
+  display: grid;
+  gap: 11px;
+}
+
+.training-plan-section {
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid #d8e5dc;
+  border-radius: 14px;
+}
+
+.training-plan-section-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  border-bottom: 1px solid transparent;
+}
+
+.training-plan-section:has(.training-plan-section-body) .training-plan-section-header {
+  border-bottom-color: var(--border);
+}
+
+.training-plan-section-toggle {
+  min-width: 0;
+  min-height: 56px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 12px;
+  color: var(--green-950);
+  background: #f8fbf9;
+  border: 0;
+  text-align: left;
+  cursor: pointer;
+}
+
+.training-plan-section-number,
+.training-plan-item-number {
+  width: 29px;
+  height: 29px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: var(--green-700);
+  border-radius: 50%;
+  font-size: .78rem;
+  font-weight: 900;
+}
+
+.training-plan-section-title,
+.training-plan-item-title {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.training-plan-section-title strong,
+.training-plan-section-title small,
+.training-plan-item-title strong,
+.training-plan-item-title small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.training-plan-section-title small,
+.training-plan-item-title small,
+.training-plan-section-duration,
+.training-plan-no-parameters {
+  color: var(--muted);
+  font-size: .72rem;
+}
+
+.training-plan-section-duration {
+  white-space: nowrap;
+  font-weight: 800;
+}
+
+.training-plan-section-actions,
+.training-plan-item-actions {
+  display: flex;
+  gap: 4px;
+  padding-right: 9px;
+}
+
+.training-plan-section-actions button,
+.training-plan-item-actions button {
+  width: 33px;
+  height: 33px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: var(--green-800);
+  background: #fff;
+  border: 1px solid #d6e5db;
+  border-radius: 9px;
+  cursor: pointer;
+}
+
+.training-plan-section-actions button.danger,
+.training-plan-item-actions button.danger {
+  color: var(--danger);
+}
+
+.training-plan-section-actions button:disabled,
+.training-plan-item-actions button:disabled {
+  opacity: .35;
+  cursor: default;
+}
+
+.training-plan-section-actions svg,
+.training-plan-item-actions svg {
+  width: 16px;
+}
+
+.training-plan-section-body {
+  display: grid;
+  gap: 13px;
+  padding: 13px;
+}
+
+.training-plan-section-settings {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(130px, .25fr);
+  gap: 10px;
+}
+
+.training-plan-duration-field > span:last-child {
+  display: flex;
+  align-items: center;
+  background: #fff;
+  border: 1px solid #b9cdc0;
+  border-radius: 11px;
+}
+
+.training-plan-duration-field > span:last-child input {
+  border: 0;
+  outline: 0;
+}
+
+.training-plan-duration-field > span:last-child small {
+  padding-right: 11px;
+  color: var(--muted);
+}
+
+.training-plan-section-goal {
+  margin: 0;
+  color: var(--muted);
+  font-size: .82rem;
+}
+
+.training-plan-item-list {
+  display: grid;
+  gap: 10px;
+}
+
+.training-plan-item {
+  display: grid;
+  gap: 11px;
+  padding: 12px;
+  background: #f8fbf9;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.training-plan-item > header {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.training-plan-item-title {
+  flex: 1;
+}
+
+.training-plan-parameter-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.training-plan-parameter-control {
+  min-width: 0;
+  display: grid;
+  gap: 7px;
+}
+
+.training-plan-parameter-control.has-slider {
+  grid-template-columns: minmax(80px, .55fr) minmax(120px, 1.45fr);
+  align-items: center;
+}
+
+.training-plan-parameter-control input[type="range"] {
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  accent-color: var(--green-700);
+}
+
+.training-plan-editor-actions {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 18px max(12px, env(safe-area-inset-bottom));
+  background: rgba(255, 255, 255, .97);
+  border-top: 1px solid var(--border);
+  backdrop-filter: blur(10px);
+}
+
+.training-plan-picker-backdrop,
+.training-plan-copy-backdrop {
+  position: fixed;
+  z-index: 70;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(8, 36, 22, .56);
+  backdrop-filter: blur(5px);
+}
+
+.training-plan-picker,
+.training-plan-copy-dialog {
+  width: min(100%, 700px);
+  max-height: calc(100dvh - 40px);
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow: 0 24px 70px rgba(8, 36, 22, .28);
+}
+
+.training-plan-picker > header,
+.training-plan-copy-dialog > header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 17px 18px 12px;
+}
+
+.training-plan-picker-search,
+.training-plan-copy-search {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 18px 12px;
+  padding-left: 11px;
+  background: #fff;
+  border: 1px solid #b9cdc0;
+  border-radius: 11px;
+}
+
+.training-plan-picker-search svg,
+.training-plan-copy-search svg {
+  width: 18px;
+  color: var(--green-700);
+}
+
+.training-plan-picker-search input,
+.training-plan-copy-search input {
+  padding-left: 0;
+  border: 0;
+  outline: 0;
+}
+
+.training-plan-picker-list {
+  overflow-y: auto;
+  display: grid;
+  align-content: start;
+  gap: 7px;
+  padding: 0 18px 18px;
+}
+
+.training-plan-picker-list > button {
+  min-width: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 12px;
+  color: var(--green-950);
+  background: #f8fbf9;
+  border: 1px solid #d6e5db;
+  border-radius: 11px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.training-plan-picker-list > button > span {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.training-plan-picker-list strong,
+.training-plan-picker-list small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.training-plan-picker-list small,
+.training-plan-copy-dialog header small {
+  color: var(--muted);
+}
+
+.training-plan-picker-list svg {
+  width: 18px;
+  color: var(--green-700);
+}
+
+.training-plan-picker-empty,
+.training-plan-copy-empty {
+  margin: 0;
+  padding: 24px 12px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.training-plan-copy-dialog {
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+
+.training-plan-copy-body {
+  min-height: 0;
+  overflow-y: auto;
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  padding: 0 18px 18px;
+}
+
+.training-plan-copy-body .training-plan-copy-search {
+  margin: 0;
+}
+
+.training-plan-copy-list {
+  max-height: 330px;
+  overflow-y: auto;
+  display: grid;
+  gap: 6px;
+}
+
+.training-plan-copy-list label,
+.training-plan-overwrite-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 11px;
+  background: #f8fbf9;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  cursor: pointer;
+}
+
+.training-plan-copy-list label.has-plan {
+  background: #fffaf0;
+  border-color: #ead9ad;
+}
+
+.training-plan-copy-list input,
+.training-plan-overwrite-option input {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+  accent-color: var(--green-700);
+}
+
+.training-plan-copy-list label > span,
+.training-plan-overwrite-option > span {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.training-plan-copy-list small,
+.training-plan-overwrite-option small {
+  color: var(--muted);
+  font-size: .74rem;
+}
+
+.training-plan-overwrite-option {
+  align-items: flex-start;
+}
+
+.training-plan-copy-warning {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 11px;
+  color: #765c19;
+  background: #fff8df;
+  border: 1px solid #ead9a5;
+  border-radius: 11px;
+  font-size: .78rem;
+  font-weight: 800;
+}
+
+.training-plan-copy-warning.danger {
+  color: #8b302b;
+  background: #fff1ef;
+  border-color: #efc1bd;
+}
+
+.training-plan-copy-warning svg {
+  width: 18px;
+  flex: 0 0 auto;
+}
+
+.training-plan-copy-dialog > footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 18px max(12px, env(safe-area-inset-bottom));
+  border-top: 1px solid var(--border);
+}
+
+@media (max-width: 900px) {
+  .training-plan-summary-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .training-plan-parameter-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .training-planning-selection {
+    grid-template-columns: 1fr;
+    padding: 12px;
+  }
+
+  .training-planning-selection input,
+  .training-planning-selection select,
+  .training-plan-field input,
+  .training-plan-field textarea,
+  .training-plan-picker-search input,
+  .training-plan-copy-search input {
+    min-height: 48px;
+    font-size: 16px;
+  }
+
+  .training-planning-day-overview > header,
+  .training-plan-editor-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .training-plan-summary-list {
+    grid-template-columns: 1fr;
+  }
+
+  .training-plan-summary-chips {
+    justify-content: flex-start;
+  }
+
+  .training-plan-editor-fields {
+    padding: 13px;
+  }
+
+  .training-plan-add-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .training-plan-add-actions button {
+    min-width: 0;
+    padding-inline: 8px;
+    font-size: .78rem;
+  }
+
+  .training-plan-section-header {
+    grid-template-columns: 1fr;
+  }
+
+  .training-plan-section-toggle {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .training-plan-section-actions {
+    justify-content: flex-end;
+    padding: 0 9px 9px;
+    background: #f8fbf9;
+  }
+
+  .training-plan-section-settings {
+    grid-template-columns: 1fr minmax(120px, .45fr);
+  }
+
+  .training-plan-item > header {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .training-plan-item-title {
+    width: calc(100% - 40px);
+    flex: 0 1 calc(100% - 40px);
+  }
+
+  .training-plan-item-actions {
+    width: 100%;
+    justify-content: flex-end;
+    padding-right: 0;
+  }
+
+  .training-plan-parameter-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .training-plan-editor-actions > * {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .training-plan-picker-backdrop,
+  .training-plan-copy-backdrop {
+    align-items: stretch;
+    padding: 0;
+  }
+
+  .training-plan-picker,
+  .training-plan-copy-dialog {
+    width: 100%;
+    max-height: 100dvh;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .training-plan-picker > header,
+  .training-plan-copy-dialog > header {
+    padding-top: max(12px, env(safe-area-inset-top));
+  }
+}
+
+@media (max-width: 440px) {
+  .training-plan-add-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .training-plan-section-settings {
+    grid-template-columns: 1fr;
+  }
+
+  .training-plan-section-toggle {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .training-plan-section-duration {
+    grid-column: 2;
+  }
+
+  .training-plan-parameter-control.has-slider {
+    grid-template-columns: minmax(75px, .65fr) minmax(105px, 1.35fr);
+  }
+
+  .training-plan-copy-dialog > footer {
+    flex-direction: column-reverse;
+  }
+
+  .training-plan-copy-dialog > footer > * {
+    width: 100%;
+  }
+}

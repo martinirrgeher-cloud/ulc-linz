@@ -8,6 +8,7 @@ import "@/styles/statistics.css";
 import "@/styles/performance-registration.css";
 import "@/styles/exercise-catalog.css";
 import "@/styles/training-blocks.css";
+import "@/styles/training-planning.css";
 import "@/styles/dropdown-settings.css";
 
 const rootElement = document.getElementById("root");
