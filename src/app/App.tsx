@@ -15,6 +15,8 @@ import { PerformanceRegistrationPage } from "@/pages/PerformanceRegistrationPage
 import { ExerciseCatalogPage } from "@/pages/ExerciseCatalogPage";
 import { TrainingBlocksPage } from "@/pages/TrainingBlocksPage";
 import { TrainingPlanningPage } from "@/pages/TrainingPlanningPage";
+import { TrainingOverviewPage } from "@/pages/TrainingOverviewPage";
+import { TrainingDocumentationPage } from "@/pages/TrainingDocumentationPage";
 import { DropdownSettingsPage } from "@/pages/DropdownSettingsPage";
 import { NoAccessPage } from "@/pages/NoAccessPage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
@@ -139,6 +141,22 @@ export function App() {
               element={
                 <ProtectedRoute moduleKey="training_planning">
                   <TrainingPlanningPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="module/training_overview"
+              element={
+                <ProtectedRoute moduleKey="training_overview">
+                  <TrainingOverviewPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="module/training_documentation"
+              element={
+                <ProtectedRoute moduleKey="training_documentation">
+                  <TrainingDocumentationPage />
                 </ProtectedRoute>
               }
             />

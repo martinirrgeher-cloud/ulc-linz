@@ -1,0 +1,369 @@
+import { useEffect, useMemo, useState } from "react";
+import {
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
+  Clock3,
+  Dumbbell,
+  ListChecks,
+  RefreshCw,
+  Users,
+} from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/features/auth/AuthContext";
+import {
+  addWeeks,
+  formatTrainingDate,
+  formatWeekRange,
+  isCurrentWeek,
+  isoWeekNumber,
+  PERFORMANCE_WEEKDAY_LABELS,
+  startOfIsoWeek,
+} from "@/features/performance-registration/date";
+import { loadTrainingWeekOverview } from "@/features/training-overview/api";
+import type {
+  TrainingOverviewDocumentationStatus,
+  TrainingOverviewPlan,
+  TrainingOverviewRegistration,
+  TrainingOverviewStatus,
+  TrainingWeekOverview,
+} from "@/features/training-overview/types";
+
+const EMPTY_OVERVIEW: TrainingWeekOverview = {
+  weekStart: startOfIsoWeek(new Date()),
+  weekEnd: startOfIsoWeek(new Date()),
+  groups: [],
+  group: null,
+  dates: [],
+  athletes: [],
+  plans: [],
+};
+
+const STATUS_LABELS: Record<TrainingOverviewStatus, string> = {
+  open: "Offen",
+  coming: "Kommt",
+  maybe: "Unsicher",
+  unavailable: "Nein",
+};
+
+const STATUS_SHORT_LABELS: Record<TrainingOverviewStatus, string> = {
+  open: "–",
+  coming: "Ja",
+  maybe: "?",
+  unavailable: "Nein",
+};
+
+const DOCUMENTATION_LABELS: Record<TrainingOverviewDocumentationStatus, string> = {
+  not_started: "Doku offen",
+  in_progress: "Doku läuft",
+  completed: "Doku fertig",
+  partial: "Teilweise",
+  aborted: "Abgebrochen",
+};
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : "Ein unbekannter Fehler ist aufgetreten.";
+}
+
+function personName(firstName: string, lastName: string): string {
+  return `${firstName} ${lastName}`.trim();
+}
+
+function mapKey(athleteId: string, date: string): string {
+  return `${athleteId}:${date}`;
+}
+
+export function TrainingOverviewPage() {
+  const navigate = useNavigate();
+  const { appContext } = useAuth();
+  const organizationId = appContext?.organization?.id ?? null;
+
+  const [weekStart, setWeekStart] = useState(() => startOfIsoWeek(new Date()));
+  const [groupId, setGroupId] = useState("");
+  const [overview, setOverview] = useState<TrainingWeekOverview>(EMPTY_OVERVIEW);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const planByAthleteAndDate = useMemo(
+    () => new Map(overview.plans.map((plan) => [mapKey(plan.athleteId, plan.trainingDate), plan])),
+    [overview.plans],
+  );
+
+  const registrationByAthleteAndDate = useMemo(() => {
+    const registrations = new Map<string, TrainingOverviewRegistration>();
+    for (const athlete of overview.athletes) {
+      for (const registration of athlete.registrations) {
+        registrations.set(mapKey(athlete.id, registration.date), registration);
+      }
+    }
+    return registrations;
+  }, [overview.athletes]);
+
+  const plannedAthleteCount = useMemo(
+    () => new Set(overview.plans.map((plan) => plan.athleteId)).size,
+    [overview.plans],
+  );
+  const documentedPlanCount = useMemo(
+    () => overview.plans.filter((plan) => plan.documentationStatus !== "not_started").length,
+    [overview.plans],
+  );
+
+  useEffect(() => {
+    if (!organizationId) return;
+    let active = true;
+    setLoading(true);
+    setError(null);
+
+    void loadTrainingWeekOverview(organizationId, weekStart, groupId || null)
+      .then((next) => {
+        if (!active) return;
+        setOverview(next);
+        if (!groupId && next.group) setGroupId(next.group.id);
+      })
+      .catch((loadError) => {
+        if (active) setError(errorMessage(loadError));
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => { active = false; };
+  }, [groupId, organizationId, weekStart]);
+
+  async function refresh() {
+    if (!organizationId) return;
+    setRefreshing(true);
+    setError(null);
+    try {
+      const next = await loadTrainingWeekOverview(organizationId, weekStart, groupId || null);
+      setOverview(next);
+      if (!groupId && next.group) setGroupId(next.group.id);
+    } catch (loadError) {
+      setError(errorMessage(loadError));
+    } finally {
+      setRefreshing(false);
+    }
+  }
+
+  function changeWeek(amount: number) {
+    setWeekStart((current) => addWeeks(current, amount));
+  }
+
+  function openPlanning(athleteId: string, trainingDate: string) {
+    if (!overview.group) return;
+    const parameters = new URLSearchParams({
+      date: trainingDate,
+      group: overview.group.id,
+      athlete: athleteId,
+    });
+    navigate(`/module/training_planning?${parameters.toString()}`);
+  }
+
+  function openDocumentation(plan: TrainingOverviewPlan) {
+    if (!overview.group) return;
+    const parameters = new URLSearchParams({
+      group: overview.group.id,
+      athlete: plan.athleteId,
+      plan: plan.id,
+      date: plan.trainingDate,
+      view: "document",
+    });
+    navigate(`/module/training_documentation?${parameters.toString()}`);
+  }
+
+  function planCellLabel(
+    athleteName: string,
+    trainingDate: string,
+    registration: TrainingOverviewRegistration,
+    plan: TrainingOverviewPlan | undefined,
+  ): string {
+    const planText = plan
+      ? `Plan vorhanden, ${plan.totalMinutes} Minuten, ${plan.exerciseCount} Übungen, ${DOCUMENTATION_LABELS[plan.documentationStatus]}`
+      : "noch kein Plan";
+    return `${athleteName}, ${formatTrainingDate(trainingDate)}: Anmeldung ${STATUS_LABELS[registration.status]}, ${planText}. Planung öffnen.`;
+  }
+
+  return (
+    <section className="training-overview-page">
+      <header className="training-overview-heading">
+        <div>
+          <p className="eyebrow">Trainingsplanung</p>
+          <h1>Trainingsplan-Übersicht</h1>
+          <p>Anmeldestatus und vorhandene Athletenpläne für eine komplette Trainingswoche.</p>
+        </div>
+      </header>
+
+      {error && <div className="alert error">{error}</div>}
+
+      <section className="training-overview-controls" aria-label="Woche und Trainingsgruppe auswählen">
+        <label>
+          <span><Users aria-hidden="true" />Trainingsgruppe</span>
+          <select
+            value={groupId}
+            onChange={(event) => setGroupId(event.target.value)}
+            disabled={loading || overview.groups.length === 0}
+          >
+            {overview.groups.length === 0 && <option value="">Keine Leistungsgruppe</option>}
+            {overview.groups.map((group) => (
+              <option value={group.id} key={group.id}>{group.shortName || group.name}</option>
+            ))}
+          </select>
+        </label>
+
+        <div className="training-overview-week-navigation">
+          <button type="button" className="icon-button" onClick={() => changeWeek(-1)} aria-label="Vorherige Woche">
+            <ChevronLeft aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            className="training-overview-week-label"
+            onClick={() => setWeekStart(startOfIsoWeek(new Date()))}
+            title="Zur aktuellen Woche"
+          >
+            <strong>KW {isoWeekNumber(weekStart)}</strong>
+            <span>{formatWeekRange(weekStart)}</span>
+            {isCurrentWeek(weekStart) && <small>Aktuelle Woche</small>}
+          </button>
+          <button type="button" className="icon-button" onClick={() => changeWeek(1)} aria-label="Nächste Woche">
+            <ChevronRight aria-hidden="true" />
+          </button>
+        </div>
+
+        <button
+          type="button"
+          className="icon-button"
+          onClick={() => void refresh()}
+          disabled={loading || refreshing}
+          aria-label="Übersicht aktualisieren"
+          title="Aktualisieren"
+        >
+          <RefreshCw className={refreshing ? "spin" : ""} aria-hidden="true" />
+        </button>
+      </section>
+
+      {!loading && overview.group && (
+        <section className="training-overview-summary" aria-label="Wochenzusammenfassung">
+          <span><Users aria-hidden="true" /><strong>{overview.athletes.length}</strong> Athleten</span>
+          <span><CalendarDays aria-hidden="true" /><strong>{overview.dates.length}</strong> Trainingstage</span>
+          <span><Dumbbell aria-hidden="true" /><strong>{overview.plans.length}</strong> Pläne</span>
+          <span><ListChecks aria-hidden="true" /><strong>{documentedPlanCount}</strong> begonnen</span>
+          <span><strong>{plannedAthleteCount}/{overview.athletes.length}</strong> Athleten geplant</span>
+        </section>
+      )}
+
+      {loading ? (
+        <div className="management-loading"><div className="spinner" aria-hidden="true" />Wochenübersicht wird geladen …</div>
+      ) : overview.groups.length === 0 ? (
+        <div className="empty-state">
+          <Users aria-hidden="true" />
+          <h2>Keine Leistungsgruppe vorhanden</h2>
+          <p>Für die Übersicht wird eine aktive Gruppe mit Trainingsanmeldung benötigt.</p>
+        </div>
+      ) : overview.dates.length === 0 ? (
+        <div className="empty-state">
+          <CalendarDays aria-hidden="true" />
+          <h2>Keine Trainingstage hinterlegt</h2>
+          <p>Lege bei der ausgewählten Trainingsgruppe reguläre Wochentage fest.</p>
+        </div>
+      ) : overview.athletes.length === 0 ? (
+        <div className="empty-state">
+          <Users aria-hidden="true" />
+          <h2>Keine relevanten Athleten</h2>
+          <p>In dieser Woche ist kein aktiver Athlet der ausgewählten Gruppe zugeordnet.</p>
+        </div>
+      ) : (
+        <>
+          <div className="training-overview-legend" aria-label="Legende">
+            <span className="status-coming">Ja</span>
+            <span className="status-maybe">Unsicher</span>
+            <span className="status-unavailable">Nein</span>
+            <span className="status-open">Offen</span>
+            <span className="has-plan"><Clock3 aria-hidden="true" />Plan vorhanden</span>
+            <span className="documentation-completed"><ListChecks aria-hidden="true" />Doku abgeschlossen</span>
+          </div>
+
+          <div className="training-overview-matrix-scroll">
+            <table className="training-overview-matrix">
+              <thead>
+                <tr>
+                  <th>Athlet</th>
+                  {overview.dates.map((date) => (
+                    <th key={date.date}>
+                      <span>{PERFORMANCE_WEEKDAY_LABELS[date.weekday]}</span>
+                      <small>{date.date.slice(8, 10)}.{date.date.slice(5, 7)}.</small>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {overview.athletes.map((athlete) => {
+                  const athleteName = personName(athlete.firstName, athlete.lastName);
+                  return (
+                    <tr key={athlete.id}>
+                      <th title={athleteName}>
+                        <span>{athlete.firstName}</span>
+                        <strong>{athlete.lastName}</strong>
+                      </th>
+                      {overview.dates.map((date) => {
+                        const registration = registrationByAthleteAndDate.get(mapKey(athlete.id, date.date)) ?? {
+                          date: date.date,
+                          status: "open" as const,
+                          comment: "",
+                          isLate: false,
+                        };
+                        const plan = planByAthleteAndDate.get(mapKey(athlete.id, date.date));
+                        return (
+                          <td key={date.date}>
+                            <div className="training-overview-cell-actions">
+                              <button
+                                type="button"
+                                className={`training-overview-cell status-${registration.status}${plan ? " has-plan" : ""}`}
+                                onClick={() => openPlanning(athlete.id, date.date)}
+                                title={planCellLabel(athleteName, date.date, registration, plan)}
+                                aria-label={planCellLabel(athleteName, date.date, registration, plan)}
+                              >
+                                <span className="training-overview-registration">
+                                  {STATUS_SHORT_LABELS[registration.status]}
+                                  {registration.isLate && <small>spät</small>}
+                                </span>
+                                <span className="training-overview-plan-state">
+                                  {plan ? (
+                                    <>
+                                      <Clock3 aria-hidden="true" />
+                                      <strong>{plan.actualMinutes ?? plan.totalMinutes} min</strong>
+                                      <small>{plan.exerciseCount} Üb. · {DOCUMENTATION_LABELS[plan.documentationStatus]}</small>
+                                    </>
+                                  ) : (
+                                    <small>kein Plan</small>
+                                  )}
+                                </span>
+                              </button>
+                              {plan && (
+                                <button
+                                  type="button"
+                                  className={`training-overview-documentation-button documentation-${plan.documentationStatus}`}
+                                  onClick={() => openDocumentation(plan)}
+                                  title={`Trainingsdokumentation öffnen: ${DOCUMENTATION_LABELS[plan.documentationStatus]}`}
+                                  aria-label={`${athleteName}, ${formatTrainingDate(date.date)}: Trainingsdokumentation öffnen`}
+                                >
+                                  <ListChecks aria-hidden="true" />
+                                  <span>Doku</span>
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <p className="training-overview-hint">Die Tagesfläche öffnet die Planung. „Doku“ öffnet bei vorhandenen Plänen direkt die Trainingsdokumentation.</p>
+        </>
+      )}
+    </section>
+  );
+}
