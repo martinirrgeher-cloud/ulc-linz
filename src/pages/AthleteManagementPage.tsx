@@ -12,6 +12,8 @@ import {
   UsersRound,
 } from "lucide-react";
 import { Navigate, useSearchParams } from "react-router-dom";
+import { EditLockNotice } from "@/components/collaboration/EditLockNotice";
+import { useEditLock } from "@/features/collaboration/useEditLock";
 import { useAuth } from "@/features/auth/AuthContext";
 import {
   createAthlete,
@@ -125,6 +127,16 @@ export function AthleteManagementPage() {
   const [athleteEditor, setAthleteEditor] = useState<AthleteEditorMode | null>(null);
   const [groupEditor, setGroupEditor] = useState<TrainingGroupEditorMode | null>(null);
   const [trainerEditor, setTrainerEditor] = useState<TrainerEditorMode | null>(null);
+
+  const editedAthlete = athleteEditor?.type === "edit" ? athleteEditor.athlete : null;
+  const athleteLock = useEditLock({
+    organizationId,
+    entityType: "athlete",
+    entityId: editedAthlete?.id,
+    expectedUpdatedAt: editedAthlete?.updatedAt ?? null,
+    enabled: canEdit && Boolean(editedAthlete?.id),
+  });
+  const athleteEditorCanEdit = canEdit && (!editedAthlete || athleteLock.isEditable);
 
   const loadData = useCallback(async () => {
     if (!organizationId || !canView) return;
@@ -254,6 +266,7 @@ export function AthleteManagementPage() {
         await createAthlete(activeOrganizationId, values);
         setSuccess("Der Athlet wurde angelegt.");
       } else {
+        await athleteLock.validateBeforeSave();
         await updateAthlete(activeOrganizationId, athleteEditor.athlete.id, values);
         setSuccess("Die Athletendaten wurden gespeichert.");
       }
@@ -348,6 +361,8 @@ export function AthleteManagementPage() {
           groups={groups}
           linkableUsers={linkableUsers}
           busy={busy}
+          canEdit={athleteEditorCanEdit}
+          lockNotice={editedAthlete ? <EditLockNotice lock={athleteLock} /> : null}
           onCancel={closeEditors}
           onSubmit={handleAthleteSubmit}
         />

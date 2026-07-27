@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import {
   Check,
   Dumbbell,
@@ -37,6 +37,7 @@ export type ExerciseEditorProps = {
   initialSection?: EditorSection;
   canEdit: boolean;
   busy: boolean;
+  lockNotice?: ReactNode;
   onCancel: () => void;
   onSubmit: (values: ExerciseInput) => Promise<void>;
   onVideosChanged: (videos: Exercise["videos"]) => void;
@@ -63,6 +64,7 @@ export function ExerciseEditor({
   initialSection = "basis",
   canEdit,
   busy,
+  lockNotice,
   onCancel,
   onSubmit,
   onVideosChanged,
@@ -233,6 +235,7 @@ export function ExerciseEditor({
         </nav>
 
         <div className="exercise-editor-form">
+          {lockNotice}
           {validationError && <div className="alert error">{validationError}</div>}
 
           <fieldset disabled={!canEdit || busy || videoBusy}>

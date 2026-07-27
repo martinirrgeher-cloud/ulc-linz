@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import {
   ArrowDown,
   ArrowUp,
@@ -34,6 +34,7 @@ export type TrainingBlockEditorProps = {
   exercises: TrainingBlockExercise[];
   canEdit: boolean;
   busy: boolean;
+  lockNotice?: ReactNode;
   onCancel: () => void;
   onSubmit: (values: TrainingBlockInput) => Promise<void>;
 };
@@ -51,6 +52,7 @@ export function TrainingBlockEditor({
   exercises,
   canEdit,
   busy,
+  lockNotice,
   onCancel,
   onSubmit,
 }: TrainingBlockEditorProps) {
@@ -249,6 +251,7 @@ export function TrainingBlockEditor({
         </div>
 
         <div className="training-block-editor-body">
+          {lockNotice}
           {localError && <div className="alert error compact-alert">{localError}</div>}
 
           <fieldset disabled={!canEdit || busy}>

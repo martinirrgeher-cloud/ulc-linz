@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import {
   ArrowDown,
   ArrowUp,
@@ -40,6 +40,7 @@ export type TrainingPlanEditorProps = {
   canEdit: boolean;
   busy: boolean;
   dirty: boolean;
+  lockNotice?: ReactNode;
   onChange: (values: TrainingPlanInput) => void;
   onSave: () => Promise<void>;
   onImport: () => void;
@@ -92,6 +93,7 @@ export function TrainingPlanEditor({
   canEdit,
   busy,
   dirty,
+  lockNotice,
   onChange,
   onSave,
   onImport,
@@ -181,6 +183,8 @@ export function TrainingPlanEditor({
           <span><Clock3 aria-hidden="true" />{totalMinutes} min</span>
         </div>
       </header>
+
+      {lockNotice}
 
       <fieldset disabled={!canEdit || busy} className="training-plan-editor-fields">
         <div className="training-plan-basis-grid">

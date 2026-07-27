@@ -13,6 +13,8 @@ import {
   Trash2,
   X,
 } from "lucide-react";
+import { EditLockNotice } from "@/components/collaboration/EditLockNotice";
+import { useEditLock } from "@/features/collaboration/useEditLock";
 import { useAuth } from "@/features/auth/AuthContext";
 import {
   deleteTrainingBlock,
@@ -80,6 +82,15 @@ export function TrainingBlocksPage() {
   const [sortMode, setSortMode] = useState<SortMode>("name");
   const [expandedBlockIds, setExpandedBlockIds] = useState<Set<string>>(() => new Set());
   const [editorBlock, setEditorBlock] = useState<TrainingBlock | null | undefined>(undefined);
+
+  const blockLock = useEditLock({
+    organizationId,
+    entityType: "training_block",
+    entityId: editorBlock?.id,
+    expectedUpdatedAt: editorBlock?.updatedAt ?? null,
+    enabled: canEdit && Boolean(editorBlock?.id),
+  });
+  const editorCanEdit = canEdit && (!editorBlock?.id || blockLock.isEditable);
 
   const loadData = useCallback(async (): Promise<TrainingBlockData | null> => {
     if (!organizationId) return null;
@@ -196,6 +207,7 @@ export function TrainingBlocksPage() {
     setError(null);
     setSuccess(null);
     try {
+      await blockLock.validateBeforeSave();
       await saveTrainingBlock(organizationId, editorBlock?.id ?? null, values);
       setEditorBlock(undefined);
       setSuccess(editorBlock ? "Der Trainingsblock wurde gespeichert." : "Der Trainingsblock wurde angelegt.");
@@ -361,7 +373,7 @@ export function TrainingBlocksPage() {
       )}
 
       {editorBlock !== undefined && (
-        <TrainingBlockEditor key={editorBlock?.id ?? "new-training-block"} block={editorBlock} organizationId={organizationId ?? ""} groups={data.groups} exercises={data.exercises} canEdit={canEdit} busy={busy} onCancel={() => setEditorBlock(undefined)} onSubmit={handleSave} />
+        <TrainingBlockEditor key={editorBlock?.id ?? "new-training-block"} block={editorBlock} organizationId={organizationId ?? ""} groups={data.groups} exercises={data.exercises} canEdit={editorCanEdit} busy={busy} lockNotice={editorBlock?.id ? <EditLockNotice lock={blockLock} /> : null} onCancel={() => setEditorBlock(undefined)} onSubmit={handleSave} />
       )}
     </section>
   );

@@ -5,6 +5,7 @@ import {
   ChartNoAxesCombined,
   ClipboardCheck,
   Dumbbell,
+  Timer,
   LayoutDashboard,
   ListChecks,
   ListPlus,
@@ -29,14 +30,17 @@ export type AppModuleKey =
   | "training_documentation"
   | "dropdown_settings"
   | "data_import"
-  | "user_management";
+  | "user_management"
+  | "countdown";
 
 export type AppModuleGroupKey =
   | "training"
   | "planning"
   | "exercises"
   | "statistics"
-  | "master_data";
+  | "master_data"
+  | "documentation"
+  | "useful";
 
 export type AppModuleGroupDefinition = {
   key: AppModuleGroupKey;
@@ -58,8 +62,8 @@ export type AppModuleDefinition = {
 export const APP_MODULE_GROUPS: AppModuleGroupDefinition[] = [
   {
     key: "training",
-    title: "Training",
-    description: "Anwesenheit, Anmeldung und Dokumentation",
+    title: "Anmeldung",
+    description: "Anwesenheit und Trainingsanmeldung",
     sortOrder: 10,
   },
   {
@@ -67,6 +71,12 @@ export const APP_MODULE_GROUPS: AppModuleGroupDefinition[] = [
     title: "Trainingsplanung",
     description: "Pläne und Übersichten erstellen",
     sortOrder: 20,
+  },
+  {
+    key: "documentation",
+    title: "Trainingsdokumentation",
+    description: "Training durchführen, rückmelden und auswerten",
+    sortOrder: 25,
   },
   {
     key: "exercises",
@@ -79,6 +89,12 @@ export const APP_MODULE_GROUPS: AppModuleGroupDefinition[] = [
     title: "Statistik",
     description: "Entwicklung, Anwesenheit und Einsätze",
     sortOrder: 40,
+  },
+  {
+    key: "useful",
+    title: "Nützliches",
+    description: "Praktische Werkzeuge für Training und Vereinsalltag",
+    sortOrder: 45,
   },
   {
     key: "master_data",
@@ -131,8 +147,8 @@ export const APP_MODULES: AppModuleDefinition[] = [
     description: "Durchführung und Rückmeldung erfassen",
     route: "/module/training_documentation",
     icon: <Dumbbell aria-hidden="true" />,
-    groupKey: "training",
-    sortOrder: 50,
+    groupKey: "documentation",
+    sortOrder: 10,
   },
   {
     key: "training_planning",
@@ -196,6 +212,15 @@ export const APP_MODULES: AppModuleDefinition[] = [
     icon: <ChartNoAxesCombined aria-hidden="true" />,
     groupKey: "statistics",
     sortOrder: 30,
+  },
+  {
+    key: "countdown",
+    title: "Intervall-Countdown",
+    description: "Belastung und Pause mit Sprachansagen steuern",
+    route: "/module/countdown",
+    icon: <Timer aria-hidden="true" />,
+    groupKey: "useful",
+    sortOrder: 10,
   },
   {
     key: "athletes",

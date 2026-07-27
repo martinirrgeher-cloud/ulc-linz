@@ -626,6 +626,87 @@ input:focus-visible {
   margin: 7px 0 12px;
 }
 
+.permission-groups {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.permission-group {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+}
+
+.permission-group > summary {
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 12px;
+  color: var(--green-950);
+  background: var(--green-50);
+  cursor: pointer;
+  list-style: none;
+}
+
+.permission-group > summary::-webkit-details-marker {
+  display: none;
+}
+
+.permission-group-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.permission-group-copy strong {
+  font-size: 0.9rem;
+}
+
+.permission-group-copy small {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.permission-group-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--green-800);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.permission-group-meta > span {
+  min-width: 24px;
+  min-height: 24px;
+  display: inline-grid;
+  place-items: center;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: #fff;
+}
+
+.permission-group-meta svg {
+  width: 18px;
+  height: 18px;
+  transition: transform 160ms ease;
+}
+
+.permission-group[open] .permission-group-meta svg {
+  transform: rotate(180deg);
+}
+
+.permission-group .permission-table {
+  border: 0;
+  border-top: 1px solid var(--border);
+  border-radius: 0;
+}
+
 .permission-table {
   overflow: hidden;
   border: 1px solid var(--border);
@@ -2706,4 +2787,87 @@ input:focus-visible {
   .app-error-actions .primary-button {
     grid-column: auto;
   }
+}
+
+/* Temporäre Bearbeitungsreservierung für gemeinsam gepflegte Datensätze. */
+.edit-lock-notice {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.65rem;
+  margin: 0.2rem 0 0.75rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid rgba(16, 79, 51, 0.18);
+  border-radius: 0.75rem;
+  background: rgba(235, 247, 240, 0.95);
+  color: #173c2b;
+}
+
+.edit-lock-notice.warning {
+  border-color: rgba(179, 112, 0, 0.35);
+  background: #fff8e6;
+  color: #5c3b00;
+}
+
+.edit-lock-notice.error {
+  border-color: rgba(176, 43, 43, 0.35);
+  background: #fff0f0;
+  color: #6b1e1e;
+}
+
+.edit-lock-notice > svg {
+  width: 1.15rem;
+  height: 1.15rem;
+  align-self: start;
+  margin-top: 0.1rem;
+}
+
+.edit-lock-notice strong,
+.edit-lock-notice p,
+.edit-lock-notice small {
+  display: block;
+}
+
+.edit-lock-notice p {
+  margin: 0.12rem 0;
+  line-height: 1.35;
+}
+
+.edit-lock-notice small {
+  opacity: 0.8;
+}
+
+.edit-lock-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.4rem;
+}
+
+.danger-outline {
+  border-color: rgba(176, 43, 43, 0.55) !important;
+  color: #8b2222 !important;
+}
+
+@media (max-width: 720px) {
+  .edit-lock-notice {
+    grid-template-columns: auto minmax(0, 1fr);
+    padding: 0.6rem;
+  }
+
+  .edit-lock-actions {
+    grid-column: 1 / -1;
+    justify-content: stretch;
+  }
+
+  .edit-lock-actions > button {
+    flex: 1 1 auto;
+  }
+}
+
+.athlete-editor-lock-fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
 }

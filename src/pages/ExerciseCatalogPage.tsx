@@ -10,6 +10,8 @@ import {
   Video,
   X,
 } from "lucide-react";
+import { EditLockNotice } from "@/components/collaboration/EditLockNotice";
+import { useEditLock } from "@/features/collaboration/useEditLock";
 import { useAuth } from "@/features/auth/AuthContext";
 import {
   loadExerciseCatalog,
@@ -65,6 +67,15 @@ export function ExerciseCatalogPage() {
   const [videoFilter, setVideoFilter] = useState<VideoFilter>("all");
   const [editorExercise, setEditorExercise] = useState<Exercise | null | undefined>(undefined);
   const [editorInitialSection, setEditorInitialSection] = useState<EditorSection>("basis");
+
+  const exerciseLock = useEditLock({
+    organizationId,
+    entityType: "exercise",
+    entityId: editorExercise?.id,
+    expectedUpdatedAt: editorExercise?.updatedAt ?? null,
+    enabled: canEdit && Boolean(editorExercise?.id),
+  });
+  const editorCanEdit = canEdit && (!editorExercise?.id || exerciseLock.isEditable);
 
   const loadData = useCallback(async () => {
     if (!organizationId) return;
@@ -173,6 +184,7 @@ export function ExerciseCatalogPage() {
     setError(null);
     setSuccess(null);
     try {
+      await exerciseLock.validateBeforeSave();
       await saveExercise(organizationId, editorExercise?.id ?? null, values);
       setEditorExercise(undefined);
       setSuccess(editorExercise ? "Die Übung wurde gespeichert." : "Die Übung wurde angelegt.");
@@ -410,8 +422,9 @@ export function ExerciseCatalogPage() {
           groups={data.groups}
           organizationId={organizationId ?? ""}
           initialSection={editorInitialSection}
-          canEdit={canEdit}
+          canEdit={editorCanEdit}
           busy={busy}
+          lockNotice={editorExercise?.id ? <EditLockNotice lock={exerciseLock} /> : null}
           onCancel={() => setEditorExercise(undefined)}
           onSubmit={handleSave}
           onVideosChanged={(videos) => {

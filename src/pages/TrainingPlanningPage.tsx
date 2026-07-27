@@ -10,7 +10,9 @@ import {
   ListChecks,
   Users,
 } from "lucide-react";
+import { EditLockNotice } from "@/components/collaboration/EditLockNotice";
 import { useNavigationGuard } from "@/components/layout/NavigationGuardContext";
+import { useEditLock } from "@/features/collaboration/useEditLock";
 import { useAuth } from "@/features/auth/AuthContext";
 import {
   loadTrainingPlan,
@@ -92,6 +94,15 @@ export function TrainingPlanningPage() {
   const [overviewOpen, setOverviewOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  const planLock = useEditLock({
+    organizationId,
+    entityType: "training_plan",
+    entityId: plan?.id,
+    expectedUpdatedAt: plan?.updatedAt ?? null,
+    enabled: canEdit && Boolean(plan?.id),
+  });
+  const editorCanEdit = canEdit && (!plan?.id || planLock.isEditable);
 
   function updatePlanningUrl(nextDate: string, nextGroupId: string, nextAthleteId: string) {
     const next = new URLSearchParams();
@@ -249,6 +260,7 @@ export function TrainingPlanningPage() {
     setError(null);
     setSuccess(null);
     try {
+      await planLock.validateBeforeSave();
       const planId = await saveTrainingPlan(
         organizationId,
         plan?.id ?? null,
@@ -399,8 +411,9 @@ export function TrainingPlanningPage() {
           values={values}
           blocks={data.blocks}
           exercises={data.exercises}
-          canEdit={canEdit}
+          canEdit={editorCanEdit}
           busy={busy}
+          lockNotice={plan?.id ? <EditLockNotice lock={planLock} /> : null}
           dirty={dirty}
           onChange={handleValuesChange}
           onSave={handleSave}

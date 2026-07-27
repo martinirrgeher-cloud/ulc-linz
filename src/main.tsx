@@ -14,6 +14,7 @@ import "@/styles/training-overview.css";
 import "@/styles/training-documentation.css";
 import "@/styles/dropdown-settings.css";
 import "@/styles/data-import.css";
+import "@/styles/countdown.css";
 import "@/styles/mobile-foundation.css";
 
 const rootElement = document.getElementById("root");

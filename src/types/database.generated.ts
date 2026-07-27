@@ -6,7 +6,7 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[];
 
-// Automatisch aus den versionierten Supabase-Migrationen 001–022 abgeleitet.
+// Automatisch aus den versionierten Supabase-Migrationen 001–024 abgeleitet.
 // Nach einem lokalen `supabase db reset` kann die Datei mit
 // `npm run supabase:types:local` gegen die echte Datenbank neu erzeugt werden.
 export type Database = {
@@ -690,6 +690,45 @@ export type Database = {
           before_data?: Json | null;
           after_data?: Json | null;
           created_at?: string;
+        };
+        Relationships: [];
+      };
+      edit_locks: {
+        Row: {
+          organization_id: string;
+          entity_type: string;
+          entity_id: string;
+          lock_token: string;
+          locked_by_user_id: string;
+          locked_by_membership_id: string;
+          locked_by_name: string;
+          acquired_at: string;
+          heartbeat_at: string;
+          expires_at: string;
+        };
+        Insert: {
+          organization_id: string;
+          entity_type: string;
+          entity_id: string;
+          lock_token: string;
+          locked_by_user_id: string;
+          locked_by_membership_id: string;
+          locked_by_name: string;
+          acquired_at?: string;
+          heartbeat_at?: string;
+          expires_at: string;
+        };
+        Update: {
+          organization_id?: string;
+          entity_type?: string;
+          entity_id?: string;
+          lock_token?: string;
+          locked_by_user_id?: string;
+          locked_by_membership_id?: string;
+          locked_by_name?: string;
+          acquired_at?: string;
+          heartbeat_at?: string;
+          expires_at?: string;
         };
         Relationships: [];
       };
@@ -1635,6 +1674,17 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      acquire_edit_lock: {
+        Args: {
+          p_organization_id: string;
+          p_entity_type: string;
+          p_entity_id: string;
+          p_lock_token: string;
+          p_force?: boolean;
+          p_ttl_seconds?: number;
+        };
+        Returns: Json;
+      };
       activate_current_memberships: {
         Args: Record<PropertyKey, never>;
         Returns: number;
@@ -1675,6 +1725,16 @@ export type Database = {
           p_week_start: string;
         };
         Returns: undefined;
+      };
+      assert_edit_lock: {
+        Args: {
+          p_organization_id: string;
+          p_entity_type: string;
+          p_entity_id: string;
+          p_lock_token: string;
+          p_expected_updated_at?: string | null;
+        };
+        Returns: string;
       };
       athlete_overview: {
         Args: {
@@ -1779,6 +1839,10 @@ export type Database = {
           p_module_key: string;
         };
         Returns: boolean;
+      };
+      cleanup_expired_edit_locks: {
+        Args: Record<PropertyKey, never>;
+        Returns: number;
       };
       copy_athlete_training_plan: {
         Args: {
@@ -2001,6 +2065,20 @@ export type Database = {
         };
         Returns: string;
       };
+      edit_lock_module_key: {
+        Args: {
+          p_entity_type: string;
+        };
+        Returns: string | null;
+      };
+      edit_lock_record_version: {
+        Args: {
+          p_organization_id: string;
+          p_entity_type: string;
+          p_entity_id: string;
+        };
+        Returns: string;
+      };
       exercise_catalog_overview: {
         Args: {
           p_organization_id: string;
@@ -2125,6 +2203,25 @@ export type Database = {
           p_created_by: string;
         };
         Returns: string;
+      };
+      release_edit_lock: {
+        Args: {
+          p_organization_id: string;
+          p_entity_type: string;
+          p_entity_id: string;
+          p_lock_token: string;
+        };
+        Returns: boolean;
+      };
+      renew_edit_lock: {
+        Args: {
+          p_organization_id: string;
+          p_entity_type: string;
+          p_entity_id: string;
+          p_lock_token: string;
+          p_ttl_seconds?: number;
+        };
+        Returns: Json;
       };
       register_exercise_video: {
         Args: {
@@ -2254,7 +2351,7 @@ export type Database = {
           p_state: Database["public"]["Enums"]["training_session_state"];
           p_note: string;
           p_attendance: Json;
-          p_expected_updated_at?: string;
+          p_expected_updated_at?: string | null;
         };
         Returns: Json;
       };
@@ -2268,7 +2365,7 @@ export type Database = {
           p_attendance: Json;
           p_trainer_ids: string[];
           p_environment: Database["public"]["Enums"]["training_environment"];
-          p_expected_updated_at?: string;
+          p_expected_updated_at?: string | null;
         };
         Returns: Json;
       };
@@ -2371,7 +2468,7 @@ export type Database = {
           p_attendance: Json;
           p_trainer_ids: string[];
           p_environment: Database["public"]["Enums"]["training_environment"];
-          p_expected_updated_at?: string;
+          p_expected_updated_at?: string | null;
         };
         Returns: Json;
       };

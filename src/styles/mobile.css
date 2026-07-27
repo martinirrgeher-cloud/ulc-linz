@@ -377,6 +377,23 @@ textarea {
     min-height: 58px;
   }
 
+  .permission-groups {
+    gap: 8px;
+  }
+
+  .permission-group > summary {
+    min-height: 46px;
+    padding: 8px 10px;
+  }
+
+  .permission-group-copy strong {
+    font-size: 0.84rem;
+  }
+
+  .permission-group-copy small {
+    font-size: 0.68rem;
+  }
+
   .permission-header {
     display: none;
   }
