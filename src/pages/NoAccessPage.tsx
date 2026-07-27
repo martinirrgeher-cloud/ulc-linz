@@ -1,28 +1,44 @@
-import { LockKeyhole, LogOut, RefreshCw } from "lucide-react";
+import { LogIn } from "lucide-react";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/features/auth/AuthContext";
 
 export function NoAccessPage() {
-  const { accessError, refreshContext, signOut } = useAuth();
+  const navigate = useNavigate();
+  const { signOut } = useAuth();
+  const [busy, setBusy] = useState(false);
+
+  async function returnToLogin() {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await signOut();
+    } catch {
+      // signOut bereinigt den lokalen Sitzungsstand auch dann, wenn Supabase
+      // vorübergehend nicht erreichbar ist. Der Login bleibt daher erreichbar.
+    } finally {
+      navigate("/login", { replace: true });
+    }
+  }
 
   return (
     <main className="status-page">
-      <section className="status-card">
-        <LockKeyhole aria-hidden="true" />
-        <h1>Noch kein Zugriff</h1>
+      <section className="status-card status-card-compact">
+        <LogIn aria-hidden="true" />
+        <h1>Kein Zugriff</h1>
         <p>
-          {accessError ??
-            "Dein Konto besitzt derzeit keine aktive Vereinszuordnung oder nicht die benötigte Berechtigung."}
+          Mit diesem Konto ist derzeit kein Zugriff auf die Vereins-App möglich.
+          Kehre zur Anmeldung zurück und melde dich mit einem berechtigten Konto an.
         </p>
-        <div className="button-row">
-          <button type="button" className="primary-button" onClick={() => void refreshContext()}>
-            <RefreshCw aria-hidden="true" />
-            Erneut prüfen
-          </button>
-          <button type="button" className="secondary-button" onClick={() => void signOut()}>
-            <LogOut aria-hidden="true" />
-            Abmelden
-          </button>
-        </div>
+        <button
+          type="button"
+          className="primary-button status-login-button"
+          onClick={() => void returnToLogin()}
+          disabled={busy}
+        >
+          <LogIn aria-hidden="true" />
+          {busy ? "Abmeldung läuft …" : "Zurück zum Login"}
+        </button>
       </section>
     </main>
   );

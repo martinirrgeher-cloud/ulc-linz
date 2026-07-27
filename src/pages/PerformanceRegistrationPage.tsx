@@ -16,6 +16,7 @@ import {
 } from "react";
 import { Navigate } from "react-router-dom";
 import { useNavigationGuard } from "@/components/layout/NavigationGuardContext";
+import { MobileDaySelector } from "@/components/ui/MobileDaySelector";
 import {
   loadPerformanceContext,
   loadPerformanceWeek,
@@ -617,65 +618,134 @@ function WeekOverview({
       return { date, counts };
     })
   ), [drafts, week.athletes, week.dates]);
+  const [selectedDate, setSelectedDate] = useState("");
+
+  useEffect(() => {
+    setSelectedDate((current) => {
+      if (week.dates.some((date) => date.date === current)) return current;
+      return week.dates[0]?.date ?? "";
+    });
+  }, [week.dates]);
+
+  const activeDate = selectedDate || week.dates[0]?.date || "";
+  const activeSummary = daySummaries.find(({ date }) => date.date === activeDate);
+
+  if (week.dates.length === 0) {
+    return (
+      <div className="empty-state">
+        <CalendarCheck aria-hidden="true" />
+        <h2>Keine Trainingstage hinterlegt</h2>
+        <p>Lege bei der Leistungsgruppe zuerst reguläre Trainingstage fest.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="performance-week-overview-v2">
-      <div className="performance-day-summary-list">
-        {daySummaries.map(({ date, counts }) => (
-          <article key={date.date}>
-            <strong>{formatTrainingDate(date.date)}</strong>
-            <span className="performance-count coming">{counts.coming} Ja</span>
-            <span className="performance-count maybe">{counts.maybe} Vielleicht</span>
-            <span className="performance-count unavailable">{counts.unavailable} Nein</span>
-            <span className="performance-count open">{counts.open} Offen</span>
-          </article>
-        ))}
+      <div className="performance-week-overview-desktop">
+        <div className="performance-day-summary-list">
+          {daySummaries.map(({ date, counts }) => (
+            <article key={date.date}>
+              <strong>{formatTrainingDate(date.date)}</strong>
+              <span className="performance-count coming">{counts.coming} Ja</span>
+              <span className="performance-count maybe">{counts.maybe} Vielleicht</span>
+              <span className="performance-count unavailable">{counts.unavailable} Nein</span>
+              <span className="performance-count open">{counts.open} Offen</span>
+            </article>
+          ))}
+        </div>
+
+        <div className="performance-matrix-scroll" aria-label="Wochenübersicht der Leistungsgruppe">
+          <table className="performance-registration-matrix">
+            <thead>
+              <tr>
+                <th>Athlet</th>
+                {week.dates.map((date) => (
+                  <th key={date.date} title={formatTrainingDate(date.date)}>
+                    <span>{PERFORMANCE_WEEKDAY_LABELS[date.weekday]}</span>
+                    <small>{date.date.slice(8, 10)}.</small>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {week.athletes.map((athlete) => (
+                <tr className={athlete.id === selectedAthleteId ? "selected" : ""} key={athlete.id}>
+                  <th>
+                    <button type="button" onClick={() => onOpenAthlete(athlete.id)}>
+                      {personName(athlete)}
+                    </button>
+                  </th>
+                  {week.dates.map((date) => {
+                    const draft = drafts[draftKey(athlete.id, date.date)] ?? emptyDraft();
+                    const option = STATUS_OPTIONS.find((item) => item.value === draft.status);
+                    return (
+                      <td key={date.date}>
+                        <button
+                          type="button"
+                          className={`performance-matrix-status ${statusClass(draft.status)}`}
+                          title={`${personName(athlete)} · ${formatTrainingDate(date.date)} · ${statusLabel(draft.status)}`}
+                          aria-label={`${personName(athlete)} am ${formatTrainingDate(date.date)}: ${statusLabel(draft.status)}. Anmeldung öffnen.`}
+                          onClick={() => onOpenAthlete(athlete.id)}
+                        >
+                          {option?.matrixLabel ?? "–"}
+                        </button>
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      <div className="performance-matrix-scroll" aria-label="Wochenübersicht der Leistungsgruppe">
-        <table className="performance-registration-matrix">
-          <thead>
-            <tr>
-              <th>Athlet</th>
-              {week.dates.map((date) => (
-                <th key={date.date} title={formatTrainingDate(date.date)}>
-                  <span>{PERFORMANCE_WEEKDAY_LABELS[date.weekday]}</span>
-                  <small>{date.date.slice(8, 10)}.</small>
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {week.athletes.map((athlete) => (
-              <tr className={athlete.id === selectedAthleteId ? "selected" : ""} key={athlete.id}>
-                <th>
-                  <button type="button" onClick={() => onOpenAthlete(athlete.id)}>
-                    {personName(athlete)}
-                  </button>
-                </th>
-                {week.dates.map((date) => {
-                  const draft = drafts[draftKey(athlete.id, date.date)] ?? emptyDraft();
-                  const option = STATUS_OPTIONS.find((item) => item.value === draft.status);
-                  return (
-                    <td key={date.date}>
-                      <button
-                        type="button"
-                        className={`performance-matrix-status ${statusClass(draft.status)}`}
-                        title={`${personName(athlete)} · ${formatTrainingDate(date.date)} · ${statusLabel(draft.status)}`}
-                        aria-label={`${personName(athlete)} am ${formatTrainingDate(date.date)}: ${statusLabel(draft.status)}. Anmeldung öffnen.`}
-                        onClick={() => onOpenAthlete(athlete.id)}
-                      >
-                        {option?.matrixLabel ?? "–"}
-                      </button>
-                    </td>
-                  );
-                })}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <p className="performance-matrix-hint">Zelle oder Namen antippen, um die Anmeldung dieser Person zu bearbeiten.</p>
+      <section className="performance-week-overview-mobile" aria-label="Mobile Wochenübersicht der Leistungsgruppe">
+        <MobileDaySelector
+          label="Trainingstag auswählen"
+          value={activeDate}
+          onChange={setSelectedDate}
+          options={daySummaries.map(({ date, counts }) => ({
+            id: date.date,
+            label: PERFORMANCE_WEEKDAY_LABELS[date.weekday] ?? "Tag",
+            dateLabel: `${date.date.slice(8, 10)}.${date.date.slice(5, 7)}.`,
+            meta: `${counts.coming} Ja`,
+          }))}
+        />
+
+        {activeSummary && (
+          <div className="performance-mobile-day-summary" aria-label="Anmeldestatus des ausgewählten Tages">
+            <span className="performance-count coming">{activeSummary.counts.coming} Ja</span>
+            <span className="performance-count maybe">{activeSummary.counts.maybe} Vielleicht</span>
+            <span className="performance-count unavailable">{activeSummary.counts.unavailable} Nein</span>
+            <span className="performance-count open">{activeSummary.counts.open} Offen</span>
+          </div>
+        )}
+
+        <div className="performance-mobile-athlete-list">
+          {week.athletes.map((athlete) => {
+            const draft = drafts[draftKey(athlete.id, activeDate)] ?? emptyDraft();
+            return (
+              <button
+                type="button"
+                className={`performance-mobile-athlete ${athlete.id === selectedAthleteId ? "selected" : ""}`}
+                onClick={() => onOpenAthlete(athlete.id)}
+                aria-label={`${personName(athlete)} am ${formatTrainingDate(activeDate)}: ${statusLabel(draft.status)}. Anmeldung öffnen.`}
+                key={athlete.id}
+              >
+                <span>
+                  <strong>{personName(athlete)}</strong>
+                  {draft.comment && <small>{draft.comment}</small>}
+                </span>
+                <span className={`status-pill ${statusClass(draft.status)}`}>{statusLabel(draft.status)}</span>
+                <ChevronRight aria-hidden="true" />
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      <p className="performance-matrix-hint">Tag und Athlet antippen, um die Anmeldung dieser Person zu bearbeiten.</p>
     </div>
   );
 }

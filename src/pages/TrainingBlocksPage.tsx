@@ -274,8 +274,18 @@ export function TrainingBlocksPage() {
           <Search aria-hidden="true" />
           <input type="search" value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} placeholder="Block oder Übung suchen" aria-label="Trainingsblock suchen" />
         </label>
-        <button type="button" className={`secondary-button training-block-filter-toggle ${filtersOpen ? "active" : ""}`} onClick={() => setFiltersOpen((current) => !current)} aria-expanded={filtersOpen}>
-          <Filter aria-hidden="true" />Filter{activeFilterCount > 0 && <span>{activeFilterCount}</span>}<ChevronDown aria-hidden="true" />
+        <button
+          type="button"
+          className={`secondary-button training-block-filter-toggle ${filtersOpen ? "active" : ""}`}
+          onClick={() => setFiltersOpen((current) => !current)}
+          aria-expanded={filtersOpen}
+          aria-label={filtersOpen ? "Filtermenü schließen" : "Filtermenü öffnen"}
+          title={filtersOpen ? "Filtermenü schließen" : "Filtermenü öffnen"}
+        >
+          <Filter aria-hidden="true" />
+          <span className="filter-toggle-label">Filter</span>
+          {activeFilterCount > 0 && <span className="filter-toggle-count">{activeFilterCount}</span>}
+          <ChevronDown className="filter-toggle-chevron" aria-hidden="true" />
         </button>
       </div>
 

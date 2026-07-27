@@ -10,6 +10,10 @@ import {
 } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { env } from "@/lib/env";
+import {
+  clearSensitiveSessionData,
+  purgeExpiredTrainingDocumentationDrafts,
+} from "@/lib/client-session-data";
 import { supabase } from "@/lib/supabase";
 import type {
   AppContext,
@@ -221,6 +225,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
         );
       } catch (error) {
         if (isInvalidSessionError(error)) {
+          clearSensitiveSessionData();
           sessionRef.current = null;
           setSession(null);
           clearAppData();
@@ -240,6 +245,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }, [session]);
 
   useEffect(() => {
+    purgeExpiredTrainingDocumentationDrafts();
+
     if (!supabase) {
       setLoading(false);
       return;
@@ -271,6 +278,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
               setSession(data.session);
               setAccessError(null);
             } else {
+              clearSensitiveSessionData();
               sessionRef.current = null;
               setSession(null);
               clearAppData();
@@ -282,6 +290,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
             lastError = error;
             if (isInvalidSessionError(error)) {
               if (!mounted) return;
+              clearSensitiveSessionData();
               sessionRef.current = null;
               setSession(null);
               clearAppData();
@@ -316,6 +325,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
         return;
       }
 
+      clearSensitiveSessionData();
       sessionRef.current = null;
       setSession(null);
       clearAppData();
@@ -385,12 +395,17 @@ export function AuthProvider({ children }: PropsWithChildren) {
   );
 
   const signOut = useCallback(async () => {
-    if (!supabase) return;
+    if (!supabase) {
+      clearSensitiveSessionData();
+      return;
+    }
+
     const { error } = await supabase.auth.signOut();
-    if (error) throw error;
+    clearSensitiveSessionData();
     sessionRef.current = null;
     setSession(null);
     clearAppData();
+    if (error) throw error;
   }, [clearAppData]);
 
   const requestPasswordReset = useCallback(

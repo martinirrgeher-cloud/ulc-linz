@@ -88,16 +88,16 @@ export function TrainingDocumentationStatisticsView({ statistics }: Props) {
               {statistics.exercises.map((exercise) => (
                 <tr key={`${exercise.exerciseId ?? "snapshot"}:${exercise.exerciseName}`}>
                   <th>{exercise.exerciseName}</th>
-                  <td>{exercise.sessionCount}</td>
-                  <td>{exercise.completedCount}</td>
-                  <td>{exercise.changedCount}</td>
-                  <td>{exercise.skippedCount}</td>
-                  <td>{numberLabel(exercise.averageRating)}</td>
-                  <td>{numberLabel(exercise.averageRpe)}</td>
-                  <td>{exercise.painCount}</td>
+                  <td data-label="Einheiten">{exercise.sessionCount}</td>
+                  <td data-label="Wie geplant">{exercise.completedCount}</td>
+                  <td data-label="Geändert">{exercise.changedCount}</td>
+                  <td data-label="Ausgelassen">{exercise.skippedCount}</td>
+                  <td data-label="Ø Bewertung">{numberLabel(exercise.averageRating)}</td>
+                  <td data-label="Ø RPE">{numberLabel(exercise.averageRpe)}</td>
+                  <td data-label="Beschwerden">{exercise.painCount}</td>
                 </tr>
               ))}
-              {statistics.exercises.length === 0 && <tr><td colSpan={8}>Noch keine Übungsdaten vorhanden.</td></tr>}
+              {statistics.exercises.length === 0 && <tr className="training-doc-report-empty-row"><td colSpan={8}>Noch keine Übungsdaten vorhanden.</td></tr>}
             </tbody>
           </table>
         </div>
@@ -112,14 +112,14 @@ export function TrainingDocumentationStatisticsView({ statistics }: Props) {
               {statistics.parameters.map((parameter) => (
                 <tr key={`${parameter.exerciseId ?? "snapshot"}:${parameter.exerciseName}:${parameter.parameterKey}`}>
                   <th>{parameter.exerciseName}</th>
-                  <td>{parameter.label}{parameter.unit ? ` (${parameter.unit})` : ""}</td>
-                  <td>{parameter.sampleCount}</td>
-                  <td>{numberLabel(parameter.plannedAverage)}</td>
-                  <td>{numberLabel(parameter.actualAverage)}</td>
-                  <td>{parameter.achievementPercent === null ? "–" : `${numberLabel(parameter.achievementPercent)} %`}</td>
+                  <td data-label="Parameter">{parameter.label}{parameter.unit ? ` (${parameter.unit})` : ""}</td>
+                  <td data-label="Messungen">{parameter.sampleCount}</td>
+                  <td data-label="Ø Soll">{numberLabel(parameter.plannedAverage)}</td>
+                  <td data-label="Ø Ist">{numberLabel(parameter.actualAverage)}</td>
+                  <td data-label="Erreichung">{parameter.achievementPercent === null ? "–" : `${numberLabel(parameter.achievementPercent)} %`}</td>
                 </tr>
               ))}
-              {statistics.parameters.length === 0 && <tr><td colSpan={6}>Noch keine vergleichbaren Zahlenwerte vorhanden.</td></tr>}
+              {statistics.parameters.length === 0 && <tr className="training-doc-report-empty-row"><td colSpan={6}>Noch keine vergleichbaren Zahlenwerte vorhanden.</td></tr>}
             </tbody>
           </table>
         </div>

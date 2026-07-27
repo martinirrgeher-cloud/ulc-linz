@@ -1,0 +1,833 @@
+/*
+ * Paket B – kontrollierte Mobile-First-Grundlage.
+ *
+ * Diese Datei wird als letzte CSS-Datei geladen. Sie vereinheitlicht nur
+ * Bediengrößen, Abstände und mobile Alternativansichten. Die Fachlogik und
+ * Desktop-Darstellung der Module bleiben unverändert.
+ */
+
+:root {
+  --ui-control-height: 42px;
+  --ui-control-height-compact: 38px;
+  --ui-touch-target: 42px;
+  --ui-gap-compact: 8px;
+  --ui-radius-compact: 10px;
+}
+
+.status-card-compact {
+  width: min(100%, 390px);
+}
+
+.status-card-compact > p {
+  max-width: 33rem;
+  margin: 10px auto 18px;
+}
+
+.status-login-button {
+  width: 100%;
+}
+
+.mobile-day-selector,
+.training-doc-team-mobile,
+.performance-week-overview-mobile {
+  display: none;
+}
+
+@media screen and (max-width: 760px) {
+  body {
+    overflow-x: clip;
+  }
+
+  .app-content {
+    padding-top: 14px;
+    padding-right: max(10px, env(safe-area-inset-right));
+    padding-bottom: calc(22px + env(safe-area-inset-bottom));
+    padding-left: max(10px, env(safe-area-inset-left));
+  }
+
+  .page-heading,
+  .management-page-heading,
+  .exercise-catalog-heading,
+  .training-blocks-heading,
+  .training-planning-heading,
+  .training-overview-heading,
+  .training-documentation-heading,
+  .data-import-heading,
+  .dropdown-settings-heading {
+    gap: 9px;
+    margin-bottom: 12px;
+  }
+
+  .page-heading h1,
+  .management-page-heading h1,
+  .exercise-catalog-heading h1,
+  .training-blocks-heading h1,
+  .training-planning-heading h1,
+  .training-overview-heading h1,
+  .training-documentation-heading h1,
+  .data-import-heading h1,
+  .dropdown-settings-heading h1,
+  .status-card h1 {
+    font-size: clamp(1.35rem, 6vw, 1.62rem);
+    line-height: 1.12;
+  }
+
+  .page-heading p:not(.eyebrow),
+  .management-page-heading p:not(.eyebrow),
+  .exercise-catalog-heading p:not(.eyebrow),
+  .training-blocks-heading p:not(.eyebrow),
+  .training-planning-heading p:not(.eyebrow),
+  .training-overview-heading p:not(.eyebrow),
+  .training-documentation-heading p:not(.eyebrow),
+  .data-import-heading p:not(.eyebrow),
+  .dropdown-settings-heading p:not(.eyebrow) {
+    margin-top: 4px;
+    font-size: 0.82rem;
+    line-height: 1.35;
+  }
+
+  .page-heading .eyebrow,
+  .management-page-heading .eyebrow,
+  .exercise-catalog-heading .eyebrow,
+  .training-blocks-heading .eyebrow,
+  .training-planning-heading .eyebrow,
+  .training-overview-heading .eyebrow,
+  .training-documentation-heading .eyebrow,
+  .data-import-heading .eyebrow,
+  .dropdown-settings-heading .eyebrow {
+    margin-bottom: 4px !important;
+    font-size: 0.68rem;
+  }
+
+  .primary-button:not(.compact),
+  .secondary-button:not(.compact) {
+    min-height: var(--ui-control-height);
+    padding: 9px 12px;
+    border-radius: var(--ui-radius-compact);
+  }
+
+  .primary-button.compact,
+  .secondary-button.compact {
+    min-height: var(--ui-control-height-compact);
+    padding: 7px 9px;
+    font-size: 0.76rem;
+  }
+
+  .icon-button {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+  }
+
+  .form-stack input,
+  .form-grid input,
+  .form-grid select,
+  .search-field input,
+  .toolbar-select,
+  .full-width-field textarea,
+  .exercise-search input,
+  .training-block-search input,
+  .exercise-filter-grid select,
+  .training-block-filter-grid select,
+  .statistics-filter-grid input,
+  .statistics-filter-grid select,
+  .data-export-filters input,
+  .data-export-filters select {
+    min-height: 42px;
+    padding: 8px 10px;
+    font-size: 16px;
+    border-radius: 10px;
+  }
+
+  .button-row {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    margin-top: 16px;
+  }
+
+  .button-row .primary-button,
+  .button-row .secondary-button,
+  .button-row .link-button {
+    width: auto;
+  }
+
+  .status-card .button-row,
+  .auth-card .button-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .status-card .button-row .primary-button,
+  .status-card .button-row .secondary-button,
+  .auth-card .button-row .primary-button,
+  .auth-card .button-row .secondary-button {
+    width: 100%;
+  }
+
+  .management-page-heading .primary-button,
+  .management-toolbar .secondary-button {
+    width: auto;
+  }
+
+  .management-tabs,
+  .performance-mode-tabs,
+  .training-doc-tabs,
+  .data-import-mode-tabs,
+  .data-import-tabs {
+    gap: 4px;
+    padding: 4px;
+    border-radius: 11px;
+  }
+
+  .management-tabs button,
+  .performance-mode-tabs button,
+  .training-doc-tabs button,
+  .data-import-mode-tabs button,
+  .data-import-tabs button {
+    min-height: 40px;
+    padding: 7px 8px;
+    font-size: 0.78rem;
+    border-radius: 8px;
+  }
+
+  .exercise-catalog-toolbar,
+  .training-blocks-toolbar {
+    grid-template-columns: minmax(0, 1fr) 42px;
+    gap: 6px;
+    align-items: stretch;
+  }
+
+  .exercise-filter-toggle,
+  .training-block-filter-toggle {
+    width: 42px;
+    min-width: 42px;
+    min-height: 42px;
+    padding: 0;
+  }
+
+  .training-block-filter-toggle .filter-toggle-label,
+  .training-block-filter-toggle .filter-toggle-chevron {
+    display: none;
+  }
+
+  .filter-toggle-count,
+  .exercise-filter-toggle > span {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    min-width: 18px;
+    height: 18px;
+    display: grid;
+    place-items: center;
+    padding: 0 4px;
+    border: 2px solid #fff;
+    border-radius: 999px;
+    font-size: 0.65rem;
+  }
+
+  .exercise-filter-toggle,
+  .training-block-filter-toggle {
+    position: relative;
+  }
+
+  .exercise-filter-panel,
+  .training-block-filter-panel,
+  .statistics-filter-card {
+    gap: 8px;
+    padding: 9px;
+    border-radius: 12px;
+  }
+
+  .exercise-filter-grid,
+  .training-block-filter-grid,
+  .statistics-filter-grid {
+    gap: 7px;
+  }
+
+  .exercise-filter-panel-footer,
+  .training-block-filter-footer,
+  .statistics-filter-actions {
+    gap: 7px;
+  }
+
+  .status-filter {
+    gap: 4px;
+    padding-bottom: 0;
+  }
+
+  .status-filter button,
+  .favorite-filter,
+  .exercise-filter-reset,
+  .training-block-filter-footer .text-button {
+    min-height: 38px;
+    padding: 6px 9px;
+    font-size: 0.76rem;
+  }
+
+  .exercise-catalog-page small,
+  .training-blocks-page small,
+  .training-planning-page small,
+  .training-overview-page small,
+  .training-documentation-page small,
+  .performance-registration-page small {
+    font-size: 0.75rem;
+  }
+
+  .training-doc-save-strip,
+  .training-doc-completion-suggestion,
+  .training-doc-report-section > header small,
+  .training-doc-stat-cards span,
+  .training-doc-stat-cards small,
+  .training-doc-trend-label span,
+  .training-doc-trend-label small,
+  .training-doc-exercise-info-chips span,
+  .training-doc-exercise-info-summary,
+  .training-doc-exercise-info-parameters strong,
+  .training-doc-exercise-info-parameters small {
+    font-size: 0.72rem;
+  }
+
+  .training-doc-quick-status button,
+  .training-doc-segmented button {
+    min-height: 40px;
+    padding: 6px 5px;
+    font-size: 0.74rem;
+  }
+
+  .training-doc-item-info-button {
+    min-width: 42px;
+  }
+
+  .training-doc-editor-actions,
+  .sticky-editor-actions {
+    gap: 7px;
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
+  }
+
+  .training-overview-mobile-days button,
+  .mobile-day-selector button {
+    min-height: 50px;
+  }
+
+  .training-overview-mobile-days strong,
+  .mobile-day-selector strong {
+    font-size: 0.78rem;
+  }
+
+  .training-overview-mobile-days small,
+  .training-overview-mobile-days span,
+  .mobile-day-selector small,
+  .mobile-day-selector span {
+    font-size: 0.68rem;
+  }
+
+  .training-overview-mobile-athlete > header > strong,
+  .training-overview-mobile-plan strong,
+  .training-overview-mobile-documentation span {
+    font-size: 0.76rem;
+  }
+
+  .training-overview-mobile-athlete > header > span,
+  .training-overview-mobile-plan small {
+    font-size: 0.7rem;
+  }
+
+  .training-overview-mobile-athlete > div {
+    grid-template-columns: minmax(0, 1fr) 50px;
+  }
+
+  .training-overview-mobile-plan,
+  .training-overview-mobile-documentation {
+    min-height: 42px;
+  }
+
+  .performance-status-options button {
+    min-height: 40px;
+    font-size: 0.75rem;
+  }
+
+  .performance-count,
+  .performance-matrix-hint,
+  .performance-save-indicator,
+  .status-pill {
+    font-size: 0.72rem;
+  }
+
+  .training-doc-modal-backdrop,
+  .exercise-editor-backdrop,
+  .training-block-editor-backdrop,
+  .dropdown-setting-editor-backdrop,
+  .dialog-backdrop,
+  .contact-dialog-backdrop {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+@media (pointer: coarse) {
+  .primary-button,
+  .secondary-button,
+  .icon-button,
+  .status-filter button,
+  .management-tabs button,
+  .performance-mode-tabs button,
+  .training-doc-tabs button,
+  .mobile-day-selector button,
+  .training-doc-quick-status button,
+  .training-doc-segmented button {
+    min-height: var(--ui-touch-target);
+  }
+
+  .icon-button {
+    width: var(--ui-touch-target);
+    height: var(--ui-touch-target);
+  }
+}
+
+/* Gemeinsamer kompakter Tagesumschalter für mobile Wochenansichten. */
+@media screen and (max-width: 720px) {
+  .mobile-day-selector {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(64px, 1fr));
+    gap: 5px;
+    padding: 6px;
+    overflow-x: auto;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 11px;
+    scrollbar-width: none;
+  }
+
+  .mobile-day-selector::-webkit-scrollbar {
+    display: none;
+  }
+
+  .mobile-day-selector button {
+    min-width: 62px;
+    display: grid;
+    place-items: center;
+    align-content: center;
+    gap: 1px;
+    padding: 5px 4px;
+    color: var(--green-950);
+    background: #f6faf7;
+    border: 1px solid #dbe7df;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+
+  .mobile-day-selector button.active {
+    color: #fff;
+    background: var(--green-700);
+    border-color: var(--green-700);
+    box-shadow: 0 3px 9px rgba(20, 122, 70, 0.18);
+  }
+
+  .mobile-day-selector strong,
+  .mobile-day-selector small,
+  .mobile-day-selector span {
+    line-height: 1.12;
+  }
+
+  .mobile-day-selector span {
+    font-weight: 800;
+    opacity: 0.86;
+  }
+
+  /* Traineransicht der Trainingsdokumentation ohne breite Tabelle. */
+  .training-doc-team-desktop {
+    display: none;
+  }
+
+  .training-doc-team-mobile {
+    display: grid;
+    gap: 7px;
+    padding: 8px;
+  }
+
+  .training-doc-team-overview > header {
+    display: grid;
+    gap: 7px;
+  }
+
+  .training-doc-status-legend {
+    justify-content: flex-start;
+  }
+
+  .training-doc-status-legend span {
+    font-size: 0.7rem;
+  }
+
+  .training-doc-team-mobile-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+
+  .training-doc-team-mobile-summary span {
+    min-height: 30px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 8px;
+    color: var(--green-800);
+    background: var(--green-50);
+    border: 1px solid #d8eadf;
+    border-radius: 999px;
+    font-size: 0.72rem;
+  }
+
+  .training-doc-team-mobile-list {
+    display: grid;
+    gap: 6px;
+  }
+
+  .training-doc-team-mobile-athlete {
+    overflow: hidden;
+    background: #fff;
+    border: 1px solid #dbe7df;
+    border-radius: 10px;
+  }
+
+  .training-doc-team-mobile-athlete > header {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 7px;
+    padding: 6px 8px 4px;
+  }
+
+  .training-doc-team-mobile-athlete > header strong {
+    min-width: 0;
+    overflow: hidden;
+    color: var(--green-950);
+    font-size: 0.8rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .training-doc-team-mobile-athlete > header span {
+    flex: 0 0 auto;
+    padding: 3px 6px;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 850;
+  }
+
+  .training-doc-team-mobile-athlete > header .session-completed {
+    color: #126b3b;
+    background: #e4f5ea;
+    border-color: #b9dfc7;
+  }
+
+  .training-doc-team-mobile-athlete > header .session-in_progress {
+    color: #185f8c;
+    background: #e7f3fb;
+    border-color: #b9d9eb;
+  }
+
+  .training-doc-team-mobile-athlete > header .session-partial {
+    color: #785700;
+    background: #fff4cc;
+    border-color: #eedb91;
+  }
+
+  .training-doc-team-mobile-athlete > header .session-aborted {
+    color: #9b2c2c;
+    background: #fde8e8;
+    border-color: #efbcbc;
+  }
+
+  .training-doc-team-mobile-athlete > header .session-not_started,
+  .training-doc-team-mobile-athlete > header .session-no-plan {
+    color: #52665a;
+    background: #eef3f0;
+    border-color: #d5ded8;
+  }
+
+  .training-doc-team-mobile-plan {
+    width: calc(100% - 10px);
+    min-height: 42px;
+    display: grid;
+    grid-template-columns: 18px minmax(0, 1fr) 16px;
+    align-items: center;
+    gap: 6px;
+    margin: 0 5px 5px;
+    padding: 6px 7px;
+    color: var(--green-800);
+    background: var(--green-50);
+    border: 1px solid #c5decf;
+    border-radius: 8px;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .training-doc-team-mobile-plan > svg {
+    width: 17px;
+  }
+
+  .training-doc-team-mobile-plan > span {
+    min-width: 0;
+    display: grid;
+  }
+
+  .training-doc-team-mobile-plan strong,
+  .training-doc-team-mobile-plan small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .training-doc-team-mobile-plan strong {
+    font-size: 0.76rem;
+  }
+
+  .training-doc-team-mobile-plan small {
+    color: var(--muted);
+    font-size: 0.7rem;
+  }
+
+  .training-doc-team-mobile-no-plan {
+    margin: 0 5px 5px;
+    padding: 8px;
+    color: var(--muted);
+    background: #f8faf9;
+    border: 1px dashed #d5dfd8;
+    border-radius: 8px;
+    font-size: 0.74rem;
+  }
+
+  /* Leistungsanmeldung: Tageskarten statt horizontaler Wochenmatrix. */
+  .performance-week-overview-desktop {
+    display: none;
+  }
+
+  .performance-week-overview-mobile {
+    display: grid;
+    gap: 7px;
+  }
+
+  .performance-mobile-day-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+
+  .performance-mobile-athlete-list {
+    display: grid;
+    gap: 5px;
+  }
+
+  .performance-mobile-athlete {
+    width: 100%;
+    min-height: 44px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto 17px;
+    align-items: center;
+    gap: 7px;
+    padding: 7px 8px;
+    color: var(--green-950);
+    background: #fff;
+    border: 1px solid #dbe7df;
+    border-radius: 9px;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .performance-mobile-athlete.selected {
+    border-color: var(--green-700);
+    box-shadow: 0 0 0 2px rgba(20, 122, 70, 0.1);
+  }
+
+  .performance-mobile-athlete > span:first-child {
+    min-width: 0;
+    display: grid;
+  }
+
+  .performance-mobile-athlete strong,
+  .performance-mobile-athlete small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .performance-mobile-athlete strong {
+    font-size: 0.8rem;
+  }
+
+  .performance-mobile-athlete small {
+    color: var(--muted);
+    font-size: 0.72rem;
+  }
+
+  .performance-mobile-athlete > svg {
+    width: 16px;
+    color: var(--green-600);
+  }
+
+  /* Dokumentationsberichte werden mobil als Karten dargestellt. */
+  .training-doc-report-table-scroll {
+    overflow: visible;
+  }
+
+  .training-doc-report-table {
+    min-width: 0;
+    display: block;
+  }
+
+  .training-doc-report-table thead {
+    display: none;
+  }
+
+  .training-doc-report-table tbody {
+    display: grid;
+    gap: 7px;
+    padding: 7px;
+  }
+
+  .training-doc-report-table tr {
+    display: grid;
+    padding: 7px 8px;
+    background: #fff;
+    border: 1px solid #dce8e0;
+    border-radius: 9px;
+  }
+
+  .training-doc-report-table tbody th {
+    display: block;
+    padding: 0 0 5px;
+    color: var(--green-950);
+    border-bottom: 1px solid #e5ece7;
+    font-size: 0.82rem;
+    text-align: left;
+  }
+
+  .training-doc-report-table td {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 5px 0 0;
+    border: 0;
+    font-size: 0.75rem;
+    text-align: right;
+  }
+
+  .training-doc-report-table td::before {
+    content: attr(data-label);
+    color: var(--muted);
+    font-weight: 700;
+    text-align: left;
+  }
+
+  .training-doc-report-table .training-doc-report-empty-row {
+    display: block;
+  }
+
+  .training-doc-report-table .training-doc-report-empty-row td {
+    display: block;
+    padding: 8px;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  .training-doc-report-table .training-doc-report-empty-row td::before {
+    content: none;
+  }
+}
+
+@media screen and (max-width: 390px) {
+  .primary-button:not(.compact),
+  .secondary-button:not(.compact) {
+    padding-inline: 10px;
+    font-size: 0.84rem;
+  }
+
+  .management-tabs button,
+  .performance-mode-tabs button,
+  .training-doc-tabs button,
+  .data-import-mode-tabs button,
+  .data-import-tabs button {
+    padding-inline: 5px;
+    font-size: 0.72rem;
+  }
+
+  .mobile-day-selector {
+    grid-template-columns: repeat(auto-fit, minmax(58px, 1fr));
+  }
+
+  .mobile-day-selector button {
+    min-width: 56px;
+  }
+}
+
+/* Kompakte sichtbare Icons, aber ausreichend große Tippflächen. */
+@media screen and (max-width: 760px) {
+  .exercise-favorite-button,
+  .exercise-edit-button,
+  .exercise-action-link,
+  .training-block-card-actions button,
+  .training-block-item-actions button,
+  .training-block-item-info-button,
+  .training-plan-section-actions button,
+  .training-plan-item-actions button,
+  .training-doc-item-info-button {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    min-height: 40px;
+    border-radius: 9px;
+  }
+
+  .exercise-card-actions,
+  .training-block-card-actions,
+  .training-block-item-actions,
+  .training-plan-section-actions,
+  .training-plan-item-actions {
+    gap: 5px;
+  }
+
+  .exercise-favorite-button svg,
+  .exercise-edit-button svg,
+  .exercise-action-link > svg:first-child,
+  .training-block-card-actions svg,
+  .training-block-item-actions svg,
+  .training-plan-section-actions svg,
+  .training-plan-item-actions svg {
+    width: 17px;
+    height: 17px;
+  }
+}
+
+@media screen and (max-width: 390px) {
+  .exercise-favorite-button,
+  .exercise-edit-button,
+  .exercise-action-link,
+  .training-block-card-actions button,
+  .training-block-item-actions button,
+  .training-block-item-info-button,
+  .training-plan-section-actions button,
+  .training-plan-item-actions button,
+  .training-doc-item-info-button {
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+    min-height: 38px;
+  }
+}
+
+@media screen and (pointer: coarse) and (max-width: 760px) {
+  .exercise-favorite-button,
+  .exercise-edit-button,
+  .exercise-action-link,
+  .training-block-card-actions button,
+  .training-block-item-actions button,
+  .training-block-item-info-button,
+  .training-plan-section-actions button,
+  .training-plan-item-actions button,
+  .training-doc-item-info-button {
+    min-width: 42px;
+    min-height: 42px;
+  }
+}

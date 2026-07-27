@@ -14,6 +14,10 @@ import {
 } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { useNavigationGuard } from "@/components/layout/NavigationGuardContext";
+import {
+  TRAINING_DOCUMENTATION_DRAFT_MAX_AGE_MS,
+  trainingDocumentationDraftKey,
+} from "@/lib/client-session-data";
 import { useAuth } from "@/features/auth/AuthContext";
 import {
   loadTrainingDocumentationDetail,
@@ -93,31 +97,54 @@ function formatDate(value: string): string {
     .format(new Date(`${value}T12:00:00`));
 }
 
-function localDraftKey(organizationId: string, sessionId: string): string {
-  return `ulc-training-documentation:${organizationId}:${sessionId}`;
-}
 
-type StoredDraft = { savedAt: string; value: TrainingDocumentationInput };
+type StoredDraft = { savedAt: string; expiresAt: string; value: TrainingDocumentationInput };
 
 function readLocalDraft(organizationId: string, sessionId: string): StoredDraft | null {
   try {
-    const raw = window.localStorage.getItem(localDraftKey(organizationId, sessionId));
+    const raw = window.localStorage.getItem(trainingDocumentationDraftKey(organizationId, sessionId));
     if (!raw) return null;
     const draft = JSON.parse(raw) as Partial<StoredDraft>;
-    if (!draft.value || typeof draft.savedAt !== "string" || draft.value.sessionId !== sessionId) return null;
-    return draft as StoredDraft;
+    if (!draft.value || typeof draft.savedAt !== "string" || draft.value.sessionId !== sessionId) {
+      window.localStorage.removeItem(trainingDocumentationDraftKey(organizationId, sessionId));
+      return null;
+    }
+
+    const savedAt = Date.parse(draft.savedAt);
+    const expiresAt = typeof draft.expiresAt === "string"
+      ? Date.parse(draft.expiresAt)
+      : savedAt + TRAINING_DOCUMENTATION_DRAFT_MAX_AGE_MS;
+    if (!Number.isFinite(savedAt) || !Number.isFinite(expiresAt) || expiresAt <= Date.now()) {
+      window.localStorage.removeItem(trainingDocumentationDraftKey(organizationId, sessionId));
+      return null;
+    }
+
+    return {
+      savedAt: draft.savedAt,
+      expiresAt: new Date(expiresAt).toISOString(),
+      value: draft.value,
+    };
   } catch {
+    window.localStorage.removeItem(trainingDocumentationDraftKey(organizationId, sessionId));
     return null;
   }
 }
 
 function writeLocalDraft(organizationId: string, value: TrainingDocumentationInput): void {
-  const draft: StoredDraft = { savedAt: new Date().toISOString(), value };
-  window.localStorage.setItem(localDraftKey(organizationId, value.sessionId), JSON.stringify(draft));
+  const savedAt = new Date();
+  const draft: StoredDraft = {
+    savedAt: savedAt.toISOString(),
+    expiresAt: new Date(savedAt.getTime() + TRAINING_DOCUMENTATION_DRAFT_MAX_AGE_MS).toISOString(),
+    value,
+  };
+  window.localStorage.setItem(
+    trainingDocumentationDraftKey(organizationId, value.sessionId),
+    JSON.stringify(draft),
+  );
 }
 
 function clearLocalDraft(organizationId: string, sessionId: string): void {
-  window.localStorage.removeItem(localDraftKey(organizationId, sessionId));
+  window.localStorage.removeItem(trainingDocumentationDraftKey(organizationId, sessionId));
 }
 
 function statusLabel(plan: DocumentationPlanSummary): string {
