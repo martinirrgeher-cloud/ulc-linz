@@ -12,6 +12,7 @@ import "@/styles/training-planning.css";
 import "@/styles/training-overview.css";
 import "@/styles/training-documentation.css";
 import "@/styles/dropdown-settings.css";
+import "@/styles/data-import.css";
 
 const rootElement = document.getElementById("root");
 if (!rootElement) throw new Error("Root-Element wurde nicht gefunden.");

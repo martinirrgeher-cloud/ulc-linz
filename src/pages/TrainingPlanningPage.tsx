@@ -1,17 +1,27 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { CalendarDays, Clock3, Copy, Dumbbell, ListChecks, Users } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
+import {
+  CalendarDays,
+  ChevronDown,
+  ChevronUp,
+  Clock3,
+  Copy,
+  Dumbbell,
+  ListChecks,
+  Users,
+} from "lucide-react";
 import { useNavigationGuard } from "@/components/layout/NavigationGuardContext";
 import { useAuth } from "@/features/auth/AuthContext";
 import {
-  copyTrainingPlan,
   loadTrainingPlan,
   loadTrainingPlanningOverview,
   saveTrainingPlan,
 } from "@/features/training-planning/api";
-import { TrainingPlanCopyDialog } from "@/features/training-planning/TrainingPlanCopyDialog";
+import { TrainingPlanImportDialog } from "@/features/training-planning/TrainingPlanImportDialog";
 import { TrainingPlanEditor } from "@/features/training-planning/TrainingPlanEditor";
 import {
   createEmptyTrainingPlanInput,
+  trainingPlanToImportedInput,
   trainingPlanToInput,
   type TrainingPlan,
   type TrainingPlanInput,
@@ -23,6 +33,17 @@ function localDateKey(date = new Date()): string {
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
+}
+
+function isDateKey(value: string | null): value is string {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+
+  const year = Number(value.slice(0, 4));
+  const month = Number(value.slice(5, 7));
+  const day = Number(value.slice(8, 10));
+  const parsed = new Date(year, month - 1, day);
+
+  return parsed.getFullYear() === year && parsed.getMonth() === month - 1 && parsed.getDate() === day;
 }
 
 function dateLabel(value: string): string {
@@ -49,23 +70,36 @@ const EMPTY_DATA: TrainingPlanningData = {
 };
 
 export function TrainingPlanningPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const { appContext, canEditModule } = useAuth();
   const organizationId = appContext?.organization?.id ?? null;
   const canEdit = canEditModule("training_planning");
 
-  const [trainingDate, setTrainingDate] = useState(localDateKey);
-  const [groupId, setGroupId] = useState("");
-  const [athleteId, setAthleteId] = useState("");
+  const [trainingDate, setTrainingDate] = useState(() => {
+    const requestedDate = searchParams.get("date");
+    return isDateKey(requestedDate) ? requestedDate : localDateKey();
+  });
+  const [groupId, setGroupId] = useState(() => searchParams.get("group") ?? "");
+  const [athleteId, setAthleteId] = useState(() => searchParams.get("athlete") ?? "");
   const [data, setData] = useState<TrainingPlanningData>(EMPTY_DATA);
   const [plan, setPlan] = useState<TrainingPlan | null>(null);
-  const [values, setValues] = useState<TrainingPlanInput>(() => createEmptyTrainingPlanInput(localDateKey()));
+  const [values, setValues] = useState<TrainingPlanInput>(() => createEmptyTrainingPlanInput(trainingDate));
   const [loading, setLoading] = useState(true);
   const [planLoading, setPlanLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [dirty, setDirty] = useState(false);
-  const [copyOpen, setCopyOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+  const [overviewOpen, setOverviewOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  function updatePlanningUrl(nextDate: string, nextGroupId: string, nextAthleteId: string) {
+    const next = new URLSearchParams();
+    next.set("date", nextDate);
+    if (nextGroupId) next.set("group", nextGroupId);
+    if (nextAthleteId) next.set("athlete", nextAthleteId);
+    setSearchParams(next, { replace: true });
+  }
 
   const selectedGroup = data.groups.find((group) => group.id === groupId) ?? null;
   const selectedAthlete = data.athletes.find((athlete) => athlete.id === athleteId) ?? null;
@@ -113,7 +147,23 @@ export function TrainingPlanningPage() {
         setData(next);
         if (!groupId && next.groups.length > 0) {
           const preferred = next.groups.find((group) => group.isPerformanceGroup) ?? next.groups[0];
-          if (preferred) setGroupId(preferred.id);
+          if (preferred) {
+            setGroupId(preferred.id);
+            updatePlanningUrl(trainingDate, preferred.id, "");
+          }
+          return;
+        }
+
+        if (athleteId) {
+          if (next.athletes.some((athlete) => athlete.id === athleteId)) {
+            void openAthletePlan(athleteId, next);
+          } else {
+            setAthleteId("");
+            setPlan(null);
+            setValues(createEmptyTrainingPlanInput(trainingDate));
+            setDirty(false);
+            updatePlanningUrl(trainingDate, groupId, "");
+          }
         }
       })
       .catch((loadError) => {
@@ -159,6 +209,7 @@ export function TrainingPlanningPage() {
   async function handleAthleteChange(nextAthleteId: string) {
     if (nextAthleteId === athleteId) return;
     if (!guardUnsaved()) return;
+    updatePlanningUrl(trainingDate, groupId, nextAthleteId);
     await openAthletePlan(nextAthleteId);
   }
 
@@ -166,20 +217,24 @@ export function TrainingPlanningPage() {
     if (nextDate === trainingDate || !guardUnsaved()) return;
     setTrainingDate(nextDate);
     setAthleteId("");
+    updatePlanningUrl(nextDate, groupId, "");
     setPlan(null);
     setValues(createEmptyTrainingPlanInput(nextDate));
     setDirty(false);
     setSuccess(null);
+    setOverviewOpen(false);
   }
 
   async function handleGroupChange(nextGroupId: string) {
     if (nextGroupId === groupId || !guardUnsaved()) return;
     setGroupId(nextGroupId);
     setAthleteId("");
+    updatePlanningUrl(trainingDate, nextGroupId, "");
     setPlan(null);
     setValues(createEmptyTrainingPlanInput(trainingDate));
     setDirty(false);
     setSuccess(null);
+    setOverviewOpen(false);
   }
 
   function handleValuesChange(next: TrainingPlanInput) {
@@ -218,32 +273,12 @@ export function TrainingPlanningPage() {
     }
   }
 
-  async function handleCopy(targetAthleteIds: string[], overwriteExisting: boolean) {
-    if (!organizationId || !plan) return;
-    setBusy(true);
+  function handleImport(sourcePlan: TrainingPlan) {
+    setValues(trainingPlanToImportedInput(sourcePlan));
+    setDirty(true);
+    setImportOpen(false);
     setError(null);
-    setSuccess(null);
-    try {
-      const result = await copyTrainingPlan(
-        organizationId,
-        plan.id,
-        targetAthleteIds,
-        overwriteExisting,
-      );
-      const overview = await refreshOverview(trainingDate, groupId);
-      if (overview) setData(overview);
-      setCopyOpen(false);
-
-      const copiedCount = result.copied.length;
-      const skippedCount = result.skipped.length;
-      setSuccess(
-        `${copiedCount} Plan${copiedCount === 1 ? "" : "e"} kopiert${skippedCount > 0 ? `, ${skippedCount} übersprungen` : ""}.`,
-      );
-    } catch (copyError) {
-      setError(errorMessage(copyError));
-    } finally {
-      setBusy(false);
-    }
+    setSuccess(`Plan von ${sourcePlan.athleteName} am ${dateLabel(sourcePlan.trainingDate)} importiert. Bitte speichern.`);
   }
 
   return (
@@ -252,7 +287,7 @@ export function TrainingPlanningPage() {
         <div>
           <p className="eyebrow">Trainingsplanung</p>
           <h1>Athletenpläne</h1>
-          <p>Plan bei einem Referenzathleten erstellen und anschließend auf Trainingskollegen kopieren.</p>
+          <p>Plan direkt beim Athleten erstellen oder von einem vorhandenen Trainingstag importieren.</p>
         </div>
       </div>
 
@@ -303,15 +338,21 @@ export function TrainingPlanningPage() {
 
       {!loading && groupId && (
         <section className="training-planning-day-overview">
-          <header>
-            <div>
-              <h2>Pläne am {dateLabel(trainingDate)}</h2>
+          <button
+            type="button"
+            className="training-planning-day-toggle"
+            onClick={() => setOverviewOpen((current) => !current)}
+            aria-expanded={overviewOpen}
+          >
+            <span>
+              <strong>Pläne am {dateLabel(trainingDate)}</strong>
               <small>{selectedGroup?.shortName || selectedGroup?.name}</small>
-            </div>
-            <span>{data.plans.length} von {data.athletes.length} Athleten geplant</span>
-          </header>
+            </span>
+            <span>{data.plans.length} / {data.athletes.length} geplant</span>
+            {overviewOpen ? <ChevronUp aria-hidden="true" /> : <ChevronDown aria-hidden="true" />}
+          </button>
 
-          {data.plans.length > 0 ? (
+          {overviewOpen && (data.plans.length > 0 ? (
             <div className="training-plan-summary-list">
               {data.plans.map((summary) => (
                 <button
@@ -334,7 +375,7 @@ export function TrainingPlanningPage() {
             </div>
           ) : (
             <p className="training-planning-no-plans">Für diesen Tag wurden noch keine Athletenpläne gespeichert.</p>
-          )}
+          ))}
         </section>
       )}
 
@@ -345,7 +386,7 @@ export function TrainingPlanningPage() {
       ) : data.athletes.length === 0 ? (
         <div className="empty-state"><Users aria-hidden="true" /><h2>Keine Athleten in dieser Gruppe</h2><p>Ordne der Trainingsgruppe zuerst aktive Athleten zu.</p></div>
       ) : !athleteId ? (
-        <div className="empty-state"><Dumbbell aria-hidden="true" /><h2>Referenzathleten auswählen</h2><p>Erstelle den Plan bei einem Athleten und kopiere ihn anschließend auf die passenden Trainingskollegen.</p></div>
+        <div className="empty-state"><Dumbbell aria-hidden="true" /><h2>Referenzathleten auswählen</h2><p>Erstelle einen neuen Plan oder importiere einen vorhandenen Athletenplan.</p></div>
       ) : planLoading ? (
         <div className="management-loading"><div className="spinner" aria-hidden="true" />Trainingsplan wird geladen …</div>
       ) : selectedAthlete ? (
@@ -363,19 +404,19 @@ export function TrainingPlanningPage() {
           dirty={dirty}
           onChange={handleValuesChange}
           onSave={handleSave}
-          onCopy={() => setCopyOpen(true)}
+          onImport={() => setImportOpen(true)}
         />
       ) : null}
 
-      {copyOpen && plan && selectedAthlete && (
-        <TrainingPlanCopyDialog
-          sourceAthleteId={selectedAthlete.id}
-          sourceAthleteName={`${selectedAthlete.firstName} ${selectedAthlete.lastName}`}
-          athletes={data.athletes}
-          plans={data.plans}
+      {importOpen && organizationId && selectedAthlete && (
+        <TrainingPlanImportDialog
+          organizationId={organizationId}
+          groupId={groupId}
+          targetAthleteId={selectedAthlete.id}
+          targetDate={trainingDate}
           busy={busy}
-          onCancel={() => setCopyOpen(false)}
-          onConfirm={handleCopy}
+          onCancel={() => setImportOpen(false)}
+          onConfirm={handleImport}
         />
       )}
     </section>

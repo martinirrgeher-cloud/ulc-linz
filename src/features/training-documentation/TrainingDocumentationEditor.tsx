@@ -126,6 +126,28 @@ function elapsedMinutes(startedAt: string): string {
   return String(Math.min(1440, Math.max(1, minutes)));
 }
 
+function suggestedCompletionStatus(value: TrainingDocumentationInput): "completed" | "partial" {
+  const items = value.sections.flatMap((section) => section.items);
+  if (items.length === 0) return "partial";
+  return items.every((item) => item.status === "as_planned" || item.status === "changed")
+    ? "completed"
+    : "partial";
+}
+
+function hasExerciseInformation(item: DocumentationItemInput): boolean {
+  return Boolean(
+    item.exerciseGoal
+    || item.exerciseDescription
+    || item.exerciseCoachingCues
+    || item.exerciseCommonMistakes
+    || item.plannedNote
+    || (item.exerciseEquipment?.length ?? 0) > 0
+    || item.parameterDefinitions.length > 0
+    || item.exerciseVideoSignedUrl
+    || item.exerciseVideoUrl,
+  );
+}
+
 type CompletionDialogProps = {
   value: TrainingDocumentationInput;
   onClose: () => void;
@@ -133,9 +155,10 @@ type CompletionDialogProps = {
 };
 
 function CompletionDialog({ value, onClose, onComplete }: CompletionDialogProps) {
+  const suggestedStatus = suggestedCompletionStatus(value);
   const [next, setNext] = useState<TrainingDocumentationInput>(() => ({
     ...value,
-    status: value.status === "in_progress" ? "completed" : value.status,
+    status: value.status === "in_progress" ? suggestedStatus : value.status,
     actualMinutes: value.actualMinutes || elapsedMinutes(value.startedAt),
   }));
   const [busy, setBusy] = useState(false);
@@ -176,6 +199,9 @@ function CompletionDialog({ value, onClose, onComplete }: CompletionDialogProps)
               <option value="partial">Teilweise absolviert</option>
               <option value="aborted">Training abgebrochen</option>
             </select>
+            <small className="training-doc-completion-suggestion">
+              Vorschlag aus den Übungsrückmeldungen: {suggestedStatus === "completed" ? "vollständig abgeschlossen" : "teilweise absolviert"}.
+            </small>
           </label>
           <label>
             Tatsächliche Dauer (Minuten)
@@ -259,6 +285,86 @@ function CompletionDialog({ value, onClose, onComplete }: CompletionDialogProps)
   );
 }
 
+type ExerciseInfoDialogProps = {
+  item: DocumentationItemInput;
+  onClose: () => void;
+};
+
+function ExerciseInfoDialog({ item, onClose }: ExerciseInfoDialogProps) {
+  const plannedText = parameterText(item, false);
+  const hasInfo = hasExerciseInformation(item);
+
+  return (
+    <div className="training-doc-modal-backdrop" role="presentation">
+      <section
+        className="training-doc-modal training-doc-exercise-info-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="training-doc-exercise-info-title"
+      >
+        <header>
+          <div>
+            <p className="eyebrow">Übungsinformation</p>
+            <h2 id="training-doc-exercise-info-title">{item.exerciseName}</h2>
+            <small>{item.categoryTitle || "Ohne Kategorie"}</small>
+          </div>
+          <button type="button" className="icon-button" onClick={onClose} aria-label="Übungsinformationen schließen">
+            <X aria-hidden="true" />
+          </button>
+        </header>
+
+        <div className="training-doc-modal-content training-doc-exercise-info-content">
+          {((item.exerciseEquipment?.length ?? 0) > 0 || item.categoryTitle) && (
+            <div className="training-doc-exercise-info-chips">
+              {item.categoryTitle && <span>{item.categoryTitle}</span>}
+              {(item.exerciseEquipment ?? []).map((equipment) => <span key={equipment}>{equipment}</span>)}
+            </div>
+          )}
+
+          {item.exerciseGoal && <section><h3>Trainingsziel</h3><p>{item.exerciseGoal}</p></section>}
+          {item.exerciseDescription && <section><h3>Beschreibung</h3><p>{item.exerciseDescription}</p></section>}
+          {item.exerciseCoachingCues && <section><h3>Hinweise zur Ausführung</h3><p>{item.exerciseCoachingCues}</p></section>}
+          {item.exerciseCommonMistakes && <section><h3>Häufige Fehler</h3><p>{item.exerciseCommonMistakes}</p></section>}
+          {item.plannedNote && <section><h3>Hinweis im Trainingsplan</h3><p>{item.plannedNote}</p></section>}
+
+          {item.parameterDefinitions.length > 0 && (
+            <section>
+              <h3>Vorgaben</h3>
+              <div className="training-doc-exercise-info-parameters">
+                {item.parameterDefinitions.map((parameter) => (
+                  <span key={parameter.key}>
+                    <strong>{parameter.label}</strong>
+                    <small>
+                      {item.plannedValues[parameter.key] || parameter.defaultValue || "–"}
+                      {parameter.unit ? ` ${parameter.unit}` : ""}
+                    </small>
+                  </span>
+                ))}
+              </div>
+              {plannedText && <p className="training-doc-exercise-info-summary">Soll: {plannedText}</p>}
+            </section>
+          )}
+
+          {(item.exerciseVideoSignedUrl || item.exerciseVideoUrl) && (
+            <section>
+              <h3>Übungsvideo</h3>
+              {item.exerciseVideoSignedUrl ? (
+                <video controls playsInline preload="metadata" src={item.exerciseVideoSignedUrl} />
+              ) : (
+                <a href={item.exerciseVideoUrl || "#"} target="_blank" rel="noreferrer">
+                  <Film aria-hidden="true" />Externes Übungsvideo öffnen
+                </a>
+              )}
+            </section>
+          )}
+
+          {!hasInfo && <p className="training-doc-exercise-info-empty">Für diese Übung sind noch keine weiteren Informationen hinterlegt.</p>}
+        </div>
+      </section>
+    </div>
+  );
+}
+
 type Props = {
   organizationId: string;
   value: TrainingDocumentationInput;
@@ -281,6 +387,7 @@ export function TrainingDocumentationEditor({
   const [expandedSections, setExpandedSections] = useState<Set<string>>(() => new Set());
   const [expandedItems, setExpandedItems] = useState<Set<string>>(() => new Set());
   const [completionOpen, setCompletionOpen] = useState(false);
+  const [infoItem, setInfoItem] = useState<DocumentationItemInput | null>(null);
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputs = useRef<Record<string, HTMLInputElement | null>>({});
@@ -422,7 +529,7 @@ export function TrainingDocumentationEditor({
                     const plannedText = parameterText(item, false);
                     return (
                       <article className={`training-doc-item status-${item.status}`} key={item.id}>
-                        <header>
+                        <header className="training-doc-item-heading">
                           <button
                             type="button"
                             className="training-doc-item-toggle"
@@ -435,6 +542,16 @@ export function TrainingDocumentationEditor({
                               <small>{statusOption?.label ?? "Noch offen"}{actualText ? ` · ${actualText}` : plannedText ? ` · Soll ${plannedText}` : ""}</small>
                             </span>
                             {itemExpanded ? <ChevronDown aria-hidden="true" /> : <ChevronRight aria-hidden="true" />}
+                          </button>
+                          <button
+                            type="button"
+                            className={`training-doc-item-info-button${(item.exerciseVideoSignedUrl || item.exerciseVideoUrl) ? " has-video" : ""}`}
+                            onClick={() => setInfoItem(item)}
+                            title="Übungsbeschreibung und Video anzeigen"
+                            aria-label={`Informationen zu ${item.exerciseName} anzeigen`}
+                          >
+                            <Info aria-hidden="true" />
+                            {(item.exerciseVideoSignedUrl || item.exerciseVideoUrl) && <Film aria-hidden="true" />}
                           </button>
                         </header>
 
@@ -810,6 +927,8 @@ export function TrainingDocumentationEditor({
           </button>
         )}
       </footer>
+
+      {infoItem && <ExerciseInfoDialog item={infoItem} onClose={() => setInfoItem(null)} />}
 
       {completionOpen && (
         <CompletionDialog

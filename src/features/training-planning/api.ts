@@ -2,7 +2,6 @@ import type { Json } from "@/types/database.generated";
 import { requireSupabase } from "@/lib/supabase";
 import type { ExerciseParameterDefinition, ExerciseParameterInputType } from "@/features/exercise-catalog/types";
 import type {
-  CopyTrainingPlanResult,
   PlanningAthlete,
   PlanningBlock,
   PlanningBlockItem,
@@ -369,47 +368,4 @@ export async function saveTrainingPlan(
     throw new Error("Der Trainingsplan wurde gespeichert, aber die Rückgabe ist ungültig.");
   }
   return data;
-}
-
-export async function copyTrainingPlan(
-  organizationId: string,
-  sourcePlanId: string,
-  targetAthleteIds: string[],
-  overwriteExisting: boolean,
-): Promise<CopyTrainingPlanResult> {
-  const data = await callJsonRpc("copy_athlete_training_plan", {
-    p_organization_id: organizationId,
-    p_source_plan_id: sourcePlanId,
-    p_target_athlete_ids: targetAthleteIds,
-    p_overwrite_existing: overwriteExisting,
-  });
-  if (!isRecord(data)) throw new Error("Das Kopierergebnis ist ungültig.");
-
-  const copied = Array.isArray(data.copied)
-    ? data.copied.flatMap((item) => {
-      if (
-        !isRecord(item)
-        || typeof item.athlete_id !== "string"
-        || typeof item.plan_id !== "string"
-      ) return [];
-      return [{
-        athleteId: item.athlete_id,
-        planId: item.plan_id,
-        overwritten: item.overwritten === true,
-      }];
-    })
-    : [];
-
-  const skipped = Array.isArray(data.skipped)
-    ? data.skipped.flatMap((item) => {
-      if (!isRecord(item) || typeof item.athlete_id !== "string") return [];
-      return [{
-        athleteId: item.athlete_id,
-        planId: optionalString(item.plan_id),
-        reason: typeof item.reason === "string" ? item.reason : "unknown",
-      }];
-    })
-    : [];
-
-  return { copied, skipped };
 }

@@ -2618,3 +2618,25 @@ input:focus-visible {
 .brand-user-line { display: flex; align-items: center; gap: 4px; min-width: 0; margin-top: 3px; }
 .brand-user-line span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .brand-user-line svg { flex: 0 0 auto; }
+
+
+/* Hinzufügen-Aktionen in den Stammdaten eindeutig kennzeichnen */
+.masterdata-create-actions > button > span svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+  flex: 0 0 auto;
+  padding: 2px;
+  color: #fff;
+  background: var(--green-700);
+  border-radius: 50%;
+  stroke-width: 3;
+}
+@media (max-width: 520px) {
+  .masterdata-create-actions > button > span svg {
+    display: block;
+    width: 16px;
+    height: 16px;
+    padding: 2px;
+  }
+}

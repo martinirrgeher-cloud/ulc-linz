@@ -1,0 +1,431 @@
+.data-import-page {
+  display: grid;
+  gap: 1rem;
+}
+
+.data-import-heading,
+.data-import-start-card,
+.data-import-result,
+.data-import-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.data-import-heading h1,
+.data-import-start-card h2,
+.data-import-result h2 {
+  margin: 0;
+}
+
+.data-import-heading p,
+.data-import-start-card p,
+.data-import-result p {
+  margin: 0.25rem 0 0;
+}
+
+.data-import-tabs {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+}
+
+.data-import-tabs button {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: #153326;
+  border-radius: 0.75rem;
+  min-height: 2.6rem;
+  padding: 0.55rem 0.9rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font: inherit;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.data-import-tabs button.active {
+  border-color: var(--green-700);
+  background: color-mix(in srgb, var(--green-700) 12%, var(--surface));
+  color: var(--green-950);
+}
+
+.data-import-tabs svg,
+.data-import-start-actions svg,
+.data-import-summary svg,
+.data-import-result svg {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.data-import-start-card,
+.data-import-option,
+.data-import-result,
+.data-import-empty {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 1rem;
+  padding: 1rem;
+}
+
+.data-import-start-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.data-import-file-button {
+  cursor: pointer;
+}
+
+.data-import-file-button input {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.data-import-file-button.disabled {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.data-import-file-name {
+  color: var(--muted);
+}
+
+.data-import-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  cursor: pointer;
+}
+
+.data-import-option input {
+  width: 1.15rem;
+  height: 1.15rem;
+  margin-top: 0.1rem;
+}
+
+.data-import-option span {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.data-import-option small,
+.data-import-preview-main small {
+  color: var(--muted);
+}
+
+.data-import-summary {
+  display: flex;
+  gap: 0.45rem;
+  overflow-x: auto;
+  padding-bottom: 0.1rem;
+}
+
+.data-import-summary span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  padding: 0.35rem 0.65rem;
+  white-space: nowrap;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.data-import-summary .ready { color: #166534; }
+.data-import-summary .warning { color: #92400e; }
+.data-import-summary .error { color: #b91c1c; }
+
+.data-import-preview-list {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.data-import-preview-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(9rem, 11rem);
+  align-items: center;
+  gap: 0.6rem;
+  border: 1px solid var(--border);
+  border-left-width: 0.3rem;
+  border-radius: 0.85rem;
+  background: var(--surface);
+  padding: 0.65rem;
+}
+
+.data-import-preview-row.ready { border-left-color: #16a34a; }
+.data-import-preview-row.warning { border-left-color: #d97706; }
+.data-import-preview-row.error { border-left-color: #dc2626; }
+
+.data-import-preview-main {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 0;
+}
+
+.data-import-preview-main > div {
+  display: grid;
+  min-width: 0;
+}
+
+.data-import-preview-main strong,
+.data-import-preview-main small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.data-import-row-number {
+  display: grid;
+  place-items: center;
+  min-width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  background: var(--green-50);
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.data-import-preview-row select {
+  width: 100%;
+}
+
+.data-import-messages {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+}
+
+.data-import-messages span {
+  border-radius: 0.55rem;
+  padding: 0.35rem 0.5rem;
+}
+
+.data-import-messages .error {
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.data-import-messages .warning {
+  background: #fffbeb;
+  color: #92400e;
+}
+
+.data-import-footer {
+  position: sticky;
+  bottom: 0.5rem;
+  z-index: 5;
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  border: 1px solid var(--border);
+  border-radius: 0.9rem;
+  padding: 0.65rem;
+  box-shadow: 0 0.5rem 1.5rem rgb(0 0 0 / 0.08);
+}
+
+.data-import-result.success { border-color: #86efac; }
+.data-import-result.with-errors { border-color: #fca5a5; }
+
+.data-import-empty {
+  text-align: center;
+  display: grid;
+  justify-items: center;
+  gap: 0.35rem;
+  color: var(--muted);
+}
+
+.data-import-empty svg {
+  width: 2.2rem;
+  height: 2.2rem;
+  color: var(--green-700);
+}
+
+.data-import-empty h2,
+.data-import-empty p {
+  margin: 0;
+}
+
+@media (max-width: 700px) {
+  .data-import-heading,
+  .data-import-start-card,
+  .data-import-result {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .data-import-heading > button,
+  .data-import-start-actions,
+  .data-import-start-actions > * {
+    width: 100%;
+  }
+
+  .data-import-start-actions {
+    display: grid;
+  }
+
+  .data-import-preview-row {
+    grid-template-columns: minmax(0, 1fr) 8.5rem;
+    padding: 0.55rem;
+  }
+
+  .data-import-preview-main {
+    gap: 0.45rem;
+  }
+
+  .data-import-preview-main small {
+    max-width: 12rem;
+  }
+
+  .data-import-footer {
+    gap: 0.45rem;
+  }
+
+  .data-import-footer button {
+    flex: 1;
+    padding-inline: 0.55rem;
+  }
+}
+
+.data-export-card {
+  display: grid;
+  gap: 0.85rem;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 1rem;
+  padding: 1rem;
+}
+
+.data-export-heading,
+.data-export-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.data-export-heading h2,
+.data-export-heading p {
+  margin: 0;
+}
+
+.data-export-heading p {
+  margin-top: 0.25rem;
+  color: var(--muted);
+}
+
+.data-export-heading svg,
+.data-export-footer svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.data-export-filters {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.data-export-filters.athlete {
+  grid-template-columns: minmax(12rem, 2fr) repeat(2, minmax(10rem, 1fr));
+}
+
+.data-export-filters label {
+  display: grid;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.data-export-filters label > span {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.data-export-filters input,
+.data-export-filters select {
+  width: 100%;
+  min-width: 0;
+}
+
+.data-export-footer {
+  padding-top: 0.15rem;
+}
+
+.data-export-footer > span {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+@media (max-width: 900px) {
+  .data-export-filters,
+  .data-export-filters.athlete {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .data-export-heading,
+  .data-export-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .data-export-heading > button,
+  .data-export-footer > button {
+    width: 100%;
+  }
+
+  .data-export-filters,
+  .data-export-filters.athlete {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.data-import-mode-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.25rem;
+  padding: 0.25rem;
+  border: 1px solid var(--border);
+  border-radius: 0.9rem;
+  background: color-mix(in srgb, var(--surface) 86%, var(--green-50));
+}
+
+.data-import-mode-tabs button {
+  min-height: 2.7rem;
+  border: 0;
+  border-radius: 0.68rem;
+  background: transparent;
+  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.55rem 0.8rem;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.data-import-mode-tabs button.active {
+  background: var(--surface);
+  color: var(--green-900);
+  box-shadow: 0 0.15rem 0.55rem rgb(0 0 0 / 0.09);
+}
+
+.data-import-mode-tabs svg {
+  width: 1.05rem;
+  height: 1.05rem;
+}

@@ -121,19 +121,6 @@ export type TrainingPlanInput = {
   sections: TrainingPlanSectionInput[];
 };
 
-export type CopyTrainingPlanResult = {
-  copied: Array<{
-    athleteId: string;
-    planId: string;
-    overwritten: boolean;
-  }>;
-  skipped: Array<{
-    athleteId: string;
-    planId: string | null;
-    reason: "source_athlete" | "not_in_group" | "existing_plan" | string;
-  }>;
-};
-
 export function createClientId(prefix: string): string {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
     return crypto.randomUUID();
@@ -223,6 +210,25 @@ export function trainingPlanToInput(plan: TrainingPlan): TrainingPlanInput {
       ...section,
       items: section.items.map((item) => ({
         ...item,
+        parameterDefinitions: item.parameterDefinitions.map((parameter) => ({ ...parameter })),
+        parameterValues: { ...item.parameterValues },
+      })),
+    })),
+  };
+}
+export function trainingPlanToImportedInput(plan: TrainingPlan): TrainingPlanInput {
+  return {
+    title: plan.title,
+    notes: plan.notes,
+    sections: plan.sections.map((section) => ({
+      ...section,
+      clientId: createClientId("plan-section"),
+      id: null,
+      countsAsBlockUsage: false,
+      items: section.items.map((item) => ({
+        ...item,
+        clientId: createClientId("plan-item"),
+        id: null,
         parameterDefinitions: item.parameterDefinitions.map((parameter) => ({ ...parameter })),
         parameterValues: { ...item.parameterValues },
       })),

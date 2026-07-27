@@ -69,3 +69,47 @@
   background: #f1f4f2;
   cursor: not-allowed;
 }
+
+/* Kompakte Erklärung: Details erst nach Klick auf das Info-Symbol */
+.dropdown-settings-intro {
+  display: grid;
+  align-items: stretch;
+  gap: 9px;
+  padding: 10px 12px;
+}
+.dropdown-settings-intro-heading {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.dropdown-settings-info-button {
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: var(--green-800);
+  background: var(--green-50);
+  border: 1px solid #d6e5db;
+  border-radius: 50%;
+  cursor: pointer;
+}
+.dropdown-settings-info-button:hover,
+.dropdown-settings-info-button:focus-visible {
+  color: #fff;
+  background: var(--green-700);
+  border-color: var(--green-700);
+}
+.dropdown-settings-info-button svg { width: 17px; }
+.dropdown-settings-intro-copy {
+  display: grid;
+  gap: 5px;
+  padding-top: 9px;
+  border-top: 1px solid var(--border);
+}
+.dropdown-settings-intro-copy p,
+.dropdown-settings-intro-copy small { line-height: 1.4; }
+@media (max-width: 760px) {
+  .dropdown-settings-intro { align-items: stretch; flex-direction: initial; gap: 9px; }
+}

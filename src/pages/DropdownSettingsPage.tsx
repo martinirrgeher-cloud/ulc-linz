@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ListPlus, Pencil, Plus, Save, ToggleLeft, ToggleRight, X } from "lucide-react";
+import { Info, ListPlus, Pencil, Plus, Save, ToggleLeft, ToggleRight, X } from "lucide-react";
 import { useAuth } from "@/features/auth/AuthContext";
 import {
   loadDropdownSettings,
@@ -39,6 +39,7 @@ export function DropdownSettingsPage() {
   const [editing, setEditing] = useState<DropdownSettingOption | null | undefined>(undefined);
   const [values, setValues] = useState<DropdownSettingInput>(() => optionToInput(null));
   const [editorError, setEditorError] = useState<string | null>(null);
+  const [introOpen, setIntroOpen] = useState(false);
 
   const loadData = useCallback(async () => {
     if (!organizationId) return;
@@ -100,6 +101,14 @@ export function DropdownSettingsPage() {
     if (!label) return null;
     return matchingOptions.find((option) => option.label.trim().toLocaleLowerCase("de") === label) ?? null;
   }, [matchingOptions, values.label]);
+
+  const sortedOptions = useMemo(() => (
+    [...data[activeList]].sort((left, right) => {
+      if (left.isActive !== right.isActive) return left.isActive ? -1 : 1;
+      return left.sortOrder - right.sortOrder
+        || left.label.localeCompare(right.label, "de", { sensitivity: "base" });
+    })
+  ), [activeList, data]);
 
   async function handleSave() {
     if (!organizationId || !canEdit || editing === undefined) return;
@@ -169,6 +178,7 @@ export function DropdownSettingsPage() {
             onClick={() => {
               setActiveList(list.key);
               setEditing(undefined);
+              setIntroOpen(false);
             }}
             key={list.key}
           >
@@ -177,9 +187,26 @@ export function DropdownSettingsPage() {
         ))}
       </nav>
 
-      <div className="dropdown-settings-intro">
-        <div><h2>{listDefinition.title}</h2><p>{listDefinition.description}</p></div>
-        <small>Deaktivierte Einträge bleiben bei bestehenden Übungen erhalten, können aber nicht mehr neu ausgewählt werden.</small>
+      <div className={`dropdown-settings-intro ${introOpen ? "open" : ""}`}>
+        <div className="dropdown-settings-intro-heading">
+          <h2>{listDefinition.title}</h2>
+          <button
+            type="button"
+            className="dropdown-settings-info-button"
+            onClick={() => setIntroOpen((current) => !current)}
+            aria-expanded={introOpen}
+            aria-label={introOpen ? "Erklärung schließen" : `Erklärung zu ${listDefinition.title} öffnen`}
+            title="Information"
+          >
+            <Info aria-hidden="true" />
+          </button>
+        </div>
+        {introOpen && (
+          <div className="dropdown-settings-intro-copy">
+            <p>{listDefinition.description}</p>
+            <small>Deaktivierte Einträge bleiben bei bestehenden Übungen erhalten, können aber nicht mehr neu ausgewählt werden.</small>
+          </div>
+        )}
       </div>
 
       {loading ? (
@@ -188,7 +215,7 @@ export function DropdownSettingsPage() {
         <div className="empty-state"><ListPlus aria-hidden="true" /><h2>Noch keine Einträge</h2><p>Lege den ersten Eintrag für diese Auswahlliste an.</p></div>
       ) : (
         <div className="dropdown-settings-list">
-          {data[activeList].map((option) => (
+          {sortedOptions.map((option) => (
             <article className={`dropdown-setting-card ${option.isActive ? "" : "inactive"}`} key={`${activeList}-${option.key}`}>
               <div>
                 <strong>{option.label}</strong>

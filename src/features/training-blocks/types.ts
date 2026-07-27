@@ -1,6 +1,7 @@
 import type {
   ExerciseParameterDefinition,
   ExerciseTrainingGroup,
+  ExerciseVideo,
 } from "@/features/exercise-catalog/types";
 
 export type TrainingBlockExercise = {
@@ -10,7 +11,12 @@ export type TrainingBlockExercise = {
   categoryTitle: string;
   subcategory: string | null;
   goal: string | null;
+  description: string | null;
+  coachingCues: string | null;
+  commonMistakes: string | null;
   equipment: string[];
+  videoUrl: string | null;
+  videos: ExerciseVideo[];
   groupIds: string[];
   isActive: boolean;
   parameters: ExerciseParameterDefinition[];

@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   ListChecks,
   ListPlus,
+  FileSpreadsheet,
   UserRoundCog,
   Users,
 } from "lucide-react";
@@ -27,6 +28,7 @@ export type AppModuleKey =
   | "training_blocks"
   | "training_documentation"
   | "dropdown_settings"
+  | "data_import"
   | "user_management";
 
 export type AppModuleGroupKey =
@@ -144,7 +146,7 @@ export const APP_MODULES: AppModuleDefinition[] = [
   {
     key: "training_overview",
     title: "Trainingsplan-Übersicht",
-    description: "Pläne und Belastung überblicken",
+    description: "Anmeldestatus, Pläne und Dauer wochenweise",
     route: "/module/training_overview",
     icon: <ListChecks aria-hidden="true" />,
     groupKey: "planning",
@@ -214,13 +216,22 @@ export const APP_MODULES: AppModuleDefinition[] = [
     sortOrder: 20,
   },
   {
+    key: "data_import",
+    title: "Datenimport/-export",
+    description: "Übungen und Athleten per Excel importieren oder exportieren",
+    route: "/module/data_import",
+    icon: <FileSpreadsheet aria-hidden="true" />,
+    groupKey: "master_data",
+    sortOrder: 30,
+  },
+  {
     key: "user_management",
     title: "Benutzerverwaltung",
     description: "Benutzer, Rollen und Modulrechte verwalten",
     route: "/module/user_management",
     icon: <UserRoundCog aria-hidden="true" />,
     groupKey: "master_data",
-    sortOrder: 30,
+    sortOrder: 40,
   },
 ];
 

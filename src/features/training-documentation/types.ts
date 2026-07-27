@@ -76,6 +76,11 @@ export type DocumentationItemInput = {
   sourceExerciseId: string | null;
   exerciseName: string;
   categoryTitle: string;
+  exerciseGoal: string;
+  exerciseDescription: string;
+  exerciseCoachingCues: string;
+  exerciseCommonMistakes: string;
+  exerciseEquipment: string[];
   plannedNote: string;
   parameterDefinitions: ExerciseParameterDefinition[];
   plannedValues: Record<string, string>;
@@ -153,6 +158,11 @@ export type TrainingDocumentationPlanPreview = {
       id: string;
       exerciseName: string;
       categoryTitle: string;
+      exerciseGoal: string;
+      exerciseDescription: string;
+      exerciseCoachingCues: string;
+      exerciseCommonMistakes: string;
+      exerciseEquipment: string[];
       note: string;
       parameterDefinitions: ExerciseParameterDefinition[];
       parameterValues: Record<string, string>;
@@ -261,6 +271,7 @@ export function cloneDocumentationInput(value: TrainingDocumentationInput): Trai
       items: section.items.map((item) => ({
         ...item,
         parameterDefinitions: item.parameterDefinitions.map((parameter) => ({ ...parameter })),
+        exerciseEquipment: [...(item.exerciseEquipment ?? [])],
         plannedValues: { ...item.plannedValues },
         actualValues: { ...item.actualValues },
         media: item.media.map((medium) => ({ ...medium })),

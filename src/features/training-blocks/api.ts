@@ -4,6 +4,7 @@ import {
   type ExerciseParameterDefinition,
   type ExerciseParameterInputType,
   type ExerciseTrainingGroup,
+  type ExerciseVideo,
 } from "@/features/exercise-catalog/types";
 import type {
   TrainingBlock,
@@ -86,7 +87,12 @@ function parseExercises(value: unknown): TrainingBlockExercise[] {
       categoryTitle: item.category_title,
       subcategory: optionalString(item.subcategory),
       goal: optionalString(item.goal),
+      description: optionalString(item.description),
+      coachingCues: optionalString(item.coaching_cues),
+      commonMistakes: optionalString(item.common_mistakes),
       equipment: parseStringArray(item.equipment),
+      videoUrl: optionalString(item.video_url),
+      videos: [],
       groupIds: parseStringArray(item.group_ids),
       isActive: item.is_active !== false,
       parameters: parseParameters(item.parameters),
@@ -159,6 +165,52 @@ async function callJsonRpc(
   const { data, error } = await rpc(functionName, args);
   if (error) throw new Error(error.message);
   return data ?? null;
+}
+
+function parseExerciseVideos(value: unknown): ExerciseVideo[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item) => {
+    if (
+      !isRecord(item) ||
+      typeof item.id !== "string" ||
+      typeof item.title !== "string" ||
+      typeof item.storage_path !== "string"
+    ) return [];
+
+    return [{
+      id: item.id,
+      title: item.title,
+      storagePath: item.storage_path,
+      mimeType: typeof item.mime_type === "string" ? item.mime_type : "video/mp4",
+      fileSize: typeof item.file_size === "number" ? item.file_size : 0,
+      isPrimary: item.is_primary === true,
+      createdAt: typeof item.created_at === "string" ? item.created_at : "",
+      signedUrl: null,
+    }];
+  });
+}
+
+export async function loadTrainingBlockExerciseVideos(
+  organizationId: string,
+  exerciseId: string,
+): Promise<ExerciseVideo[]> {
+  const data = await callJsonRpc("training_block_exercise_video_overview", {
+    p_organization_id: organizationId,
+    p_exercise_id: exerciseId,
+  });
+  const videos = parseExerciseVideos(data);
+  if (videos.length === 0) return videos;
+
+  const supabase = requireSupabase();
+  const { data: signedUrls, error } = await supabase.storage
+    .from("exercise-videos")
+    .createSignedUrls(videos.map((video) => video.storagePath), 60 * 60);
+
+  if (error) throw new Error(error.message);
+  return videos.map((video, index) => ({
+    ...video,
+    signedUrl: signedUrls?.[index]?.signedUrl ?? null,
+  }));
 }
 
 export async function loadTrainingBlocks(

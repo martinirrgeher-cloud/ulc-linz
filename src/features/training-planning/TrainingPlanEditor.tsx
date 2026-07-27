@@ -4,7 +4,10 @@ import {
   ArrowUp,
   Blocks,
   Clock3,
+  ChevronDown,
+  ChevronRight,
   Copy,
+  Download,
   Dumbbell,
   ListChecks,
   Plus,
@@ -39,7 +42,7 @@ export type TrainingPlanEditorProps = {
   dirty: boolean;
   onChange: (values: TrainingPlanInput) => void;
   onSave: () => Promise<void>;
-  onCopy: () => void;
+  onImport: () => void;
 };
 
 function replaceSection(
@@ -91,13 +94,11 @@ export function TrainingPlanEditor({
   dirty,
   onChange,
   onSave,
-  onCopy,
+  onImport,
 }: TrainingPlanEditorProps) {
   const [pickerMode, setPickerMode] = useState<PickerMode>(null);
   const [pickerSearch, setPickerSearch] = useState("");
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(
-    () => new Set(values.sections.map((section) => section.clientId)),
-  );
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(() => new Set());
 
   const totalMinutes = useMemo(() => values.sections.reduce((sum, section) => {
     const minutes = Number.parseInt(section.estimatedMinutes, 10);
@@ -170,7 +171,7 @@ export function TrainingPlanEditor({
           <small>{groupName} · {trainingDateLabel}</small>
           {plan?.copiedFromAthleteName && (
             <span className="training-plan-copy-origin">
-              <Copy aria-hidden="true" /> Kopiert von {plan.copiedFromAthleteName} · eigenständiger Plan
+              <Copy aria-hidden="true" /> Übernommen von {plan.copiedFromAthleteName} · eigenständiger Plan
             </span>
           )}
         </div>
@@ -197,7 +198,7 @@ export function TrainingPlanEditor({
             <textarea
               value={values.notes}
               onChange={(event) => update("notes", event.target.value)}
-              rows={2}
+              rows={1}
               placeholder="Hinweise für diesen Athleten und Trainingstag"
             />
           </label>
@@ -205,10 +206,10 @@ export function TrainingPlanEditor({
 
         <div className="training-plan-add-actions">
           <button type="button" className="secondary-button" onClick={() => setPickerMode("block")}>
-            <Blocks aria-hidden="true" />Block hinzufügen
+            <Blocks aria-hidden="true" />Block
           </button>
           <button type="button" className="secondary-button" onClick={() => setPickerMode("exercise")}>
-            <Dumbbell aria-hidden="true" />Einzelübung hinzufügen
+            <Dumbbell aria-hidden="true" />Übung
           </button>
         </div>
 
@@ -240,8 +241,9 @@ export function TrainingPlanEditor({
                         </small>
                       </span>
                       <span className="training-plan-section-duration">
-                        {section.estimatedMinutes ? `${section.estimatedMinutes} min` : "ohne Dauer"}
+                        {section.estimatedMinutes ? `${section.estimatedMinutes} min` : "–"}
                       </span>
+                      {expanded ? <ChevronDown className="training-plan-section-chevron" aria-hidden="true" /> : <ChevronRight className="training-plan-section-chevron" aria-hidden="true" />}
                     </button>
                     <div className="training-plan-section-actions">
                       <button
@@ -411,7 +413,7 @@ export function TrainingPlanEditor({
                             <label className="training-plan-field">
                               <span>Individueller Hinweis</span>
                               <textarea
-                                rows={2}
+                                rows={1}
                                 value={item.note}
                                 onChange={(event) => onChange(replaceSection(values, section.clientId, (current) => replaceItem(
                                   current,
@@ -439,11 +441,11 @@ export function TrainingPlanEditor({
             <button
               type="button"
               className="secondary-button"
-              onClick={onCopy}
-              disabled={!plan || dirty || busy}
-              title={!plan ? "Plan zuerst speichern" : dirty ? "Änderungen zuerst speichern" : "Auf Trainingskollegen kopieren"}
+              onClick={onImport}
+              disabled={busy}
+              title="Plan von einem Trainingstag und Athleten importieren"
             >
-              <Copy aria-hidden="true" />Kopieren
+              <Download aria-hidden="true" />Importieren
             </button>
             <button
               type="button"

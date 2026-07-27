@@ -18,6 +18,7 @@ import { TrainingPlanningPage } from "@/pages/TrainingPlanningPage";
 import { TrainingOverviewPage } from "@/pages/TrainingOverviewPage";
 import { TrainingDocumentationPage } from "@/pages/TrainingDocumentationPage";
 import { DropdownSettingsPage } from "@/pages/DropdownSettingsPage";
+import { DataImportPage } from "@/pages/DataImportPage";
 import { NoAccessPage } from "@/pages/NoAccessPage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
 import { RegisterPage } from "@/pages/RegisterPage";
@@ -181,6 +182,14 @@ export function App() {
               element={
                 <ProtectedRoute moduleKey="dropdown_settings">
                   <DropdownSettingsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="module/data_import"
+              element={
+                <ProtectedRoute moduleKey="data_import">
+                  <DataImportPage />
                 </ProtectedRoute>
               }
             />

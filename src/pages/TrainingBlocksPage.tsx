@@ -351,7 +351,7 @@ export function TrainingBlocksPage() {
       )}
 
       {editorBlock !== undefined && (
-        <TrainingBlockEditor key={editorBlock?.id ?? "new-training-block"} block={editorBlock} groups={data.groups} exercises={data.exercises} canEdit={canEdit} busy={busy} onCancel={() => setEditorBlock(undefined)} onSubmit={handleSave} />
+        <TrainingBlockEditor key={editorBlock?.id ?? "new-training-block"} block={editorBlock} organizationId={organizationId ?? ""} groups={data.groups} exercises={data.exercises} canEdit={canEdit} busy={busy} onCancel={() => setEditorBlock(undefined)} onSubmit={handleSave} />
       )}
     </section>
   );

@@ -80,6 +80,7 @@ export function TrainingOverviewPage() {
 
   const [weekStart, setWeekStart] = useState(() => startOfIsoWeek(new Date()));
   const [groupId, setGroupId] = useState("");
+  const [selectedMobileDate, setSelectedMobileDate] = useState("");
   const [overview, setOverview] = useState<TrainingWeekOverview>(EMPTY_OVERVIEW);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -108,6 +109,20 @@ export function TrainingOverviewPage() {
     () => overview.plans.filter((plan) => plan.documentationStatus !== "not_started").length,
     [overview.plans],
   );
+
+  useEffect(() => {
+    if (overview.dates.length === 0) {
+      setSelectedMobileDate("");
+      return;
+    }
+    const today = new Date();
+    const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+    setSelectedMobileDate((current) => {
+      if (overview.dates.some((date) => date.date === current)) return current;
+      if (overview.dates.some((date) => date.date === todayKey)) return todayKey;
+      return overview.dates[0]?.date ?? "";
+    });
+  }, [overview.dates]);
 
   useEffect(() => {
     if (!organizationId) return;
@@ -283,84 +298,159 @@ export function TrainingOverviewPage() {
             <span className="documentation-completed"><ListChecks aria-hidden="true" />Doku abgeschlossen</span>
           </div>
 
-          <div className="training-overview-matrix-scroll">
-            <table className="training-overview-matrix">
-              <thead>
-                <tr>
-                  <th>Athlet</th>
-                  {overview.dates.map((date) => (
-                    <th key={date.date}>
-                      <span>{PERFORMANCE_WEEKDAY_LABELS[date.weekday]}</span>
-                      <small>{date.date.slice(8, 10)}.{date.date.slice(5, 7)}.</small>
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {overview.athletes.map((athlete) => {
-                  const athleteName = personName(athlete.firstName, athlete.lastName);
-                  return (
-                    <tr key={athlete.id}>
-                      <th title={athleteName}>
-                        <span>{athlete.firstName}</span>
-                        <strong>{athlete.lastName}</strong>
+          <div className="training-overview-desktop-matrix">
+            <div className="training-overview-matrix-scroll">
+              <table className="training-overview-matrix">
+                <thead>
+                  <tr>
+                    <th>Athlet</th>
+                    {overview.dates.map((date) => (
+                      <th key={date.date}>
+                        <span>{PERFORMANCE_WEEKDAY_LABELS[date.weekday]}</span>
+                        <small>{date.date.slice(8, 10)}.{date.date.slice(5, 7)}.</small>
                       </th>
-                      {overview.dates.map((date) => {
-                        const registration = registrationByAthleteAndDate.get(mapKey(athlete.id, date.date)) ?? {
-                          date: date.date,
-                          status: "open" as const,
-                          comment: "",
-                          isLate: false,
-                        };
-                        const plan = planByAthleteAndDate.get(mapKey(athlete.id, date.date));
-                        return (
-                          <td key={date.date}>
-                            <div className="training-overview-cell-actions">
-                              <button
-                                type="button"
-                                className={`training-overview-cell status-${registration.status}${plan ? " has-plan" : ""}`}
-                                onClick={() => openPlanning(athlete.id, date.date)}
-                                title={planCellLabel(athleteName, date.date, registration, plan)}
-                                aria-label={planCellLabel(athleteName, date.date, registration, plan)}
-                              >
-                                <span className="training-overview-registration">
-                                  {STATUS_SHORT_LABELS[registration.status]}
-                                  {registration.isLate && <small>spät</small>}
-                                </span>
-                                <span className="training-overview-plan-state">
-                                  {plan ? (
-                                    <>
-                                      <Clock3 aria-hidden="true" />
-                                      <strong>{plan.actualMinutes ?? plan.totalMinutes} min</strong>
-                                      <small>{plan.exerciseCount} Üb. · {DOCUMENTATION_LABELS[plan.documentationStatus]}</small>
-                                    </>
-                                  ) : (
-                                    <small>kein Plan</small>
-                                  )}
-                                </span>
-                              </button>
-                              {plan && (
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {overview.athletes.map((athlete) => {
+                    const athleteName = personName(athlete.firstName, athlete.lastName);
+                    return (
+                      <tr key={athlete.id}>
+                        <th title={athleteName}>
+                          <span>{athlete.firstName}</span>
+                          <strong>{athlete.lastName}</strong>
+                        </th>
+                        {overview.dates.map((date) => {
+                          const registration = registrationByAthleteAndDate.get(mapKey(athlete.id, date.date)) ?? {
+                            date: date.date,
+                            status: "open" as const,
+                            comment: "",
+                            isLate: false,
+                          };
+                          const plan = planByAthleteAndDate.get(mapKey(athlete.id, date.date));
+                          return (
+                            <td key={date.date}>
+                              <div className="training-overview-cell-actions">
                                 <button
                                   type="button"
-                                  className={`training-overview-documentation-button documentation-${plan.documentationStatus}`}
-                                  onClick={() => openDocumentation(plan)}
-                                  title={`Trainingsdokumentation öffnen: ${DOCUMENTATION_LABELS[plan.documentationStatus]}`}
-                                  aria-label={`${athleteName}, ${formatTrainingDate(date.date)}: Trainingsdokumentation öffnen`}
+                                  className={`training-overview-cell status-${registration.status}${plan ? " has-plan" : ""}`}
+                                  onClick={() => openPlanning(athlete.id, date.date)}
+                                  title={planCellLabel(athleteName, date.date, registration, plan)}
+                                  aria-label={planCellLabel(athleteName, date.date, registration, plan)}
                                 >
-                                  <ListChecks aria-hidden="true" />
-                                  <span>Doku</span>
+                                  <span className="training-overview-registration">
+                                    {STATUS_SHORT_LABELS[registration.status]}
+                                    {registration.isLate && <small>spät</small>}
+                                  </span>
+                                  <span className="training-overview-plan-state">
+                                    {plan ? (
+                                      <>
+                                        <Clock3 aria-hidden="true" />
+                                        <strong>{plan.actualMinutes ?? plan.totalMinutes} min</strong>
+                                        <small>{plan.exerciseCount} Üb. · {DOCUMENTATION_LABELS[plan.documentationStatus]}</small>
+                                      </>
+                                    ) : (
+                                      <small>kein Plan</small>
+                                    )}
+                                  </span>
                                 </button>
-                              )}
-                            </div>
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                                {plan && (
+                                  <button
+                                    type="button"
+                                    className={`training-overview-documentation-button documentation-${plan.documentationStatus}`}
+                                    onClick={() => openDocumentation(plan)}
+                                    title={`Trainingsdokumentation öffnen: ${DOCUMENTATION_LABELS[plan.documentationStatus]}`}
+                                    aria-label={`${athleteName}, ${formatTrainingDate(date.date)}: Trainingsdokumentation öffnen`}
+                                  >
+                                    <ListChecks aria-hidden="true" />
+                                    <span>Doku</span>
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
+
+          <section className="training-overview-mobile" aria-label="Mobile Wochenübersicht">
+            <div className="training-overview-mobile-days" role="tablist" aria-label="Trainingstag auswählen">
+              {overview.dates.map((date) => {
+                const planCount = overview.plans.filter((plan) => plan.trainingDate === date.date).length;
+                return (
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={selectedMobileDate === date.date}
+                    className={selectedMobileDate === date.date ? "active" : ""}
+                    onClick={() => setSelectedMobileDate(date.date)}
+                    key={date.date}
+                  >
+                    <strong>{PERFORMANCE_WEEKDAY_LABELS[date.weekday]}</strong>
+                    <small>{date.date.slice(8, 10)}.{date.date.slice(5, 7)}.</small>
+                    <span>{planCount}/{overview.athletes.length} Pläne</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="training-overview-mobile-athletes">
+              {overview.athletes.map((athlete) => {
+                const trainingDate = selectedMobileDate || overview.dates[0]?.date || "";
+                if (!trainingDate) return null;
+                const athleteName = personName(athlete.firstName, athlete.lastName);
+                const registration = registrationByAthleteAndDate.get(mapKey(athlete.id, trainingDate)) ?? {
+                  date: trainingDate,
+                  status: "open" as const,
+                  comment: "",
+                  isLate: false,
+                };
+                const plan = planByAthleteAndDate.get(mapKey(athlete.id, trainingDate));
+                return (
+                  <article className="training-overview-mobile-athlete" key={athlete.id}>
+                    <header>
+                      <strong>{athleteName}</strong>
+                      <span className={`status-${registration.status}`}>
+                        {STATUS_LABELS[registration.status]}{registration.isLate ? " · spät" : ""}
+                      </span>
+                    </header>
+                    <div className={plan ? "" : "single"}>
+                      <button
+                        type="button"
+                        className={`training-overview-mobile-plan${plan ? " has-plan" : ""}`}
+                        onClick={() => openPlanning(athlete.id, trainingDate)}
+                        aria-label={planCellLabel(athleteName, trainingDate, registration, plan)}
+                      >
+                        <Dumbbell aria-hidden="true" />
+                        <span>
+                          <strong>{plan ? `${plan.actualMinutes ?? plan.totalMinutes} min · ${plan.exerciseCount} Übungen` : "Plan anlegen"}</strong>
+                          <small>{plan ? DOCUMENTATION_LABELS[plan.documentationStatus] : "Noch kein Trainingsplan"}</small>
+                        </span>
+                        <ChevronRight aria-hidden="true" />
+                      </button>
+                      {plan && (
+                        <button
+                          type="button"
+                          className={`training-overview-mobile-documentation documentation-${plan.documentationStatus}`}
+                          onClick={() => openDocumentation(plan)}
+                          aria-label={`${athleteName}, ${formatTrainingDate(trainingDate)}: Trainingsdokumentation öffnen`}
+                        >
+                          <ListChecks aria-hidden="true" />
+                          <span>Doku</span>
+                        </button>
+                      )}
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </section>
           <p className="training-overview-hint">Die Tagesfläche öffnet die Planung. „Doku“ öffnet bei vorhandenen Plänen direkt die Trainingsdokumentation.</p>
         </>
       )}

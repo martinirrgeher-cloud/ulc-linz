@@ -613,3 +613,198 @@
   .training-doc-statistics { border: 0; box-shadow: none; }
   .training-doc-report-section { break-inside: avoid; }
 }
+
+/* Übungsinformationen bleiben unabhängig vom Dokumentations-Dropdown erreichbar. */
+.training-doc-item-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 38px;
+  align-items: stretch;
+  background: #f8fbf9;
+}
+
+.training-doc-item-heading .training-doc-item-toggle {
+  border-radius: 0;
+}
+
+.training-doc-item-info-button {
+  min-width: 38px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 0;
+  padding: 4px;
+  color: var(--green-700);
+  background: #f2f8f4;
+  border: 0;
+  border-left: 1px solid #dbe7df;
+  cursor: pointer;
+}
+
+.training-doc-item-info-button:hover,
+.training-doc-item-info-button:focus-visible {
+  color: #fff;
+  background: var(--green-700);
+  outline: none;
+}
+
+.training-doc-item-info-button svg {
+  width: 17px;
+  height: 17px;
+}
+
+.training-doc-item-info-button.has-video svg:last-child {
+  width: 11px;
+  height: 11px;
+  margin-top: -3px;
+}
+
+.training-doc-completion-suggestion {
+  color: var(--green-700);
+  font-size: .65rem;
+  font-weight: 750;
+  line-height: 1.35;
+}
+
+.training-doc-exercise-info-modal {
+  width: min(680px, 100%);
+}
+
+.training-doc-exercise-info-modal > header small {
+  color: var(--muted);
+}
+
+.training-doc-exercise-info-content {
+  gap: 9px;
+}
+
+.training-doc-exercise-info-content > section {
+  display: grid;
+  gap: 5px;
+  padding: 9px 10px;
+  background: #f7faf8;
+  border: 1px solid #dfe9e2;
+  border-radius: 9px;
+}
+
+.training-doc-exercise-info-content h3,
+.training-doc-exercise-info-content p {
+  margin: 0;
+}
+
+.training-doc-exercise-info-content h3 {
+  color: var(--green-950);
+  font-size: .82rem;
+}
+
+.training-doc-exercise-info-content p {
+  color: #304f40;
+  font-size: .75rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.training-doc-exercise-info-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.training-doc-exercise-info-chips span {
+  padding: 3px 7px;
+  color: var(--green-800);
+  background: var(--green-50);
+  border: 1px solid #d4e7db;
+  border-radius: 999px;
+  font-size: .62rem;
+  font-weight: 850;
+}
+
+.training-doc-exercise-info-parameters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 5px;
+}
+
+.training-doc-exercise-info-parameters > span {
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+  padding: 6px 7px;
+  background: #fff;
+  border: 1px solid #dbe7df;
+  border-radius: 7px;
+}
+
+.training-doc-exercise-info-parameters strong {
+  color: var(--green-950);
+  font-size: .68rem;
+}
+
+.training-doc-exercise-info-parameters small {
+  color: var(--green-700);
+  font-size: .66rem;
+  font-weight: 800;
+}
+
+.training-doc-exercise-info-summary {
+  color: var(--muted) !important;
+  font-size: .66rem !important;
+}
+
+.training-doc-exercise-info-content video {
+  width: 100%;
+  max-height: 55vh;
+  background: #111;
+  border-radius: 8px;
+}
+
+.training-doc-exercise-info-content a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 7px 9px;
+  color: var(--green-700);
+  background: #fff;
+  border: 1px solid #cfe0d5;
+  border-radius: 8px;
+  font-size: .72rem;
+  font-weight: 850;
+  text-decoration: none;
+}
+
+.training-doc-exercise-info-content a svg {
+  width: 16px;
+}
+
+.training-doc-exercise-info-empty {
+  margin: 0;
+  padding: 14px;
+  color: var(--muted);
+  background: #f7faf8;
+  border: 1px dashed #cedbd3;
+  border-radius: 9px;
+  font-size: .74rem;
+  text-align: center;
+}
+
+@media (max-width: 720px) {
+  .training-doc-item-heading {
+    grid-template-columns: minmax(0, 1fr) 36px;
+  }
+
+  .training-doc-item-info-button {
+    min-width: 36px;
+  }
+
+  .training-doc-exercise-info-modal {
+    width: 100%;
+    max-height: 100dvh;
+    border-radius: 0;
+  }
+
+  .training-doc-exercise-info-content {
+    padding-bottom: max(18px, env(safe-area-inset-bottom));
+  }
+}

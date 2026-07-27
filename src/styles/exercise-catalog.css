@@ -1264,3 +1264,13 @@
 @media (max-width: 430px) {
   .exercise-filter-grid { grid-template-columns: 1fr; }
 }
+
+/* Suchfeld und Filtertaste bleiben auch mobil in einer Zeile */
+.exercise-catalog-toolbar.exercise-catalog-toolbar-compact {
+  grid-template-columns: minmax(0, 1fr) 46px !important;
+  align-items: stretch;
+}
+.exercise-catalog-toolbar.exercise-catalog-toolbar-compact .exercise-search {
+  grid-column: auto !important;
+  min-width: 0;
+}
