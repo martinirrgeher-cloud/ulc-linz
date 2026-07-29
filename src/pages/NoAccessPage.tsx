@@ -5,7 +5,7 @@ import { useAuth } from "@/features/auth/AuthContext";
 
 export function NoAccessPage() {
   const navigate = useNavigate();
-  const { signOut } = useAuth();
+  const { signOut, contextError } = useAuth();
   const [busy, setBusy] = useState(false);
 
   async function returnToLogin() {
@@ -27,8 +27,8 @@ export function NoAccessPage() {
         <LogIn aria-hidden="true" />
         <h1>Kein Zugriff</h1>
         <p>
-          Mit diesem Konto ist derzeit kein Zugriff auf die Vereins-App möglich.
-          Kehre zur Anmeldung zurück und melde dich mit einem berechtigten Konto an.
+          {contextError ??
+            "Mit diesem Konto ist derzeit kein Zugriff auf die Vereins-App möglich. Kehre zur Anmeldung zurück und melde dich mit einem berechtigten Konto an."}
         </p>
         <button
           type="button"

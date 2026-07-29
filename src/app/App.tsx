@@ -23,6 +23,7 @@ const TrainingDocumentationPage = lazy(async () => ({ default: (await import("@/
 const DropdownSettingsPage = lazy(async () => ({ default: (await import("@/pages/DropdownSettingsPage")).DropdownSettingsPage }));
 const DataImportPage = lazy(async () => ({ default: (await import("@/pages/DataImportPage")).DataImportPage }));
 const CountdownPage = lazy(async () => ({ default: (await import("@/pages/CountdownPage")).CountdownPage }));
+const ConnectionErrorPage = lazy(async () => ({ default: (await import("@/pages/ConnectionErrorPage")).ConnectionErrorPage }));
 const NoAccessPage = lazy(async () => ({ default: (await import("@/pages/NoAccessPage")).NoAccessPage }));
 const NotFoundPage = lazy(async () => ({ default: (await import("@/pages/NotFoundPage")).NotFoundPage }));
 const RegisterPage = lazy(async () => ({ default: (await import("@/pages/RegisterPage")).RegisterPage }));
@@ -223,6 +224,8 @@ export function App() {
                 }
               />
             </Route>
+
+            <Route path="/verbindungsfehler" element={<ConnectionErrorPage />} />
 
             <Route
               path="/kein-zugriff"

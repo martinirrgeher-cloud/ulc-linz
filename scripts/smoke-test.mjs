@@ -157,3 +157,25 @@ test("Trainingsdokumentation ist aktiv gegen parallele Bearbeitung geschützt", 
   assert.ok(documentationEditLockMigrationSource.includes("public.save_training_documentation_v3"));
   assert.ok(documentationEditLockMigrationSource.includes("public.assert_edit_lock_for_write"));
 });
+
+const authContextSource = await readFile(new URL("../src/features/auth/AuthContext.tsx", import.meta.url), "utf8");
+const protectedRouteSource = await readFile(new URL("../src/features/auth/ProtectedRoute.tsx", import.meta.url), "utf8");
+const connectionErrorPageSource = await readFile(new URL("../src/pages/ConnectionErrorPage.tsx", import.meta.url), "utf8");
+
+test("Auth-Kontext trennt fehlende Berechtigung von Verbindungsfehlern", () => {
+  for (const status of [
+    '"ready"',
+    '"offline"',
+    '"technical_error"',
+    '"no_membership"',
+  ]) {
+    assert.ok(authContextSource.includes(status), `Auth-Status fehlt: ${status}`);
+  }
+  assert.ok(authContextSource.includes("contextRequestIdRef"), "Veraltete Kontextabfragen werden nicht abgefangen.");
+  assert.ok(authContextSource.includes("setContextStatus(connectionStatus())"));
+  assert.ok(authContextSource.includes("retryFailedContext"), "Automatischer Retry nach Wiederverbindung fehlt.");
+  assert.ok(authContextSource.includes("Einen bereits gültig geladenen Vereinskontext nicht"));
+  assert.ok(protectedRouteSource.includes('to="/verbindungsfehler"'));
+  assert.ok(connectionErrorPageSource.includes("Erneut versuchen"));
+  assert.ok(appSource.includes('path="/verbindungsfehler"'));
+});

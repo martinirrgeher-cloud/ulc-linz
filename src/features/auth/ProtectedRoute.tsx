@@ -17,29 +17,50 @@ export function ProtectedRoute({
   const {
     loading,
     contextLoading,
+    contextStatus,
+    sessionError,
     isAuthenticated,
     needsBootstrap,
     appContext,
-    isInitialized,
-    accessError,
     canViewModule,
   } = useAuth();
 
   const waitingForInitialContext =
     isAuthenticated &&
     !appContext?.membership &&
-    isInitialized === null &&
-    !accessError;
+    (contextStatus === "idle" || contextStatus === "loading");
 
   // Bereits geladene Module bleiben bei einer Hintergrund-Aktualisierung
-  // eingehaengt. Android und iOS loesen nach der Galerie-Auswahl oft
+  // eingehängt. Android und iOS lösen nach der Galerie-Auswahl oft
   // focus/visibilitychange aus.
   if (loading || waitingForInitialContext || (contextLoading && !appContext?.membership)) {
     return <LoadingScreen />;
   }
 
   if (!isAuthenticated) {
+    if (sessionError) {
+      return (
+        <Navigate
+          to="/verbindungsfehler"
+          replace
+          state={{ from: location.pathname }}
+        />
+      );
+    }
     return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+  }
+
+  if (
+    !appContext?.membership &&
+    (contextStatus === "offline" || contextStatus === "technical_error")
+  ) {
+    return (
+      <Navigate
+        to="/verbindungsfehler"
+        replace
+        state={{ from: location.pathname }}
+      />
+    );
   }
 
   if (needsBootstrap && location.pathname !== "/einrichtung") {

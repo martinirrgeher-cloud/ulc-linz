@@ -23,15 +23,25 @@ import type {
   ModulePermission,
 } from "@/types/auth";
 
+export type ContextStatus =
+  | "idle"
+  | "loading"
+  | "ready"
+  | "offline"
+  | "technical_error"
+  | "no_membership";
+
 export type AuthState = {
   loading: boolean;
   contextLoading: boolean;
+  contextStatus: ContextStatus;
+  contextError: string | null;
+  sessionError: string | null;
   configurationError: string | null;
   appContext: AppContext | null;
   isAuthenticated: boolean;
   isInitialized: boolean | null;
   needsBootstrap: boolean;
-  accessError: string | null;
   canViewModule: (moduleKey: string) => boolean;
   canEditModule: (moduleKey: string) => boolean;
   signIn: (email: string, password: string) => Promise<void>;
@@ -62,10 +72,13 @@ function isInvalidSessionError(error: unknown): boolean {
   ].some((fragment) => message.includes(fragment));
 }
 
+function connectionStatus(): Extract<ContextStatus, "offline" | "technical_error"> {
+  return navigator.onLine ? "technical_error" : "offline";
+}
+
 const AUTH_INITIALIZATION_TIMEOUT_MS = 12_000;
 const AUTH_RESTORE_ATTEMPTS = 3;
 const CONTEXT_LOADING_TIMEOUT_MS = 15_000;
-
 
 function wait(milliseconds: number): Promise<void> {
   return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
@@ -93,26 +106,32 @@ async function withTimeout<T>(
 export function AuthProvider({ children }: PropsWithChildren) {
   const [session, setSession] = useState<Session | null>(null);
   const sessionRef = useRef<Session | null>(null);
+  const contextRequestIdRef = useRef(0);
   const [loading, setLoading] = useState(true);
   const [contextLoading, setContextLoading] = useState(false);
+  const [contextStatus, setContextStatus] = useState<ContextStatus>("idle");
+  const [contextError, setContextError] = useState<string | null>(null);
+  const [sessionError, setSessionError] = useState<string | null>(null);
   const [profile, setProfile] = useState<AppProfile | null>(null);
   const [organization, setOrganization] = useState<AppOrganization | null>(null);
   const [membership, setMembership] = useState<AppMembership | null>(null);
   const [permissions, setPermissions] = useState<ModulePermission[]>([]);
   const [isInitialized, setIsInitialized] = useState<boolean | null>(null);
-  const [accessError, setAccessError] = useState<string | null>(null);
 
   const configurationError = env.isSupabaseConfigured
     ? null
     : "Supabase ist noch nicht konfiguriert. Kopiere .env.example nach .env.local und trage URL sowie Publishable Key ein.";
 
   const clearAppData = useCallback(() => {
+    contextRequestIdRef.current += 1;
     setProfile(null);
     setOrganization(null);
     setMembership(null);
     setPermissions([]);
     setIsInitialized(null);
-    setAccessError(null);
+    setContextLoading(false);
+    setContextStatus("idle");
+    setContextError(null);
   }, []);
 
   const loadContext = useCallback(
@@ -122,8 +141,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
         return;
       }
 
+      const requestId = contextRequestIdRef.current + 1;
+      contextRequestIdRef.current = requestId;
       setContextLoading(true);
-      setAccessError(null);
+      setContextStatus("loading");
+      setContextError(null);
 
       try {
         const userId = activeSession.user.id;
@@ -159,49 +181,48 @@ export function AuthProvider({ children }: PropsWithChildren) {
         if (profileResult.error) throw profileResult.error;
         if (initializedResult.error) throw initializedResult.error;
         if (membershipResult.error) throw membershipResult.error;
+        if (requestId !== contextRequestIdRef.current) return;
 
-        setIsInitialized(initializedResult.data);
-
-        setProfile(
-          profileResult.data
-            ? {
-                id: profileResult.data.id,
-                displayName: profileResult.data.display_name,
-                avatarUrl: profileResult.data.avatar_url,
-              }
-            : null,
-        );
+        const nextProfile: AppProfile | null = profileResult.data
+          ? {
+              id: profileResult.data.id,
+              displayName: profileResult.data.display_name,
+              avatarUrl: profileResult.data.avatar_url,
+            }
+          : null;
 
         if (!membershipResult.data) {
+          setProfile(nextProfile);
           setOrganization(null);
           setMembership(null);
           setPermissions([]);
-          if (initializedResult.data) {
-            setAccessError(
-              "Dein Benutzerkonto ist noch keinem aktiven Verein zugeordnet. Ein Administrator muss dich freischalten.",
-            );
-          }
+          setIsInitialized(initializedResult.data);
+          setContextStatus("no_membership");
+          setContextError(
+            initializedResult.data
+              ? "Dein Benutzerkonto ist noch keinem aktiven Verein zugeordnet. Ein Administrator muss dich freischalten."
+              : null,
+          );
           return;
         }
 
-        const membershipData: AppMembership = {
+        const nextMembership: AppMembership = {
           id: membershipResult.data.id,
           organizationId: membershipResult.data.organization_id,
           role: membershipResult.data.role,
         };
-        setMembership(membershipData);
 
         const [organizationResult, permissionResult] = await withTimeout(
           Promise.all([
             supabase
               .from("organizations")
               .select("id, name, slug")
-              .eq("id", membershipData.organizationId)
+              .eq("id", nextMembership.organizationId)
               .single(),
             supabase
               .from("member_module_permissions")
               .select("module_key, can_view, can_edit")
-              .eq("membership_id", membershipData.id),
+              .eq("membership_id", nextMembership.id),
           ]),
           CONTEXT_LOADING_TIMEOUT_MS,
           "Verein und Modulrechte konnten nicht rechtzeitig geladen werden.",
@@ -209,32 +230,45 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
         if (organizationResult.error) throw organizationResult.error;
         if (permissionResult.error) throw permissionResult.error;
+        if (requestId !== contextRequestIdRef.current) return;
 
-        setOrganization({
+        const nextOrganization: AppOrganization = {
           id: organizationResult.data.id,
           name: organizationResult.data.name,
           slug: organizationResult.data.slug,
-        });
+        };
+        const nextPermissions: ModulePermission[] = permissionResult.data.map((permission) => ({
+          moduleKey: permission.module_key,
+          canView: permission.can_view,
+          canEdit: permission.can_edit,
+        }));
 
-        setPermissions(
-          permissionResult.data.map((permission) => ({
-            moduleKey: permission.module_key,
-            canView: permission.can_view,
-            canEdit: permission.can_edit,
-          })),
-        );
+        setProfile(nextProfile);
+        setOrganization(nextOrganization);
+        setMembership(nextMembership);
+        setPermissions(nextPermissions);
+        setIsInitialized(initializedResult.data);
+        setContextStatus("ready");
+        setContextError(null);
       } catch (error) {
+        if (requestId !== contextRequestIdRef.current) return;
+
         if (isInvalidSessionError(error)) {
           clearSensitiveSessionData();
           sessionRef.current = null;
           setSession(null);
           clearAppData();
         } else {
-          clearAppData();
-          setAccessError(errorMessage(error));
+          // Einen bereits gültig geladenen Vereinskontext nicht wegen eines
+          // kurzfristigen Netzwerk- oder Supabase-Fehlers verwerfen. RLS bleibt
+          // serverseitig die endgültige Berechtigungsinstanz.
+          setContextStatus(connectionStatus());
+          setContextError(errorMessage(error));
         }
       } finally {
-        setContextLoading(false);
+        if (requestId === contextRequestIdRef.current) {
+          setContextLoading(false);
+        }
       }
     },
     [clearAppData],
@@ -274,13 +308,19 @@ export function AuthProvider({ children }: PropsWithChildren) {
             if (error) throw error;
             if (!mounted) return;
 
-            if (data.session) {
-              setSession(data.session);
-              setAccessError(null);
-            } else {
+            const previousUserId = sessionRef.current?.user.id ?? null;
+            const nextUserId = data.session?.user.id ?? null;
+            if (previousUserId && previousUserId !== nextUserId) {
               clearSensitiveSessionData();
-              sessionRef.current = null;
-              setSession(null);
+              clearAppData();
+            }
+
+            sessionRef.current = data.session;
+            setSession(data.session);
+            setSessionError(null);
+
+            if (!data.session) {
+              clearSensitiveSessionData();
               clearAppData();
             }
 
@@ -293,6 +333,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
               clearSensitiveSessionData();
               sessionRef.current = null;
               setSession(null);
+              setSessionError(null);
               clearAppData();
               setLoading(false);
               return;
@@ -304,7 +345,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
         }
 
         if (!mounted) return;
-        setAccessError(
+        setSessionError(
           `${errorMessage(lastError)} Die Sitzung wird beim nächsten Online-Kontakt erneut geprüft.`,
         );
         setLoading(false);
@@ -315,12 +356,18 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
     void restoreSession(true);
 
-    const { data: subscription } = authClient.auth.onAuthStateChange((event, nextSession) => {
+    const { data: subscription } = authClient.auth.onAuthStateChange((_event, nextSession) => {
       if (!mounted) return;
 
       if (nextSession) {
+        const previousUserId = sessionRef.current?.user.id ?? null;
+        if (previousUserId && previousUserId !== nextSession.user.id) {
+          clearSensitiveSessionData();
+          clearAppData();
+        }
+        sessionRef.current = nextSession;
         setSession(nextSession);
-        setAccessError(null);
+        setSessionError(null);
         setLoading(false);
         return;
       }
@@ -328,6 +375,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       clearSensitiveSessionData();
       sessionRef.current = null;
       setSession(null);
+      setSessionError(null);
       clearAppData();
       setLoading(false);
     });
@@ -359,17 +407,39 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const sessionUserId = session?.user.id ?? null;
 
   useEffect(() => {
-    // Token-Erneuerungen und die Rueckkehr aus der Handy-Galerie liefern ein neues
-    // Session-Objekt fuer denselben Benutzer. Der Vereinskontext muss dabei nicht
-    // neu geladen werden, weil ProtectedRoute sonst die aktuelle Seite aushaengt
-    // und lokale Eingaben wie die ausgewaehlte Videodatei verloren gehen.
+    // Token-Erneuerungen und die Rückkehr aus der Handy-Galerie liefern ein neues
+    // Session-Objekt für denselben Benutzer. Der Vereinskontext muss dabei nicht
+    // neu geladen werden, weil ProtectedRoute sonst die aktuelle Seite aushängt
+    // und lokale Eingaben wie die ausgewählte Videodatei verloren gehen.
     void loadContext(sessionRef.current);
   }, [loadContext, sessionUserId]);
+
+  useEffect(() => {
+    const retryFailedContext = () => {
+      if (
+        sessionRef.current &&
+        (contextStatus === "offline" || contextStatus === "technical_error")
+      ) {
+        void loadContext(sessionRef.current);
+      }
+    };
+
+    window.addEventListener("online", retryFailedContext);
+    window.addEventListener("pageshow", retryFailedContext);
+    window.addEventListener("focus", retryFailedContext);
+
+    return () => {
+      window.removeEventListener("online", retryFailedContext);
+      window.removeEventListener("pageshow", retryFailedContext);
+      window.removeEventListener("focus", retryFailedContext);
+    };
+  }, [contextStatus, loadContext]);
 
   const signIn = useCallback(async (email: string, password: string) => {
     if (!supabase) throw new Error(configurationError ?? "Supabase fehlt.");
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
+    setSessionError(null);
   }, [configurationError]);
 
   const signUp = useCallback(
@@ -404,6 +474,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     clearSensitiveSessionData();
     sessionRef.current = null;
     setSession(null);
+    setSessionError(null);
     clearAppData();
     if (error) throw error;
   }, [clearAppData]);
@@ -481,12 +552,14 @@ export function AuthProvider({ children }: PropsWithChildren) {
     () => ({
       loading,
       contextLoading,
+      contextStatus,
+      contextError,
+      sessionError,
       configurationError,
       appContext,
       isAuthenticated: Boolean(session),
       isInitialized,
       needsBootstrap: Boolean(session && isInitialized === false && !membership),
-      accessError,
       canViewModule,
       canEditModule,
       signIn,
@@ -495,17 +568,19 @@ export function AuthProvider({ children }: PropsWithChildren) {
       requestPasswordReset,
       updatePassword,
       bootstrapOrganization,
-      refreshContext: async () => loadContext(session),
+      refreshContext: async () => loadContext(sessionRef.current),
     }),
     [
       loading,
       contextLoading,
+      contextStatus,
+      contextError,
+      sessionError,
       configurationError,
       appContext,
       session,
       isInitialized,
       membership,
-      accessError,
       canViewModule,
       canEditModule,
       signIn,
