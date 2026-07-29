@@ -64,6 +64,8 @@ test("Benutzerrechte folgen der Modulgruppierung", () => {
 const editLockApiSource = await readFile(new URL("../src/features/collaboration/edit-locks.ts", import.meta.url), "utf8");
 const editLockHookSource = await readFile(new URL("../src/features/collaboration/useEditLock.ts", import.meta.url), "utf8");
 const editLockMigrationSource = await readFile(new URL("../supabase/migrations/202607270024_collaboration_edit_locks.sql", import.meta.url), "utf8");
+const atomicEditLockMigrationSource = await readFile(new URL("../supabase/migrations/202607290025_atomic_edit_lock_writes.sql", import.meta.url), "utf8");
+const importSource = await readFile(new URL("../src/features/data-import/importer.ts", import.meta.url), "utf8");
 const backupWorkflowSource = await readFile(new URL("../.github/workflows/weekly-encrypted-backup.yml", import.meta.url), "utf8");
 const backupStorageSource = await readFile(new URL("./backup-supabase-storage.mjs", import.meta.url), "utf8");
 
@@ -80,7 +82,7 @@ test("Bearbeitungsschutz reserviert, verlängert und prüft Datensätze", () => 
   }
   assert.ok(editLockHookSource.includes("30_000"), "Heartbeat-Intervall fehlt.");
   assert.ok(editLockHookSource.includes("15_000"), "Automatische Freigabeprüfung fehlt.");
-  assert.ok(editLockHookSource.includes("validateBeforeSave"), "Versionsprüfung vor dem Speichern fehlt.");
+  assert.ok(editLockHookSource.includes("getWriteGuard"), "Schreibschutz für atomare Speicheraufrufe fehlt.");
 });
 
 
@@ -93,8 +95,25 @@ test("Bearbeitungsschutz ist in den gemeinsamen Editoren aktiv", async () => {
   ]) {
     const source = await readFile(new URL(relativePath, import.meta.url), "utf8");
     assert.ok(source.includes("useEditLock"), `Bearbeitungsschutz fehlt in ${relativePath}`);
-    assert.ok(source.includes("validateBeforeSave"), `Speicherprüfung fehlt in ${relativePath}`);
+    assert.ok(source.includes("getWriteGuard"), `Atomarer Schreibschutz fehlt in ${relativePath}`);
   }
+});
+
+
+test("Speicher-RPCs prüfen Sperre und Version atomar", () => {
+  for (const functionName of [
+    "assert_edit_lock_for_write",
+    "save_exercise_catalog_item_v3",
+    "save_training_block_v2",
+    "update_athlete_v4",
+    "save_athlete_training_plan_v2",
+  ]) {
+    assert.ok(atomicEditLockMigrationSource.includes(`public.${functionName}`), `Atomare RPC fehlt: ${functionName}`);
+  }
+  assert.ok(atomicEditLockMigrationSource.includes("pg_advisory_xact_lock"));
+  assert.ok(atomicEditLockMigrationSource.includes("for update"));
+  assert.ok(atomicEditLockMigrationSource.includes("p_expected_updated_at"));
+  assert.ok(importSource.includes("withImportEditLock"), "Datenimport berücksichtigt Bearbeitungssperren nicht.");
 });
 
 

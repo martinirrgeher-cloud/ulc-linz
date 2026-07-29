@@ -1,4 +1,5 @@
 import type { Json } from "@/types/database.generated";
+import type { EditLockWriteGuard } from "@/features/collaboration/edit-locks";
 import { requireSupabase } from "@/lib/supabase";
 import type { ExerciseParameterDefinition, ExerciseParameterInputType } from "@/features/exercise-catalog/types";
 import type {
@@ -353,8 +354,9 @@ export async function saveTrainingPlan(
   groupId: string,
   trainingDate: string,
   values: TrainingPlanInput,
+  editLock: EditLockWriteGuard | null,
 ): Promise<string> {
-  const data = await callJsonRpc("save_athlete_training_plan", {
+  const data = await callJsonRpc("save_athlete_training_plan_v2", {
     p_organization_id: organizationId,
     p_plan_id: planId,
     p_athlete_id: athleteId,
@@ -363,9 +365,11 @@ export async function saveTrainingPlan(
     p_title: values.title,
     p_notes: values.notes,
     p_sections: values.sections.map(sectionToJson),
+    p_lock_token: editLock?.lockToken ?? null,
+    p_expected_updated_at: editLock?.expectedUpdatedAt ?? null,
   });
-  if (typeof data !== "string") {
+  if (!isRecord(data) || typeof data.id !== "string" || typeof data.updated_at !== "string") {
     throw new Error("Der Trainingsplan wurde gespeichert, aber die Rückgabe ist ungültig.");
   }
-  return data;
+  return data.id;
 }

@@ -1,7 +1,7 @@
 {
   "name": "ulc-linz-app-v2",
   "private": true,
-  "version": "0.3.0",
+  "version": "0.4.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -13,7 +13,12 @@
     "supabase:reset": "npx --yes supabase@2.109.1 db reset",
     "supabase:types:local": "npx --yes supabase@2.109.1 gen types typescript --local > src/types/database.generated.ts",
     "supabase:db:push": "npx --yes supabase@2.109.1 db push",
-    "supabase:functions:deploy": "npx --yes supabase@2.109.1 functions deploy invite-member"
+    "supabase:functions:deploy": "npx --yes supabase@2.109.1 functions deploy invite-member",
+    "package-a:verify": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/verify-package-a.ps1",
+    "test:smoke": "node --test scripts/smoke-test.mjs",
+    "verify": "npm run typecheck && npm run test:smoke",
+    "check:migrations": "node scripts/check-migrations.mjs",
+    "ci:quality": "npm run typecheck && npm run test:smoke && npm run check:migrations && npm run build"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.6",
@@ -29,5 +34,10 @@
     "@vitejs/plugin-react": "^6.0.3",
     "typescript": "^7.0.2",
     "vite": "^8.1.4"
+  },
+  "packageManager": "npm@10.9.2",
+  "engines": {
+    "node": ">=22.12.0 <23",
+    "npm": ">=10.9.0 <11"
   }
 }

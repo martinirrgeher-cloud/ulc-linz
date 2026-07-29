@@ -1736,6 +1736,16 @@ export type Database = {
         };
         Returns: string;
       };
+      assert_edit_lock_for_write: {
+        Args: {
+          p_organization_id: string;
+          p_entity_type: string;
+          p_entity_id: string;
+          p_lock_token: string;
+          p_expected_updated_at: string;
+        };
+        Returns: string;
+      };
       athlete_overview: {
         Args: {
           p_organization_id: string;
@@ -2291,6 +2301,21 @@ export type Database = {
         };
         Returns: string;
       };
+      save_athlete_training_plan_v2: {
+        Args: {
+          p_organization_id: string;
+          p_plan_id: string | null;
+          p_athlete_id: string;
+          p_group_id: string;
+          p_training_date: string;
+          p_title: string;
+          p_notes: string;
+          p_sections: Json;
+          p_lock_token: string | null;
+          p_expected_updated_at: string | null;
+        };
+        Returns: Json;
+      };
       save_dropdown_setting: {
         Args: {
           p_organization_id: string;
@@ -2342,6 +2367,27 @@ export type Database = {
           p_parameters?: Json;
         };
         Returns: string;
+      };
+      save_exercise_catalog_item_v3: {
+        Args: {
+          p_organization_id: string;
+          p_exercise_id?: string | null;
+          p_name?: string | null;
+          p_category_key?: string | null;
+          p_subcategory?: string | null;
+          p_goal?: string | null;
+          p_description?: string | null;
+          p_coaching_cues?: string | null;
+          p_common_mistakes?: string | null;
+          p_equipment?: string[];
+          p_video_url?: string | null;
+          p_is_active?: boolean;
+          p_group_ids?: string[];
+          p_parameters?: Json;
+          p_lock_token?: string | null;
+          p_expected_updated_at?: string | null;
+        };
+        Returns: Json;
       };
       save_kindertraining_session: {
         Args: {
@@ -2440,6 +2486,22 @@ export type Database = {
           p_items?: Json;
         };
         Returns: string;
+      };
+      save_training_block_v2: {
+        Args: {
+          p_organization_id: string;
+          p_block_id?: string | null;
+          p_name?: string | null;
+          p_goal?: string | null;
+          p_description?: string | null;
+          p_estimated_minutes?: number | null;
+          p_is_active?: boolean;
+          p_group_ids?: string[];
+          p_items?: Json;
+          p_lock_token?: string | null;
+          p_expected_updated_at?: string | null;
+        };
+        Returns: Json;
       };
       save_training_documentation: {
         Args: {
@@ -2748,6 +2810,23 @@ export type Database = {
           p_linked_user_id?: string;
         };
         Returns: undefined;
+      };
+      update_athlete_v4: {
+        Args: {
+          p_organization_id: string;
+          p_athlete_id: string;
+          p_first_name: string;
+          p_last_name: string;
+          p_birth_year: number | null;
+          p_notes: string | null;
+          p_is_active: boolean;
+          p_group_ids: string[];
+          p_contacts: Json;
+          p_linked_user_id: string | null;
+          p_lock_token: string;
+          p_expected_updated_at: string;
+        };
+        Returns: Json;
       };
       update_trainer: {
         Args: {

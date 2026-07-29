@@ -1,5 +1,6 @@
 import type { Json } from "@/types/database.generated";
 import { requireSupabase } from "@/lib/supabase";
+import type { EditLockWriteGuard } from "@/features/collaboration/edit-locks";
 import {
   type Exercise,
   type ExerciseCatalogData,
@@ -289,8 +290,9 @@ export async function saveExercise(
   organizationId: string,
   exerciseId: string | null,
   values: ExerciseInput,
+  editLock: EditLockWriteGuard | null,
 ): Promise<string> {
-  const data = await callJsonRpc("save_exercise_catalog_item_v2", {
+  const data = await callJsonRpc("save_exercise_catalog_item_v3", {
     p_organization_id: organizationId,
     p_exercise_id: exerciseId,
     p_name: values.name.trim(),
@@ -305,12 +307,14 @@ export async function saveExercise(
     p_is_active: values.isActive,
     p_group_ids: values.groupIds,
     p_parameters: parametersToJson(values.parameters),
+    p_lock_token: editLock?.lockToken ?? null,
+    p_expected_updated_at: editLock?.expectedUpdatedAt ?? null,
   });
 
-  if (typeof data !== "string") {
+  if (!isRecord(data) || typeof data.id !== "string" || typeof data.updated_at !== "string") {
     throw new Error("Die Übung wurde gespeichert, aber die Rückgabe ist ungültig.");
   }
-  return data;
+  return data.id;
 }
 
 export async function setExerciseFavorite(

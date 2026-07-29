@@ -1,4 +1,10 @@
 import {
+  acquireEditLock,
+  releaseEditLock,
+  type EditLockWriteGuard,
+  type LockableEntityType,
+} from "@/features/collaboration/edit-locks";
+import {
   createAthlete,
   loadAthleteManagement,
   updateAthlete,
@@ -45,6 +51,45 @@ const ATHLETE_SHEET = "Athleten";
 const CONTACT_SHEET = "Kontakte";
 const MIN_EXERCISE_PARAMETER_SLOTS = 4;
 const MIN_ATHLETE_CONTACT_SLOTS = 3;
+
+function createImportLockToken(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return `00000000-0000-4000-8000-${Date.now().toString(16).padStart(12, "0").slice(-12)}`;
+}
+
+async function withImportEditLock<T>(
+  organizationId: string,
+  entityType: LockableEntityType,
+  entityId: string,
+  expectedUpdatedAt: string,
+  action: (editLock: EditLockWriteGuard) => Promise<T>,
+): Promise<T> {
+  if (!expectedUpdatedAt) {
+    throw new Error("Die Datensatzversion fehlt. Bitte Importvorschau neu laden.");
+  }
+
+  const lockToken = createImportLockToken();
+  const lock = await acquireEditLock(
+    organizationId,
+    entityType,
+    entityId,
+    lockToken,
+    false,
+  );
+
+  if (!lock.acquired) {
+    const owner = lock.owner?.displayName ? ` durch ${lock.owner.displayName}` : "";
+    throw new Error(`Der Datensatz wird gerade${owner} bearbeitet. Import wurde für diese Zeile nicht ausgeführt.`);
+  }
+
+  try {
+    return await action({ lockToken, expectedUpdatedAt });
+  } finally {
+    await releaseEditLock(organizationId, entityType, entityId, lockToken).catch(() => undefined);
+  }
+}
 
 function normalized(value: string): string {
   return value.trim().toLocaleLowerCase("de-AT").replace(/\s+/g, " ");
@@ -646,7 +691,7 @@ export async function runExerciseImport(
       const importedParameters = row.value.parameters.length > 0
         ? mergeParameterDefinitions(base.parameters, parameterDefinitions(row.value.parameters, catalog))
         : base.parameters;
-      await saveExercise(organizationId, existing?.id ?? null, {
+      const exerciseValues = {
         ...base,
         name: row.value.name,
         categoryKey: category.key,
@@ -660,7 +705,19 @@ export async function runExerciseImport(
         videoUrl: row.value.videoUrl || base.videoUrl,
         isActive: row.value.isActive ?? base.isActive,
         parameters: importedParameters,
-      });
+      };
+
+      if (existing) {
+        await withImportEditLock(
+          organizationId,
+          "exercise",
+          existing.id,
+          existing.updatedAt,
+          (editLock) => saveExercise(organizationId, existing.id, exerciseValues, editLock),
+        );
+      } else {
+        await saveExercise(organizationId, null, exerciseValues, null);
+      }
       if (existing) results.updated += 1;
       else results.created += 1;
       results.rows.push({ rowNumber: row.rowNumber, label: row.label, action: row.action, success: true, message: existing ? "Aktualisiert." : "Neu angelegt." });
@@ -714,11 +771,30 @@ export async function runAthleteImport(
         contacts: row.value.contacts.length > 0 ? mergeAthleteContacts(existing?.contacts ?? [], row.value.contacts) : existing?.contacts ?? [],
       };
       if (existing) {
-        await updateAthlete(organizationId, existing.id, values);
+        await withImportEditLock(
+          organizationId,
+          "athlete",
+          existing.id,
+          existing.updatedAt,
+          (editLock) => updateAthlete(organizationId, existing.id, values, editLock),
+        );
         results.updated += 1;
       } else {
         const athleteId = await createAthlete(organizationId, values);
-        if (!values.isActive) await updateAthlete(organizationId, athleteId, values);
+        if (!values.isActive) {
+          const refreshed = await loadAthleteManagement(organizationId, false);
+          const createdAthlete = refreshed.athletes.find((athlete) => athlete.id === athleteId);
+          if (!createdAthlete) {
+            throw new Error("Der neu angelegte Athlet konnte für die Deaktivierung nicht erneut geladen werden.");
+          }
+          await withImportEditLock(
+            organizationId,
+            "athlete",
+            athleteId,
+            createdAthlete.updatedAt,
+            (editLock) => updateAthlete(organizationId, athleteId, values, editLock),
+          );
+        }
         results.created += 1;
       }
       results.rows.push({ rowNumber: row.rowNumber, label: row.label, action: row.action, success: true, message: existing ? "Aktualisiert." : "Neu angelegt." });

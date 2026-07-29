@@ -5,6 +5,7 @@ import {
   releaseEditLock,
   renewEditLock,
   type EditLockOwner,
+  type EditLockWriteGuard,
   type LockableEntityType,
 } from "@/features/collaboration/edit-locks";
 
@@ -32,6 +33,7 @@ export type EditLockState = {
   isEditable: boolean;
   retry: () => Promise<void>;
   forceAcquire: () => Promise<void>;
+  getWriteGuard: () => EditLockWriteGuard | null;
   validateBeforeSave: () => Promise<void>;
 };
 
@@ -195,6 +197,20 @@ export function useEditLock({
   const retry = useCallback(async () => acquire(false), [acquire]);
   const forceAcquire = useCallback(async () => acquire(true), [acquire]);
 
+  const getWriteGuard = useCallback((): EditLockWriteGuard | null => {
+    if (!enabled || !organizationId || !entityId) return null;
+    if (status !== "acquired") {
+      throw new Error("Dieser Datensatz ist derzeit nicht für dich zur Bearbeitung reserviert.");
+    }
+    if (!expectedUpdatedAt) {
+      throw new Error("Die Datensatzversion fehlt. Bitte Datensatz neu laden.");
+    }
+    return {
+      lockToken: tokenRef.current,
+      expectedUpdatedAt,
+    };
+  }, [enabled, entityId, expectedUpdatedAt, organizationId, status]);
+
   const validateBeforeSave = useCallback(async () => {
     if (!enabled || !organizationId || !entityId) return;
     if (status !== "acquired") {
@@ -217,6 +233,7 @@ export function useEditLock({
     isEditable: !enabled || status === "acquired",
     retry,
     forceAcquire,
+    getWriteGuard,
     validateBeforeSave,
-  }), [canForce, enabled, error, forceAcquire, owner, retry, status, validateBeforeSave]);
+  }), [canForce, enabled, error, forceAcquire, getWriteGuard, owner, retry, status, validateBeforeSave]);
 }

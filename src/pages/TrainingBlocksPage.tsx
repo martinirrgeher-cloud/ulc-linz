@@ -207,8 +207,8 @@ export function TrainingBlocksPage() {
     setError(null);
     setSuccess(null);
     try {
-      await blockLock.validateBeforeSave();
-      await saveTrainingBlock(organizationId, editorBlock?.id ?? null, values);
+      const editLock = blockLock.getWriteGuard();
+      await saveTrainingBlock(organizationId, editorBlock?.id ?? null, values, editLock);
       setEditorBlock(undefined);
       setSuccess(editorBlock ? "Der Trainingsblock wurde gespeichert." : "Der Trainingsblock wurde angelegt.");
       await loadData();

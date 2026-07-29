@@ -23,6 +23,11 @@ export type AcquireEditLockResult = {
   canForce: boolean;
 };
 
+export type EditLockWriteGuard = {
+  lockToken: string;
+  expectedUpdatedAt: string;
+};
+
 type JsonRpcResponse = {
   data: Json;
   error: { message?: string } | null;

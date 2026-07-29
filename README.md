@@ -1,92 +1,103 @@
-# ULC Linz App V2 – Version 0.3.0
+# ULC Linz App V2 – Version 0.4.0
 
-Neustart der Vereins-App mit React, TypeScript, Supabase Auth und PostgreSQL. Die alte Google-Drive-/JSON-Version dient ausschließlich als fachliche Referenz.
+Mobile-First-Vereins-App des ULC Linz Oberbank auf Basis von React, TypeScript,
+Supabase Auth und PostgreSQL.
 
-## Umgesetzt
+## Funktionsbereiche
 
-### Technisches Fundament
+- Anmeldung und Anwesenheit: Kindertraining, U12, U14 und Leistungsgruppen
+- Trainingsplanung pro Athlet und Trainingstag
+- Trainingsplan-Wochenübersicht
+- Übungskatalog und wiederverwendbare Trainingsblöcke
+- Trainingsdokumentation mit Soll-Ist-Vergleich, Rückmeldung und Auswertung
+- Athleten, Trainer, Gruppen, Benutzer und Modulrechte
+- Excel-Import und -Export für Übungen und Athleten
+- Statistiken für Kindertraining, U12 und U14
+- praktische Werkzeuge unter „Nützliches“, beginnend mit dem Intervall-Countdown
 
-- React, Vite und TypeScript ohne Tailwind
-- Supabase Auth mit E-Mail und Passwort
-- Passwort-Reset und automatische Sitzungswiederherstellung
-- Verein, Profile, Rollen und Modulrechte
-- Row Level Security für alle öffentlichen Tabellen
-- geschützte Routen und modulabhängige Startseite
-- mobile, grün dominierte Oberfläche
+Kindertraining, U12 und U14 bleiben bewusst eigenständige Fachmodule. Dadurch können
+sie künftig unabhängig voneinander erweitert werden.
 
-### Benutzerverwaltung V1
+## Entwicklung
 
-- Benutzerübersicht für Administratoren
-- Benutzer über eine Supabase Edge Function einladen
-- Rollen `admin`, `trainer`, `athlete` und `parent`
-- Status `invited`, `active` und `disabled`
-- Lese- und Bearbeitungsrechte je Modul
-- Schutz des letzten aktiven Administrators
-- Audit-Protokoll für Einladungen und Rechteänderungen
+Voraussetzungen:
 
-### Athleten und Trainingsgruppen V1
+- Node.js 22.16.0 (mindestens 22.12, kleiner als 23)
+- npm 10.9.x
+- lokale Konfiguration auf Basis von `.env.example`
 
-- zentrale Athletenstammdaten
-- Geburtsjahr statt vollständigem Geburtsdatum zur Datenminimierung
-- aktive und inaktive Athleten ohne Datenverlust
-- zentrale Trainingsgruppen mit Kurzbezeichnung, Beschreibung und Sortierung
-- mehrere gleichzeitige Gruppenzuordnungen pro Athlet
-- historische Speicherung beendeter Gruppenzuordnungen
-- Suche, Filter und Sortierung
-- getrennte Lese- und Bearbeitungsrechte
-- Audit-Protokoll für Änderungen
-- gemeinsame Datenbasis für Kindertraining, Leistungsgruppe und Trainingsplanung
+```powershell
+cd "C:\ULC Linz App"
+copy .env.example .env.local
+npm.cmd ci
+npm.cmd run dev
+```
 
-## Aktualisierung von Version 0.2.0
+Produktions-Build:
 
-1. Entwicklungsserver mit `Strg + C` beenden.
-2. Die Dateien des Update-Pakets in den bestehenden Projektordner kopieren.
-3. Vorhandene Dateien ersetzen lassen.
-4. Im Supabase SQL Editor ausschließlich die neue Migration ausführen:
+```powershell
+npm.cmd run build
+```
+
+TypeScript- und Smoke-Prüfung:
+
+```powershell
+npm.cmd run verify
+```
+
+Vollständige lokale Qualitätsprüfung wie in GitHub Actions:
+
+```powershell
+npm.cmd run ci:quality
+```
+
+Die GitHub-Aktion `.github/workflows/quality-check.yml` führt diese Prüfung bei
+jedem Push und bei jedem Pull Request mit der festgelegten Node-Version aus.
+
+Die Smoke-Tests prüfen insbesondere:
+
+- eindeutige Modulschlüssel und Routen
+- vorhandene Route für jedes konfigurierte Modul
+- route-basiertes Lazy Loading
+- vereinbarte Kernfunktionen des Intervall-Countdowns
+
+## Supabase
+
+Alle produktiv verwendeten Migrationen liegen vollständig und in Reihenfolge unter:
 
 ```text
-supabase/migrations/202607160003_athletes_and_groups.sql
+supabase/migrations
 ```
 
-5. App wieder starten:
+Die vollständige lokale Wiederherstellung benötigt Docker Desktop:
 
 ```powershell
-npm.cmd run dev
+npm.cmd run package-a:verify
 ```
 
-Die Abhängigkeiten haben sich nicht geändert. `npm install` ist für dieses Update nicht erforderlich.
+Das Skript startet Supabase lokal, setzt die Datenbank aus allen Migrationen neu auf,
+generiert die Datenbanktypen und führt den Produktions-Build aus.
 
-## Neue Installation
+## Sicherheit
 
-Im Supabase SQL Editor nacheinander ausführen:
+- Im Browser wird ausschließlich der Supabase Publishable Key verwendet.
+- Row Level Security schützt die öffentlichen Tabellen.
+- Schreibvorgänge laufen über kontrollierte Datenbankfunktionen und Modulrechte.
+- Lokale Entwürfe der Trainingsdokumentation werden beim Abmelden beziehungsweise
+  bei ungültigen Sitzungen bereinigt und laufen nach sieben Tagen ab.
+- Ein zentraler React-Fehlerfang verhindert eine vollständig leere Seite.
+- `.env.local`, ZIP-, Patch- und Sicherungsdateien werden nicht eingecheckt.
 
-1. `202607160001_foundation.sql`
-2. `202607160002_user_management.sql`
-3. `202607160003_athletes_and_groups.sql`
+## Paket C
 
-Danach `.env.example` nach `.env.local` kopieren und die Supabase-Verbindungsdaten eintragen.
+Paket C ergänzt:
 
-```powershell
-npm.cmd install --no-audit --no-fund
-npm.cmd run dev
-```
-
-## Sicherheit und Datenmodell
-
-- Der Browser erhält ausschließlich den Supabase Publishable Key.
-- Schreibvorgänge für Athleten und Gruppen laufen über kontrollierte Datenbankfunktionen.
-- Row Level Security schützt lesende Zugriffe direkt in PostgreSQL.
-- Nur Benutzer mit Bearbeitungsrecht im Modul `Athleten` dürfen Stammdaten verändern.
-- Andere fachliche Module können die gemeinsamen Stammdaten nur lesen, wenn ihr Modul freigeschaltet wurde.
-- Datensätze werden deaktiviert statt gelöscht, damit spätere Statistiken und Zuordnungen erhalten bleiben.
-- Gruppenzuordnungen besitzen einen Zeitraum und werden historisch nicht überschrieben.
-
-## Nächster Entwicklungsschritt
-
-Als nächstes folgt das Kindertraining auf Basis der gemeinsamen Athleten- und Gruppendaten:
-
-- Trainingstermine und regelmäßige Wochentage
-- Anwesenheit
-- Tagesnotizen
-- Monats- und Wochenansicht
-- Statistik
+- übersichtlichere Modulgruppen „Anmeldung“, „Trainingsdokumentation“ und „Nützliches“
+- route-basiertes Lazy Loading für kleinere initiale Downloads am Handy
+- Intervall-Countdown mit Belastung, Pause, Übungsanzahl und Sprachansagen
+- frei wählbare Zwischenansagen für Belastung und Pause
+- automatisches Einzählen der letzten fünf Sekunden
+- optionale Ansage der verbleibenden Übungen
+- Pause, Fortsetzen und Beenden
+- Wake Lock, soweit vom Browser unterstützt
+- erste automatisierte Smoke-Tests ohne zusätzliche Testbibliothek

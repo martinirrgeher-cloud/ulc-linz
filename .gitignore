@@ -8,3 +8,9 @@ dist
 .DS_Store
 
 supabase/.temp/
+
+# Lokale Update- und Sicherungsdateien
+*.patch
+*.zip
+_patch_backup/
+_v1/

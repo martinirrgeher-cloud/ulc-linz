@@ -266,8 +266,8 @@ export function AthleteManagementPage() {
         await createAthlete(activeOrganizationId, values);
         setSuccess("Der Athlet wurde angelegt.");
       } else {
-        await athleteLock.validateBeforeSave();
-        await updateAthlete(activeOrganizationId, athleteEditor.athlete.id, values);
+        const editLock = athleteLock.getWriteGuard();
+        await updateAthlete(activeOrganizationId, athleteEditor.athlete.id, values, editLock);
         setSuccess("Die Athletendaten wurden gespeichert.");
       }
       setAthleteEditor(null);

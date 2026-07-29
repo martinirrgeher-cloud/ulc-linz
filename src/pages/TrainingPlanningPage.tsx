@@ -260,7 +260,7 @@ export function TrainingPlanningPage() {
     setError(null);
     setSuccess(null);
     try {
-      await planLock.validateBeforeSave();
+      const editLock = planLock.getWriteGuard();
       const planId = await saveTrainingPlan(
         organizationId,
         plan?.id ?? null,
@@ -268,6 +268,7 @@ export function TrainingPlanningPage() {
         groupId,
         trainingDate,
         values,
+        editLock,
       );
       const [loadedPlan, overview] = await Promise.all([
         loadTrainingPlan(organizationId, planId),

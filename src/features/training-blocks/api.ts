@@ -1,4 +1,5 @@
 import type { Json } from "@/types/database.generated";
+import type { EditLockWriteGuard } from "@/features/collaboration/edit-locks";
 import { requireSupabase } from "@/lib/supabase";
 import {
   type ExerciseParameterDefinition,
@@ -249,6 +250,7 @@ export async function saveTrainingBlock(
   organizationId: string,
   blockId: string | null,
   values: TrainingBlockInput,
+  editLock: EditLockWriteGuard | null,
 ): Promise<string> {
   const estimatedMinutes = values.estimatedMinutes.trim()
     ? Number.parseInt(values.estimatedMinutes, 10)
@@ -258,7 +260,7 @@ export async function saveTrainingBlock(
     throw new Error("Die geschätzte Dauer ist ungültig.");
   }
 
-  const data = await callJsonRpc("save_training_block", {
+  const data = await callJsonRpc("save_training_block_v2", {
     p_organization_id: organizationId,
     p_block_id: blockId,
     p_name: values.name.trim(),
@@ -268,12 +270,14 @@ export async function saveTrainingBlock(
     p_is_active: values.isActive,
     p_group_ids: values.groupIds,
     p_items: itemsToJson(values),
+    p_lock_token: editLock?.lockToken ?? null,
+    p_expected_updated_at: editLock?.expectedUpdatedAt ?? null,
   });
 
-  if (typeof data !== "string") {
+  if (!isRecord(data) || typeof data.id !== "string" || typeof data.updated_at !== "string") {
     throw new Error("Der Trainingsblock wurde gespeichert, aber die Rückgabe ist ungültig.");
   }
-  return data;
+  return data.id;
 }
 
 export async function duplicateTrainingBlock(

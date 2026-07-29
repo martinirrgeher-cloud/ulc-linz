@@ -1,5 +1,6 @@
 import { requireSupabase } from "@/lib/supabase";
 import type { Json } from "@/types/database.generated";
+import type { EditLockWriteGuard } from "@/features/collaboration/edit-locks";
 import type {
   Athlete,
   AthleteContact,
@@ -296,8 +297,9 @@ export async function updateAthlete(
   organizationId: string,
   athleteId: string,
   values: AthleteInput,
+  editLock: EditLockWriteGuard | null,
 ): Promise<void> {
-  await callJsonRpc("update_athlete_v3", {
+  const data = await callJsonRpc("update_athlete_v4", {
     p_organization_id: organizationId,
     p_athlete_id: athleteId,
     p_first_name: values.firstName.trim(),
@@ -308,7 +310,13 @@ export async function updateAthlete(
     p_group_ids: values.groupIds,
     p_contacts: contactsToJson(values.contacts),
     p_linked_user_id: values.linkedUserId,
+    p_lock_token: editLock?.lockToken ?? null,
+    p_expected_updated_at: editLock?.expectedUpdatedAt ?? null,
   });
+
+  if (!isRecord(data) || typeof data.id !== "string" || typeof data.updated_at !== "string") {
+    throw new Error("Der Athlet wurde gespeichert, aber die Rückgabe ist ungültig.");
+  }
 }
 
 export async function createTrainingGroup(

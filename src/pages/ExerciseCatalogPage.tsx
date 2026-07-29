@@ -184,8 +184,8 @@ export function ExerciseCatalogPage() {
     setError(null);
     setSuccess(null);
     try {
-      await exerciseLock.validateBeforeSave();
-      await saveExercise(organizationId, editorExercise?.id ?? null, values);
+      const editLock = exerciseLock.getWriteGuard();
+      await saveExercise(organizationId, editorExercise?.id ?? null, values, editLock);
       setEditorExercise(undefined);
       setSuccess(editorExercise ? "Die Übung wurde gespeichert." : "Die Übung wurde angelegt.");
       await loadData();
