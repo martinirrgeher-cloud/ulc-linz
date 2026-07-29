@@ -113,7 +113,8 @@ test("Speicher-RPCs prüfen Sperre und Version atomar", () => {
   assert.ok(atomicEditLockMigrationSource.includes("pg_advisory_xact_lock"));
   assert.ok(atomicEditLockMigrationSource.includes("for update"));
   assert.ok(atomicEditLockMigrationSource.includes("p_expected_updated_at"));
-  assert.ok(importSource.includes("withImportEditLock"), "Datenimport berücksichtigt Bearbeitungssperren nicht.");
+  assert.ok(importSource.includes("applyExerciseImport"), "Übungsimport verwendet den transaktionalen Batch-RPC nicht.");
+  assert.ok(importSource.includes("applyAthleteImport"), "Athletenimport verwendet den transaktionalen Batch-RPC nicht.");
 });
 
 
@@ -179,3 +180,25 @@ test("Auth-Kontext trennt fehlende Berechtigung von Verbindungsfehlern", () => {
   assert.ok(connectionErrorPageSource.includes("Erneut versuchen"));
   assert.ok(appSource.includes('path="/verbindungsfehler"'));
 });
+
+const dataImportApiSource = await readFile(new URL("../src/features/data-import/api.ts", import.meta.url), "utf8");
+const dataImportPageSource = await readFile(new URL("../src/pages/DataImportPage.tsx", import.meta.url), "utf8");
+const workbookSource = await readFile(new URL("../src/features/data-import/workbook.ts", import.meta.url), "utf8");
+const transactionalImportMigrationSource = await readFile(new URL("../supabase/migrations/202607290029_transactional_data_import.sql", import.meta.url), "utf8");
+
+test("Datenimport ist begrenzt, idempotent und transaktional", () => {
+  assert.ok(dataImportApiSource.includes('apply_exercise_import_v1'));
+  assert.ok(dataImportApiSource.includes('apply_athlete_import_v1'));
+  assert.ok(dataImportPageSource.includes("importRunId"), "Idempotente Import-ID fehlt.");
+  assert.doesNotMatch(dataImportPageSource, /\.xls,/);
+  assert.ok(workbookSource.includes("MAX_IMPORT_FILE_BYTES"));
+  assert.ok(workbookSource.includes("MAX_UNCOMPRESSED_BYTES"));
+  assert.ok(workbookSource.includes("MAX_WORKBOOK_ROWS"));
+  assert.ok(transactionalImportMigrationSource.includes("public.data_import_runs"));
+  assert.ok(transactionalImportMigrationSource.includes("public.assert_import_entity_available"));
+  assert.ok(transactionalImportMigrationSource.includes("pg_advisory_xact_lock"));
+  assert.ok(transactionalImportMigrationSource.includes("apply_exercise_import_v1"));
+  assert.ok(transactionalImportMigrationSource.includes("apply_athlete_import_v1"));
+  assert.ok(transactionalImportMigrationSource.includes("Der gesamte Import wurde abgebrochen"));
+});
+

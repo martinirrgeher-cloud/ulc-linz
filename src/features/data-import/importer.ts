@@ -1,33 +1,17 @@
-import {
-  acquireEditLock,
-  releaseEditLock,
-  type EditLockWriteGuard,
-  type LockableEntityType,
-} from "@/features/collaboration/edit-locks";
-import {
-  createAthlete,
-  loadAthleteManagement,
-  updateAthlete,
-} from "@/features/athletes/api";
+import { loadAthleteManagement } from "@/features/athletes/api";
 import type {
   Athlete,
   AthleteContact,
   LinkableUser,
   TrainingGroup,
 } from "@/features/athletes/types";
-import {
-  loadDropdownSettings,
-  saveDropdownSetting,
-} from "@/features/dropdown-settings/api";
+import { applyAthleteImport, applyExerciseImport, type PreparedImportRow, type PreparedMissingOption } from "@/features/data-import/api";
+import { loadDropdownSettings } from "@/features/dropdown-settings/api";
 import type {
   DropdownListKey,
-  DropdownSettingInput,
   DropdownSettingsData,
 } from "@/features/dropdown-settings/types";
-import {
-  loadExerciseCatalog,
-  saveExercise,
-} from "@/features/exercise-catalog/api";
+import { loadExerciseCatalog } from "@/features/exercise-catalog/api";
 import {
   createEmptyExerciseInput,
   exerciseToInput,
@@ -51,45 +35,6 @@ const ATHLETE_SHEET = "Athleten";
 const CONTACT_SHEET = "Kontakte";
 const MIN_EXERCISE_PARAMETER_SLOTS = 4;
 const MIN_ATHLETE_CONTACT_SLOTS = 3;
-
-function createImportLockToken(): string {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
-    return crypto.randomUUID();
-  }
-  return `00000000-0000-4000-8000-${Date.now().toString(16).padStart(12, "0").slice(-12)}`;
-}
-
-async function withImportEditLock<T>(
-  organizationId: string,
-  entityType: LockableEntityType,
-  entityId: string,
-  expectedUpdatedAt: string,
-  action: (editLock: EditLockWriteGuard) => Promise<T>,
-): Promise<T> {
-  if (!expectedUpdatedAt) {
-    throw new Error("Die Datensatzversion fehlt. Bitte Importvorschau neu laden.");
-  }
-
-  const lockToken = createImportLockToken();
-  const lock = await acquireEditLock(
-    organizationId,
-    entityType,
-    entityId,
-    lockToken,
-    false,
-  );
-
-  if (!lock.acquired) {
-    const owner = lock.owner?.displayName ? ` durch ${lock.owner.displayName}` : "";
-    throw new Error(`Der Datensatz wird gerade${owner} bearbeitet. Import wurde für diese Zeile nicht ausgeführt.`);
-  }
-
-  try {
-    return await action({ lockToken, expectedUpdatedAt });
-  } finally {
-    await releaseEditLock(organizationId, entityType, entityId, lockToken).catch(() => undefined);
-  }
-}
 
 function normalized(value: string): string {
   return value.trim().toLocaleLowerCase("de-AT").replace(/\s+/g, " ");
@@ -568,27 +513,10 @@ export function createAthletePreview(
   return rows;
 }
 
-function dropdownInput(
-  label: string,
-  listKey: DropdownListKey,
-  parameter?: ExerciseParameterImport,
-): DropdownSettingInput {
-  return {
-    label,
-    unit: listKey === "planning_parameter" ? parameter?.unit ?? "" : "",
-    inputType: listKey === "planning_parameter" ? parameter?.inputType || "number" : "text",
-    stepValue: listKey === "planning_parameter" && parameter?.inputType !== "text"
-      ? String(parameter?.stepValue ?? 1)
-      : "",
-    sortOrder: String(parameter?.sortOrder ?? 100),
-  };
-}
-
-async function createMissingOptions(
-  organizationId: string,
+function collectMissingOptions(
   rows: ImportPreviewRow<ExerciseImportDraft>[],
   settings: DropdownSettingsData,
-): Promise<void> {
+): PreparedMissingOption[] {
   const existing = {
     category: new Set(settings.category.map((item) => normalized(item.label))),
     subcategory: new Set(settings.subcategory.map((item) => normalized(item.label))),
@@ -596,13 +524,19 @@ async function createMissingOptions(
     planning_parameter: new Set(settings.planning_parameter.map((item) => normalized(item.label))),
   };
   const queue: Array<{ listKey: DropdownListKey; label: string; parameter?: ExerciseParameterImport }> = [];
+
   rows.filter((row) => row.action !== "skip" && row.errors.length === 0).forEach((row) => {
     const values: Array<{ listKey: DropdownListKey; label: string; parameter?: ExerciseParameterImport }> = [
       { listKey: "category", label: row.value.category },
       ...(row.value.subcategory ? [{ listKey: "subcategory" as const, label: row.value.subcategory }] : []),
       ...row.value.equipment.map((label) => ({ listKey: "material" as const, label })),
-      ...row.value.parameters.map((parameter) => ({ listKey: "planning_parameter" as const, label: parameter.label, parameter })),
+      ...row.value.parameters.map((parameter) => ({
+        listKey: "planning_parameter" as const,
+        label: parameter.label,
+        parameter,
+      })),
     ];
+
     values.forEach((value) => {
       const key = normalized(value.label);
       if (!key || existing[value.listKey].has(key)) return;
@@ -610,9 +544,18 @@ async function createMissingOptions(
       queue.push(value);
     });
   });
-  for (const item of queue) {
-    await saveDropdownSetting(organizationId, item.listKey, null, dropdownInput(item.label, item.listKey, item.parameter));
-  }
+
+  return queue.map((item) => ({
+    list_key: item.listKey,
+    label: item.label,
+    option_key: item.listKey === "planning_parameter" ? item.parameter?.key || null : null,
+    unit: item.listKey === "planning_parameter" ? item.parameter?.unit ?? "" : "",
+    input_type: item.listKey === "planning_parameter" ? item.parameter?.inputType || "number" : "text",
+    step_value: item.listKey === "planning_parameter" && item.parameter?.inputType !== "text"
+      ? item.parameter?.stepValue ?? 1
+      : null,
+    sort_order: item.parameter?.sortOrder ?? 100,
+  }));
 }
 
 function mapGroups(groupNames: string[], groups: Array<{ id: string; name: string; shortName: string | null }>): string[] {
@@ -633,9 +576,8 @@ function parameterDefinitions(
   const options = uniqueMap(catalog.parameterOptions, (option) => option.label);
   return parameters.map((parameter, index) => {
     const option = options.get(normalized(parameter.label));
-    const generatedKey = normalized(parameter.label).replace(/[^a-z0-9]+/g, "_") || `parameter_${index + 1}`;
     return {
-      key: parameter.key || option?.key || generatedKey,
+      key: parameter.key || option?.key || "",
       label: option?.label ?? parameter.label,
       unit: parameter.unit || option?.unit || "",
       inputType: parameter.inputType || option?.inputType || "number",
@@ -662,71 +604,86 @@ function mergeParameterDefinitions(
   return merged.sort((left, right) => left.sortOrder - right.sortOrder);
 }
 
+function preparedParameters(parameters: ExerciseParameterDefinition[]): Array<Record<string, unknown>> {
+  return [...parameters]
+    .sort((left, right) => left.sortOrder - right.sortOrder)
+    .map((parameter, index) => ({
+      parameter_key: parameter.key,
+      label: parameter.label.trim(),
+      unit: parameter.unit.trim(),
+      input_type: parameter.inputType,
+      default_value: parameter.defaultValue.trim() || null,
+      min_value: parameter.minValue,
+      max_value: parameter.maxValue,
+      step_value: parameter.stepValue,
+      is_required: parameter.isRequired,
+      sort_order: index + 1,
+    }));
+}
+
 export async function runExerciseImport(
   organizationId: string,
+  importId: string,
   rows: ImportPreviewRow<ExerciseImportDraft>[],
   createOptions: boolean,
 ): Promise<ImportRunResult> {
-  let catalog = await loadExerciseCatalog(organizationId, true);
-  if (createOptions) {
-    const settings = await loadDropdownSettings(organizationId);
-    await createMissingOptions(organizationId, rows, settings);
-    catalog = await loadExerciseCatalog(organizationId, true);
-  }
+  const catalog = await loadExerciseCatalog(organizationId, true);
+  const settings = createOptions ? await loadDropdownSettings(organizationId) : null;
+  const missingOptions = settings ? collectMissingOptions(rows, settings) : [];
   const categoryMap = uniqueMap(catalog.categories, (item) => item.title);
   const exerciseMap = new Map(catalog.exercises.map((item) => [item.id, item]));
-  const results: ImportRunResult = { created: 0, updated: 0, skipped: 0, failed: 0, rows: [] };
 
-  for (const row of rows) {
+  const preparedRows: PreparedImportRow[] = rows.map((row) => {
     if (row.action === "skip" || row.errors.length > 0) {
-      results.skipped += 1;
-      results.rows.push({ rowNumber: row.rowNumber, label: row.label, action: "skip", success: true, message: row.errors.length ? row.errors.join(" ") : "Übersprungen." });
-      continue;
-    }
-    try {
-      const existing: Exercise | null = row.existingId ? exerciseMap.get(row.existingId) ?? null : null;
-      const category = categoryMap.get(normalized(row.value.category));
-      if (!category) throw new Error(`Kategorie „${row.value.category}“ wurde nicht gefunden.`);
-      const base = existing ? exerciseToInput(existing) : createEmptyExerciseInput(category.key);
-      const importedParameters = row.value.parameters.length > 0
-        ? mergeParameterDefinitions(base.parameters, parameterDefinitions(row.value.parameters, catalog))
-        : base.parameters;
-      const exerciseValues = {
-        ...base,
-        name: row.value.name,
-        categoryKey: category.key,
-        subcategory: row.value.subcategory || base.subcategory,
-        goal: row.value.goal || base.goal,
-        description: row.value.description || base.description,
-        coachingCues: row.value.coachingCues || base.coachingCues,
-        commonMistakes: row.value.commonMistakes || base.commonMistakes,
-        equipment: row.value.equipment.length > 0 ? row.value.equipment : base.equipment,
-        groupIds: row.value.groupNames.length > 0 ? mapGroups(row.value.groupNames, catalog.groups) : base.groupIds,
-        videoUrl: row.value.videoUrl || base.videoUrl,
-        isActive: row.value.isActive ?? base.isActive,
-        parameters: importedParameters,
+      return {
+        row_number: row.rowNumber,
+        label: row.label,
+        action: "skip",
+        skip_message: row.errors.length > 0 ? row.errors.join(" ") : "Übersprungen.",
       };
-
-      if (existing) {
-        await withImportEditLock(
-          organizationId,
-          "exercise",
-          existing.id,
-          existing.updatedAt,
-          (editLock) => saveExercise(organizationId, existing.id, exerciseValues, editLock),
-        );
-      } else {
-        await saveExercise(organizationId, null, exerciseValues, null);
-      }
-      if (existing) results.updated += 1;
-      else results.created += 1;
-      results.rows.push({ rowNumber: row.rowNumber, label: row.label, action: row.action, success: true, message: existing ? "Aktualisiert." : "Neu angelegt." });
-    } catch (error) {
-      results.failed += 1;
-      results.rows.push({ rowNumber: row.rowNumber, label: row.label, action: row.action, success: false, message: error instanceof Error ? error.message : "Import fehlgeschlagen." });
     }
-  }
-  return results;
+
+    const existing: Exercise | null = row.existingId ? exerciseMap.get(row.existingId) ?? null : null;
+    if (row.action === "update" && !existing) {
+      throw new Error(`Zeile ${row.rowNumber}: Die bestehende Übung wurde nicht mehr gefunden. Bitte Vorschau neu laden.`);
+    }
+
+    const category = categoryMap.get(normalized(row.value.category));
+    if (!category && !createOptions) {
+      throw new Error(`Zeile ${row.rowNumber}: Kategorie „${row.value.category}“ wurde nicht gefunden.`);
+    }
+
+    const base = existing ? exerciseToInput(existing) : createEmptyExerciseInput(category?.key ?? "");
+    const importedParameters = row.value.parameters.length > 0
+      ? mergeParameterDefinitions(base.parameters, parameterDefinitions(row.value.parameters, catalog))
+      : base.parameters;
+
+    const values = {
+      name: row.value.name,
+      category_label: row.value.category,
+      subcategory: row.value.subcategory || base.subcategory || null,
+      goal: row.value.goal || base.goal || null,
+      description: row.value.description || base.description || null,
+      coaching_cues: row.value.coachingCues || base.coachingCues || null,
+      common_mistakes: row.value.commonMistakes || base.commonMistakes || null,
+      equipment: row.value.equipment.length > 0 ? row.value.equipment : base.equipment,
+      group_ids: row.value.groupNames.length > 0 ? mapGroups(row.value.groupNames, catalog.groups) : base.groupIds,
+      video_url: row.value.videoUrl || base.videoUrl || null,
+      is_active: row.value.isActive ?? base.isActive,
+      parameters: preparedParameters(importedParameters),
+    };
+
+    return {
+      row_number: row.rowNumber,
+      label: row.label,
+      action: row.action,
+      existing_id: existing?.id ?? null,
+      expected_updated_at: existing?.updatedAt ?? null,
+      values,
+    } as PreparedImportRow;
+  });
+
+  return applyExerciseImport(organizationId, importId, preparedRows, missingOptions);
 }
 
 function mergeAthleteContacts(existing: AthleteContact[], imported: AthleteContact[]): AthleteContact[] {
@@ -744,66 +701,64 @@ function mergeAthleteContacts(existing: AthleteContact[], imported: AthleteConta
 
 export async function runAthleteImport(
   organizationId: string,
+  importId: string,
   rows: ImportPreviewRow<AthleteImportDraft>[],
 ): Promise<ImportRunResult> {
   const data = await loadAthleteManagement(organizationId, true);
   const athleteMap = new Map(data.athletes.map((athlete) => [athlete.id, athlete]));
   const userMap = uniqueMap(data.linkableUsers, (user) => user.email);
-  const results: ImportRunResult = { created: 0, updated: 0, skipped: 0, failed: 0, rows: [] };
 
-  for (const row of rows) {
+  const preparedRows: PreparedImportRow[] = rows.map((row) => {
     if (row.action === "skip" || row.errors.length > 0) {
-      results.skipped += 1;
-      results.rows.push({ rowNumber: row.rowNumber, label: row.label, action: "skip", success: true, message: row.errors.length ? row.errors.join(" ") : "Übersprungen." });
-      continue;
-    }
-    try {
-      const existing = row.existingId ? athleteMap.get(row.existingId) ?? null : null;
-      const linkedUser = row.value.linkedUserEmail ? userMap.get(normalized(row.value.linkedUserEmail)) : null;
-      const values = {
-        firstName: row.value.firstName,
-        lastName: row.value.lastName,
-        birthYear: row.value.birthYear,
-        notes: row.value.notes || existing?.notes || "",
-        isActive: row.value.isActive ?? existing?.isActive ?? true,
-        linkedUserId: linkedUser?.userId ?? existing?.linkedUserId ?? null,
-        groupIds: row.value.groupNames.length > 0 ? mapGroups(row.value.groupNames, data.groups) : existing?.groups.map((group) => group.id) ?? [],
-        contacts: row.value.contacts.length > 0 ? mergeAthleteContacts(existing?.contacts ?? [], row.value.contacts) : existing?.contacts ?? [],
+      return {
+        row_number: row.rowNumber,
+        label: row.label,
+        action: "skip",
+        skip_message: row.errors.length > 0 ? row.errors.join(" ") : "Übersprungen.",
       };
-      if (existing) {
-        await withImportEditLock(
-          organizationId,
-          "athlete",
-          existing.id,
-          existing.updatedAt,
-          (editLock) => updateAthlete(organizationId, existing.id, values, editLock),
-        );
-        results.updated += 1;
-      } else {
-        const athleteId = await createAthlete(organizationId, values);
-        if (!values.isActive) {
-          const refreshed = await loadAthleteManagement(organizationId, false);
-          const createdAthlete = refreshed.athletes.find((athlete) => athlete.id === athleteId);
-          if (!createdAthlete) {
-            throw new Error("Der neu angelegte Athlet konnte für die Deaktivierung nicht erneut geladen werden.");
-          }
-          await withImportEditLock(
-            organizationId,
-            "athlete",
-            athleteId,
-            createdAthlete.updatedAt,
-            (editLock) => updateAthlete(organizationId, athleteId, values, editLock),
-          );
-        }
-        results.created += 1;
-      }
-      results.rows.push({ rowNumber: row.rowNumber, label: row.label, action: row.action, success: true, message: existing ? "Aktualisiert." : "Neu angelegt." });
-    } catch (error) {
-      results.failed += 1;
-      results.rows.push({ rowNumber: row.rowNumber, label: row.label, action: row.action, success: false, message: error instanceof Error ? error.message : "Import fehlgeschlagen." });
     }
-  }
-  return results;
+
+    const existing = row.existingId ? athleteMap.get(row.existingId) ?? null : null;
+    if (row.action === "update" && !existing) {
+      throw new Error(`Zeile ${row.rowNumber}: Der bestehende Athlet wurde nicht mehr gefunden. Bitte Vorschau neu laden.`);
+    }
+
+    const linkedUser = row.value.linkedUserEmail ? userMap.get(normalized(row.value.linkedUserEmail)) : null;
+    const values = {
+      first_name: row.value.firstName,
+      last_name: row.value.lastName,
+      birth_year: row.value.birthYear,
+      notes: row.value.notes || existing?.notes || null,
+      is_active: row.value.isActive ?? existing?.isActive ?? true,
+      linked_user_id: linkedUser?.userId ?? existing?.linkedUserId ?? null,
+      group_ids: row.value.groupNames.length > 0
+        ? mapGroups(row.value.groupNames, data.groups)
+        : existing?.groups.map((group) => group.id) ?? [],
+      contacts: (
+        row.value.contacts.length > 0
+          ? mergeAthleteContacts(existing?.contacts ?? [], row.value.contacts)
+          : existing?.contacts ?? []
+      ).map((contact, index) => ({
+        contact_name: contact.contactName.trim(),
+        relationship: contact.relationship.trim() || null,
+        phone: contact.phone.trim(),
+        is_emergency: contact.isEmergency,
+        priority: contact.priority || index + 1,
+        notes: contact.notes.trim() || null,
+      })),
+    };
+
+    return {
+      row_number: row.rowNumber,
+      label: row.label,
+      action: row.action,
+      existing_id: existing?.id ?? null,
+      expected_updated_at: existing?.updatedAt ?? null,
+      values,
+    } as PreparedImportRow;
+  });
+
+  return applyAthleteImport(organizationId, importId, preparedRows);
 }
 
 function listRows(columns: string[][]): string[][] {

@@ -88,6 +88,13 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Die Importdatei konnte nicht verarbeitet werden.";
 }
 
+function createImportRunId(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return `00000000-0000-4000-8000-${Date.now().toString(16).padStart(12, "0").slice(-12)}`;
+}
+
 export function DataImportPage() {
   const { appContext, canEditModule } = useAuth();
   const organizationId = appContext?.organization?.id;
@@ -110,6 +117,7 @@ export function DataImportPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ImportRunResult | null>(null);
+  const [importRunId, setImportRunId] = useState(createImportRunId);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const loadData = useCallback(async () => {
@@ -192,6 +200,7 @@ export function DataImportPage() {
     setFileName("");
     setResult(null);
     setError(null);
+    setImportRunId(createImportRunId());
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
@@ -212,6 +221,7 @@ export function DataImportPage() {
         setAthleteRows(preview);
       }
       setFileName(file.name);
+      setImportRunId(createImportRunId());
     } catch (fileError) {
       setError(errorMessage(fileError));
     } finally {
@@ -220,6 +230,7 @@ export function DataImportPage() {
   }
 
   function setRowAction(index: number, action: ImportAction) {
+    setImportRunId(createImportRunId());
     if (activeKind === "exercises") {
       setExerciseRows((current) => current.map((row, rowIndex) => rowIndex === index ? { ...row, action } : row));
     } else {
@@ -228,6 +239,7 @@ export function DataImportPage() {
   }
 
   function setAllExistingRows(updateExisting: boolean) {
+    setImportRunId(createImportRunId());
     const updateRows = <T,>(rows: ImportPreviewRow<T>[]): ImportPreviewRow<T>[] => rows.map((row) => {
       if (!row.existingId || row.errors.length > 0) return row;
       return { ...row, action: updateExisting ? "update" : "skip" };
@@ -269,13 +281,14 @@ export function DataImportPage() {
     setResult(null);
     try {
       const importResult = activeKind === "exercises"
-        ? await runExerciseImport(organizationId, exerciseRows, createMissingOptions)
-        : await runAthleteImport(organizationId, athleteRows);
+        ? await runExerciseImport(organizationId, importRunId, exerciseRows, createMissingOptions)
+        : await runAthleteImport(organizationId, importRunId, athleteRows);
       setResult(importResult);
       setExerciseRows([]);
       setAthleteRows([]);
       setFileName("");
       setCreateMissingOptions(false);
+      setImportRunId(createImportRunId());
       if (fileInputRef.current) fileInputRef.current.value = "";
       await loadData();
     } catch (importError) {
@@ -339,12 +352,13 @@ export function DataImportPage() {
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept=".xlsx,.xls,.xml,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+                  accept=".xlsx,.xml,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/xml,text/xml"
                   onChange={(event: ChangeEvent<HTMLInputElement>) => void handleFile(event.target.files?.[0] ?? null)}
                   disabled={busy}
                 />
               </label>
             </div>
+            <small className="data-import-file-name">Unterstützt: XLSX oder Excel-XML, maximal 5 MB und 1.000 Datenzeilen.</small>
             {fileName && <small className="data-import-file-name">Geladen: {fileName}</small>}
           </section>
 
@@ -353,7 +367,7 @@ export function DataImportPage() {
               <input
                 type="checkbox"
                 checked={createMissingOptions}
-                onChange={(event: ChangeEvent<HTMLInputElement>) => setCreateMissingOptions(event.target.checked)}
+                onChange={(event: ChangeEvent<HTMLInputElement>) => { setCreateMissingOptions(event.target.checked); setImportRunId(createImportRunId()); }}
               />
               <span>
                 <strong>Unbekannte Auswahllistenwerte automatisch anlegen</strong>

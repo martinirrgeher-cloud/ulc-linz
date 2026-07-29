@@ -1,6 +1,23 @@
 import type { WorkbookSheet } from "@/features/data-import/types";
 
 const UTF8 = new TextDecoder("utf-8");
+const MAX_IMPORT_FILE_BYTES = 5 * 1024 * 1024;
+const MAX_ZIP_ENTRIES = 200;
+const MAX_UNCOMPRESSED_BYTES = 20 * 1024 * 1024;
+const MAX_WORKBOOK_ROWS = 1_001;
+const MAX_WORKBOOK_COLUMNS = 200;
+const ALLOWED_XLSX_ENTRY = /^(xl\/workbook\.xml|xl\/_rels\/workbook\.xml\.rels|xl\/sharedStrings\.xml|xl\/worksheets\/[^/]+\.xml)$/;
+
+function assertSheetLimits(name: string, rows: string[][]): void {
+  if (rows.length > MAX_WORKBOOK_ROWS) {
+    throw new Error(`Das Tabellenblatt „${name}“ enthält mehr als 1.000 Datenzeilen.`);
+  }
+  const columns = rows.reduce((maximum, row) => Math.max(maximum, row.length), 0);
+  if (columns > MAX_WORKBOOK_COLUMNS) {
+    throw new Error(`Das Tabellenblatt „${name}“ enthält zu viele Spalten.`);
+  }
+}
+
 
 function columnIndex(reference: string): number {
   const letters = reference.match(/^[A-Z]+/i)?.[0]?.toUpperCase() ?? "A";
@@ -34,32 +51,56 @@ async function unzipEntries(buffer: ArrayBuffer): Promise<Map<string, Uint8Array
   if (eocd < 0) throw new Error("Die XLSX-Datei ist beschädigt oder kein gültiges Excel-Dokument.");
 
   const entries = view.getUint16(eocd + 10, true);
+  if (entries > MAX_ZIP_ENTRIES) {
+    throw new Error("Die XLSX-Datei enthält ungewöhnlich viele interne Dateien und wurde abgelehnt.");
+  }
+
   let cursor = view.getUint32(eocd + 16, true);
+  let totalUncompressed = 0;
   const result = new Map<string, Uint8Array>();
 
   for (let index = 0; index < entries; index += 1) {
-    if (view.getUint32(cursor, true) !== 0x02014b50) break;
+    if (cursor + 46 > bytes.length || view.getUint32(cursor, true) !== 0x02014b50) {
+      throw new Error("Die XLSX-Datei enthält ein ungültiges ZIP-Verzeichnis.");
+    }
     const method = view.getUint16(cursor + 10, true);
     const compressedSize = view.getUint32(cursor + 20, true);
+    const uncompressedSize = view.getUint32(cursor + 24, true);
     const fileNameLength = view.getUint16(cursor + 28, true);
     const extraLength = view.getUint16(cursor + 30, true);
     const commentLength = view.getUint16(cursor + 32, true);
     const localOffset = view.getUint32(cursor + 42, true);
-    const fileName = UTF8.decode(bytes.slice(cursor + 46, cursor + 46 + fileNameLength));
+    const entryEnd = cursor + 46 + fileNameLength + extraLength + commentLength;
+    if (entryEnd > bytes.length) throw new Error("Die XLSX-Datei ist unvollständig.");
 
-    if (view.getUint32(localOffset, true) !== 0x04034b50) {
-      throw new Error("Die XLSX-Datei enthält einen ungültigen ZIP-Eintrag.");
+    const fileName = UTF8.decode(bytes.slice(cursor + 46, cursor + 46 + fileNameLength));
+    totalUncompressed += uncompressedSize;
+    if (totalUncompressed > MAX_UNCOMPRESSED_BYTES) {
+      throw new Error("Die entpackten Excel-Daten überschreiten das Sicherheitslimit von 20 MB.");
     }
-    const localNameLength = view.getUint16(localOffset + 26, true);
-    const localExtraLength = view.getUint16(localOffset + 28, true);
-    const dataStart = localOffset + 30 + localNameLength + localExtraLength;
-    const compressed = bytes.slice(dataStart, dataStart + compressedSize);
-    if (!fileName.endsWith("/")) {
-      if (method === 0) result.set(fileName, compressed);
-      else if (method === 8) result.set(fileName, await inflateRaw(compressed));
+
+    if (ALLOWED_XLSX_ENTRY.test(fileName)) {
+      if (localOffset + 30 > bytes.length || view.getUint32(localOffset, true) !== 0x04034b50) {
+        throw new Error("Die XLSX-Datei enthält einen ungültigen ZIP-Eintrag.");
+      }
+      const localNameLength = view.getUint16(localOffset + 26, true);
+      const localExtraLength = view.getUint16(localOffset + 28, true);
+      const dataStart = localOffset + 30 + localNameLength + localExtraLength;
+      const dataEnd = dataStart + compressedSize;
+      if (dataEnd > bytes.length) throw new Error("Die XLSX-Datei enthält einen unvollständigen ZIP-Eintrag.");
+      const compressed = bytes.slice(dataStart, dataEnd);
+      let uncompressed: Uint8Array;
+      if (method === 0) uncompressed = compressed;
+      else if (method === 8) uncompressed = await inflateRaw(compressed);
       else throw new Error(`Nicht unterstützte Excel-Komprimierung (${method}).`);
+
+      if (uncompressed.byteLength !== uncompressedSize) {
+        throw new Error("Die Größe eines entpackten Excel-Eintrags ist ungültig.");
+      }
+      result.set(fileName, uncompressed);
     }
-    cursor += 46 + fileNameLength + extraLength + commentLength;
+
+    cursor = entryEnd;
   }
   return result;
 }
@@ -125,6 +166,7 @@ async function parseXlsx(buffer: ArrayBuffer): Promise<WorkbookSheet[]> {
       });
       rows.push(values);
     });
+    assertSheetLimits(name, rows);
     result.push({ name, rows });
   });
   return result;
@@ -151,15 +193,28 @@ function parseSpreadsheetXml(text: string): WorkbookSheet[] {
       });
       return values;
     });
+    assertSheetLimits(name, rows);
     return { name, rows };
   });
 }
 
 export async function readExcelWorkbook(file: File): Promise<WorkbookSheet[]> {
+  if (file.size > MAX_IMPORT_FILE_BYTES) {
+    throw new Error("Die Importdatei ist größer als 5 MB.");
+  }
+
+  const fileName = file.name.trim().toLocaleLowerCase("de-AT");
+  if (!fileName.endsWith(".xlsx") && !fileName.endsWith(".xml")) {
+    throw new Error("Unterstützt werden ausschließlich XLSX- und Excel-XML-Dateien. Alte XLS-Dateien bitte zuerst als XLSX speichern.");
+  }
+
   const buffer = await file.arrayBuffer();
   const textStart = UTF8.decode(new Uint8Array(buffer.slice(0, Math.min(buffer.byteLength, 512))));
   if (textStart.includes("urn:schemas-microsoft-com:office:spreadsheet")) {
     return parseSpreadsheetXml(UTF8.decode(new Uint8Array(buffer)));
+  }
+  if (fileName.endsWith(".xml")) {
+    throw new Error("Die XML-Datei ist keine unterstützte Excel-XML-Arbeitsmappe.");
   }
   return parseXlsx(buffer);
 }
