@@ -518,27 +518,57 @@ function itemsToJson(sections: DocumentationSectionInput[]): Json {
   })));
 }
 
+const TRAINING_DOCUMENTATION_VERSION_CONFLICT_MARKER = "TRAINING_DOCUMENTATION_VERSION_CONFLICT";
+
+export class TrainingDocumentationVersionConflictError extends Error {
+  constructor() {
+    super(
+      "Die Trainingsdokumentation wurde inzwischen auf einem anderen Gerät geändert. "
+      + "Dein lokaler Stand bleibt erhalten und wird nicht automatisch überschrieben.",
+    );
+    this.name = "TrainingDocumentationVersionConflictError";
+  }
+}
+
+export function isTrainingDocumentationVersionConflict(
+  error: unknown,
+): error is TrainingDocumentationVersionConflictError {
+  return error instanceof TrainingDocumentationVersionConflictError;
+}
+
 export async function saveTrainingDocumentation(
   organizationId: string,
   values: TrainingDocumentationInput,
+  expectedUpdatedAt: string,
 ): Promise<{ updatedAt: string; status: Exclude<TrainingSessionStatus, "not_started">; completedAt: string | null }> {
   const actualMinutes = values.actualMinutes.trim() ? Number.parseInt(values.actualMinutes, 10) : null;
-  const data = await callJsonRpc("save_training_documentation", {
-    p_organization_id: organizationId,
-    p_session_id: values.sessionId,
-    p_status: values.status,
-    p_actual_minutes: Number.isFinite(actualMinutes) ? actualMinutes : null,
-    p_overall_rpe: values.overallRpe,
-    p_overall_rating: values.overallRating,
-    p_overall_comment: values.overallComment.trim() || null,
-    p_pain_level: values.painLevel,
-    p_pain_comment: values.painComment.trim() || null,
-    p_trainer_feedback: values.trainerFeedback.trim() || null,
-    p_items: itemsToJson(values.sections),
-  });
+  let data: Json;
+  try {
+    data = await callJsonRpc("save_training_documentation_v2", {
+      p_organization_id: organizationId,
+      p_session_id: values.sessionId,
+      p_status: values.status,
+      p_actual_minutes: Number.isFinite(actualMinutes) ? actualMinutes : null,
+      p_overall_rpe: values.overallRpe,
+      p_overall_rating: values.overallRating,
+      p_overall_comment: values.overallComment.trim() || null,
+      p_pain_level: values.painLevel,
+      p_pain_comment: values.painComment.trim() || null,
+      p_trainer_feedback: values.trainerFeedback.trim() || null,
+      p_items: itemsToJson(values.sections),
+      p_expected_updated_at: expectedUpdatedAt,
+    });
+  } catch (error) {
+    if (error instanceof Error && error.message.includes(TRAINING_DOCUMENTATION_VERSION_CONFLICT_MARKER)) {
+      throw new TrainingDocumentationVersionConflictError();
+    }
+    throw error;
+  }
   if (!isRecord(data)) throw new Error("Die Trainingsdokumentation wurde gespeichert, aber die Rückgabe ist ungültig.");
+  const updatedAt = stringValue(data.updated_at);
+  if (!updatedAt) throw new Error("Die Trainingsdokumentation wurde gespeichert, aber die neue Version fehlt.");
   return {
-    updatedAt: stringValue(data.updated_at),
+    updatedAt,
     status: parseStartedSessionStatus(data.status),
     completedAt: optionalString(data.completed_at),
   };

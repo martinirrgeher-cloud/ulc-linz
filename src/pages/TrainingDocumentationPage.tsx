@@ -22,6 +22,7 @@ import { useAuth } from "@/features/auth/AuthContext";
 import {
   loadTrainingDocumentationDetail,
   loadTrainingDocumentationOverview,
+  isTrainingDocumentationVersionConflict,
   loadTrainingDocumentationStatistics,
   saveTrainingDocumentation,
   startTrainingDocumentation,
@@ -98,7 +99,22 @@ function formatDate(value: string): string {
 }
 
 
-type StoredDraft = { savedAt: string; expiresAt: string; value: TrainingDocumentationInput };
+type StoredDraft = {
+  savedAt: string;
+  expiresAt: string;
+  conflictDetectedAt: string | null;
+  value: TrainingDocumentationInput;
+};
+
+type QueuedDocumentationSave = {
+  value: TrainingDocumentationInput;
+  changeVersion: number;
+  waiters: Array<(saved: boolean) => void>;
+};
+
+const VERSION_CONFLICT_NOTICE =
+  "Die Trainingsdokumentation wurde inzwischen auf einem anderen Gerät geändert. "
+  + "Dein lokaler Stand bleibt erhalten. Lade bewusst den aktuellen Serverstand, bevor du weiter speicherst.";
 
 function readLocalDraft(organizationId: string, sessionId: string): StoredDraft | null {
   try {
@@ -122,6 +138,7 @@ function readLocalDraft(organizationId: string, sessionId: string): StoredDraft 
     return {
       savedAt: draft.savedAt,
       expiresAt: new Date(expiresAt).toISOString(),
+      conflictDetectedAt: typeof draft.conflictDetectedAt === "string" ? draft.conflictDetectedAt : null,
       value: draft.value,
     };
   } catch {
@@ -130,11 +147,16 @@ function readLocalDraft(organizationId: string, sessionId: string): StoredDraft 
   }
 }
 
-function writeLocalDraft(organizationId: string, value: TrainingDocumentationInput): void {
+function writeLocalDraft(
+  organizationId: string,
+  value: TrainingDocumentationInput,
+  conflictDetected = false,
+): void {
   const savedAt = new Date();
   const draft: StoredDraft = {
     savedAt: savedAt.toISOString(),
     expiresAt: new Date(savedAt.getTime() + TRAINING_DOCUMENTATION_DRAFT_MAX_AGE_MS).toISOString(),
+    conflictDetectedAt: conflictDetected ? savedAt.toISOString() : null,
     value,
   };
   window.localStorage.setItem(
@@ -169,6 +191,12 @@ export function TrainingDocumentationPage() {
   const [sessionValue, setSessionValue] = useState<TrainingDocumentationInput | null>(null);
   const sessionValueRef = useRef<TrainingDocumentationInput | null>(null);
   const changeVersionRef = useRef(0);
+  const saveQueueRef = useRef<QueuedDocumentationSave[]>([]);
+  const inFlightSaveRef = useRef<QueuedDocumentationSave | null>(null);
+  const saveRunnerRef = useRef<Promise<void> | null>(null);
+  const serverUpdatedAtBySessionRef = useRef(new Map<string, string>());
+  const conflictedSessionIdsRef = useRef(new Set<string>());
+  const [versionConflict, setVersionConflict] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [loading, setLoading] = useState(true);
@@ -258,6 +286,7 @@ export function TrainingDocumentationPage() {
     setDetailLoading(true);
     setError(null);
     setNotice(null);
+    setVersionConflict(false);
     try {
       const next = await loadTrainingDocumentationDetail(organizationId, planId);
       setDetail(next);
@@ -265,14 +294,24 @@ export function TrainingDocumentationPage() {
       if (linkedDate) setWeekStart(startOfIsoWeek(linkedDate));
       updateUrl({ plan: planId, view: "document", date: next.preview.trainingDate });
       let nextSession = next.session;
+      changeVersionRef.current += 1;
       if (nextSession) {
+        serverUpdatedAtBySessionRef.current.set(nextSession.sessionId, nextSession.updatedAt);
         const local = readLocalDraft(organizationId, nextSession.sessionId);
-        if (local && new Date(local.savedAt).getTime() > new Date(nextSession.updatedAt).getTime()) {
+        if (local?.conflictDetectedAt) {
+          conflictedSessionIdsRef.current.add(nextSession.sessionId);
+          nextSession = cloneDocumentationInput(local.value);
+          setDirty(true);
+          setSaveState("error");
+          setVersionConflict(true);
+          setError(VERSION_CONFLICT_NOTICE);
+        } else if (local && new Date(local.savedAt).getTime() > new Date(nextSession.updatedAt).getTime()) {
           nextSession = cloneDocumentationInput(local.value);
           setDirty(true);
           setSaveState("local");
           setNotice("Ein lokal gespeicherter, noch nicht synchronisierter Stand wurde wiederhergestellt.");
         } else {
+          conflictedSessionIdsRef.current.delete(nextSession.sessionId);
           setDirty(false);
           setSaveState("saved");
         }
@@ -280,6 +319,7 @@ export function TrainingDocumentationPage() {
         setDirty(false);
         setSaveState("idle");
       }
+      sessionValueRef.current = nextSession;
       setSessionValue(nextSession);
       return true;
     } catch (loadError) {
@@ -298,59 +338,186 @@ export function TrainingDocumentationPage() {
     void openPlan(selectedPlanId);
   }, [detail?.preview.planId, openPlan, organizationId, selectedPlanId]);
 
+  const drainSaveQueue = useCallback((): Promise<void> => {
+    const activeRunner = saveRunnerRef.current;
+    if (activeRunner) return activeRunner;
+
+    const runner = (async () => {
+      let overviewNeedsRefresh = false;
+      while (saveQueueRef.current.length > 0) {
+        const request = saveQueueRef.current.shift();
+        if (!request || !organizationId) continue;
+        inFlightSaveRef.current = request;
+        const isCurrentSession = sessionValueRef.current?.sessionId === request.value.sessionId;
+        if (isCurrentSession) setSaveState("saving");
+
+        try {
+          const expectedUpdatedAt = serverUpdatedAtBySessionRef.current.get(request.value.sessionId)
+            ?? request.value.updatedAt;
+          if (!expectedUpdatedAt) {
+            throw new Error("Die Serverversion der Trainingsdokumentation fehlt. Bitte den Trainingsplan neu laden.");
+          }
+
+          const result = await saveTrainingDocumentation(
+            organizationId,
+            request.value,
+            expectedUpdatedAt,
+          );
+          serverUpdatedAtBySessionRef.current.set(request.value.sessionId, result.updatedAt);
+          conflictedSessionIdsRef.current.delete(request.value.sessionId);
+          overviewNeedsRefresh = true;
+
+          const hasNewerQueuedSave = saveQueueRef.current.some(
+            (queued) => queued.value.sessionId === request.value.sessionId,
+          );
+          const requestIsLatestVersion = changeVersionRef.current === request.changeVersion && !hasNewerQueuedSave;
+          setSessionValue((existing) => {
+            if (!existing || existing.sessionId !== request.value.sessionId) return existing;
+            const next = {
+              ...existing,
+              ...(requestIsLatestVersion ? {
+                status: result.status,
+                completedAt: result.completedAt,
+              } : {}),
+              updatedAt: result.updatedAt,
+            };
+            sessionValueRef.current = next;
+            return next;
+          });
+
+          const isStillCurrentSession = sessionValueRef.current?.sessionId === request.value.sessionId;
+          if (isStillCurrentSession && requestIsLatestVersion) {
+            setDirty(false);
+            setSaveState("saved");
+            setVersionConflict(false);
+            setError(null);
+            clearLocalDraft(organizationId, request.value.sessionId);
+          } else if (isStillCurrentSession) {
+            setDirty(true);
+            setSaveState(hasNewerQueuedSave ? "saving" : "idle");
+          }
+
+          for (const resolve of request.waiters.splice(0)) resolve(true);
+        } catch (saveError) {
+          const isConflict = isTrainingDocumentationVersionConflict(saveError);
+          if (isConflict) conflictedSessionIdsRef.current.add(request.value.sessionId);
+
+          const latestLocalValue = sessionValueRef.current?.sessionId === request.value.sessionId
+            ? cloneDocumentationInput(sessionValueRef.current)
+            : request.value;
+          writeLocalDraft(organizationId, latestLocalValue, isConflict);
+
+          const isStillCurrentSession = sessionValueRef.current?.sessionId === request.value.sessionId;
+          if (isStillCurrentSession) {
+            setDirty(true);
+            setSaveState(navigator.onLine ? "error" : "local");
+            setVersionConflict(isConflict);
+            setError(isConflict ? VERSION_CONFLICT_NOTICE : errorMessage(saveError));
+          }
+
+          for (const resolve of request.waiters.splice(0)) resolve(false);
+          const cancelledRequests = saveQueueRef.current.splice(0);
+          for (const cancelled of cancelledRequests) {
+            for (const resolve of cancelled.waiters.splice(0)) resolve(false);
+          }
+          break;
+        } finally {
+          inFlightSaveRef.current = null;
+        }
+      }
+
+      if (overviewNeedsRefresh) {
+        try {
+          await loadOverview();
+        } catch {
+          // Der Dokumentationsstand ist bereits gespeichert. Die Übersicht wird beim nächsten Laden aktualisiert.
+        }
+      }
+    })();
+
+    saveRunnerRef.current = runner;
+    void runner.finally(() => {
+      if (saveRunnerRef.current === runner) saveRunnerRef.current = null;
+    });
+    return runner;
+  }, [loadOverview, organizationId]);
+
   const saveNow = useCallback(async (explicitValue?: TrainingDocumentationInput): Promise<boolean> => {
     if (!organizationId) return false;
     const current = explicitValue ?? sessionValueRef.current;
     if (!current || !current.canEdit) return true;
+
+    const snapshot = cloneDocumentationInput(current);
     const capturedVersion = changeVersionRef.current;
-    writeLocalDraft(organizationId, current);
+    const hasVersionConflict = conflictedSessionIdsRef.current.has(snapshot.sessionId);
+    writeLocalDraft(organizationId, snapshot, hasVersionConflict);
+
+    if (hasVersionConflict) {
+      setSaveState("error");
+      setDirty(true);
+      setVersionConflict(true);
+      setError(VERSION_CONFLICT_NOTICE);
+      return false;
+    }
     if (!navigator.onLine) {
       setSaveState("local");
       setDirty(true);
       return false;
     }
+
     setSaveState("saving");
-    try {
-      const result = await saveTrainingDocumentation(organizationId, current);
-      setSessionValue((existing) => existing ? {
-        ...existing,
-        status: result.status,
-        completedAt: result.completedAt,
-        updatedAt: result.updatedAt,
-      } : existing);
-      if (capturedVersion === changeVersionRef.current) {
-        setDirty(false);
-        setSaveState("saved");
-        clearLocalDraft(organizationId, current.sessionId);
+    return new Promise<boolean>((resolve) => {
+      const inFlight = inFlightSaveRef.current;
+      if (
+        inFlight
+        && inFlight.value.sessionId === snapshot.sessionId
+        && capturedVersion <= inFlight.changeVersion
+      ) {
+        inFlight.waiters.push(resolve);
+        return;
       }
-      await loadOverview();
-      return true;
-    } catch (saveError) {
-      setSaveState(navigator.onLine ? "error" : "local");
-      setDirty(true);
-      setError(errorMessage(saveError));
-      return false;
-    }
-  }, [loadOverview, organizationId]);
+
+      const pending = saveQueueRef.current.find(
+        (queued) => queued.value.sessionId === snapshot.sessionId,
+      );
+      if (pending) {
+        if (capturedVersion >= pending.changeVersion) {
+          pending.value = snapshot;
+          pending.changeVersion = capturedVersion;
+        }
+        pending.waiters.push(resolve);
+      } else {
+        saveQueueRef.current.push({
+          value: snapshot,
+          changeVersion: capturedVersion,
+          waiters: [resolve],
+        });
+      }
+      void drainSaveQueue();
+    });
+  }, [drainSaveQueue, organizationId]);
 
   useEffect(() => {
-    if (!dirty || !sessionValue?.canEdit) return undefined;
+    if (!dirty || !sessionValue?.canEdit || versionConflict) return undefined;
     const timeout = window.setTimeout(() => { void saveNow(); }, 1200);
     return () => window.clearTimeout(timeout);
-  }, [dirty, saveNow, sessionValue]);
+  }, [dirty, saveNow, sessionValue, versionConflict]);
 
   useEffect(() => {
-    const handleOnline = () => { if (dirty) void saveNow(); };
+    const handleOnline = () => { if (dirty && !versionConflict) void saveNow(); };
     window.addEventListener("online", handleOnline);
     return () => window.removeEventListener("online", handleOnline);
-  }, [dirty, saveNow]);
+  }, [dirty, saveNow, versionConflict]);
 
   function changeSession(next: TrainingDocumentationInput) {
     changeVersionRef.current += 1;
+    sessionValueRef.current = next;
     setSessionValue(next);
     setDirty(true);
-    setSaveState(navigator.onLine ? "idle" : "local");
-    if (organizationId) writeLocalDraft(organizationId, next);
+    const hasVersionConflict = conflictedSessionIdsRef.current.has(next.sessionId);
+    setSaveState(hasVersionConflict ? "error" : navigator.onLine ? "idle" : "local");
+    setVersionConflict(hasVersionConflict);
+    if (organizationId) writeLocalDraft(organizationId, next, hasVersionConflict);
   }
 
   async function startSession() {
@@ -371,6 +538,7 @@ export function TrainingDocumentationPage() {
 
   async function completeSession(next: TrainingDocumentationInput): Promise<boolean> {
     changeVersionRef.current += 1;
+    sessionValueRef.current = next;
     setSessionValue(next);
     setDirty(true);
     const saved = await saveNow(next);
@@ -387,10 +555,29 @@ export function TrainingDocumentationPage() {
     if (saved) await loadPlan(selectedPlanId, true);
   }
 
+  async function loadServerVersionAfterConflict() {
+    if (!organizationId || !selectedPlanId || !sessionValueRef.current) return;
+    const currentSessionId = sessionValueRef.current.sessionId;
+    if (!window.confirm(
+      "Aktuellen Serverstand laden? Dein lokaler Konfliktentwurf wird dabei verworfen. "
+      + "Nicht übernommene Texte solltest du vorher kopieren.",
+    )) return;
+
+    clearLocalDraft(organizationId, currentSessionId);
+    conflictedSessionIdsRef.current.delete(currentSessionId);
+    setVersionConflict(false);
+    setError(null);
+    setDirty(false);
+    setSaveState("idle");
+    await loadPlan(selectedPlanId, true);
+  }
+
   function clearSelectedPlan() {
     setSelectedPlanId("");
     setDetail(null);
+    sessionValueRef.current = null;
     setSessionValue(null);
+    setVersionConflict(false);
     setDirty(false);
     setSaveState("idle");
     updateUrl({ plan: "", date: "" });
@@ -458,7 +645,16 @@ export function TrainingDocumentationPage() {
         </div>
       </header>
 
-      {error && <div className="alert error">{error}</div>}
+      {error && (
+        <div className="alert error">
+          <span>{error}</span>
+          {versionConflict && (
+            <button type="button" className="secondary-button" onClick={() => void loadServerVersionAfterConflict()}>
+              Aktuellen Serverstand laden
+            </button>
+          )}
+        </div>
+      )}
       {notice && <div className="alert success">{notice}</div>}
 
       <nav className="training-doc-tabs" aria-label="Bereiche der Trainingsdokumentation">

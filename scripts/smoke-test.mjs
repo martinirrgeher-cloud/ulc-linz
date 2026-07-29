@@ -128,3 +128,20 @@ test("Wöchentliches Backup ist verschlüsselt und enthält Datenbank sowie Stor
   assert.ok(backupStorageSource.includes("listBuckets"));
   assert.ok(backupStorageSource.includes("storage-manifest.json"));
 });
+
+const trainingDocumentationPageSource = await readFile(new URL("../src/pages/TrainingDocumentationPage.tsx", import.meta.url), "utf8");
+const trainingDocumentationApiSource = await readFile(new URL("../src/features/training-documentation/api.ts", import.meta.url), "utf8");
+const versionedAutosaveMigrationSource = await readFile(new URL("../supabase/migrations/202607290027_training_documentation_versioned_autosave.sql", import.meta.url), "utf8");
+
+test("Trainingsdokumentation speichert seriell und versionsgesichert", () => {
+  assert.ok(trainingDocumentationPageSource.includes("saveQueueRef"), "Speicherwarteschlange fehlt.");
+  assert.ok(trainingDocumentationPageSource.includes("inFlightSaveRef"), "Laufender Speichervorgang wird nicht verfolgt.");
+  assert.ok(trainingDocumentationPageSource.includes("serverUpdatedAtBySessionRef"), "Serverversionen werden nicht je Dokumentation verwaltet.");
+  assert.ok(trainingDocumentationPageSource.includes("versionConflict"), "Versionskonflikte werden in der Oberfläche nicht behandelt.");
+  assert.ok(trainingDocumentationApiSource.includes('callJsonRpc("save_training_documentation_v2"'));
+  assert.ok(trainingDocumentationApiSource.includes("p_expected_updated_at"));
+  assert.ok(versionedAutosaveMigrationSource.includes("pg_advisory_xact_lock"));
+  assert.ok(versionedAutosaveMigrationSource.includes("for update"));
+  assert.ok(versionedAutosaveMigrationSource.includes("TRAINING_DOCUMENTATION_VERSION_CONFLICT"));
+  assert.ok(versionedAutosaveMigrationSource.includes("p_expected_updated_at"));
+});
