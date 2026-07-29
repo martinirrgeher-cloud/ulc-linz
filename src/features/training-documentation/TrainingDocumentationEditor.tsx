@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type ChangeEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import {
   AlertTriangle,
   Ban,
@@ -392,6 +392,10 @@ export function TrainingDocumentationEditor({
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputs = useRef<Record<string, HTMLInputElement | null>>({});
   const progress = useMemo(() => completionCount(value), [value]);
+
+  useEffect(() => {
+    if (!value.canEdit) setCompletionOpen(false);
+  }, [value.canEdit]);
 
   function toggleSet(current: Set<string>, id: string): Set<string> {
     const next = new Set(current);
@@ -803,6 +807,7 @@ export function TrainingDocumentationEditor({
                                   rows={2}
                                   value={item.trainerComment}
                                   onChange={(event) => onChange(replaceItem(value, item.id, (current) => ({ ...current, trainerComment: event.target.value })))}
+                                  disabled={!value.canEdit}
                                   placeholder="Technischer Hinweis oder Rückmeldung des Trainers"
                                 />
                               </label>
@@ -909,6 +914,7 @@ export function TrainingDocumentationEditor({
               rows={3}
               value={value.trainerFeedback}
               onChange={(event) => onChange({ ...value, trainerFeedback: event.target.value })}
+              disabled={!value.canEdit}
               placeholder="Rückmeldung, nächste Schwerpunkte oder Freigabe"
             />
           </label>

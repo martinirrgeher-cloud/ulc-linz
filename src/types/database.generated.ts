@@ -2536,6 +2536,24 @@ export type Database = {
         };
         Returns: Json;
       };
+      save_training_documentation_v3: {
+        Args: {
+          p_organization_id: string;
+          p_session_id: string;
+          p_status: string;
+          p_actual_minutes: number;
+          p_overall_rpe: number;
+          p_overall_rating: number;
+          p_overall_comment: string;
+          p_pain_level: string;
+          p_pain_comment: string;
+          p_trainer_feedback: string;
+          p_items: Json;
+          p_lock_token: string;
+          p_expected_updated_at: string;
+        };
+        Returns: Json;
+      };
       save_training_module_session: {
         Args: {
           p_organization_id: string;

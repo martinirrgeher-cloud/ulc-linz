@@ -1,4 +1,5 @@
 import type { Json } from "@/types/database.generated";
+import type { EditLockWriteGuard } from "@/features/collaboration/edit-locks";
 import { requireSupabase } from "@/lib/supabase";
 import type { ExerciseParameterDefinition, ExerciseParameterInputType } from "@/features/exercise-catalog/types";
 import type {
@@ -539,12 +540,12 @@ export function isTrainingDocumentationVersionConflict(
 export async function saveTrainingDocumentation(
   organizationId: string,
   values: TrainingDocumentationInput,
-  expectedUpdatedAt: string,
+  editLock: EditLockWriteGuard,
 ): Promise<{ updatedAt: string; status: Exclude<TrainingSessionStatus, "not_started">; completedAt: string | null }> {
   const actualMinutes = values.actualMinutes.trim() ? Number.parseInt(values.actualMinutes, 10) : null;
   let data: Json;
   try {
-    data = await callJsonRpc("save_training_documentation_v2", {
+    data = await callJsonRpc("save_training_documentation_v3", {
       p_organization_id: organizationId,
       p_session_id: values.sessionId,
       p_status: values.status,
@@ -556,7 +557,8 @@ export async function saveTrainingDocumentation(
       p_pain_comment: values.painComment.trim() || null,
       p_trainer_feedback: values.trainerFeedback.trim() || null,
       p_items: itemsToJson(values.sections),
-      p_expected_updated_at: expectedUpdatedAt,
+      p_lock_token: editLock.lockToken,
+      p_expected_updated_at: editLock.expectedUpdatedAt,
     });
   } catch (error) {
     if (error instanceof Error && error.message.includes(TRAINING_DOCUMENTATION_VERSION_CONFLICT_MARKER)) {

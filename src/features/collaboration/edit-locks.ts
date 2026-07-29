@@ -5,7 +5,8 @@ export type LockableEntityType =
   | "exercise"
   | "training_block"
   | "athlete"
-  | "training_plan";
+  | "training_plan"
+  | "training_documentation";
 
 export type EditLockOwner = {
   userId: string;

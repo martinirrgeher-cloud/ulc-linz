@@ -13,12 +13,15 @@ import {
   Users,
 } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
+import { EditLockNotice } from "@/components/collaboration/EditLockNotice";
 import { useNavigationGuard } from "@/components/layout/NavigationGuardContext";
 import {
   TRAINING_DOCUMENTATION_DRAFT_MAX_AGE_MS,
   trainingDocumentationDraftKey,
 } from "@/lib/client-session-data";
 import { useAuth } from "@/features/auth/AuthContext";
+import type { EditLockWriteGuard } from "@/features/collaboration/edit-locks";
+import { useEditLock } from "@/features/collaboration/useEditLock";
 import {
   loadTrainingDocumentationDetail,
   loadTrainingDocumentationOverview,
@@ -109,6 +112,7 @@ type StoredDraft = {
 type QueuedDocumentationSave = {
   value: TrainingDocumentationInput;
   changeVersion: number;
+  lockToken: string;
   waiters: Array<(saved: boolean) => void>;
 };
 
@@ -210,6 +214,18 @@ export function TrainingDocumentationPage() {
   const [statsTo, setStatsTo] = useState(() => dateKey());
   const [statistics, setStatistics] = useState<TrainingDocumentationStatistics | null>(null);
   const [statsLoading, setStatsLoading] = useState(false);
+
+  const documentationLock = useEditLock({
+    organizationId,
+    entityType: "training_documentation",
+    entityId: sessionValue?.sessionId,
+    expectedUpdatedAt: sessionValue?.updatedAt ?? null,
+    enabled: Boolean(sessionValue?.canEdit && sessionValue?.sessionId),
+  });
+  const editorSessionValue = useMemo(() => sessionValue ? {
+    ...sessionValue,
+    canEdit: sessionValue.canEdit && documentationLock.isEditable,
+  } : null, [documentationLock.isEditable, sessionValue]);
 
   useEffect(() => { sessionValueRef.current = sessionValue; }, [sessionValue]);
 
@@ -361,7 +377,10 @@ export function TrainingDocumentationPage() {
           const result = await saveTrainingDocumentation(
             organizationId,
             request.value,
-            expectedUpdatedAt,
+            {
+              lockToken: request.lockToken,
+              expectedUpdatedAt,
+            },
           );
           serverUpdatedAtBySessionRef.current.set(request.value.sessionId, result.updatedAt);
           conflictedSessionIdsRef.current.delete(request.value.sessionId);
@@ -465,6 +484,22 @@ export function TrainingDocumentationPage() {
       return false;
     }
 
+    let writeGuard: EditLockWriteGuard | null;
+    try {
+      writeGuard = documentationLock.getWriteGuard();
+    } catch (lockError) {
+      setSaveState("error");
+      setDirty(true);
+      setError(errorMessage(lockError));
+      return false;
+    }
+    if (!writeGuard) {
+      setSaveState("error");
+      setDirty(true);
+      setError("Die Bearbeitungsreservierung fehlt. Bitte Trainingsdokumentation neu öffnen.");
+      return false;
+    }
+
     setSaveState("saving");
     return new Promise<boolean>((resolve) => {
       const inFlight = inFlightSaveRef.current;
@@ -484,30 +519,34 @@ export function TrainingDocumentationPage() {
         if (capturedVersion >= pending.changeVersion) {
           pending.value = snapshot;
           pending.changeVersion = capturedVersion;
+          pending.lockToken = writeGuard.lockToken;
         }
         pending.waiters.push(resolve);
       } else {
         saveQueueRef.current.push({
           value: snapshot,
           changeVersion: capturedVersion,
+          lockToken: writeGuard.lockToken,
           waiters: [resolve],
         });
       }
       void drainSaveQueue();
     });
-  }, [drainSaveQueue, organizationId]);
+  }, [documentationLock, drainSaveQueue, organizationId]);
 
   useEffect(() => {
-    if (!dirty || !sessionValue?.canEdit || versionConflict) return undefined;
+    if (!dirty || !sessionValue?.canEdit || !documentationLock.isEditable || versionConflict) return undefined;
     const timeout = window.setTimeout(() => { void saveNow(); }, 1200);
     return () => window.clearTimeout(timeout);
-  }, [dirty, saveNow, sessionValue, versionConflict]);
+  }, [dirty, documentationLock.isEditable, saveNow, sessionValue, versionConflict]);
 
   useEffect(() => {
-    const handleOnline = () => { if (dirty && !versionConflict) void saveNow(); };
+    const handleOnline = () => {
+      if (dirty && documentationLock.isEditable && !versionConflict) void saveNow();
+    };
     window.addEventListener("online", handleOnline);
     return () => window.removeEventListener("online", handleOnline);
-  }, [dirty, saveNow, versionConflict]);
+  }, [dirty, documentationLock.isEditable, saveNow, versionConflict]);
 
   function changeSession(next: TrainingDocumentationInput) {
     changeVersionRef.current += 1;
@@ -750,16 +789,19 @@ export function TrainingDocumentationPage() {
                 </button>
               )}
             </section>
-          ) : sessionValue && organizationId ? (
-            <TrainingDocumentationEditor
-              organizationId={organizationId}
-              value={sessionValue}
-              saveState={saveState}
-              onChange={changeSession}
-              onSave={async () => { await saveNow(); }}
-              onComplete={completeSession}
-              onReload={reloadDetail}
-            />
+          ) : sessionValue && editorSessionValue && organizationId ? (
+            <>
+              <EditLockNotice lock={documentationLock} />
+              <TrainingDocumentationEditor
+                organizationId={organizationId}
+                value={editorSessionValue}
+                saveState={saveState}
+                onChange={changeSession}
+                onSave={async () => { await saveNow(); }}
+                onComplete={completeSession}
+                onReload={reloadDetail}
+              />
+            </>
           ) : !loading ? (
             <div className="empty-state"><CalendarDays aria-hidden="true" /><h2>Trainingsplan auswählen</h2><p>Wähle oben einen Trainingstag, um die Dokumentation zu öffnen.</p></div>
           ) : null}
