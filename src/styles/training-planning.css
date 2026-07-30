@@ -1584,3 +1584,77 @@
   overflow-wrap: anywhere;
   line-height: 1.25;
 }
+
+/* Blockuebungen: Bedienung oben, vollstaendige Textinformationen darunter */
+.training-plan-item.nested > header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "number navigation"
+    "title information";
+  align-items: center;
+  column-gap: 7px;
+  row-gap: 4px;
+}
+
+.training-plan-item.nested .training-plan-item-number {
+  grid-area: number;
+  justify-self: start;
+}
+
+.training-plan-item.nested .training-plan-item-heading-actions {
+  display: contents;
+}
+
+.training-plan-item.nested .training-plan-item-actions {
+  grid-area: navigation;
+  width: auto;
+  justify-self: end;
+  padding: 0;
+}
+
+.training-plan-item.nested .training-plan-item-info {
+  grid-area: information;
+  justify-self: end;
+  align-self: center;
+}
+
+.training-plan-item.nested .training-plan-item-title {
+  grid-area: title;
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+}
+
+.training-plan-item.nested .training-plan-item-title strong,
+.training-plan-item.nested .training-plan-item-title small {
+  display: block;
+  width: max-content;
+  max-width: none;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: nowrap;
+}
+
+.training-plan-item.nested .training-plan-item-title strong {
+  font-size: clamp(.72rem, 2.8vw, .86rem);
+  line-height: 1.2;
+}
+
+.training-plan-item.nested .training-plan-item-title small {
+  font-size: clamp(.62rem, 2.35vw, .7rem);
+  line-height: 1.15;
+}
+
+@media (max-width: 440px) {
+  .training-plan-item.nested > header {
+    column-gap: 5px;
+    row-gap: 3px;
+  }
+
+  .training-plan-item.nested .training-plan-item-info {
+    width: 27px;
+    height: 27px;
+  }
+}
