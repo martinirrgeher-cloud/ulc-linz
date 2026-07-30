@@ -1569,3 +1569,18 @@
     padding-left: 6px;
   }
 }
+
+/* Korrektur: Uebungstitel in Trainingsbloecken vollstaendig anzeigen */
+.training-plan-item.nested .training-plan-item-title {
+  width: auto;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.training-plan-item.nested .training-plan-item-title strong {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.25;
+}
