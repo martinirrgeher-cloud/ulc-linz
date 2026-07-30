@@ -12,7 +12,7 @@ import type { Session } from "@supabase/supabase-js";
 import { env } from "@/lib/env";
 import {
   clearSensitiveSessionData,
-  purgeExpiredTrainingDocumentationDrafts,
+  purgeSensitiveSessionData,
 } from "@/lib/client-session-data";
 import { supabase } from "@/lib/supabase";
 import type {
@@ -279,7 +279,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }, [session]);
 
   useEffect(() => {
-    purgeExpiredTrainingDocumentationDrafts();
+    purgeSensitiveSessionData();
 
     if (!supabase) {
       setLoading(false);
@@ -314,6 +314,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
               clearSensitiveSessionData();
               clearAppData();
             }
+
+            if (nextUserId) purgeSensitiveSessionData(nextUserId);
 
             sessionRef.current = data.session;
             setSession(data.session);
@@ -365,6 +367,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
           clearSensitiveSessionData();
           clearAppData();
         }
+        purgeSensitiveSessionData(nextSession.user.id);
         sessionRef.current = nextSession;
         setSession(nextSession);
         setSessionError(null);

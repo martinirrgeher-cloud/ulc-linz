@@ -1,5 +1,9 @@
 import { env } from "@/lib/env";
 import { requireSupabase } from "@/lib/supabase";
+import {
+  RESUMABLE_UPLOAD_MAX_AGE_MS,
+  trainingDocumentationVideoUploadKey,
+} from "@/lib/client-session-data";
 import { TRAINING_DOCUMENTATION_MEDIA_BUCKET } from "@/features/training-documentation/api";
 
 export const TRAINING_DOCUMENTATION_VIDEO_MAX_BYTES = 50 * 1024 * 1024;
@@ -21,7 +25,14 @@ type UploadOptions = {
   onProgress?: (progress: DocumentationVideoUploadProgress) => void;
 };
 
-type StoredUpload = { storagePath: string; uploadUrl: string };
+type StoredUpload = {
+  ownerUserId: string;
+  organizationId: string;
+  createdAt: string;
+  expiresAt: string;
+  storagePath: string;
+  uploadUrl: string;
+};
 
 function wait(milliseconds: number): Promise<void> {
   return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
@@ -60,29 +71,53 @@ export function documentationVideoMimeType(file: File): string {
   return mimeByExtension[sanitizeExtension(file.name)] ?? "";
 }
 
-function fingerprintKey(file: File, organizationId: string, sessionId: string, itemId: string): string {
-  const raw = `${organizationId}|${sessionId}|${itemId}|${file.name}|${file.size}|${file.lastModified}`;
-  return `ulc-training-doc-video:${encodeMetadata(raw).replace(/[^a-z0-9]/gi, "").slice(0, 180)}`;
+function fingerprintKey(
+  file: File,
+  organizationId: string,
+  ownerUserId: string,
+  sessionId: string,
+  itemId: string,
+): string {
+  const raw = `${sessionId}|${itemId}|${file.name}|${file.size}|${file.lastModified}`;
+  const fingerprint = encodeMetadata(raw).replace(/[^a-z0-9]/gi, "").slice(0, 180);
+  return trainingDocumentationVideoUploadKey(organizationId, ownerUserId, fingerprint);
 }
 
-function readStoredUpload(key: string): StoredUpload | null {
+function readStoredUpload(
+  key: string,
+  organizationId: string,
+  ownerUserId: string,
+): StoredUpload | null {
   const raw = window.localStorage.getItem(key);
   if (!raw) return null;
   try {
     const value = JSON.parse(raw) as Partial<StoredUpload>;
-    if (typeof value.storagePath !== "string" || typeof value.uploadUrl !== "string") return null;
-    return { storagePath: value.storagePath, uploadUrl: value.uploadUrl };
+    const expiresAt = typeof value.expiresAt === "string" ? Date.parse(value.expiresAt) : Number.NaN;
+    if (
+      value.ownerUserId !== ownerUserId
+      || value.organizationId !== organizationId
+      || typeof value.createdAt !== "string"
+      || !Number.isFinite(expiresAt)
+      || expiresAt <= Date.now()
+      || typeof value.storagePath !== "string"
+      || typeof value.uploadUrl !== "string"
+    ) {
+      window.localStorage.removeItem(key);
+      return null;
+    }
+    return value as StoredUpload;
   } catch {
+    window.localStorage.removeItem(key);
     return null;
   }
 }
 
-async function accessToken(): Promise<string> {
+async function uploadSession(): Promise<{ token: string; ownerUserId: string }> {
   const supabase = requireSupabase();
   const { data, error } = await supabase.auth.getSession();
   if (error) throw error;
   if (!data.session?.access_token) throw new Error("Die Anmeldung ist abgelaufen. Bitte neu anmelden.");
-  return data.session.access_token;
+  return { token: data.session.access_token, ownerUserId: data.session.user.id };
 }
 
 function commonHeaders(token: string): Record<string, string> {
@@ -213,10 +248,10 @@ export async function uploadTrainingDocumentationVideo({
   onProgress,
 }: UploadOptions): Promise<string> {
   validateDocumentationVideoFile(file);
-  const localKey = fingerprintKey(file, organizationId, sessionId, itemId);
-  const token = await accessToken();
+  const { token, ownerUserId } = await uploadSession();
+  const localKey = fingerprintKey(file, organizationId, ownerUserId, sessionId, itemId);
   const endpoint = `https://${projectReference()}.storage.supabase.co/storage/v1/upload/resumable`;
-  const storedUpload = readStoredUpload(localKey);
+  const storedUpload = readStoredUpload(localKey, organizationId, ownerUserId);
   let storagePath = storedUpload?.storagePath
     ?? documentationVideoStoragePath(organizationId, sessionId, itemId, file);
   let uploadUrl: string | null = storedUpload?.uploadUrl ?? null;
@@ -239,7 +274,15 @@ export async function uploadTrainingDocumentationVideo({
   if (!uploadUrl) {
     storagePath = documentationVideoStoragePath(organizationId, sessionId, itemId, file);
     uploadUrl = await createUpload(endpoint, token, storagePath, file);
-    window.localStorage.setItem(localKey, JSON.stringify({ storagePath, uploadUrl }));
+    const createdAt = new Date();
+    window.localStorage.setItem(localKey, JSON.stringify({
+      ownerUserId,
+      organizationId,
+      createdAt: createdAt.toISOString(),
+      expiresAt: new Date(createdAt.getTime() + RESUMABLE_UPLOAD_MAX_AGE_MS).toISOString(),
+      storagePath,
+      uploadUrl,
+    } satisfies StoredUpload));
   }
 
   onProgress?.({ uploadedBytes: offset, totalBytes: file.size, percent: file.size > 0 ? Math.round((offset / file.size) * 100) : 0 });

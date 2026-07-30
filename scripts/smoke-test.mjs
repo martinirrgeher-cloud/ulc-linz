@@ -68,6 +68,9 @@ const atomicEditLockMigrationSource = await readFile(new URL("../supabase/migrat
 const importSource = await readFile(new URL("../src/features/data-import/importer.ts", import.meta.url), "utf8");
 const backupWorkflowSource = await readFile(new URL("../.github/workflows/weekly-encrypted-backup.yml", import.meta.url), "utf8");
 const backupStorageSource = await readFile(new URL("./backup-supabase-storage.mjs", import.meta.url), "utf8");
+const restoreStorageSource = await readFile(new URL("./restore-supabase-storage.mjs", import.meta.url), "utf8");
+const verifyBackupSource = await readFile(new URL("./verify-backup-archive.mjs", import.meta.url), "utf8");
+const quarterlyRestoreWorkflowSource = await readFile(new URL("../.github/workflows/quarterly-backup-restore-test.yml", import.meta.url), "utf8");
 
 
 test("Bearbeitungsschutz reserviert, verlängert und prüft Datensätze", () => {
@@ -118,16 +121,33 @@ test("Speicher-RPCs prüfen Sperre und Version atomar", () => {
 });
 
 
-test("Wöchentliches Backup ist verschlüsselt und enthält Datenbank sowie Storage", () => {
+test("Wöchentliches Backup ist verschlüsselt und vollständig rückgeprüft", () => {
   assert.ok(backupWorkflowSource.includes('cron: "15 2 * * 1"'));
   assert.ok(backupWorkflowSource.includes("supabase db dump"));
   assert.ok(backupWorkflowSource.includes("full-database.dump"));
   assert.ok(backupWorkflowSource.includes("backup-supabase-storage.mjs"));
+  assert.ok(backupWorkflowSource.includes("verify-backup-archive.mjs"));
+  assert.ok(backupWorkflowSource.includes("Google-Drive-Kopie zurückladen und vollständig prüfen"));
   assert.ok(backupWorkflowSource.includes("--cipher-algo AES256"));
   assert.ok(backupWorkflowSource.includes("RCLONE_CONFIG_B64"));
   assert.ok(backupWorkflowSource.includes("gdrive:ULC-Linz-App-Backups"));
   assert.ok(backupStorageSource.includes("listBuckets"));
   assert.ok(backupStorageSource.includes("storage-manifest.json"));
+  assert.ok(backupStorageSource.includes("sha256"));
+  assert.ok(verifyBackupSource.includes("SHA256SUMS"));
+  assert.ok(verifyBackupSource.includes("PGDMP"));
+});
+
+test("Vierteljährliche Wiederherstellungsprobe bleibt vom Produktivsystem getrennt", () => {
+  assert.ok(quarterlyRestoreWorkflowSource.includes('cron: "45 3 1 1,4,7,10 *"'));
+  assert.ok(quarterlyRestoreWorkflowSource.includes("ulc_restore_test"));
+  assert.ok(quarterlyRestoreWorkflowSource.includes("supabase start"));
+  assert.ok(quarterlyRestoreWorkflowSource.includes("pg_restore"));
+  assert.ok(quarterlyRestoreWorkflowSource.includes("restore-supabase-storage.mjs"));
+  assert.ok(quarterlyRestoreWorkflowSource.includes("--verify"));
+  assert.doesNotMatch(quarterlyRestoreWorkflowSource, /SUPABASE_DB_URL/);
+  assert.ok(restoreStorageSource.includes("hashRemoteObject"));
+  assert.ok(restoreStorageSource.includes("--sync-buckets"));
 });
 
 const trainingDocumentationPageSource = await readFile(new URL("../src/pages/TrainingDocumentationPage.tsx", import.meta.url), "utf8");
@@ -202,3 +222,23 @@ test("Datenimport ist begrenzt, idempotent und transaktional", () => {
   assert.ok(transactionalImportMigrationSource.includes("Der gesamte Import wurde abgebrochen"));
 });
 
+
+const clientSessionDataSource = await readFile(new URL("../src/lib/client-session-data.ts", import.meta.url), "utf8");
+const documentationMediaUploadSource = await readFile(new URL("../src/features/training-documentation/media-upload.ts", import.meta.url), "utf8");
+const exerciseVideoUploadSource = await readFile(new URL("../src/features/exercise-catalog/video-upload.ts", import.meta.url), "utf8");
+
+test("Lokale sensible Daten sind benutzergebunden und zeitlich begrenzt", () => {
+  assert.ok(clientSessionDataSource.includes("48 * 60 * 60 * 1000"), "48-Stunden-Frist fehlt.");
+  assert.ok(clientSessionDataSource.includes('ulc-training-documentation:v2:'), "Versionierter Entwurfsschlüssel fehlt.");
+  assert.ok(clientSessionDataSource.includes('ulc-training-doc-video:v2:'), "Versionierter Dokumentations-Uploadschlüssel fehlt.");
+  assert.ok(clientSessionDataSource.includes('ulc-exercise-video-tus:v2:'), "Versionierter Übungsvideo-Uploadschlüssel fehlt.");
+  assert.ok(clientSessionDataSource.includes("ownerUserId"), "Benutzerbindung fehlt.");
+  assert.ok(clientSessionDataSource.includes("purgeSensitiveSessionData"), "Bereinigung sensibler Browserdaten fehlt.");
+  assert.ok(authContextSource.includes("purgeSensitiveSessionData(nextUserId)"), "Bereinigung beim Wiederherstellen der Sitzung fehlt.");
+  assert.ok(authContextSource.includes("purgeSensitiveSessionData(nextSession.user.id)"), "Bereinigung beim Benutzerwechsel fehlt.");
+  assert.ok(trainingDocumentationPageSource.includes("appContext?.authUser.id"), "Dokumentationsentwürfe sind nicht an den Benutzer gebunden.");
+  assert.ok(documentationMediaUploadSource.includes("RESUMABLE_UPLOAD_MAX_AGE_MS"));
+  assert.ok(documentationMediaUploadSource.includes("ownerUserId"));
+  assert.ok(exerciseVideoUploadSource.includes("RESUMABLE_UPLOAD_MAX_AGE_MS"));
+  assert.ok(exerciseVideoUploadSource.includes("ownerUserId"));
+});

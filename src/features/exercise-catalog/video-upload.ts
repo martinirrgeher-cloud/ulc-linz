@@ -1,5 +1,9 @@
 import { env } from "@/lib/env";
 import { requireSupabase } from "@/lib/supabase";
+import {
+  exerciseVideoUploadKey,
+  RESUMABLE_UPLOAD_MAX_AGE_MS,
+} from "@/lib/client-session-data";
 
 export const EXERCISE_VIDEO_BUCKET = "exercise-videos";
 export const EXERCISE_VIDEO_MAX_BYTES = 50 * 1024 * 1024;
@@ -65,41 +69,62 @@ export function exerciseVideoMimeType(file: File): string {
 function fingerprintKey(
   file: File,
   organizationId: string,
+  ownerUserId: string,
   exerciseId: string,
 ): string {
-  const raw = `${organizationId}|${exerciseId}|${file.name}|${file.size}|${file.lastModified}`;
-  return `ulc-exercise-video-tus:${encodeMetadata(raw)
+  const raw = `${exerciseId}|${file.name}|${file.size}|${file.lastModified}`;
+  const fingerprint = encodeMetadata(raw)
     .replace(/[^a-z0-9]/gi, "")
-    .slice(0, 180)}`;
+    .slice(0, 180);
+  return exerciseVideoUploadKey(organizationId, ownerUserId, fingerprint);
 }
 
 type StoredUpload = {
+  ownerUserId: string;
+  organizationId: string;
+  createdAt: string;
+  expiresAt: string;
   storagePath: string;
   uploadUrl: string;
 };
 
-function readStoredUpload(key: string): StoredUpload | null {
+function readStoredUpload(
+  key: string,
+  organizationId: string,
+  ownerUserId: string,
+): StoredUpload | null {
   const raw = window.localStorage.getItem(key);
   if (!raw) return null;
   try {
     const value = JSON.parse(raw) as Partial<StoredUpload>;
-    if (typeof value.storagePath !== "string" || typeof value.uploadUrl !== "string") {
+    const expiresAt = typeof value.expiresAt === "string" ? Date.parse(value.expiresAt) : Number.NaN;
+    if (
+      value.ownerUserId !== ownerUserId
+      || value.organizationId !== organizationId
+      || typeof value.createdAt !== "string"
+      || !Number.isFinite(expiresAt)
+      || expiresAt <= Date.now()
+      || typeof value.storagePath !== "string"
+      || typeof value.uploadUrl !== "string"
+    ) {
+      window.localStorage.removeItem(key);
       return null;
     }
-    return { storagePath: value.storagePath, uploadUrl: value.uploadUrl };
+    return value as StoredUpload;
   } catch {
+    window.localStorage.removeItem(key);
     return null;
   }
 }
 
-async function accessToken(): Promise<string> {
+async function uploadSession(): Promise<{ token: string; ownerUserId: string }> {
   const supabase = requireSupabase();
   const { data, error } = await supabase.auth.getSession();
   if (error) throw error;
   if (!data.session?.access_token) {
     throw new Error("Die Anmeldung ist abgelaufen. Bitte neu anmelden.");
   }
-  return data.session.access_token;
+  return { token: data.session.access_token, ownerUserId: data.session.user.id };
 }
 
 function commonHeaders(token: string): Record<string, string> {
@@ -250,11 +275,11 @@ export async function uploadExerciseVideoFile({
 }: UploadOptions): Promise<string> {
   validateExerciseVideoFile(file);
 
-  const localKey = fingerprintKey(file, organizationId, exerciseId);
-  const token = await accessToken();
+  const { token, ownerUserId } = await uploadSession();
+  const localKey = fingerprintKey(file, organizationId, ownerUserId, exerciseId);
   const endpoint = `https://${projectReference()}.storage.supabase.co/storage/v1/upload/resumable`;
 
-  const storedUpload = readStoredUpload(localKey);
+  const storedUpload = readStoredUpload(localKey, organizationId, ownerUserId);
   let storagePath = storedUpload?.storagePath
     ?? exerciseVideoStoragePath(organizationId, exerciseId, file);
   let uploadUrl: string | null = storedUpload?.uploadUrl ?? null;
@@ -278,7 +303,15 @@ export async function uploadExerciseVideoFile({
   if (!uploadUrl) {
     storagePath = exerciseVideoStoragePath(organizationId, exerciseId, file);
     uploadUrl = await createUpload(endpoint, token, storagePath, file);
-    window.localStorage.setItem(localKey, JSON.stringify({ storagePath, uploadUrl }));
+    const createdAt = new Date();
+    window.localStorage.setItem(localKey, JSON.stringify({
+      ownerUserId,
+      organizationId,
+      createdAt: createdAt.toISOString(),
+      expiresAt: new Date(createdAt.getTime() + RESUMABLE_UPLOAD_MAX_AGE_MS).toISOString(),
+      storagePath,
+      uploadUrl,
+    } satisfies StoredUpload));
   }
 
   onProgress?.({

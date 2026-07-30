@@ -1,0 +1,205 @@
+name: Vierteljährliche Backup-Wiederherstellungsprobe
+
+on:
+  workflow_dispatch:
+    inputs:
+      backup_file:
+        description: "Optionaler Dateiname aus Google Drive; leer = neuestes Backup"
+        required: false
+        type: string
+  schedule:
+    - cron: "45 3 1 1,4,7,10 *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quarterly-backup-restore-test
+  cancel-in-progress: false
+
+jobs:
+  restore-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      BACKUP_ENCRYPTION_PASSWORD: ${{ secrets.BACKUP_ENCRYPTION_PASSWORD }}
+      RCLONE_CONFIG_B64: ${{ secrets.RCLONE_CONFIG_B64 }}
+      DRIVE_TARGET: gdrive:ULC-Linz-App-Backups
+
+    steps:
+      - name: Projekt auschecken
+        uses: actions/checkout@v4
+
+      - name: Node.js einrichten
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Abhängigkeiten installieren
+        run: npm ci
+
+      - name: Supabase CLI einrichten
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.109.1
+
+      - name: Voraussetzungen prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${BACKUP_ENCRYPTION_PASSWORD:-}" ] || [ -z "${RCLONE_CONFIG_B64:-}" ]; then
+            echo "BACKUP_ENCRYPTION_PASSWORD oder RCLONE_CONFIG_B64 fehlt." >&2
+            exit 1
+          fi
+          if [ "${#BACKUP_ENCRYPTION_PASSWORD}" -lt 20 ]; then
+            echo "BACKUP_ENCRYPTION_PASSWORD muss mindestens 20 Zeichen lang sein." >&2
+            exit 1
+          fi
+
+      - name: rclone installieren und Google Drive konfigurieren
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq rclone
+          mkdir -p "$HOME/.config/rclone"
+          printf '%s' "$RCLONE_CONFIG_B64" | base64 --decode > "$HOME/.config/rclone/rclone.conf"
+          chmod 600 "$HOME/.config/rclone/rclone.conf"
+          rclone lsd gdrive: >/dev/null
+
+      - name: Backup auswählen und herunterladen
+        id: backup
+        shell: bash
+        env:
+          REQUESTED_BACKUP: ${{ inputs.backup_file || '' }}
+        run: |
+          set -euo pipefail
+          selected="$REQUESTED_BACKUP"
+          if [ -z "$selected" ]; then
+            selected="$(rclone lsf "$DRIVE_TARGET" \
+              --files-only \
+              --include "ULC-Linz-App-Backup_*.tar.gz.gpg" \
+              | sort \
+              | tail -n 1)"
+          fi
+          if [ -z "$selected" ]; then
+            echo "Kein verschlüsseltes Backup in Google Drive gefunden." >&2
+            exit 1
+          fi
+          case "$selected" in
+            ULC-Linz-App-Backup_*.tar.gz.gpg) ;;
+            *) echo "Ungültiger Backup-Dateiname: $selected" >&2; exit 1 ;;
+          esac
+          mkdir -p restore/download restore/extracted
+          rclone copyto "$DRIVE_TARGET/$selected" "restore/download/$selected" --transfers 1 --checkers 4 --retries 5
+          test -s "restore/download/$selected"
+          echo "file=$selected" >> "$GITHUB_OUTPUT"
+
+      - name: Backup entschlüsseln und Archiv prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          file="${{ steps.backup.outputs.file }}"
+          printf '%s' "$BACKUP_ENCRYPTION_PASSWORD" | gpg \
+            --batch \
+            --yes \
+            --pinentry-mode loopback \
+            --passphrase-fd 0 \
+            --output restore/backup.tar.gz \
+            --decrypt "restore/download/$file"
+          tar -xzf restore/backup.tar.gz -C restore/extracted
+          node scripts/verify-backup-archive.mjs restore/extracted/backup
+          docker run --rm \
+            -v "$PWD/restore/extracted/backup/database:/backup:ro" \
+            postgres:17-alpine \
+            pg_restore --list /backup/full-database.dump >/dev/null
+
+      - name: Isolierte lokale Supabase-Umgebung starten
+        shell: bash
+        env:
+          OPENAI_API_KEY: not-used-in-restore-test
+          SUPABASE_AUTH_SMS_TWILIO_AUTH_TOKEN: not-used-in-restore-test
+          SUPABASE_AUTH_EXTERNAL_APPLE_SECRET: not-used-in-restore-test
+          S3_HOST: not-used-in-restore-test
+          S3_REGION: local
+          S3_ACCESS_KEY: not-used-in-restore-test
+          S3_SECRET_KEY: not-used-in-restore-test
+        run: |
+          set -euo pipefail
+          supabase start -x studio,imgproxy,mailpit,edge-runtime,logflare,vector,supavisor,realtime
+          supabase status -o env > restore/local-supabase.env
+          test -s restore/local-supabase.env
+
+      - name: PostgreSQL-Vollauszug in isolierte Testdatenbank einspielen
+        shell: bash
+        run: |
+          set -euo pipefail
+          set -a
+          source restore/local-supabase.env
+          set +a
+          : "${DB_URL:?DB_URL wurde von Supabase CLI nicht geliefert.}"
+          restore_db_url="${DB_URL%/*}/ulc_restore_test"
+
+          docker run --rm --network host postgres:17-alpine \
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
+            -c "drop database if exists ulc_restore_test with (force);"
+          docker run --rm --network host postgres:17-alpine \
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
+            -c "create database ulc_restore_test;"
+          docker run --rm --network host \
+            -v "$PWD/restore/extracted/backup/database:/backup:ro" \
+            postgres:17-alpine \
+            pg_restore \
+              --dbname "$restore_db_url" \
+              --no-owner \
+              --no-privileges \
+              --exit-on-error \
+              /backup/full-database.dump
+
+          table_count="$(docker run --rm --network host postgres:17-alpine \
+            psql "$restore_db_url" -At -v ON_ERROR_STOP=1 \
+            -c "select count(*) from pg_catalog.pg_tables where schemaname not in ('pg_catalog', 'information_schema');")"
+          if [ "${table_count:-0}" -le 0 ]; then
+            echo "Die Testwiederherstellung enthält keine Tabellen." >&2
+            exit 1
+          fi
+          echo "Wiederhergestellte Tabellen: $table_count"
+
+      - name: Storage in lokale Testumgebung einspielen und prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          set -a
+          source restore/local-supabase.env
+          set +a
+          : "${API_URL:?API_URL wurde von Supabase CLI nicht geliefert.}"
+          : "${SERVICE_ROLE_KEY:?SERVICE_ROLE_KEY wurde von Supabase CLI nicht geliefert.}"
+          SUPABASE_URL="$API_URL" \
+          SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY" \
+            node scripts/restore-supabase-storage.mjs \
+              restore/extracted/backup/storage \
+              --apply \
+              --overwrite \
+              --verify \
+              --sync-buckets
+
+      - name: Lokale Testumgebung stoppen
+        if: always()
+        shell: bash
+        run: |
+          supabase stop --no-backup || true
+          rm -rf restore
+
+      - name: Ergebnis zusammenfassen
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## Vierteljährliche Backup-Wiederherstellungsprobe"
+            echo ""
+            echo "- Backup: ${{ steps.backup.outputs.file || 'nicht ausgewählt' }}"
+            echo "- Ziel: isolierte lokale Supabase-Umgebung im GitHub-Runner"
+            echo "- Produktivsystem verändert: nein"
+            echo "- Status: ${{ job.status }}"
+          } >> "$GITHUB_STEP_SUMMARY"

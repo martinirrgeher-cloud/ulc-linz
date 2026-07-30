@@ -103,6 +103,8 @@ function formatDate(value: string): string {
 
 
 type StoredDraft = {
+  ownerUserId: string;
+  organizationId: string;
   savedAt: string;
   expiresAt: string;
   conflictDetectedAt: string | null;
@@ -120,13 +122,24 @@ const VERSION_CONFLICT_NOTICE =
   "Die Trainingsdokumentation wurde inzwischen auf einem anderen Gerät geändert. "
   + "Dein lokaler Stand bleibt erhalten. Lade bewusst den aktuellen Serverstand, bevor du weiter speicherst.";
 
-function readLocalDraft(organizationId: string, sessionId: string): StoredDraft | null {
+function readLocalDraft(
+  organizationId: string,
+  ownerUserId: string,
+  sessionId: string,
+): StoredDraft | null {
+  const storageKey = trainingDocumentationDraftKey(organizationId, ownerUserId, sessionId);
   try {
-    const raw = window.localStorage.getItem(trainingDocumentationDraftKey(organizationId, sessionId));
+    const raw = window.localStorage.getItem(storageKey);
     if (!raw) return null;
     const draft = JSON.parse(raw) as Partial<StoredDraft>;
-    if (!draft.value || typeof draft.savedAt !== "string" || draft.value.sessionId !== sessionId) {
-      window.localStorage.removeItem(trainingDocumentationDraftKey(organizationId, sessionId));
+    if (
+      !draft.value
+      || typeof draft.savedAt !== "string"
+      || draft.ownerUserId !== ownerUserId
+      || draft.organizationId !== organizationId
+      || draft.value.sessionId !== sessionId
+    ) {
+      window.localStorage.removeItem(storageKey);
       return null;
     }
 
@@ -135,42 +148,59 @@ function readLocalDraft(organizationId: string, sessionId: string): StoredDraft 
       ? Date.parse(draft.expiresAt)
       : savedAt + TRAINING_DOCUMENTATION_DRAFT_MAX_AGE_MS;
     if (!Number.isFinite(savedAt) || !Number.isFinite(expiresAt) || expiresAt <= Date.now()) {
-      window.localStorage.removeItem(trainingDocumentationDraftKey(organizationId, sessionId));
+      window.localStorage.removeItem(storageKey);
       return null;
     }
 
     return {
+      ownerUserId,
+      organizationId,
       savedAt: draft.savedAt,
       expiresAt: new Date(expiresAt).toISOString(),
       conflictDetectedAt: typeof draft.conflictDetectedAt === "string" ? draft.conflictDetectedAt : null,
       value: draft.value,
     };
   } catch {
-    window.localStorage.removeItem(trainingDocumentationDraftKey(organizationId, sessionId));
+    try {
+      window.localStorage.removeItem(storageKey);
+    } catch {
+      // Lokale Browserdaten dürfen das Laden nicht blockieren.
+    }
     return null;
   }
 }
 
 function writeLocalDraft(
   organizationId: string,
+  ownerUserId: string,
   value: TrainingDocumentationInput,
   conflictDetected = false,
 ): void {
   const savedAt = new Date();
   const draft: StoredDraft = {
+    ownerUserId,
+    organizationId,
     savedAt: savedAt.toISOString(),
     expiresAt: new Date(savedAt.getTime() + TRAINING_DOCUMENTATION_DRAFT_MAX_AGE_MS).toISOString(),
     conflictDetectedAt: conflictDetected ? savedAt.toISOString() : null,
     value,
   };
-  window.localStorage.setItem(
-    trainingDocumentationDraftKey(organizationId, value.sessionId),
-    JSON.stringify(draft),
-  );
+  try {
+    window.localStorage.setItem(
+      trainingDocumentationDraftKey(organizationId, ownerUserId, value.sessionId),
+      JSON.stringify(draft),
+    );
+  } catch {
+    // Autosave zum Server bleibt auch ohne verfügbaren Browser-Speicher aktiv.
+  }
 }
 
-function clearLocalDraft(organizationId: string, sessionId: string): void {
-  window.localStorage.removeItem(trainingDocumentationDraftKey(organizationId, sessionId));
+function clearLocalDraft(organizationId: string, ownerUserId: string, sessionId: string): void {
+  try {
+    window.localStorage.removeItem(trainingDocumentationDraftKey(organizationId, ownerUserId, sessionId));
+  } catch {
+    // Bereits synchronisierte Daten bleiben serverseitig erhalten.
+  }
 }
 
 function statusLabel(plan: DocumentationPlanSummary): string {
@@ -185,6 +215,7 @@ export function TrainingDocumentationPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { appContext } = useAuth();
   const organizationId = appContext?.organization?.id ?? null;
+  const ownerUserId = appContext?.authUser.id ?? null;
   const [mode, setMode] = useState<PageMode>(() => parsePageMode(searchParams.get("view")));
   const [weekStart, setWeekStart] = useState(() => startOfIsoWeek(dateFromKey(searchParams.get("date")) ?? new Date()));
   const [groupId, setGroupId] = useState(() => searchParams.get("group") ?? "");
@@ -294,7 +325,7 @@ export function TrainingDocumentationPage() {
   }, [organizationId, weekStart, groupId, athleteId]);
 
   const loadPlan = useCallback(async (planId: string, skipGuard = false): Promise<boolean> => {
-    if (!organizationId || !planId) return false;
+    if (!organizationId || !ownerUserId || !planId) return false;
     if (!skipGuard && !guardUnsaved()) return false;
     setSelectedPlanId(planId);
     updateUrl({ plan: planId, view: "document" });
@@ -313,7 +344,7 @@ export function TrainingDocumentationPage() {
       changeVersionRef.current += 1;
       if (nextSession) {
         serverUpdatedAtBySessionRef.current.set(nextSession.sessionId, nextSession.updatedAt);
-        const local = readLocalDraft(organizationId, nextSession.sessionId);
+        const local = readLocalDraft(organizationId, ownerUserId, nextSession.sessionId);
         if (local?.conflictDetectedAt) {
           conflictedSessionIdsRef.current.add(nextSession.sessionId);
           nextSession = cloneDocumentationInput(local.value);
@@ -344,7 +375,7 @@ export function TrainingDocumentationPage() {
     } finally {
       setDetailLoading(false);
     }
-  }, [guardUnsaved, organizationId, updateUrl]);
+  }, [guardUnsaved, organizationId, ownerUserId, updateUrl]);
 
   const openPlan = useCallback((planId: string) => loadPlan(planId, false), [loadPlan]);
 
@@ -362,7 +393,7 @@ export function TrainingDocumentationPage() {
       let overviewNeedsRefresh = false;
       while (saveQueueRef.current.length > 0) {
         const request = saveQueueRef.current.shift();
-        if (!request || !organizationId) continue;
+        if (!request || !organizationId || !ownerUserId) continue;
         inFlightSaveRef.current = request;
         const isCurrentSession = sessionValueRef.current?.sessionId === request.value.sessionId;
         if (isCurrentSession) setSaveState("saving");
@@ -410,7 +441,7 @@ export function TrainingDocumentationPage() {
             setSaveState("saved");
             setVersionConflict(false);
             setError(null);
-            clearLocalDraft(organizationId, request.value.sessionId);
+            clearLocalDraft(organizationId, ownerUserId, request.value.sessionId);
           } else if (isStillCurrentSession) {
             setDirty(true);
             setSaveState(hasNewerQueuedSave ? "saving" : "idle");
@@ -424,7 +455,7 @@ export function TrainingDocumentationPage() {
           const latestLocalValue = sessionValueRef.current?.sessionId === request.value.sessionId
             ? cloneDocumentationInput(sessionValueRef.current)
             : request.value;
-          writeLocalDraft(organizationId, latestLocalValue, isConflict);
+          writeLocalDraft(organizationId, ownerUserId, latestLocalValue, isConflict);
 
           const isStillCurrentSession = sessionValueRef.current?.sessionId === request.value.sessionId;
           if (isStillCurrentSession) {
@@ -459,17 +490,17 @@ export function TrainingDocumentationPage() {
       if (saveRunnerRef.current === runner) saveRunnerRef.current = null;
     });
     return runner;
-  }, [loadOverview, organizationId]);
+  }, [loadOverview, organizationId, ownerUserId]);
 
   const saveNow = useCallback(async (explicitValue?: TrainingDocumentationInput): Promise<boolean> => {
-    if (!organizationId) return false;
+    if (!organizationId || !ownerUserId) return false;
     const current = explicitValue ?? sessionValueRef.current;
     if (!current || !current.canEdit) return true;
 
     const snapshot = cloneDocumentationInput(current);
     const capturedVersion = changeVersionRef.current;
     const hasVersionConflict = conflictedSessionIdsRef.current.has(snapshot.sessionId);
-    writeLocalDraft(organizationId, snapshot, hasVersionConflict);
+    writeLocalDraft(organizationId, ownerUserId, snapshot, hasVersionConflict);
 
     if (hasVersionConflict) {
       setSaveState("error");
@@ -532,7 +563,7 @@ export function TrainingDocumentationPage() {
       }
       void drainSaveQueue();
     });
-  }, [documentationLock, drainSaveQueue, organizationId]);
+  }, [documentationLock, drainSaveQueue, organizationId, ownerUserId]);
 
   useEffect(() => {
     if (!dirty || !sessionValue?.canEdit || !documentationLock.isEditable || versionConflict) return undefined;
@@ -556,7 +587,7 @@ export function TrainingDocumentationPage() {
     const hasVersionConflict = conflictedSessionIdsRef.current.has(next.sessionId);
     setSaveState(hasVersionConflict ? "error" : navigator.onLine ? "idle" : "local");
     setVersionConflict(hasVersionConflict);
-    if (organizationId) writeLocalDraft(organizationId, next, hasVersionConflict);
+    if (organizationId && ownerUserId) writeLocalDraft(organizationId, ownerUserId, next, hasVersionConflict);
   }
 
   async function startSession() {
@@ -582,7 +613,7 @@ export function TrainingDocumentationPage() {
     setDirty(true);
     const saved = await saveNow(next);
     if (!saved) return false;
-    if (organizationId) clearLocalDraft(organizationId, next.sessionId);
+    if (organizationId && ownerUserId) clearLocalDraft(organizationId, ownerUserId, next.sessionId);
     await loadPlan(next.planId, true);
     setNotice("Das Training wurde abgeschlossen.");
     return true;
@@ -595,14 +626,14 @@ export function TrainingDocumentationPage() {
   }
 
   async function loadServerVersionAfterConflict() {
-    if (!organizationId || !selectedPlanId || !sessionValueRef.current) return;
+    if (!organizationId || !ownerUserId || !selectedPlanId || !sessionValueRef.current) return;
     const currentSessionId = sessionValueRef.current.sessionId;
     if (!window.confirm(
       "Aktuellen Serverstand laden? Dein lokaler Konfliktentwurf wird dabei verworfen. "
       + "Nicht übernommene Texte solltest du vorher kopieren.",
     )) return;
 
-    clearLocalDraft(organizationId, currentSessionId);
+    clearLocalDraft(organizationId, ownerUserId, currentSessionId);
     conflictedSessionIdsRef.current.delete(currentSessionId);
     setVersionConflict(false);
     setError(null);

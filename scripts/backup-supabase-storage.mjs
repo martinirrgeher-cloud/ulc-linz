@@ -1,5 +1,6 @@
-import { createWriteStream } from "node:fs";
-import { mkdir, rm, writeFile } from "node:fs/promises";
+import { createReadStream, createWriteStream } from "node:fs";
+import { mkdir, rm, stat, writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import path from "node:path";
@@ -29,6 +30,14 @@ function safeTarget(bucketName, objectName) {
     throw new Error(`Unsicherer Storage-Pfad: ${bucketName}/${objectName}`);
   }
   return target;
+}
+
+async function hashFile(filePath) {
+  const hash = createHash("sha256");
+  for await (const chunk of createReadStream(filePath)) {
+    hash.update(chunk);
+  }
+  return hash.digest("hex");
 }
 
 async function withRetry(label, action, attempts = 4) {
@@ -117,7 +126,12 @@ async function downloadObject(bucketName, objectName) {
     }
   });
 
-  return target;
+  const fileStat = await stat(target);
+  return {
+    target,
+    localSize: fileStat.size,
+    sha256: await hashFile(target),
+  };
 }
 
 await mkdir(outputRoot, { recursive: true });
@@ -144,8 +158,13 @@ for (const bucket of buckets ?? []) {
   };
 
   for (const object of objects) {
-    const target = await downloadObject(bucket.name, object.name);
-    bucketManifest.objects.push({ ...object, localPath: path.relative(outputRoot, target) });
+    const downloaded = await downloadObject(bucket.name, object.name);
+    bucketManifest.objects.push({
+      ...object,
+      localPath: path.relative(outputRoot, downloaded.target),
+      localSize: downloaded.localSize,
+      sha256: downloaded.sha256,
+    });
   }
 
   manifest.buckets.push(bucketManifest);
@@ -158,4 +177,8 @@ await writeFile(
 );
 
 const fileCount = manifest.buckets.reduce((sum, bucket) => sum + bucket.objects.length, 0);
-console.log(`${manifest.buckets.length} Bucket(s), ${fileCount} Datei(en) gesichert.`);
+const totalBytes = manifest.buckets.reduce(
+  (bucketSum, bucket) => bucketSum + bucket.objects.reduce((objectSum, object) => objectSum + object.localSize, 0),
+  0,
+);
+console.log(`${manifest.buckets.length} Bucket(s), ${fileCount} Datei(en), ${totalBytes} Byte gesichert.`);

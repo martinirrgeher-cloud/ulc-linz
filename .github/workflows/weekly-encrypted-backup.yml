@@ -15,7 +15,7 @@ concurrency:
 jobs:
   backup:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
     env:
       SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
@@ -31,7 +31,7 @@ jobs:
       - name: Node.js einrichten
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version-file: .nvmrc
           cache: npm
 
       - name: Abhängigkeiten installieren
@@ -72,6 +72,7 @@ jobs:
           cp -R supabase/migrations backup/project/migrations
           cp supabase/config.toml backup/project/config.toml
           cp scripts/restore-supabase-storage.mjs backup/project/restore-supabase-storage.mjs
+          cp scripts/verify-backup-archive.mjs backup/project/verify-backup-archive.mjs
           cp BACKUP-GOOGLE-DRIVE-EINRICHTUNG.md backup/project/README-BACKUP.md
 
       - name: Datenbankrollen sichern
@@ -102,24 +103,28 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cat > backup/RESTORE-HINWEIS.txt <<'EOF'
+          cat > backup/RESTORE-HINWEIS.txt <<'NOTICE'
           Dieses Archiv enthält portable SQL-Exporte, einen zusätzlichen PostgreSQL-
           Vollauszug inklusive Auth- und Storage-Metadaten sowie sämtliche tatsächlichen
           Supabase-Storage-Dateien. Vor einer Wiederherstellung zuerst die zum Archiv
           gehörenden Migrationen und die Supabase-Dokumentation prüfen. Niemals ungeprüft
           in die produktive Datenbank einspielen.
-          EOF
+          NOTICE
           (
             cd backup
             find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
           )
+          node scripts/verify-backup-archive.mjs backup
           du -sh backup
 
-      - name: Backup verschlüsseln
+      - name: Backup verschlüsseln und lokal testentschlüsseln
         shell: bash
         run: |
           set -euo pipefail
-          tar -czf "${{ steps.names.outputs.archive }}" backup
+          archive="${{ steps.names.outputs.archive }}"
+          encrypted="$archive.gpg"
+
+          tar -czf "$archive" backup
           printf '%s' "$BACKUP_ENCRYPTION_PASSWORD" | gpg \
             --batch \
             --yes \
@@ -128,9 +133,22 @@ jobs:
             --symmetric \
             --cipher-algo AES256 \
             --compress-algo none \
-            --output "${{ steps.names.outputs.archive }}.gpg" \
-            "${{ steps.names.outputs.archive }}"
-          rm -rf backup "${{ steps.names.outputs.archive }}"
+            --output "$encrypted" \
+            "$archive"
+
+          mkdir -p verification/local
+          printf '%s' "$BACKUP_ENCRYPTION_PASSWORD" | gpg \
+            --batch \
+            --yes \
+            --pinentry-mode loopback \
+            --passphrase-fd 0 \
+            --output verification/local/backup.tar.gz \
+            --decrypt "$encrypted"
+          tar -xzf verification/local/backup.tar.gz -C verification/local
+          node scripts/verify-backup-archive.mjs verification/local/backup
+
+          sha256sum "$encrypted" > "${encrypted}.sha256"
+          rm -rf backup "$archive" verification/local
 
       - name: rclone installieren und Google Drive konfigurieren
         shell: bash
@@ -151,11 +169,49 @@ jobs:
           rclone mkdir "$DRIVE_TARGET"
           rclone copyto "$file" "$DRIVE_TARGET/$file" --transfers 1 --checkers 4 --retries 5
           rclone lsl "$DRIVE_TARGET/$file"
+
+      - name: Google-Drive-Kopie zurückladen und vollständig prüfen
+        id: remote_verify
+        shell: bash
+        run: |
+          set -euo pipefail
+          file="${{ steps.names.outputs.archive }}.gpg"
+          mkdir -p verification/remote/extracted
+          rclone copyto "$DRIVE_TARGET/$file" "verification/remote/$file" --transfers 1 --checkers 4 --retries 5
+
+          expected="$(cut -d' ' -f1 "${file}.sha256")"
+          actual="$(sha256sum "verification/remote/$file" | cut -d' ' -f1)"
+          if [ "$expected" != "$actual" ]; then
+            echo "Die verschlüsselte Google-Drive-Kopie stimmt nicht mit der lokalen Datei überein." >&2
+            exit 1
+          fi
+
+          printf '%s' "$BACKUP_ENCRYPTION_PASSWORD" | gpg \
+            --batch \
+            --yes \
+            --pinentry-mode loopback \
+            --passphrase-fd 0 \
+            --output verification/remote/backup.tar.gz \
+            --decrypt "verification/remote/$file"
+          tar -xzf verification/remote/backup.tar.gz -C verification/remote/extracted
+          node scripts/verify-backup-archive.mjs verification/remote/extracted/backup
+          echo "verified=true" >> "$GITHUB_OUTPUT"
+
+      - name: Alte Google-Drive-Backups nach erfolgreicher Prüfung löschen
+        shell: bash
+        run: |
+          set -euo pipefail
           rclone delete "$DRIVE_TARGET" \
             --min-age 84d \
             --include "ULC-Linz-App-Backup_*.tar.gz.gpg" \
             --exclude "*"
-          rm -f "$file"
+
+      - name: Lokale Backup-Dateien bereinigen
+        if: always()
+        shell: bash
+        run: |
+          rm -rf backup verification
+          rm -f ULC-Linz-App-Backup_*.tar.gz ULC-Linz-App-Backup_*.tar.gz.gpg ULC-Linz-App-Backup_*.tar.gz.gpg.sha256
 
       - name: Ergebnis zusammenfassen
         if: always()
@@ -167,5 +223,6 @@ jobs:
             echo "- Zeitpunkt: ${{ steps.names.outputs.stamp || 'nicht erstellt' }}"
             echo "- Ziel: Google Drive / ULC-Linz-App-Backups"
             echo "- Aufbewahrung: 12 Wochen"
+            echo "- Google-Drive-Kopie geprüft: ${{ steps.remote_verify.outputs.verified || 'nein' }}"
             echo "- Status: ${{ job.status }}"
           } >> "$GITHUB_STEP_SUMMARY"
