@@ -1658,3 +1658,232 @@
     height: 27px;
   }
 }
+
+
+/* Korrektur: klare Bedienleiste und breite Textzeilen in der Trainingsplanung */
+.training-plan-section-header {
+  grid-template-columns: minmax(0, 1fr);
+  align-items: stretch;
+}
+
+.training-plan-section-toolbar {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 7px;
+  background: #edf7f0;
+}
+
+.training-plan-section-exercise .training-plan-section-toolbar {
+  background: #f3f6f4;
+}
+
+.training-plan-section-code-toggle {
+  min-width: 0;
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 5px;
+  color: var(--green-900);
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.training-plan-section-code-toggle:hover,
+.training-plan-section-code-toggle:focus-visible {
+  background: rgba(255, 255, 255, .72);
+}
+
+.training-plan-section-code-toggle .training-plan-section-chevron {
+  width: 16px;
+  flex: 0 0 auto;
+}
+
+.training-plan-section-content-toggle.training-plan-section-toggle {
+  width: 100%;
+  min-height: 0;
+  display: block;
+  padding: 7px 9px 9px;
+  color: var(--green-950);
+  background: #f8fbf9;
+  border: 0;
+  text-align: left;
+  cursor: pointer;
+}
+
+.training-plan-section-content-toggle .training-plan-section-title {
+  display: grid;
+  gap: 2px;
+}
+
+.training-plan-section-content-toggle .training-plan-section-title strong {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  font-size: .95rem;
+  line-height: 1.25;
+}
+
+.training-plan-section-content-toggle .training-plan-section-title small {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  font-size: .72rem;
+  line-height: 1.2;
+}
+
+.training-plan-compact-actions {
+  width: auto;
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid #cfe0d4;
+  border-radius: 8px;
+}
+
+.training-plan-section-actions.training-plan-compact-actions,
+.training-plan-item-actions.training-plan-compact-actions {
+  padding: 0;
+}
+
+.training-plan-section-actions.training-plan-compact-actions button,
+.training-plan-item-actions.training-plan-compact-actions button {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  min-height: 36px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-left: 1px solid #dbe7df;
+  border-radius: 0;
+}
+
+.training-plan-section-actions.training-plan-compact-actions button:first-child,
+.training-plan-item-actions.training-plan-compact-actions button:first-child {
+  border-left: 0;
+}
+
+.training-plan-section-actions.training-plan-compact-actions button:hover:not(:disabled),
+.training-plan-section-actions.training-plan-compact-actions button:focus-visible,
+.training-plan-item-actions.training-plan-compact-actions button:hover:not(:disabled),
+.training-plan-item-actions.training-plan-compact-actions button:focus-visible {
+  background: #edf7f0;
+}
+
+.training-plan-section-actions.training-plan-compact-actions svg,
+.training-plan-item-actions.training-plan-compact-actions svg {
+  width: 15px;
+  height: 15px;
+}
+
+.training-plan-item.nested > header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: none;
+  align-items: stretch;
+  gap: 5px;
+}
+
+.training-plan-item-toolbar {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 7px;
+}
+
+.training-plan-item-content {
+  min-width: 0;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: none;
+}
+
+.training-plan-item-content::-webkit-scrollbar {
+  display: none;
+}
+
+.training-plan-item-title-row {
+  width: max-content;
+  min-width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 5px;
+}
+
+.training-plan-item-title-row strong {
+  flex: 0 0 auto;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: nowrap;
+  color: var(--green-950);
+  font-size: .9rem;
+  line-height: 1.25;
+}
+
+.training-plan-item-content > small {
+  width: max-content;
+  min-width: 100%;
+  display: block;
+  margin-top: 2px;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: nowrap;
+  color: var(--muted);
+  font-size: .75rem;
+  line-height: 1.2;
+}
+
+.training-plan-item-title-row .training-plan-item-info {
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  min-height: 28px;
+  flex: 0 0 28px;
+}
+
+.training-plan-item-title-row .training-plan-item-info svg {
+  width: 14px;
+  height: 14px;
+}
+
+@media (max-width: 440px) {
+  .training-plan-section-toolbar {
+    padding: 5px 6px;
+  }
+
+  .training-plan-section-content-toggle.training-plan-section-toggle {
+    padding: 7px 8px 8px;
+  }
+
+  .training-plan-section-content-toggle .training-plan-section-title strong {
+    font-size: .92rem;
+  }
+
+  .training-plan-section-actions.training-plan-compact-actions button,
+  .training-plan-item-actions.training-plan-compact-actions button {
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+    min-height: 34px;
+  }
+
+  .training-plan-item-title-row strong {
+    font-size: .88rem;
+  }
+
+  .training-plan-item-content > small {
+    font-size: .73rem;
+  }
+}

@@ -247,15 +247,52 @@ export function TrainingPlanEditor({
               return (
                 <article className={`training-plan-section training-plan-section-${section.sectionType}`} key={section.clientId}>
                   <header className="training-plan-section-header">
+                    <div className="training-plan-section-toolbar">
+                      <button
+                        type="button"
+                        className="training-plan-section-code-toggle"
+                        onClick={() => toggleSection(section.clientId)}
+                        aria-expanded={expanded}
+                        aria-label={`${section.name} ${expanded ? "einklappen" : "ausklappen"}`}
+                      >
+                        <span className="training-plan-section-number">
+                          {sectionCode}
+                        </span>
+                        {expanded ? <ChevronDown className="training-plan-section-chevron" aria-hidden="true" /> : <ChevronRight className="training-plan-section-chevron" aria-hidden="true" />}
+                      </button>
+                      <div className="training-plan-section-actions training-plan-compact-actions">
+                        <button
+                          type="button"
+                          onClick={() => onChange({ ...values, sections: moveArrayItem(values.sections, sectionIndex, -1) })}
+                          disabled={sectionIndex === 0}
+                          aria-label={`${section.name} nach oben verschieben`}
+                          title="Nach oben"
+                        ><ArrowUp aria-hidden="true" /></button>
+                        <button
+                          type="button"
+                          onClick={() => onChange({ ...values, sections: moveArrayItem(values.sections, sectionIndex, 1) })}
+                          disabled={sectionIndex === values.sections.length - 1}
+                          aria-label={`${section.name} nach unten verschieben`}
+                          title="Nach unten"
+                        ><ArrowDown aria-hidden="true" /></button>
+                        <button
+                          type="button"
+                          className="danger"
+                          onClick={() => onChange({
+                            ...values,
+                            sections: values.sections.filter((item) => item.clientId !== section.clientId),
+                          })}
+                          aria-label={`${section.name} entfernen`}
+                          title="Entfernen"
+                        ><Trash2 aria-hidden="true" /></button>
+                      </div>
+                    </div>
                     <button
                       type="button"
-                      className="training-plan-section-toggle"
+                      className="training-plan-section-toggle training-plan-section-content-toggle"
                       onClick={() => toggleSection(section.clientId)}
                       aria-expanded={expanded}
                     >
-                      <span className="training-plan-section-number">
-                        {sectionCode}
-                      </span>
                       <span className="training-plan-section-title">
                         <strong>{section.name}</strong>
                         <small>
@@ -263,39 +300,10 @@ export function TrainingPlanEditor({
                           {section.sectionType === "block" && section.items.length > 0
                             ? ` · ${section.items.length} Übung${section.items.length === 1 ? "" : "en"}`
                             : ""}
+                          {section.estimatedMinutes ? ` · ${section.estimatedMinutes} min` : ""}
                         </small>
                       </span>
-                      <span className="training-plan-section-duration">
-                        {section.estimatedMinutes ? `${section.estimatedMinutes} min` : "–"}
-                      </span>
-                      {expanded ? <ChevronDown className="training-plan-section-chevron" aria-hidden="true" /> : <ChevronRight className="training-plan-section-chevron" aria-hidden="true" />}
                     </button>
-                    <div className="training-plan-section-actions">
-                      <button
-                        type="button"
-                        onClick={() => onChange({ ...values, sections: moveArrayItem(values.sections, sectionIndex, -1) })}
-                        disabled={sectionIndex === 0}
-                        aria-label={`${section.name} nach oben verschieben`}
-                        title="Nach oben"
-                      ><ArrowUp aria-hidden="true" /></button>
-                      <button
-                        type="button"
-                        onClick={() => onChange({ ...values, sections: moveArrayItem(values.sections, sectionIndex, 1) })}
-                        disabled={sectionIndex === values.sections.length - 1}
-                        aria-label={`${section.name} nach unten verschieben`}
-                        title="Nach unten"
-                      ><ArrowDown aria-hidden="true" /></button>
-                      <button
-                        type="button"
-                        className="danger"
-                        onClick={() => onChange({
-                          ...values,
-                          sections: values.sections.filter((item) => item.clientId !== section.clientId),
-                        })}
-                        aria-label={`${section.name} entfernen`}
-                        title="Entfernen"
-                      ><Trash2 aria-hidden="true" /></button>
-                    </div>
                   </header>
 
                   {expanded && (
@@ -357,56 +365,78 @@ export function TrainingPlanEditor({
                             groupIds: [],
                             parameters: item.parameterDefinitions,
                           };
+                          const infoButton = (
+                            <button
+                              type="button"
+                              className="training-plan-item-info"
+                              onClick={() => setInfoExercise(exerciseInfo)}
+                              aria-label={`Informationen zu ${item.exerciseName} anzeigen`}
+                              title="Übungsinformationen"
+                            ><Info aria-hidden="true" /></button>
+                          );
+                          const itemActions = section.items.length > 1 ? (
+                            <div className="training-plan-item-actions training-plan-compact-actions">
+                              <button
+                                type="button"
+                                onClick={() => onChange(replaceSection(values, section.clientId, (current) => ({
+                                  ...current,
+                                  items: moveArrayItem(current.items, itemIndex, -1),
+                                })))}
+                                disabled={itemIndex === 0}
+                                aria-label={`${item.exerciseName} nach oben verschieben`}
+                                title="Nach oben"
+                              ><ArrowUp aria-hidden="true" /></button>
+                              <button
+                                type="button"
+                                onClick={() => onChange(replaceSection(values, section.clientId, (current) => ({
+                                  ...current,
+                                  items: moveArrayItem(current.items, itemIndex, 1),
+                                })))}
+                                disabled={itemIndex === section.items.length - 1}
+                                aria-label={`${item.exerciseName} nach unten verschieben`}
+                                title="Nach unten"
+                              ><ArrowDown aria-hidden="true" /></button>
+                              <button
+                                type="button"
+                                className="danger"
+                                onClick={() => onChange(replaceSection(values, section.clientId, (current) => ({
+                                  ...current,
+                                  items: current.items.filter((entry) => entry.clientId !== item.clientId),
+                                })))}
+                                aria-label={`${item.exerciseName} entfernen`}
+                                title="Entfernen"
+                              ><Trash2 aria-hidden="true" /></button>
+                            </div>
+                          ) : null;
                           return (
                             <article className={`training-plan-item ${section.sectionType === "block" ? "nested" : "standalone"}`} key={item.clientId}>
                             <header>
-                              {section.sectionType === "block" && (
-                                <span className="training-plan-item-number">{sectionCode}.{itemIndex + 1}</span>
-                              )}
-                              <span className="training-plan-item-title">
-                                <strong>{item.exerciseName}</strong>
-                                <small>{item.categoryTitle}</small>
-                              </span>
-                              <div className="training-plan-item-heading-actions">
-                                <button
-                                  type="button"
-                                  className="training-plan-item-info"
-                                  onClick={() => setInfoExercise(exerciseInfo)}
-                                  aria-label={`Informationen zu ${item.exerciseName} anzeigen`}
-                                  title="Übungsinformationen"
-                                ><Info aria-hidden="true" /></button>
-                                {section.items.length > 1 && (
-                                  <div className="training-plan-item-actions">
-                                    <button
-                                      type="button"
-                                      onClick={() => onChange(replaceSection(values, section.clientId, (current) => ({
-                                        ...current,
-                                        items: moveArrayItem(current.items, itemIndex, -1),
-                                      })))}
-                                      disabled={itemIndex === 0}
-                                      aria-label={`${item.exerciseName} nach oben verschieben`}
-                                    ><ArrowUp aria-hidden="true" /></button>
-                                    <button
-                                      type="button"
-                                      onClick={() => onChange(replaceSection(values, section.clientId, (current) => ({
-                                        ...current,
-                                        items: moveArrayItem(current.items, itemIndex, 1),
-                                      })))}
-                                      disabled={itemIndex === section.items.length - 1}
-                                      aria-label={`${item.exerciseName} nach unten verschieben`}
-                                    ><ArrowDown aria-hidden="true" /></button>
-                                    <button
-                                      type="button"
-                                      className="danger"
-                                      onClick={() => onChange(replaceSection(values, section.clientId, (current) => ({
-                                        ...current,
-                                        items: current.items.filter((entry) => entry.clientId !== item.clientId),
-                                      })))}
-                                      aria-label={`${item.exerciseName} entfernen`}
-                                    ><Trash2 aria-hidden="true" /></button>
+                              {section.sectionType === "block" ? (
+                                <>
+                                  <div className="training-plan-item-toolbar">
+                                    <span className="training-plan-item-number">{sectionCode}.{itemIndex + 1}</span>
+                                    {itemActions}
                                   </div>
-                                )}
-                              </div>
+                                  <div className="training-plan-item-content">
+                                    <div className="training-plan-item-title-row">
+                                      <strong>{item.exerciseName}</strong>
+                                      {infoButton}
+                                    </div>
+                                    <small>{item.categoryTitle}</small>
+                                  </div>
+                                </>
+                              ) : (
+                                <>
+                                  <span className="training-plan-item-title">
+                                    <strong>{item.exerciseName}</strong>
+                                    <small>{item.categoryTitle}</small>
+                                  </span>
+                                  <div className="training-plan-item-heading-actions">
+                                    {infoButton}
+                                    {itemActions}
+                                  </div>
+                                </>
+                              )}
                             </header>
 
                             {item.parameterDefinitions.length > 0 ? (
