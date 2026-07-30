@@ -1418,3 +1418,154 @@
     width: 100%;
   }
 }
+
+/* Mobile-First: klare Hierarchie zwischen Block- und Uebungsebene */
+.training-plan-section-block {
+  border-color: #9fc8ad;
+  border-left: 4px solid var(--green-700);
+  box-shadow: 0 4px 12px rgba(20, 122, 70, .06);
+}
+
+.training-plan-section-block .training-plan-section-toggle,
+.training-plan-section-block .training-plan-section-actions {
+  background: #edf7f0;
+}
+
+.training-plan-section-exercise {
+  border-color: #d5e1d9;
+  border-left: 4px solid #9aaea1;
+}
+
+.training-plan-section-exercise .training-plan-section-toggle,
+.training-plan-section-exercise .training-plan-section-actions {
+  background: #f7f9f8;
+}
+
+.training-plan-section-number {
+  width: auto;
+  min-width: 34px;
+  height: 25px;
+  padding: 0 7px;
+  border-radius: 7px;
+  font-size: .68rem;
+  letter-spacing: .02em;
+}
+
+.training-plan-section-exercise .training-plan-section-number {
+  color: #43564b;
+  background: #dfe7e2;
+}
+
+.training-plan-block-exercises-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: 1px 0 -1px;
+  color: var(--green-800);
+  font-size: .7rem;
+  font-weight: 900;
+}
+
+.training-plan-block-exercises-label svg {
+  width: 14px;
+}
+
+.training-plan-item-list.nested {
+  margin-left: 8px;
+  padding-left: 9px;
+  border-left: 2px solid #b8d9c3;
+}
+
+.training-plan-item.nested {
+  background: #fbfdfb;
+  border-color: #d4e5da;
+}
+
+.training-plan-item.standalone {
+  background: #fff;
+  border-color: #dce5df;
+}
+
+.training-plan-item-number {
+  width: auto;
+  min-width: 34px;
+  height: 23px;
+  padding: 0 6px;
+  color: var(--green-800);
+  background: #dff0e5;
+  border: 1px solid #bfddca;
+  border-radius: 6px;
+  font-size: .64rem;
+}
+
+.training-plan-item-heading-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 3px;
+}
+
+.training-plan-item-heading-actions .training-plan-item-actions {
+  width: auto;
+  padding: 0;
+}
+
+.training-plan-item-info {
+  width: 29px;
+  height: 29px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: var(--green-800);
+  background: #fff;
+  border: 1px solid #bad8c5;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.training-plan-item-info:hover,
+.training-plan-item-info:focus-visible {
+  color: #fff;
+  background: var(--green-700);
+  border-color: var(--green-700);
+}
+
+.training-plan-item-info svg {
+  width: 15px;
+}
+
+.training-plan-item.standalone > header {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+@media (max-width: 760px) {
+  .training-plan-section-number {
+    min-width: 32px;
+    padding-inline: 6px;
+  }
+
+  .training-plan-item-list.nested {
+    margin-left: 3px;
+    padding-left: 7px;
+  }
+
+  .training-plan-item.nested {
+    padding: 7px;
+  }
+
+  .training-plan-item-heading-actions {
+    gap: 2px;
+  }
+}
+
+@media (max-width: 440px) {
+  .training-plan-section-block,
+  .training-plan-section-exercise {
+    border-left-width: 3px;
+  }
+
+  .training-plan-item-list.nested {
+    margin-left: 0;
+    padding-left: 6px;
+  }
+}

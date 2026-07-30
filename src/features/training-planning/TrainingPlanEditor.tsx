@@ -9,6 +9,7 @@ import {
   Copy,
   Download,
   Dumbbell,
+  Info,
   ListChecks,
   Plus,
   Save,
@@ -16,11 +17,13 @@ import {
   Trash2,
   X,
 } from "lucide-react";
+import { TrainingPlanningExerciseInfoDialog } from "@/features/training-planning/TrainingPlanningExerciseInfoDialog";
 import {
   createSectionFromBlock,
   createSectionFromExercise,
   type PlanningBlock,
   type PlanningExercise,
+  type PlanningGroup,
   type TrainingPlan,
   type TrainingPlanInput,
   type TrainingPlanItemInput,
@@ -34,6 +37,8 @@ export type TrainingPlanEditorProps = {
   athleteName: string;
   groupName: string;
   trainingDateLabel: string;
+  organizationId: string;
+  groups: PlanningGroup[];
   values: TrainingPlanInput;
   blocks: PlanningBlock[];
   exercises: PlanningExercise[];
@@ -87,6 +92,8 @@ export function TrainingPlanEditor({
   athleteName,
   groupName,
   trainingDateLabel,
+  organizationId,
+  groups,
   values,
   blocks,
   exercises,
@@ -100,7 +107,12 @@ export function TrainingPlanEditor({
 }: TrainingPlanEditorProps) {
   const [pickerMode, setPickerMode] = useState<PickerMode>(null);
   const [pickerSearch, setPickerSearch] = useState("");
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(() => new Set());
+  const [infoExercise, setInfoExercise] = useState<PlanningExercise | null>(null);
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(() => new Set(
+    values.sections
+      .filter((section) => section.sectionType === "exercise")
+      .map((section) => section.clientId),
+  ));
 
   const totalMinutes = useMemo(() => values.sections.reduce((sum, section) => {
     const minutes = Number.parseInt(section.estimatedMinutes, 10);
@@ -227,8 +239,13 @@ export function TrainingPlanEditor({
           <div className="training-plan-section-list">
             {values.sections.map((section, sectionIndex) => {
               const expanded = expandedSections.has(section.clientId);
+              const sectionOrdinal = values.sections
+                .slice(0, sectionIndex + 1)
+                .filter((entry) => entry.sectionType === section.sectionType)
+                .length;
+              const sectionCode = `${section.sectionType === "block" ? "B" : "E"}${sectionOrdinal}`;
               return (
-                <article className="training-plan-section" key={section.clientId}>
+                <article className={`training-plan-section training-plan-section-${section.sectionType}`} key={section.clientId}>
                   <header className="training-plan-section-header">
                     <button
                       type="button"
@@ -236,12 +253,16 @@ export function TrainingPlanEditor({
                       onClick={() => toggleSection(section.clientId)}
                       aria-expanded={expanded}
                     >
-                      <span className="training-plan-section-number">{sectionIndex + 1}</span>
+                      <span className="training-plan-section-number">
+                        {sectionCode}
+                      </span>
                       <span className="training-plan-section-title">
                         <strong>{section.name}</strong>
                         <small>
-                          {section.sectionType === "block" ? "Trainingsblock" : "Einzelübung"}
-                          {section.items.length > 0 ? ` · ${section.items.length} Übung${section.items.length === 1 ? "" : "en"}` : ""}
+                          {section.sectionType === "block" ? "Blockebene" : "Einzelübung"}
+                          {section.sectionType === "block" && section.items.length > 0
+                            ? ` · ${section.items.length} Übung${section.items.length === 1 ? "" : "en"}`
+                            : ""}
                         </small>
                       </span>
                       <span className="training-plan-section-duration">
@@ -312,46 +333,80 @@ export function TrainingPlanEditor({
 
                       {section.goal && <p className="training-plan-section-goal">{section.goal}</p>}
 
-                      <div className="training-plan-item-list">
-                        {section.items.map((item, itemIndex) => (
-                          <article className="training-plan-item" key={item.clientId}>
+                      {section.sectionType === "block" && (
+                        <div className="training-plan-block-exercises-label">
+                          <ListChecks aria-hidden="true" />
+                          <span>Übungen in Block {sectionCode}</span>
+                        </div>
+                      )}
+
+                      <div className={`training-plan-item-list ${section.sectionType === "block" ? "nested" : "standalone"}`}>
+                        {section.items.map((item, itemIndex) => {
+                          const exerciseInfo = exercises.find((exercise) => exercise.id === item.exerciseId) ?? {
+                            id: item.exerciseId,
+                            name: item.exerciseName,
+                            categoryKey: "",
+                            categoryTitle: item.categoryTitle,
+                            subcategory: null,
+                            goal: null,
+                            description: null,
+                            coachingCues: null,
+                            commonMistakes: null,
+                            equipment: [],
+                            videoUrl: null,
+                            groupIds: [],
+                            parameters: item.parameterDefinitions,
+                          };
+                          return (
+                            <article className={`training-plan-item ${section.sectionType === "block" ? "nested" : "standalone"}`} key={item.clientId}>
                             <header>
-                              <span className="training-plan-item-number">{itemIndex + 1}</span>
+                              {section.sectionType === "block" && (
+                                <span className="training-plan-item-number">{sectionCode}.{itemIndex + 1}</span>
+                              )}
                               <span className="training-plan-item-title">
                                 <strong>{item.exerciseName}</strong>
                                 <small>{item.categoryTitle}</small>
                               </span>
-                              {section.items.length > 1 && (
-                                <div className="training-plan-item-actions">
-                                  <button
-                                    type="button"
-                                    onClick={() => onChange(replaceSection(values, section.clientId, (current) => ({
-                                      ...current,
-                                      items: moveArrayItem(current.items, itemIndex, -1),
-                                    })))}
-                                    disabled={itemIndex === 0}
-                                    aria-label={`${item.exerciseName} nach oben verschieben`}
-                                  ><ArrowUp aria-hidden="true" /></button>
-                                  <button
-                                    type="button"
-                                    onClick={() => onChange(replaceSection(values, section.clientId, (current) => ({
-                                      ...current,
-                                      items: moveArrayItem(current.items, itemIndex, 1),
-                                    })))}
-                                    disabled={itemIndex === section.items.length - 1}
-                                    aria-label={`${item.exerciseName} nach unten verschieben`}
-                                  ><ArrowDown aria-hidden="true" /></button>
-                                  <button
-                                    type="button"
-                                    className="danger"
-                                    onClick={() => onChange(replaceSection(values, section.clientId, (current) => ({
-                                      ...current,
-                                      items: current.items.filter((entry) => entry.clientId !== item.clientId),
-                                    })))}
-                                    aria-label={`${item.exerciseName} entfernen`}
-                                  ><Trash2 aria-hidden="true" /></button>
-                                </div>
-                              )}
+                              <div className="training-plan-item-heading-actions">
+                                <button
+                                  type="button"
+                                  className="training-plan-item-info"
+                                  onClick={() => setInfoExercise(exerciseInfo)}
+                                  aria-label={`Informationen zu ${item.exerciseName} anzeigen`}
+                                  title="Übungsinformationen"
+                                ><Info aria-hidden="true" /></button>
+                                {section.items.length > 1 && (
+                                  <div className="training-plan-item-actions">
+                                    <button
+                                      type="button"
+                                      onClick={() => onChange(replaceSection(values, section.clientId, (current) => ({
+                                        ...current,
+                                        items: moveArrayItem(current.items, itemIndex, -1),
+                                      })))}
+                                      disabled={itemIndex === 0}
+                                      aria-label={`${item.exerciseName} nach oben verschieben`}
+                                    ><ArrowUp aria-hidden="true" /></button>
+                                    <button
+                                      type="button"
+                                      onClick={() => onChange(replaceSection(values, section.clientId, (current) => ({
+                                        ...current,
+                                        items: moveArrayItem(current.items, itemIndex, 1),
+                                      })))}
+                                      disabled={itemIndex === section.items.length - 1}
+                                      aria-label={`${item.exerciseName} nach unten verschieben`}
+                                    ><ArrowDown aria-hidden="true" /></button>
+                                    <button
+                                      type="button"
+                                      className="danger"
+                                      onClick={() => onChange(replaceSection(values, section.clientId, (current) => ({
+                                        ...current,
+                                        items: current.items.filter((entry) => entry.clientId !== item.clientId),
+                                      })))}
+                                      aria-label={`${item.exerciseName} entfernen`}
+                                    ><Trash2 aria-hidden="true" /></button>
+                                  </div>
+                                )}
+                              </div>
                             </header>
 
                             {item.parameterDefinitions.length > 0 ? (
@@ -428,7 +483,8 @@ export function TrainingPlanEditor({
                               />
                             </label>
                           </article>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   )}
@@ -517,6 +573,15 @@ export function TrainingPlanEditor({
             </div>
           </section>
         </div>
+      )}
+
+      {infoExercise && (
+        <TrainingPlanningExerciseInfoDialog
+          organizationId={organizationId}
+          exercise={infoExercise}
+          groups={groups}
+          onClose={() => setInfoExercise(null)}
+        />
       )}
     </section>
   );

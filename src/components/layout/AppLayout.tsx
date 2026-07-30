@@ -1,4 +1,4 @@
-import { Home, LogOut, ShieldCheck, UserRound } from "lucide-react";
+import { Home, LogOut, UserRound } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
@@ -87,16 +87,6 @@ function AppLayoutContent() {
           <img src="/logo.png" alt="ULC Linz Oberbank" />
           <span className="brand-copy">
             <strong>{env.appName}</strong>
-            <small className="brand-user-line">
-              <span>{displayName}</span>
-              {role && (
-                <>
-                  <span aria-hidden="true">·</span>
-                  <ShieldCheck size={13} aria-hidden="true" />
-                  <span>{roleNames[role]}</span>
-                </>
-              )}
-            </small>
           </span>
         </button>
 

@@ -409,6 +409,8 @@ export function TrainingPlanningPage() {
           athleteName={`${selectedAthlete.firstName} ${selectedAthlete.lastName}`}
           groupName={selectedGroup?.shortName || selectedGroup?.name || "Trainingsgruppe"}
           trainingDateLabel={dateLabel(trainingDate)}
+          organizationId={organizationId ?? ""}
+          groups={data.groups}
           values={values}
           blocks={data.blocks}
           exercises={data.exercises}

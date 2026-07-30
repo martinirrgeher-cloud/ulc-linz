@@ -279,3 +279,30 @@ test("Übungs- und Trainingsblockinformationen nutzen die mobile Breite einheitl
   assert.ok(trainingBlockInfoSource.includes("Planungsparameter"));
   assert.ok(trainingBlockInfoSource.includes("loadTrainingBlockExerciseVideos"));
 });
+
+const trainingOverviewSource = await readFile(new URL("../src/pages/TrainingOverviewPage.tsx", import.meta.url), "utf8");
+const trainingPlanEditorSource = await readFile(new URL("../src/features/training-planning/TrainingPlanEditor.tsx", import.meta.url), "utf8");
+const trainingPlanningInfoSource = await readFile(new URL("../src/features/training-planning/TrainingPlanningExerciseInfoDialog.tsx", import.meta.url), "utf8");
+
+test("Kopfzeile und Trainingsplan-Uebersicht sind kompakt und filterbar", () => {
+  assert.doesNotMatch(appLayoutSource, /brand-user-line/, "Name und Rolle werden weiterhin doppelt in der Kopfzeile angezeigt.");
+  assert.ok(trainingOverviewSource.includes('type AthleteFilter = "all" | "coming" | "maybe"'));
+  assert.ok(trainingOverviewSource.includes('coming: "Angemeldet"'));
+  assert.ok(trainingOverviewSource.includes("desktopAthletes"));
+  assert.ok(trainingOverviewSource.includes("mobileAthletes"));
+  assert.ok(trainingOverviewSource.includes("training-overview-navigation-actions"));
+  assert.doesNotMatch(trainingOverviewSource, /training-overview-summary/, "Die redundante Wochenzusammenfassung ist weiterhin vorhanden.");
+});
+
+test("Trainingsplanung unterscheidet Block- und Uebungsebene und zeigt vollstaendige Infos", () => {
+  assert.ok(trainingPlanEditorSource.includes('training-plan-section-${section.sectionType}'));
+  assert.ok(trainingPlanEditorSource.includes('const sectionCode ='));
+  assert.ok(trainingPlanEditorSource.includes('{sectionCode}.{itemIndex + 1}'));
+  assert.ok(trainingPlanEditorSource.includes("training-plan-block-exercises-label"));
+  assert.ok(trainingPlanEditorSource.includes("training-plan-item-info"));
+  assert.ok(trainingPlanEditorSource.includes("TrainingPlanningExerciseInfoDialog"));
+  assert.ok(trainingPlanningInfoSource.includes("Trainerhinweise"));
+  assert.ok(trainingPlanningInfoSource.includes("Haeufige Fehler") || trainingPlanningInfoSource.includes("Häufige Fehler"));
+  assert.ok(trainingPlanningInfoSource.includes("Planungsparameter"));
+  assert.ok(trainingPlanningInfoSource.includes("loadTrainingBlockExerciseVideos"));
+});

@@ -73,6 +73,14 @@ function mapKey(athleteId: string, date: string): string {
   return `${athleteId}:${date}`;
 }
 
+type AthleteFilter = "all" | "coming" | "maybe";
+
+const ATHLETE_FILTER_LABELS: Record<AthleteFilter, string> = {
+  all: "Alle",
+  coming: "Angemeldet",
+  maybe: "Unsicher",
+};
+
 export function TrainingOverviewPage() {
   const navigate = useNavigate();
   const { appContext } = useAuth();
@@ -81,6 +89,7 @@ export function TrainingOverviewPage() {
   const [weekStart, setWeekStart] = useState(() => startOfIsoWeek(new Date()));
   const [groupId, setGroupId] = useState("");
   const [selectedMobileDate, setSelectedMobileDate] = useState("");
+  const [athleteFilter, setAthleteFilter] = useState<AthleteFilter>("all");
   const [overview, setOverview] = useState<TrainingWeekOverview>(EMPTY_OVERVIEW);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -101,14 +110,21 @@ export function TrainingOverviewPage() {
     return registrations;
   }, [overview.athletes]);
 
-  const plannedAthleteCount = useMemo(
-    () => new Set(overview.plans.map((plan) => plan.athleteId)).size,
-    [overview.plans],
-  );
-  const documentedPlanCount = useMemo(
-    () => overview.plans.filter((plan) => plan.documentationStatus !== "not_started").length,
-    [overview.plans],
-  );
+  const desktopAthletes = useMemo(() => {
+    if (athleteFilter === "all") return overview.athletes;
+    return overview.athletes.filter((athlete) => (
+      athlete.registrations.some((registration) => registration.status === athleteFilter)
+    ));
+  }, [athleteFilter, overview.athletes]);
+
+  const mobileAthletes = useMemo(() => {
+    if (athleteFilter === "all" || !selectedMobileDate) return overview.athletes;
+    return overview.athletes.filter((athlete) => (
+      athlete.registrations.some((registration) => (
+        registration.date === selectedMobileDate && registration.status === athleteFilter
+      ))
+    ));
+  }, [athleteFilter, overview.athletes, selectedMobileDate]);
 
   useEffect(() => {
     if (overview.dates.length === 0) {
@@ -211,7 +227,7 @@ export function TrainingOverviewPage() {
 
       {error && <div className="alert error">{error}</div>}
 
-      <section className="training-overview-controls" aria-label="Woche und Trainingsgruppe auswählen">
+      <section className="training-overview-controls" aria-label="Woche, Trainingsgruppe und Athletenfilter auswählen">
         <label>
           <span><Users aria-hidden="true" />Trainingsgruppe</span>
           <select
@@ -226,46 +242,52 @@ export function TrainingOverviewPage() {
           </select>
         </label>
 
-        <div className="training-overview-week-navigation">
-          <button type="button" className="icon-button" onClick={() => changeWeek(-1)} aria-label="Vorherige Woche">
-            <ChevronLeft aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            className="training-overview-week-label"
-            onClick={() => setWeekStart(startOfIsoWeek(new Date()))}
-            title="Zur aktuellen Woche"
-          >
-            <strong>KW {isoWeekNumber(weekStart)}</strong>
-            <span>{formatWeekRange(weekStart)}</span>
-            {isCurrentWeek(weekStart) && <small>Aktuelle Woche</small>}
-          </button>
-          <button type="button" className="icon-button" onClick={() => changeWeek(1)} aria-label="Nächste Woche">
-            <ChevronRight aria-hidden="true" />
-          </button>
+        <div className="training-overview-athlete-filter" role="group" aria-label="Athleten nach Anmeldung filtern">
+          {(["all", "coming", "maybe"] as const).map((filter) => (
+            <button
+              type="button"
+              className={athleteFilter === filter ? "active" : ""}
+              aria-pressed={athleteFilter === filter}
+              onClick={() => setAthleteFilter(filter)}
+              key={filter}
+            >
+              {ATHLETE_FILTER_LABELS[filter]}
+            </button>
+          ))}
         </div>
 
-        <button
-          type="button"
-          className="icon-button"
-          onClick={() => void refresh()}
-          disabled={loading || refreshing}
-          aria-label="Übersicht aktualisieren"
-          title="Aktualisieren"
-        >
-          <RefreshCw className={refreshing ? "spin" : ""} aria-hidden="true" />
-        </button>
-      </section>
+        <div className="training-overview-navigation-actions">
+          <div className="training-overview-week-navigation">
+            <button type="button" className="icon-button" onClick={() => changeWeek(-1)} aria-label="Vorherige Woche">
+              <ChevronLeft aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              className="training-overview-week-label"
+              onClick={() => setWeekStart(startOfIsoWeek(new Date()))}
+              title="Zur aktuellen Woche"
+            >
+              <strong>KW {isoWeekNumber(weekStart)}</strong>
+              <span>{formatWeekRange(weekStart)}</span>
+              {isCurrentWeek(weekStart) && <small>Aktuelle Woche</small>}
+            </button>
+            <button type="button" className="icon-button" onClick={() => changeWeek(1)} aria-label="Nächste Woche">
+              <ChevronRight aria-hidden="true" />
+            </button>
+          </div>
 
-      {!loading && overview.group && (
-        <section className="training-overview-summary" aria-label="Wochenzusammenfassung">
-          <span><Users aria-hidden="true" /><strong>{overview.athletes.length}</strong> Athleten</span>
-          <span><CalendarDays aria-hidden="true" /><strong>{overview.dates.length}</strong> Trainingstage</span>
-          <span><Dumbbell aria-hidden="true" /><strong>{overview.plans.length}</strong> Pläne</span>
-          <span><ListChecks aria-hidden="true" /><strong>{documentedPlanCount}</strong> begonnen</span>
-          <span><strong>{plannedAthleteCount}/{overview.athletes.length}</strong> Athleten geplant</span>
-        </section>
-      )}
+          <button
+            type="button"
+            className="icon-button training-overview-refresh-button"
+            onClick={() => void refresh()}
+            disabled={loading || refreshing}
+            aria-label="Übersicht aktualisieren"
+            title="Aktualisieren"
+          >
+            <RefreshCw className={refreshing ? "spin" : ""} aria-hidden="true" />
+          </button>
+        </div>
+      </section>
 
       {loading ? (
         <div className="management-loading"><div className="spinner" aria-hidden="true" />Wochenübersicht wird geladen …</div>
@@ -313,7 +335,14 @@ export function TrainingOverviewPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {overview.athletes.map((athlete) => {
+                  {desktopAthletes.length === 0 && (
+                    <tr>
+                      <td className="training-overview-filter-empty" colSpan={overview.dates.length + 1}>
+                        Keine Athleten mit diesem Anmeldestatus in der ausgewählten Woche.
+                      </td>
+                    </tr>
+                  )}
+                  {desktopAthletes.map((athlete) => {
                     const athleteName = personName(athlete.firstName, athlete.lastName);
                     return (
                       <tr key={athlete.id}>
@@ -382,7 +411,18 @@ export function TrainingOverviewPage() {
           <section className="training-overview-mobile" aria-label="Mobile Wochenübersicht">
             <div className="training-overview-mobile-days" role="tablist" aria-label="Trainingstag auswählen">
               {overview.dates.map((date) => {
-                const planCount = overview.plans.filter((plan) => plan.trainingDate === date.date).length;
+                const visibleAthleteIds = new Set(
+                  athleteFilter === "all"
+                    ? overview.athletes.map((athlete) => athlete.id)
+                    : overview.athletes
+                      .filter((athlete) => athlete.registrations.some((registration) => (
+                        registration.date === date.date && registration.status === athleteFilter
+                      )))
+                      .map((athlete) => athlete.id),
+                );
+                const planCount = overview.plans.filter((plan) => (
+                  plan.trainingDate === date.date && visibleAthleteIds.has(plan.athleteId)
+                )).length;
                 return (
                   <button
                     type="button"
@@ -394,14 +434,19 @@ export function TrainingOverviewPage() {
                   >
                     <strong>{PERFORMANCE_WEEKDAY_LABELS[date.weekday]}</strong>
                     <small>{date.date.slice(8, 10)}.{date.date.slice(5, 7)}.</small>
-                    <span>{planCount}/{overview.athletes.length} Pläne</span>
+                    <span>{planCount}/{visibleAthleteIds.size} geplant</span>
                   </button>
                 );
               })}
             </div>
 
             <div className="training-overview-mobile-athletes">
-              {overview.athletes.map((athlete) => {
+              {mobileAthletes.length === 0 && (
+                <p className="training-overview-filter-empty">
+                  Keine Athleten mit diesem Anmeldestatus am ausgewählten Trainingstag.
+                </p>
+              )}
+              {mobileAthletes.map((athlete) => {
                 const trainingDate = selectedMobileDate || overview.dates[0]?.date || "";
                 if (!trainingDate) return null;
                 const athleteName = personName(athlete.firstName, athlete.lastName);
