@@ -72,7 +72,6 @@ export function TrainingGroupEditor({
   const [error, setError] = useState<string | null>(null);
   const canSave =
     values.name.trim().length >= 2 &&
-    values.sortOrder >= 0 &&
     ((values.moduleKey === null && !values.isPerformanceGroup) || values.regularWeekdays.length > 0);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -150,23 +149,6 @@ export function TrainingGroupEditor({
               maxLength={20}
               placeholder="z. B. KT"
             />
-          </label>
-
-          <label>
-            Reihenfolge
-            <input
-              type="number"
-              min={0}
-              max={10000}
-              value={values.sortOrder}
-              onChange={(event) =>
-                setValues((current) => ({
-                  ...current,
-                  sortOrder: Number(event.target.value) || 0,
-                }))
-              }
-            />
-            <small>Kleinere Zahlen werden zuerst angezeigt.</small>
           </label>
 
           {mode.type === "edit" && (

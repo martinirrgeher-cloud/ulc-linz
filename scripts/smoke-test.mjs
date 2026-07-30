@@ -242,3 +242,40 @@ test("Lokale sensible Daten sind benutzergebunden und zeitlich begrenzt", () => 
   assert.ok(exerciseVideoUploadSource.includes("RESUMABLE_UPLOAD_MAX_AGE_MS"));
   assert.ok(exerciseVideoUploadSource.includes("ownerUserId"));
 });
+
+const appLayoutSource = await readFile(new URL("../src/components/layout/AppLayout.tsx", import.meta.url), "utf8");
+const athleteManagementSource = await readFile(new URL("../src/pages/AthleteManagementPage.tsx", import.meta.url), "utf8");
+const trainingGroupEditorSource = await readFile(new URL("../src/features/athletes/TrainingGroupEditor.tsx", import.meta.url), "utf8");
+const userManagementSource = await readFile(new URL("../src/pages/UserManagementPage.tsx", import.meta.url), "utf8");
+const exerciseCatalogCssSource = await readFile(new URL("../src/styles/exercise-catalog.css", import.meta.url), "utf8");
+const trainingBlocksPageSource = await readFile(new URL("../src/pages/TrainingBlocksPage.tsx", import.meta.url), "utf8");
+const trainingBlockEditorSource = await readFile(new URL("../src/features/training-blocks/TrainingBlockEditor.tsx", import.meta.url), "utf8");
+const trainingBlockInfoSource = await readFile(new URL("../src/features/training-blocks/TrainingBlockExerciseInfoDialog.tsx", import.meta.url), "utf8");
+
+test("Mobile Stammdaten und Kopfzeile sind gegen Fehlbedienung optimiert", () => {
+  assert.ok(appLayoutSource.includes("app-user-menu-panel"), "Sicheres Benutzermenü fehlt.");
+  assert.ok(appLayoutSource.includes("Benutzermenü öffnen"), "Benutzermenü ist nicht zugänglich beschriftet.");
+  assert.ok(appLayoutSource.includes("app-user-menu-signout"), "Abmelden wurde nicht in das Benutzermenü verschoben.");
+  assert.ok(athleteManagementSource.includes("const editorOpen = Boolean"), "Stammdatenlisten werden während der Bearbeitung nicht ausgeblendet.");
+  assert.ok(athleteManagementSource.includes('tab !== "groups"'), "Gruppensuche wurde nicht entfernt.");
+  assert.ok(athleteManagementSource.includes("masterdata-status-filter"), "Statusfilter besitzt keine eigene kompakte Zeile.");
+  assert.ok(athleteManagementSource.includes("Sortierung"), "Sortierauswahl ist nicht beschriftet.");
+  assert.doesNotMatch(trainingGroupEditorSource, />\s*Reihenfolge\s*</, "Manuelle Gruppenreihenfolge ist weiterhin sichtbar.");
+});
+
+test("Benutzerverwaltung kann nach Rolle filtern", () => {
+  assert.ok(userManagementSource.includes("roleFilter"));
+  assert.ok(userManagementSource.includes("Alle Rollen"));
+  assert.ok(userManagementSource.includes("Benutzer nach Rolle filtern"));
+});
+
+test("Übungs- und Trainingsblockinformationen nutzen die mobile Breite einheitlich", () => {
+  assert.ok(exerciseCatalogCssSource.includes("Kartenbreite unter den Aktionssymbolen vollständig nutzen"));
+  assert.ok(exerciseCatalogCssSource.includes("position: absolute"));
+  assert.ok(trainingBlocksPageSource.includes("training-block-overview-info-button"));
+  assert.ok(trainingBlockEditorSource.includes("TrainingBlockExerciseInfoDialog"));
+  assert.ok(trainingBlockInfoSource.includes("Trainerhinweise"));
+  assert.ok(trainingBlockInfoSource.includes("Häufige Fehler"));
+  assert.ok(trainingBlockInfoSource.includes("Planungsparameter"));
+  assert.ok(trainingBlockInfoSource.includes("loadTrainingBlockExerciseVideos"));
+});

@@ -1,4 +1,5 @@
-import { Home, LogOut, ShieldCheck } from "lucide-react";
+import { Home, LogOut, ShieldCheck, UserRound } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   NavigationGuardProvider,
@@ -20,14 +21,36 @@ function AppLayoutContent() {
   const { runGuard } = useNavigationGuardController();
   const navigate = useNavigate();
   const location = useLocation();
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
 
   const displayName =
     appContext?.profile?.displayName || appContext?.authUser.email || "Benutzer";
   const role = appContext?.membership?.role;
 
+  useEffect(() => {
+    if (!userMenuOpen) return;
+
+    function closeOnOutsidePress(event: PointerEvent) {
+      if (!userMenuRef.current?.contains(event.target as Node)) setUserMenuOpen(false);
+    }
+
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") setUserMenuOpen(false);
+    }
+
+    document.addEventListener("pointerdown", closeOnOutsidePress);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutsidePress);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [userMenuOpen]);
+
   async function goHome() {
     if (!(await runGuard())) return;
 
+    setUserMenuOpen(false);
     const currentModule = APP_MODULES
       .filter((module) =>
         location.pathname === module.route || location.pathname.startsWith(`${module.route}/`),
@@ -47,6 +70,7 @@ function AppLayoutContent() {
   }
 
   async function handleSignOut() {
+    setUserMenuOpen(false);
     if (await runGuard()) await signOut();
   }
 
@@ -86,15 +110,38 @@ function AppLayoutContent() {
           >
             <Home aria-hidden="true" />
           </button>
-          <button
-            type="button"
-            className="icon-button"
-            onClick={() => void handleSignOut()}
-            aria-label="Abmelden"
-            title="Abmelden"
-          >
-            <LogOut aria-hidden="true" />
-          </button>
+
+          <div className="app-user-menu" ref={userMenuRef}>
+            <button
+              type="button"
+              className={`icon-button app-user-menu-toggle ${userMenuOpen ? "active" : ""}`}
+              onClick={() => setUserMenuOpen((current) => !current)}
+              aria-label={userMenuOpen ? "Benutzermenü schließen" : "Benutzermenü öffnen"}
+              aria-expanded={userMenuOpen}
+              aria-haspopup="menu"
+              title="Benutzermenü"
+            >
+              <UserRound aria-hidden="true" />
+            </button>
+
+            {userMenuOpen && (
+              <div className="app-user-menu-panel" role="menu" aria-label="Benutzermenü">
+                <div className="app-user-menu-identity">
+                  <strong>{displayName}</strong>
+                  {role && <small>{roleNames[role]}</small>}
+                </div>
+                <button
+                  type="button"
+                  className="app-user-menu-signout"
+                  onClick={() => void handleSignOut()}
+                  role="menuitem"
+                >
+                  <LogOut aria-hidden="true" />
+                  Abmelden
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 

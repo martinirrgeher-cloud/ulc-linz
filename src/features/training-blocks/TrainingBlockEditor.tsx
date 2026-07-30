@@ -4,18 +4,16 @@ import {
   ArrowUp,
   ClipboardCheck,
   Copy,
-  ExternalLink,
   Info,
   ListChecks,
   Plus,
   Save,
   Search,
   Trash2,
-  Video,
   X,
 } from "lucide-react";
-import type { ExerciseTrainingGroup, ExerciseVideo } from "@/features/exercise-catalog/types";
-import { loadTrainingBlockExerciseVideos } from "@/features/training-blocks/api";
+import type { ExerciseTrainingGroup } from "@/features/exercise-catalog/types";
+import { TrainingBlockExerciseInfoDialog } from "@/features/training-blocks/TrainingBlockExerciseInfoDialog";
 import {
   createEmptyTrainingBlockInput,
   createTrainingBlockItemInput,
@@ -65,9 +63,6 @@ export function TrainingBlockEditor({
   const [exerciseCategory, setExerciseCategory] = useState("all");
   const [localError, setLocalError] = useState<string | null>(null);
   const [infoExercise, setInfoExercise] = useState<TrainingBlockExercise | null>(null);
-  const [infoVideoLoading, setInfoVideoLoading] = useState(false);
-  const [infoVideoError, setInfoVideoError] = useState<string | null>(null);
-  const [videoCache, setVideoCache] = useState<Record<string, ExerciseVideo[]>>({});
 
   const exerciseById = useMemo(
     () => new Map(exercises.map((exercise) => [exercise.id, exercise])),
@@ -123,25 +118,8 @@ export function TrainingBlockEditor({
     }));
   }
 
-  async function openExerciseInfo(exercise: TrainingBlockExercise) {
-    const hasCachedVideos = Object.prototype.hasOwnProperty.call(videoCache, exercise.id);
-    setInfoExercise({
-      ...exercise,
-      videos: hasCachedVideos ? videoCache[exercise.id] ?? [] : exercise.videos,
-    });
-    setInfoVideoError(null);
-    if (hasCachedVideos || !organizationId) return;
-
-    setInfoVideoLoading(true);
-    try {
-      const videos = await loadTrainingBlockExerciseVideos(organizationId, exercise.id);
-      setVideoCache((current) => ({ ...current, [exercise.id]: videos }));
-      setInfoExercise((current) => current?.id === exercise.id ? { ...current, videos } : current);
-    } catch (error) {
-      setInfoVideoError(errorMessage(error));
-    } finally {
-      setInfoVideoLoading(false);
-    }
+  function openExerciseInfo(exercise: TrainingBlockExercise) {
+    setInfoExercise(exercise);
   }
 
   function updateItem(clientId: string, updater: (item: TrainingBlockItemInput) => TrainingBlockItemInput) {
@@ -401,7 +379,7 @@ export function TrainingBlockEditor({
                                 <button
                                   type="button"
                                   className="training-block-exercise-info-button"
-                                  onClick={() => void openExerciseInfo(exercise)}
+                                  onClick={() => openExerciseInfo(exercise)}
                                   aria-label={`Informationen zu ${exercise.name} anzeigen`}
                                   title="Übungsinformationen"
                                 >
@@ -447,22 +425,15 @@ export function TrainingBlockEditor({
                               <strong>{exercise.name}</strong>
                               <small>{exercise.categoryTitle}{!exercise.isActive ? " · inaktiv" : ""}</small>
                             </div>
-                            <span
+                            <button
+                              type="button"
                               className="training-block-item-info-button"
-                              role="button"
-                              tabIndex={0}
-                              onClick={() => void openExerciseInfo(exercise)}
-                              onKeyDown={(event) => {
-                                if (event.key === "Enter" || event.key === " ") {
-                                  event.preventDefault();
-                                  void openExerciseInfo(exercise);
-                                }
-                              }}
+                              onClick={() => openExerciseInfo(exercise)}
                               aria-label={`Informationen zu ${exercise.name} anzeigen`}
                               title="Übungsinformationen"
                             >
                               <Info aria-hidden="true" />
-                            </span>
+                            </button>
                             {canEdit && (
                               <div className="training-block-item-actions">
                                 <button
@@ -593,130 +564,12 @@ export function TrainingBlockEditor({
       </section>
 
       {infoExercise && (
-        <div className="training-block-exercise-info-backdrop" role="presentation">
-          <section
-            className="training-block-exercise-info-dialog"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="training-block-exercise-info-title"
-          >
-            <header>
-              <div>
-                <p className="eyebrow">Übungsinformation</p>
-                <h2 id="training-block-exercise-info-title">{infoExercise.name}</h2>
-                <small>
-                  {infoExercise.categoryTitle}
-                  {infoExercise.subcategory ? ` · ${infoExercise.subcategory}` : ""}
-                </small>
-              </div>
-              <button
-                type="button"
-                className="icon-button"
-                onClick={() => {
-                  setInfoExercise(null);
-                  setInfoVideoError(null);
-                  setInfoVideoLoading(false);
-                }}
-                aria-label="Übungsinformationen schließen"
-              >
-                <X aria-hidden="true" />
-              </button>
-            </header>
-
-            <div className="training-block-exercise-info-body">
-              <div className="training-block-exercise-info-chips">
-                {infoExercise.equipment.map((item) => <span key={item}>{item}</span>)}
-                {infoExercise.groupIds.map((groupId) => {
-                  const group = groups.find((item) => item.id === groupId);
-                  return group ? <span key={groupId}>{group.shortName || group.name}</span> : null;
-                })}
-                {infoExercise.groupIds.length === 0 && <span>Vereinsweit</span>}
-              </div>
-
-              {infoExercise.goal && (
-                <section>
-                  <h3>Trainingsziel</h3>
-                  <p>{infoExercise.goal}</p>
-                </section>
-              )}
-              {infoExercise.description && (
-                <section>
-                  <h3>Beschreibung</h3>
-                  <p>{infoExercise.description}</p>
-                </section>
-              )}
-              {infoExercise.coachingCues && (
-                <section>
-                  <h3>Trainerhinweise</h3>
-                  <p>{infoExercise.coachingCues}</p>
-                </section>
-              )}
-              {infoExercise.commonMistakes && (
-                <section>
-                  <h3>Häufige Fehler</h3>
-                  <p>{infoExercise.commonMistakes}</p>
-                </section>
-              )}
-
-              {infoExercise.parameters.length > 0 && (
-                <section>
-                  <h3>Planungsparameter</h3>
-                  <div className="training-block-exercise-info-parameters">
-                    {infoExercise.parameters.map((parameter) => (
-                      <span key={parameter.key}>
-                        <strong>{parameter.label}</strong>
-                        <small>
-                          {parameter.defaultValue ? `Standard ${parameter.defaultValue}${parameter.unit ? ` ${parameter.unit}` : ""}` : "Kein Standardwert"}
-                          {parameter.minValue !== null && parameter.maxValue !== null
-                            ? ` · ${parameter.minValue}–${parameter.maxValue}${parameter.unit ? ` ${parameter.unit}` : ""}`
-                            : ""}
-                        </small>
-                      </span>
-                    ))}
-                  </div>
-                </section>
-              )}
-
-              {(infoVideoLoading || infoVideoError || infoExercise.videos.length > 0 || infoExercise.videoUrl) && (
-                <section>
-                  <h3>Video</h3>
-                  <div className="training-block-exercise-info-videos">
-                    {infoVideoLoading && <small>Videos werden geladen …</small>}
-                    {infoVideoError && <small className="training-block-exercise-info-video-error">{infoVideoError}</small>}
-                    {infoExercise.videos.map((video) => (
-                      <div key={video.id}>
-                        <strong><Video aria-hidden="true" />{video.title}</strong>
-                        {video.signedUrl ? (
-                          <video controls playsInline preload="metadata" src={video.signedUrl} />
-                        ) : (
-                          <small>Das Video konnte nicht geladen werden.</small>
-                        )}
-                      </div>
-                    ))}
-                    {infoExercise.videoUrl && (
-                      <a href={infoExercise.videoUrl} target="_blank" rel="noreferrer">
-                        <ExternalLink aria-hidden="true" />Externes Video öffnen
-                      </a>
-                    )}
-                  </div>
-                </section>
-              )}
-
-              {!infoExercise.goal
-                && !infoExercise.description
-                && !infoExercise.coachingCues
-                && !infoExercise.commonMistakes
-                && infoExercise.parameters.length === 0
-                && infoExercise.videos.length === 0
-                && !infoExercise.videoUrl
-                && !infoVideoLoading
-                && !infoVideoError
-                && infoExercise.equipment.length === 0 && (
-                  <p className="training-block-exercise-info-empty">Für diese Übung sind noch keine weiteren Informationen hinterlegt.</p>
-                )}
-            </div>
-          </section>
-        </div>
+        <TrainingBlockExerciseInfoDialog
+          organizationId={organizationId}
+          exercise={infoExercise}
+          groups={groups}
+          onClose={() => setInfoExercise(null)}
+        />
       )}
     </div>
   );

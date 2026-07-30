@@ -41,6 +41,8 @@ const statusNames: Record<MembershipStatus, string> = {
   disabled: "Deaktiviert",
 };
 
+type RoleFilter = "all" | ManagedMember["role"];
+
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Die Daten konnten nicht geladen werden.";
 }
@@ -73,6 +75,7 @@ export function UserManagementPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | MembershipStatus>("all");
+  const [roleFilter, setRoleFilter] = useState<RoleFilter>("all");
   const [editorMode, setEditorMode] = useState<MemberEditorMode | null>(null);
 
   const loadData = useCallback(async () => {
@@ -99,6 +102,7 @@ export function UserManagementPage() {
     const search = searchTerm.trim().toLowerCase();
     return members.filter((member) => {
       if (statusFilter !== "all" && member.status !== statusFilter) return false;
+      if (roleFilter !== "all" && member.role !== roleFilter) return false;
       if (!search) return true;
       return (
         member.displayName.toLowerCase().includes(search) ||
@@ -106,7 +110,7 @@ export function UserManagementPage() {
         roleNames[member.role].toLowerCase().includes(search)
       );
     });
-  }, [members, searchTerm, statusFilter]);
+  }, [members, roleFilter, searchTerm, statusFilter]);
 
   const counts = useMemo(
     () => ({
@@ -198,7 +202,7 @@ export function UserManagementPage() {
         />
       )}
 
-      <div className="management-toolbar">
+      <div className="management-toolbar user-management-toolbar">
         <label className="search-field">
           <Search aria-hidden="true" />
           <input
@@ -209,14 +213,29 @@ export function UserManagementPage() {
             aria-label="Benutzer suchen"
           />
         </label>
+        <label className="management-filter-field">
+          <span>Rolle</span>
+          <select
+            value={roleFilter}
+            onChange={(event) => setRoleFilter(event.target.value as RoleFilter)}
+            aria-label="Benutzer nach Rolle filtern"
+          >
+            <option value="all">Alle Rollen</option>
+            <option value="admin">Administratoren</option>
+            <option value="trainer">Trainer</option>
+            <option value="athlete">Athleten</option>
+            <option value="parent">Elternteile</option>
+          </select>
+        </label>
         <button
           type="button"
           className="secondary-button"
           onClick={() => void loadData()}
           disabled={loading || busy}
+          title="Daten neu laden"
         >
           <RefreshCw aria-hidden="true" />
-          Aktualisieren
+          <span>Aktualisieren</span>
         </button>
       </div>
 

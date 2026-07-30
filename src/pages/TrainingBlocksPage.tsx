@@ -7,6 +7,7 @@ import {
   Clock3,
   Copy,
   Filter,
+  Info,
   Pencil,
   Plus,
   Search,
@@ -23,9 +24,11 @@ import {
   saveTrainingBlock,
 } from "@/features/training-blocks/api";
 import { TrainingBlockEditor } from "@/features/training-blocks/TrainingBlockEditor";
+import { TrainingBlockExerciseInfoDialog } from "@/features/training-blocks/TrainingBlockExerciseInfoDialog";
 import type {
   TrainingBlock,
   TrainingBlockData,
+  TrainingBlockExercise,
   TrainingBlockInput,
 } from "@/features/training-blocks/types";
 
@@ -82,6 +85,7 @@ export function TrainingBlocksPage() {
   const [sortMode, setSortMode] = useState<SortMode>("name");
   const [expandedBlockIds, setExpandedBlockIds] = useState<Set<string>>(() => new Set());
   const [editorBlock, setEditorBlock] = useState<TrainingBlock | null | undefined>(undefined);
+  const [infoExercise, setInfoExercise] = useState<TrainingBlockExercise | null>(null);
 
   const blockLock = useEditLock({
     organizationId,
@@ -362,7 +366,29 @@ export function TrainingBlocksPage() {
                     </div>
                     <div className="training-block-card-groups">{assignedGroups.length === 0 ? <span>Vereinsweit</span> : assignedGroups.map((group) => <span key={group.id}>{group.shortName || group.name}</span>)}</div>
                     <ol className="training-block-card-exercises">
-                      {block.items.map((item) => { const values = formatItemValues(item); return <li key={item.id}><strong>{item.exerciseName}</strong>{values && <small>{values}</small>}</li>; })}
+                      {block.items.map((item) => {
+                        const values = formatItemValues(item);
+                        const exercise = exerciseById.get(item.exerciseId);
+                        return (
+                          <li key={item.id}>
+                            <div className="training-block-card-exercise-heading">
+                              <strong>{item.exerciseName}</strong>
+                              {exercise && (
+                                <button
+                                  type="button"
+                                  className="training-block-item-info-button training-block-overview-info-button"
+                                  onClick={() => setInfoExercise(exercise)}
+                                  aria-label={`Informationen zu ${item.exerciseName} anzeigen`}
+                                  title="Übungsinformationen"
+                                >
+                                  <Info aria-hidden="true" />
+                                </button>
+                              )}
+                            </div>
+                            {values && <small>{values}</small>}
+                          </li>
+                        );
+                      })}
                     </ol>
                   </div>
                 )}
@@ -374,6 +400,15 @@ export function TrainingBlocksPage() {
 
       {editorBlock !== undefined && (
         <TrainingBlockEditor key={editorBlock?.id ?? "new-training-block"} block={editorBlock} organizationId={organizationId ?? ""} groups={data.groups} exercises={data.exercises} canEdit={editorCanEdit} busy={busy} lockNotice={editorBlock?.id ? <EditLockNotice lock={blockLock} /> : null} onCancel={() => setEditorBlock(undefined)} onSubmit={handleSave} />
+      )}
+
+      {infoExercise && (
+        <TrainingBlockExerciseInfoDialog
+          organizationId={organizationId ?? ""}
+          exercise={infoExercise}
+          groups={data.groups}
+          onClose={() => setInfoExercise(null)}
+        />
       )}
     </section>
   );

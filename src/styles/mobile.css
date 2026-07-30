@@ -677,3 +677,73 @@ textarea {
   .user-area { flex: 0 0 auto; }
   .user-area .icon-button { width: 40px; height: 40px; }
 }
+
+/* Mobile-First-Nachbesserungen Juli 2026 */
+@media (max-width: 760px) {
+  .app-user-menu-panel {
+    top: calc(100% + 7px);
+  }
+
+  .masterdata-search-row .search-field {
+    min-width: 0;
+  }
+
+  .masterdata-select-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .masterdata-status-filter {
+    overflow: visible;
+    padding-bottom: 0;
+    scroll-snap-type: none;
+  }
+
+  .masterdata-status-filter button {
+    min-width: 0;
+    padding-inline: 6px;
+  }
+
+  .compact-group-card .training-group-details {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .user-management-toolbar {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+  }
+
+  .user-management-toolbar .search-field {
+    grid-column: 1 / -1;
+  }
+
+  .user-management-toolbar .management-filter-field {
+    min-width: 0;
+  }
+
+  .user-management-toolbar .secondary-button {
+    width: auto;
+    min-width: 48px;
+    padding-inline: 12px;
+  }
+
+  .user-management-toolbar .secondary-button span {
+    display: none;
+  }
+}
+
+@media (max-width: 390px) {
+  .masterdata-filter-field,
+  .management-filter-field {
+    font-size: 0.7rem;
+  }
+
+  .masterdata-filter-field select,
+  .management-filter-field select {
+    padding-left: 8px;
+    font-size: 0.8rem;
+  }
+
+  .compact-group-card .training-group-details {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

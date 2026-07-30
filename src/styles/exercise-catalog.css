@@ -1274,3 +1274,39 @@
   grid-column: auto !important;
   min-width: 0;
 }
+
+/* Kartenbreite unter den Aktionssymbolen vollständig nutzen */
+.exercise-card {
+  position: relative;
+  display: block;
+}
+
+.exercise-card-main {
+  width: 100%;
+}
+
+.exercise-card-title-row {
+  padding-right: 146px;
+}
+
+.exercise-card-actions {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+}
+
+.exercise-goal,
+.exercise-card-meta,
+.exercise-equipment {
+  width: 100%;
+}
+
+@media (max-width: 560px) {
+  .exercise-card {
+    display: block;
+  }
+
+  .exercise-card-title-row {
+    padding-right: 142px;
+  }
+}

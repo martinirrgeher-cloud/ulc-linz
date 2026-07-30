@@ -463,3 +463,56 @@
   color: var(--danger);
   font-weight: 800;
 }
+
+/* Einheitliche Übungsinformationen und kompakte Überschriftszeilen */
+.training-block-item-card > header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+}
+
+.training-block-item-title {
+  width: auto;
+  min-width: 0;
+  flex: none;
+}
+
+.training-block-card-exercise-heading {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.training-block-card-exercise-heading strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.training-block-overview-info-button {
+  width: 28px;
+  height: 28px;
+}
+
+.training-block-overview-info-button svg {
+  width: 15px;
+}
+
+@media (max-width: 760px) {
+  .training-block-item-card > header {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: start;
+  }
+
+  .training-block-item-title {
+    width: auto;
+    flex: none;
+  }
+
+  .training-block-item-actions {
+    grid-column: 1 / -1;
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
