@@ -185,10 +185,6 @@ select ok(
 );
 
 reset role;
-select pg_sleep(0.02);
-update public.athletes
-set first_name = 'Extern geändert'
-where id = '33000000-0000-0000-0000-000000000001';
 
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '30000000-0000-0000-0000-000000000001', true);
@@ -206,6 +202,8 @@ select ok(
   ) ->> 'acquired')::boolean,
   'Nach der Freigabe kann der Datensatz erneut reserviert werden'
 );
+-- In pgTAP läuft die Datei in einer Transaktion; now() bleibt dabei konstant.
+-- Deshalb wird bewusst eine ältere erwartete Version übergeben.
 select alike(
   public.e1a_capture_error(format(
     'select public.assert_edit_lock(%L::uuid,%L,%L::uuid,%L::uuid,%L::timestamptz)',
@@ -213,7 +211,10 @@ select alike(
     'athlete',
     '33000000-0000-0000-0000-000000000001',
     '34000000-0000-0000-0000-000000000004',
-    current_setting('e1a.initial_athlete_version')
+    (
+      current_setting('e1a.initial_athlete_version')::timestamptz
+      - interval '1 second'
+    )::text
   )),
   '%seit dem Öffnen verändert%',
   'Eine veraltete Datensatzversion erzeugt einen Konflikt'
