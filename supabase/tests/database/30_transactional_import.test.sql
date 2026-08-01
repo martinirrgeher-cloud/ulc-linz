@@ -137,7 +137,7 @@ select set_config('request.jwt.claim.sub', '40000000-0000-0000-0000-000000000001
 select set_config('request.jwt.claim.role', 'authenticated', true);
 select set_config('request.jwt.claims', '{"sub":"40000000-0000-0000-0000-000000000001","role":"authenticated"}', true);
 
-select like(
+select alike(
   public.e1a_capture_error(format(
     'select public.apply_exercise_import_v1(%L::uuid,%L::uuid,%L::jsonb,%L::jsonb)',
     '41000000-0000-0000-0000-000000000001',
@@ -154,7 +154,7 @@ select like(
   'Dieselbe Import-ID wird für abweichende Daten abgelehnt'
 );
 
-select like(
+select alike(
   public.e1a_capture_error(format(
     'select public.apply_exercise_import_v1(%L::uuid,%L::uuid,%L::jsonb,%L::jsonb)',
     '41000000-0000-0000-0000-000000000001',
@@ -252,7 +252,7 @@ select ok(
   'Die bestehende Übung wird für den Lock-Test reserviert'
 );
 
-select like(
+select alike(
   public.e1a_capture_error(format(
     'select public.apply_exercise_import_v1(%L::uuid,%L::uuid,%L::jsonb,%L::jsonb)',
     '41000000-0000-0000-0000-000000000001',

@@ -206,7 +206,7 @@ select ok(
   ) ->> 'acquired')::boolean,
   'Nach der Freigabe kann der Datensatz erneut reserviert werden'
 );
-select like(
+select alike(
   public.e1a_capture_error(format(
     'select public.assert_edit_lock(%L::uuid,%L,%L::uuid,%L::uuid,%L::timestamptz)',
     '31000000-0000-0000-0000-000000000001',
