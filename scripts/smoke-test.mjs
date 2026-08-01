@@ -361,3 +361,56 @@ test("Projektarchiv schließt Altlasten aus und behält env.example", () => {
   assert.doesNotMatch(projectArchiveScriptSource, /"\.env\.\*"/);
   assert.ok(projectArchiveScriptSource.includes('Where-Object { $_.Name -ne ".env.example" }'));
 });
+
+const databaseTestsWorkflowSource = await readFile(
+  new URL("../.github/workflows/database-tests.yml", import.meta.url),
+  "utf8",
+);
+const databaseTestRunnerSource = await readFile(
+  new URL("./run-database-tests.ps1", import.meta.url),
+  "utf8",
+);
+const databaseTestFiles = [
+  "../supabase/tests/database/00_schema_and_security.test.sql",
+  "../supabase/tests/database/10_role_matrix.test.sql",
+  "../supabase/tests/database/20_collaboration.test.sql",
+  "../supabase/tests/database/30_transactional_import.test.sql",
+];
+
+test("E1a baut die Datenbank isoliert neu auf und führt pgTAP-Tests aus", async () => {
+  assert.ok(databaseTestsWorkflowSource.includes("supabase start"));
+  assert.ok(databaseTestsWorkflowSource.includes("supabase db reset"));
+  assert.ok(databaseTestsWorkflowSource.includes("supabase test db"));
+  assert.ok(databaseTestsWorkflowSource.includes("supabase stop --no-backup"));
+  assert.doesNotMatch(databaseTestsWorkflowSource, /SUPABASE_DB_URL|SUPABASE_SERVICE_ROLE_KEY/);
+  assert.ok(databaseTestRunnerSource.includes('"db", "reset"'));
+  assert.ok(databaseTestRunnerSource.includes('"test", "db"'));
+
+  for (const relativePath of databaseTestFiles) {
+    const source = await readFile(new URL(relativePath, import.meta.url), "utf8");
+    assert.ok(source.includes("select plan("), `pgTAP-Plan fehlt in ${relativePath}`);
+    assert.ok(source.includes("select * from finish();"), `pgTAP-Abschluss fehlt in ${relativePath}`);
+    assert.ok(source.includes("rollback;"), `Test-Rollback fehlt in ${relativePath}`);
+  }
+});
+
+test("E1a prüft Rollen, Legacy-RPCs, Sperren und Import-Rollback", async () => {
+  const schemaTests = await readFile(new URL(databaseTestFiles[0], import.meta.url), "utf8");
+  const roleTests = await readFile(new URL(databaseTestFiles[1], import.meta.url), "utf8");
+  const collaborationTests = await readFile(new URL(databaseTestFiles[2], import.meta.url), "utf8");
+  const importTests = await readFile(new URL(databaseTestFiles[3], import.meta.url), "utf8");
+
+  assert.ok(schemaTests.includes("has_function_privilege"));
+  assert.ok(schemaTests.includes("save_training_documentation_v2"));
+  assert.ok(roleTests.includes("'admin'"));
+  assert.ok(roleTests.includes("'trainer'"));
+  assert.ok(roleTests.includes("'athlete'"));
+  assert.ok(roleTests.includes("'parent'"));
+  assert.ok(roleTests.includes("Benutzer ohne Mitgliedschaft"));
+  assert.ok(collaborationTests.includes("acquire_edit_lock"));
+  assert.ok(collaborationTests.includes("seit dem Öffnen verändert"));
+  assert.ok(importTests.includes("apply_exercise_import_v1"));
+  assert.ok(importTests.includes("zurückgerollt"));
+  assert.ok(importTests.includes("wird gerade durch"));
+});
+

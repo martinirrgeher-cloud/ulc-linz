@@ -1,0 +1,60 @@
+name: Datenbank- und RLS-Tests
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "**"
+    paths:
+      - "supabase/**"
+      - "scripts/run-database-tests.ps1"
+      - ".github/workflows/database-tests.yml"
+      - "package.json"
+      - "package-lock.json"
+  pull_request:
+    paths:
+      - "supabase/**"
+      - "scripts/run-database-tests.ps1"
+      - ".github/workflows/database-tests.yml"
+      - "package.json"
+      - "package-lock.json"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: database-tests-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  database-tests:
+    name: Migrationen, RLS und Transaktionen
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Projekt auschecken
+        uses: actions/checkout@v4
+
+      - name: Supabase CLI einrichten
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.109.1
+
+      - name: Docker-Umgebung prüfen
+        run: docker info
+
+      - name: Isolierte lokale Supabase-Umgebung starten
+        run: >
+          supabase start
+          -x studio,imgproxy,mailpit,edge-runtime,logflare,vector,supavisor,realtime
+
+      - name: Datenbank vollständig aus Migrationen neu aufbauen
+        run: supabase db reset
+
+      - name: pgTAP-Datenbanktests ausführen
+        run: supabase test db
+
+      - name: Lokale Testumgebung entfernen
+        if: always()
+        run: supabase stop --no-backup || true
