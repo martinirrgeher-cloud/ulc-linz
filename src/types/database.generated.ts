@@ -6,7 +6,7 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[];
 
-// Automatisch aus den versionierten Supabase-Migrationen 001–024 abgeleitet.
+// Aus den versionierten Supabase-Migrationen 001–030 abgeleitet.
 // Nach einem lokalen `supabase db reset` kann die Datei mit
 // `npm run supabase:types:local` gegen die echte Datenbank neu erzeugt werden.
 export type Database = {
@@ -689,6 +689,36 @@ export type Database = {
           entity_id?: string | null;
           before_data?: Json | null;
           after_data?: Json | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      data_import_runs: {
+        Row: {
+          organization_id: string;
+          import_id: string;
+          import_kind: string;
+          requested_by: string;
+          payload_hash: string;
+          result: Json;
+          created_at: string;
+        };
+        Insert: {
+          organization_id: string;
+          import_id: string;
+          import_kind: string;
+          requested_by: string;
+          payload_hash: string;
+          result: Json;
+          created_at?: string;
+        };
+        Update: {
+          organization_id?: string;
+          import_id?: string;
+          import_kind?: string;
+          requested_by?: string;
+          payload_hash?: string;
+          result?: Json;
           created_at?: string;
         };
         Relationships: [];
@@ -1717,6 +1747,23 @@ export type Database = {
         };
         Returns: undefined;
       };
+      apply_athlete_import_v1: {
+        Args: {
+          p_organization_id: string;
+          p_import_id: string;
+          p_rows: Json;
+        };
+        Returns: Json;
+      };
+      apply_exercise_import_v1: {
+        Args: {
+          p_organization_id: string;
+          p_import_id: string;
+          p_rows: Json;
+          p_missing_options?: Json;
+        };
+        Returns: Json;
+      };
       apply_performance_athlete_defaults: {
         Args: {
           p_organization_id: string;
@@ -1811,6 +1858,15 @@ export type Database = {
           p_module_key: string;
         };
         Returns: boolean;
+      };
+      assert_import_entity_available: {
+        Args: {
+          p_organization_id: string;
+          p_entity_type: string;
+          p_entity_id: string;
+          p_expected_updated_at: string;
+        };
+        Returns: undefined;
       };
       can_manage_performance_registration: {
         Args: {

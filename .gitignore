@@ -14,3 +14,6 @@ supabase/.temp/
 *.zip
 _patch_backup/
 _v1/
+
+# Temporäres Patchskript im Projektstamm
+/apply-patch.ps1

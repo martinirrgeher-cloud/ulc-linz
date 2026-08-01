@@ -306,3 +306,58 @@ test("Trainingsplanung unterscheidet Block- und Uebungsebene und zeigt vollstaen
   assert.ok(trainingPlanningInfoSource.includes("Planungsparameter"));
   assert.ok(trainingPlanningInfoSource.includes("loadTrainingBlockExerciseVideos"));
 });
+
+const repositoryConsolidationSource = await readFile(
+  new URL("../supabase/migrations/202607300030_repository_state_consolidation.sql", import.meta.url),
+  "utf8",
+);
+const generatedDatabaseTypesSource = await readFile(
+  new URL("../src/types/database.generated.ts", import.meta.url),
+  "utf8",
+);
+const dataImportApiTypedSource = await readFile(
+  new URL("../src/features/data-import/api.ts", import.meta.url),
+  "utf8",
+);
+const projectArchiveScriptSource = await readFile(
+  new URL("../scripts/create-project-archive.ps1", import.meta.url),
+  "utf8",
+);
+
+test("E0 konsolidiert alte ungeschützte Schreibfunktionen im Migrationsstand", () => {
+  for (const functionName of [
+    "save_exercise_catalog_item",
+    "save_exercise_catalog_item_v2",
+    "save_training_block",
+    "update_athlete",
+    "update_athlete_v2",
+    "update_athlete_v3",
+    "save_athlete_training_plan",
+    "save_training_documentation",
+    "save_training_documentation_v2",
+  ]) {
+    assert.ok(
+      repositoryConsolidationSource.includes(`public.${functionName}`),
+      `Legacy-RPC fehlt in der Abschlussmigration: ${functionName}`,
+    );
+  }
+  assert.ok(repositoryConsolidationSource.includes("from authenticated, anon, public"));
+});
+
+test("E0 hält Import-Schema, Supabase-Typen und API konsistent", () => {
+  assert.ok(generatedDatabaseTypesSource.includes("data_import_runs: {"));
+  assert.ok(generatedDatabaseTypesSource.includes("apply_exercise_import_v1: {"));
+  assert.ok(generatedDatabaseTypesSource.includes("apply_athlete_import_v1: {"));
+  assert.ok(generatedDatabaseTypesSource.includes("assert_import_entity_available: {"));
+  assert.doesNotMatch(dataImportApiTypedSource, /supabase\.rpc\.bind/);
+  assert.doesNotMatch(dataImportApiTypedSource, /name:\s*string,/);
+  assert.ok(dataImportApiTypedSource.includes('rpc("apply_exercise_import_v1"'));
+  assert.ok(dataImportApiTypedSource.includes('rpc("apply_athlete_import_v1"'));
+});
+
+test("Projektarchiv schließt Altlasten aus und behält env.example", () => {
+  assert.ok(projectArchiveScriptSource.includes('"_v1"'));
+  assert.ok(projectArchiveScriptSource.includes('"apply-patch.ps1"'));
+  assert.doesNotMatch(projectArchiveScriptSource, /"\.env\.\*"/);
+  assert.ok(projectArchiveScriptSource.includes('Where-Object { $_.Name -ne ".env.example" }'));
+});

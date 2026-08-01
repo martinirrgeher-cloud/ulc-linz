@@ -2,11 +2,6 @@ import { requireSupabase } from "@/lib/supabase";
 import type { Json } from "@/types/database.generated";
 import type { ImportRunResult } from "@/features/data-import/types";
 
-type JsonRpcResponse = {
-  data: Json;
-  error: { message?: string } | null;
-};
-
 export type PreparedImportRow = Record<string, Json | undefined>;
 export type PreparedMissingOption = Record<string, Json | undefined>;
 
@@ -52,43 +47,34 @@ function parseImportResult(value: Json): ImportRunResult {
   };
 }
 
-async function callImportRpc(
-  functionName: "apply_exercise_import_v1" | "apply_athlete_import_v1",
-  args: Record<string, Json | undefined>,
-): Promise<ImportRunResult> {
-  const supabase = requireSupabase();
-  const rpc = supabase.rpc.bind(supabase) as unknown as (
-    name: string,
-    parameters: Record<string, Json | undefined>,
-  ) => PromiseLike<JsonRpcResponse>;
-
-  const { data, error } = await rpc(functionName, args);
-  if (error) throw new Error(error.message || "Der Import konnte nicht ausgeführt werden.");
-  return parseImportResult(data);
-}
-
-export function applyExerciseImport(
+export async function applyExerciseImport(
   organizationId: string,
   importId: string,
   rows: PreparedImportRow[],
   missingOptions: PreparedMissingOption[],
 ): Promise<ImportRunResult> {
-  return callImportRpc("apply_exercise_import_v1", {
+  const { data, error } = await requireSupabase().rpc("apply_exercise_import_v1", {
     p_organization_id: organizationId,
     p_import_id: importId,
     p_rows: rows as unknown as Json,
     p_missing_options: missingOptions as unknown as Json,
   });
+
+  if (error) throw new Error(error.message || "Der Import konnte nicht ausgeführt werden.");
+  return parseImportResult(data);
 }
 
-export function applyAthleteImport(
+export async function applyAthleteImport(
   organizationId: string,
   importId: string,
   rows: PreparedImportRow[],
 ): Promise<ImportRunResult> {
-  return callImportRpc("apply_athlete_import_v1", {
+  const { data, error } = await requireSupabase().rpc("apply_athlete_import_v1", {
     p_organization_id: organizationId,
     p_import_id: importId,
     p_rows: rows as unknown as Json,
   });
+
+  if (error) throw new Error(error.message || "Der Import konnte nicht ausgeführt werden.");
+  return parseImportResult(data);
 }

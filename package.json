@@ -18,8 +18,10 @@
     "test:smoke": "node --test scripts/smoke-test.mjs",
     "verify": "npm run typecheck && npm run test:smoke",
     "check:migrations": "node scripts/check-migrations.mjs",
-    "ci:quality": "npm run typecheck && npm run test:smoke && npm run check:migrations && npm run build",
-    "backup:verify": "node scripts/verify-backup-archive.mjs"
+    "ci:quality": "npm run typecheck && npm run test:smoke && npm run check:migrations && npm run check:database-types && npm run build",
+    "backup:verify": "node scripts/verify-backup-archive.mjs",
+    "check:database-types": "node scripts/check-generated-types.mjs",
+    "archive:project": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/create-project-archive.ps1"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.6",
