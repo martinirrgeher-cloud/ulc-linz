@@ -20,8 +20,20 @@ function Invoke-Supabase {
   }
 }
 
+$DatabaseTests = @(
+  "supabase/tests/database/00_schema_and_security.test.sql",
+  "supabase/tests/database/10_role_matrix.test.sql",
+  "supabase/tests/database/20_collaboration.test.sql",
+  "supabase/tests/database/30_transactional_import.test.sql"
+)
+
 Write-Host "Checking Docker..."
-& docker.exe info *> $null
+$DockerCommand = Get-Command docker.exe -ErrorAction SilentlyContinue
+if ($null -eq $DockerCommand) {
+  throw "Docker Desktop is not installed or docker.exe is not available in PATH."
+}
+
+& $DockerCommand.Source info *> $null
 if ($LASTEXITCODE -ne 0) {
   throw "Docker Desktop is not running. Start Docker Desktop and run the command again."
 }
@@ -41,7 +53,7 @@ try {
   Invoke-Supabase -Arguments @("db", "reset")
 
   Write-Host "Running pgTAP database tests..."
-  Invoke-Supabase -Arguments @("test", "db")
+  Invoke-Supabase -Arguments (@("test", "db") + $DatabaseTests)
 
   Write-Host ""
   Write-Host "E1a database tests completed successfully."

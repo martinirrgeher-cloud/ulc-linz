@@ -47,15 +47,15 @@ values (
   2010
 );
 
-create temp table e1a_lock_versions (
-  version_name text primary key,
-  value timestamptz not null
+select set_config(
+  'e1a.initial_athlete_version',
+  (
+    select updated_at::text
+    from public.athletes
+    where id = '33000000-0000-0000-0000-000000000001'
+  ),
+  true
 );
-
-insert into e1a_lock_versions(version_name, value)
-select 'initial', updated_at
-from public.athletes
-where id = '33000000-0000-0000-0000-000000000001';
 
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '30000000-0000-0000-0000-000000000002', true);
@@ -169,9 +169,9 @@ select is(
     'athlete',
     '33000000-0000-0000-0000-000000000001',
     '34000000-0000-0000-0000-000000000003',
-    (select value from e1a_lock_versions where version_name = 'initial')
+    current_setting('e1a.initial_athlete_version')::timestamptz
   ),
-  (select value from e1a_lock_versions where version_name = 'initial'),
+  current_setting('e1a.initial_athlete_version')::timestamptz,
   'Die gültige Sperre akzeptiert die aktuelle Datensatzversion'
 );
 select ok(
@@ -213,7 +213,7 @@ select like(
     'athlete',
     '33000000-0000-0000-0000-000000000001',
     '34000000-0000-0000-0000-000000000004',
-    (select value::text from e1a_lock_versions where version_name = 'initial')
+    current_setting('e1a.initial_athlete_version')
   )),
   '%seit dem Öffnen verändert%',
   'Eine veraltete Datensatzversion erzeugt einen Konflikt'

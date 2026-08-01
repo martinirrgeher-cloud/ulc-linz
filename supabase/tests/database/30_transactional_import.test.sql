@@ -83,11 +83,17 @@ select is(
   1,
   'Ein gültiger Import legt genau eine Übung an'
 );
+reset role;
 select is(
   (select count(*) from public.exercises where organization_id = '41000000-0000-0000-0000-000000000001' and name = 'E1A Import Erfolg'),
   1::bigint,
   'Die importierte Übung ist vorhanden'
 );
+
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '40000000-0000-0000-0000-000000000001', true);
+select set_config('request.jwt.claim.role', 'authenticated', true);
+select set_config('request.jwt.claims', '{"sub":"40000000-0000-0000-0000-000000000001","role":"authenticated"}', true);
 
 select is(
   (
@@ -119,11 +125,17 @@ select is(
   1,
   'Eine identische Wiederholung liefert das gespeicherte Ergebnis'
 );
+reset role;
 select is(
   (select count(*) from public.exercises where organization_id = '41000000-0000-0000-0000-000000000001' and name = 'E1A Import Erfolg'),
   1::bigint,
   'Die identische Import-ID erzeugt keine Dublette'
 );
+
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '40000000-0000-0000-0000-000000000001', true);
+select set_config('request.jwt.claim.role', 'authenticated', true);
+select set_config('request.jwt.claims', '{"sub":"40000000-0000-0000-0000-000000000001","role":"authenticated"}', true);
 
 select like(
   public.e1a_capture_error(format(
@@ -185,6 +197,7 @@ select like(
   '%wurde nicht gefunden oder ist inaktiv%',
   'Ein Fehler in einer späteren Zeile bricht den gesamten Import ab'
 );
+reset role;
 select is(
   (select count(*) from public.exercises where organization_id = '41000000-0000-0000-0000-000000000001' and name = 'E1A Rollback gültig'),
   0::bigint,
@@ -195,7 +208,6 @@ select is(
   0::bigint,
   'Auch automatisch angelegte Auswahllistenwerte werden zurückgerollt'
 );
-reset role;
 select is(
   (select count(*) from public.data_import_runs where organization_id = '41000000-0000-0000-0000-000000000001' and import_id = '43000000-0000-0000-0000-000000000002'),
   0::bigint,
@@ -210,6 +222,16 @@ values (
   '41000000-0000-0000-0000-000000000001',
   'E1A Gesperrte Übung',
   'warmup',
+  true
+);
+
+select set_config(
+  'e1a.locked_exercise_version',
+  (
+    select updated_at::text
+    from public.exercises
+    where id = '44000000-0000-0000-0000-000000000001'
+  ),
   true
 );
 
@@ -241,7 +263,7 @@ select like(
         'label', 'E1A Gesperrte Übung',
         'action', 'update',
         'existing_id', '44000000-0000-0000-0000-000000000001',
-        'expected_updated_at', (select updated_at from public.exercises where id = '44000000-0000-0000-0000-000000000001'),
+        'expected_updated_at', current_setting('e1a.locked_exercise_version'),
         'values', jsonb_build_object(
           'name', 'E1A Gesperrte Übung geändert',
           'category_label', 'Aufwärmen & Lauf-ABC',
@@ -270,6 +292,7 @@ select like(
   '%wird gerade durch%',
   'Eine aktive Bearbeitungssperre bricht den gesamten Import ab'
 );
+reset role;
 select is(
   (select name from public.exercises where id = '44000000-0000-0000-0000-000000000001'),
   'E1A Gesperrte Übung',
@@ -280,7 +303,6 @@ select is(
   0::bigint,
   'Weitere Importzeilen werden bei einer Sperre nicht ausgeführt'
 );
-reset role;
 select is(
   (select count(*) from public.data_import_runs where organization_id = '41000000-0000-0000-0000-000000000001' and import_id = '43000000-0000-0000-0000-000000000003'),
   0::bigint,

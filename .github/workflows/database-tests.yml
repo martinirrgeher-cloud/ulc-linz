@@ -41,7 +41,7 @@ jobs:
         with:
           version: 2.109.1
 
-      - name: Docker-Umgebung prüfen
+      - name: Docker-Umgebung pruefen
         run: docker info
 
       - name: Isolierte lokale Supabase-Umgebung starten
@@ -49,11 +49,16 @@ jobs:
           supabase start
           -x studio,imgproxy,mailpit,edge-runtime,logflare,vector,supavisor,realtime
 
-      - name: Datenbank vollständig aus Migrationen neu aufbauen
+      - name: Datenbank vollstaendig aus Migrationen neu aufbauen
         run: supabase db reset
 
-      - name: pgTAP-Datenbanktests ausführen
-        run: supabase test db
+      - name: pgTAP-Datenbanktests ausfuehren
+        run: |
+          supabase test db \
+            supabase/tests/database/00_schema_and_security.test.sql \
+            supabase/tests/database/10_role_matrix.test.sql \
+            supabase/tests/database/20_collaboration.test.sql \
+            supabase/tests/database/30_transactional_import.test.sql
 
       - name: Lokale Testumgebung entfernen
         if: always()

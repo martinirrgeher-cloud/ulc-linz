@@ -2,6 +2,23 @@ begin;
 
 select plan(27);
 
+create function public.e1a_execute_row_count(p_sql text)
+returns bigint
+language plpgsql
+set search_path = ''
+as $$
+declare
+  v_row_count bigint;
+begin
+  execute p_sql;
+  get diagnostics v_row_count = row_count;
+  return v_row_count;
+end;
+$$;
+
+revoke all on function public.e1a_execute_row_count(text) from public;
+grant execute on function public.e1a_execute_row_count(text) to authenticated;
+
 insert into auth.users (id, email, raw_user_meta_data)
 values
   ('00000000-0000-0000-0000-000000000001', 'admin-e1a@example.test', '{"display_name":"E1A Admin"}'),
@@ -85,14 +102,8 @@ select is((select count(*) from public.organization_members), 1::bigint, 'Traine
 select is((select count(*) from public.audit_log), 0::bigint, 'Trainer sieht kein Auditprotokoll');
 select is((select count(*) from public.athletes), 1::bigint, 'Trainer sieht Athleten seines Vereins über das Modulrecht');
 select is(
-  (
-    with changed as (
-      update public.organizations
-      set name = 'Unzulässige Änderung'
-      where id = '10000000-0000-0000-0000-000000000001'
-      returning 1
-    )
-    select count(*) from changed
+  public.e1a_execute_row_count(
+    'update public.organizations set name = ''Unzulässige Änderung'' where id = ''10000000-0000-0000-0000-000000000001'''
   ),
   0::bigint,
   'Trainer kann den Verein nicht direkt ändern'
