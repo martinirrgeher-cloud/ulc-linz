@@ -64,13 +64,48 @@ export function ExerciseVideoPanel({
   const [title, setTitle] = useState("");
   const [progress, setProgress] = useState<ExerciseVideoUploadProgress | null>(null);
   const [busy, setBusy] = useState(false);
+  const [loadingVideos, setLoadingVideos] = useState(Boolean(exerciseId));
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const uploadAbortRef = useRef<AbortController | null>(null);
+  const callbacksRef = useRef({ onVideosChanged, onVideoCountChange });
+
+  useEffect(() => {
+    callbacksRef.current = { onVideosChanged, onVideoCountChange };
+  }, [onVideoCountChange, onVideosChanged]);
 
   useEffect(() => () => {
     uploadAbortRef.current?.abort();
   }, []);
+
+  useEffect(() => {
+    if (!exerciseId) {
+      setLoadingVideos(false);
+      return undefined;
+    }
+
+    let active = true;
+    setLoadingVideos(true);
+    setError(null);
+
+    void loadExerciseVideosForExercise(organizationId, exerciseId)
+      .then((nextVideos) => {
+        if (!active) return;
+        setVideos(nextVideos);
+        callbacksRef.current.onVideoCountChange(nextVideos.length);
+        callbacksRef.current.onVideosChanged(nextVideos);
+      })
+      .catch((loadError) => {
+        if (active) setError(errorMessage(loadError));
+      })
+      .finally(() => {
+        if (active) setLoadingVideos(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [exerciseId, organizationId]);
 
   async function refreshVideos() {
     if (!exerciseId) return;
@@ -182,6 +217,8 @@ export function ExerciseVideoPanel({
     }
   }
 
+  const controlsDisabled = disabled || busy || loadingVideos;
+
   if (!exerciseId) {
     return (
       <div className="exercise-video-empty">
@@ -213,14 +250,14 @@ export function ExerciseVideoPanel({
             type="file"
             accept="video/*"
             onChange={handleFileChange}
-            disabled={disabled || busy}
+            disabled={controlsDisabled}
           />
 
           <button
             type="button"
             className="secondary-button exercise-video-select-button"
             onClick={() => inputRef.current?.click()}
-            disabled={disabled || busy}
+            disabled={controlsDisabled}
           >
             <Film aria-hidden="true" />
             {selectedFile ? "Anderes Video wählen" : "Video auswählen"}
@@ -239,7 +276,7 @@ export function ExerciseVideoPanel({
                   value={title}
                   onChange={(event) => setTitle(event.target.value)}
                   maxLength={120}
-                  disabled={disabled || busy}
+                  disabled={controlsDisabled}
                 />
               </label>
               {progress && (
@@ -321,7 +358,7 @@ export function ExerciseVideoPanel({
                       type="button"
                       className="icon-button"
                       onClick={() => void handlePrimary(video)}
-                      disabled={disabled || busy}
+                      disabled={controlsDisabled}
                       aria-label={`${video.title} als Hauptvideo festlegen`}
                       title="Als Hauptvideo"
                     >
@@ -333,7 +370,7 @@ export function ExerciseVideoPanel({
                       type="button"
                       className="icon-button danger-icon-button"
                       onClick={() => void handleDelete(video)}
-                      disabled={disabled || busy}
+                      disabled={controlsDisabled}
                       aria-label={`${video.title} löschen`}
                       title="Löschen"
                     >

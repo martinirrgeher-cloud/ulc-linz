@@ -20,7 +20,7 @@
     "test:smoke": "node --test scripts/smoke-test.mjs",
     "verify": "npm run typecheck && npm run test:smoke",
     "check:migrations": "node scripts/check-migrations.mjs",
-    "ci:quality": "npm run typecheck && npm run test:smoke && npm run check:migrations && npm run check:database-types && npm run check:e2e-suite && npm run check:e2e-writing-suite && npm run check:security-headers && npm run check:backup-restore-suite && npm run check:catalog-block-suite && npm run build",
+    "ci:quality": "npm run typecheck && npm run test:smoke && npm run check:migrations && npm run check:database-types && npm run check:e2e-suite && npm run check:e2e-writing-suite && npm run check:security-headers && npm run check:backup-restore-suite && npm run check:catalog-block-suite && npm run check:css-architecture && npm run build && npm run check:performance-budget",
     "backup:verify": "node scripts/verify-backup-archive.mjs",
     "check:database-types": "node scripts/check-generated-types.mjs",
     "archive:project": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/create-project-archive.ps1",
@@ -32,7 +32,9 @@
     "test:e2e:writing:ci": "playwright test --config=playwright.writing.config.mjs",
     "check:security-headers": "node scripts/check-security-headers.mjs",
     "check:backup-restore-suite": "node scripts/check-backup-restore-suite.mjs",
-    "check:catalog-block-suite": "node scripts/check-catalog-block-suite.mjs"
+    "check:catalog-block-suite": "node scripts/check-catalog-block-suite.mjs",
+    "check:css-architecture": "node scripts/check-css-architecture.mjs",
+    "check:performance-budget": "node scripts/check-performance-budget.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.6",
