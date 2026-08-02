@@ -42,6 +42,7 @@ const EMPTY_CATALOG: ExerciseCatalogData = {
   categories: [],
   subcategories: [],
   materials: [],
+  difficulties: [],
   parameterOptions: [],
   groups: [],
   exercises: [],

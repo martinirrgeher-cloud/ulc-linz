@@ -927,6 +927,30 @@ export type Database = {
         };
         Relationships: [];
       };
+      exercise_similarities: {
+        Row: {
+          organization_id: string;
+          exercise_id: string;
+          related_exercise_id: string;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          organization_id: string;
+          exercise_id: string;
+          related_exercise_id: string;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          organization_id?: string;
+          exercise_id?: string;
+          related_exercise_id?: string;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       exercises: {
         Row: {
           id: string;
@@ -941,6 +965,8 @@ export type Database = {
           equipment: string[];
           video_url: string | null;
           is_active: boolean;
+          difficulty_key: string | null;
+          normalized_name: string;
           created_by: string | null;
           created_at: string;
           updated_at: string;
@@ -958,6 +984,8 @@ export type Database = {
           equipment?: string[];
           video_url?: string | null;
           is_active?: boolean;
+          difficulty_key?: string | null;
+          normalized_name?: string;
           created_by?: string | null;
           created_at?: string;
           updated_at?: string;
@@ -975,6 +1003,8 @@ export type Database = {
           equipment?: string[];
           video_url?: string | null;
           is_active?: boolean;
+          difficulty_key?: string | null;
+          normalized_name?: string;
           created_by?: string | null;
           created_at?: string;
           updated_at?: string;
@@ -1512,6 +1542,60 @@ export type Database = {
         };
         Relationships: [];
       };
+      training_block_user_favorites: {
+        Row: {
+          organization_id: string;
+          block_id: string;
+          user_id: string;
+          created_at: string;
+        };
+        Insert: {
+          organization_id: string;
+          block_id: string;
+          user_id: string;
+          created_at?: string;
+        };
+        Update: {
+          organization_id?: string;
+          block_id?: string;
+          user_id?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      training_block_versions: {
+        Row: {
+          id: string;
+          organization_id: string;
+          block_id: string;
+          version_number: number;
+          reason: string;
+          snapshot: Json;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          block_id: string;
+          version_number: number;
+          reason?: string;
+          snapshot: Json;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          block_id?: string;
+          version_number?: number;
+          reason?: string;
+          snapshot?: Json;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       training_blocks: {
         Row: {
           id: string;
@@ -1521,6 +1605,9 @@ export type Database = {
           description: string | null;
           estimated_minutes: number | null;
           is_active: boolean;
+          variant_parent_id: string | null;
+          variant_root_id: string | null;
+          variant_number: number;
           created_by: string | null;
           created_at: string;
           updated_at: string;
@@ -1533,6 +1620,9 @@ export type Database = {
           description?: string | null;
           estimated_minutes?: number | null;
           is_active?: boolean;
+          variant_parent_id?: string | null;
+          variant_root_id?: string | null;
+          variant_number?: number;
           created_by?: string | null;
           created_at?: string;
           updated_at?: string;
@@ -1545,6 +1635,9 @@ export type Database = {
           description?: string | null;
           estimated_minutes?: number | null;
           is_active?: boolean;
+          variant_parent_id?: string | null;
+          variant_root_id?: string | null;
+          variant_number?: number;
           created_by?: string | null;
           created_at?: string;
           updated_at?: string;
@@ -1704,6 +1797,105 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      capture_training_block_version: {
+        Args: {
+          p_organization_id: string;
+          p_block_id: string;
+          p_reason?: string;
+        };
+        Returns: number;
+      };
+      create_training_block_variant: {
+        Args: {
+          p_organization_id: string;
+          p_block_id: string;
+        };
+        Returns: string;
+      };
+      exercise_catalog_overview_v3: {
+        Args: {
+          p_organization_id: string;
+          p_include_inactive?: boolean;
+        };
+        Returns: Json;
+      };
+      exercise_duplicate_candidates: {
+        Args: {
+          p_organization_id: string;
+          p_exercise_id: string | null;
+          p_name: string;
+          p_limit?: number;
+        };
+        Returns: Json;
+      };
+      normalize_catalog_name: {
+        Args: {
+          p_value: string;
+        };
+        Returns: string;
+      };
+      save_exercise_catalog_item_v4: {
+        Args: {
+          p_organization_id: string;
+          p_exercise_id?: string | null;
+          p_name?: string | null;
+          p_category_key?: string | null;
+          p_subcategory?: string | null;
+          p_goal?: string | null;
+          p_description?: string | null;
+          p_coaching_cues?: string | null;
+          p_common_mistakes?: string | null;
+          p_equipment?: string[];
+          p_video_url?: string | null;
+          p_is_active?: boolean;
+          p_group_ids?: string[];
+          p_parameters?: Json;
+          p_difficulty_key?: string | null;
+          p_similar_exercise_ids?: string[];
+          p_lock_token?: string | null;
+          p_expected_updated_at?: string | null;
+        };
+        Returns: Json;
+      };
+      save_training_block_v3: {
+        Args: {
+          p_organization_id: string;
+          p_block_id?: string | null;
+          p_name?: string | null;
+          p_goal?: string | null;
+          p_description?: string | null;
+          p_estimated_minutes?: number | null;
+          p_is_active?: boolean;
+          p_group_ids?: string[];
+          p_items?: Json;
+          p_lock_token?: string | null;
+          p_expected_updated_at?: string | null;
+        };
+        Returns: Json;
+      };
+      seed_exercise_difficulties_for_organization: {
+        Args: Record<PropertyKey, never>;
+        Returns: unknown;
+      };
+      set_exercise_normalized_name: {
+        Args: Record<PropertyKey, never>;
+        Returns: unknown;
+      };
+      set_training_block_favorite: {
+        Args: {
+          p_organization_id: string;
+          p_block_id: string;
+          p_is_favorite: boolean;
+        };
+        Returns: undefined;
+      };
+      training_block_overview_v3: {
+        Args: {
+          p_organization_id: string;
+          p_include_inactive?: boolean;
+        };
+        Returns: Json;
+      };
       acquire_edit_lock: {
         Args: {
           p_organization_id: string;

@@ -1,6 +1,26 @@
 export type ExerciseParameterKey = string;
 export type ExerciseParameterInputType = "number" | "text";
 
+export type ExerciseDifficulty = {
+  key: string;
+  label: string;
+  sortOrder: number;
+  isActive: boolean;
+};
+
+export type ExerciseBlockUsage = {
+  id: string;
+  name: string;
+  isActive: boolean;
+};
+
+export type ExercisePlanUsage = {
+  id: string;
+  title: string;
+  trainingDate: string;
+  viaBlockName: string | null;
+};
+
 export type ExerciseListOption = {
   key: string;
   label: string;
@@ -65,6 +85,12 @@ export type Exercise = {
   videoUrl: string | null;
   isActive: boolean;
   isFavorite: boolean;
+  difficultyKey: string | null;
+  difficultyLabel: string | null;
+  similarExerciseIds: string[];
+  blockUsages: ExerciseBlockUsage[];
+  planUsages: ExercisePlanUsage[];
+  lastUsedAt: string | null;
   groupIds: string[];
   parameters: ExerciseParameterDefinition[];
   videos: ExerciseVideo[];
@@ -76,6 +102,7 @@ export type ExerciseCatalogData = {
   categories: ExerciseCategory[];
   subcategories: ExerciseListOption[];
   materials: ExerciseListOption[];
+  difficulties: ExerciseDifficulty[];
   parameterOptions: ExerciseParameterOption[];
   groups: ExerciseTrainingGroup[];
   exercises: Exercise[];
@@ -91,6 +118,8 @@ export type ExerciseInput = {
   commonMistakes: string;
   equipment: string[];
   videoUrl: string;
+  difficultyKey: string;
+  similarExerciseIds: string[];
   isActive: boolean;
   groupIds: string[];
   parameters: ExerciseParameterDefinition[];
@@ -125,6 +154,8 @@ export function createEmptyExerciseInput(defaultCategoryKey: string): ExerciseIn
     commonMistakes: "",
     equipment: [],
     videoUrl: "",
+    difficultyKey: "",
+    similarExerciseIds: [],
     isActive: true,
     groupIds: [],
     parameters: [],
@@ -142,6 +173,8 @@ export function exerciseToInput(exercise: Exercise): ExerciseInput {
     commonMistakes: exercise.commonMistakes ?? "",
     equipment: [...exercise.equipment],
     videoUrl: exercise.videoUrl ?? "",
+    difficultyKey: exercise.difficultyKey ?? "",
+    similarExerciseIds: [...exercise.similarExerciseIds],
     isActive: exercise.isActive,
     groupIds: [...exercise.groupIds],
     parameters: exercise.parameters.map((parameter) => ({ ...parameter })),

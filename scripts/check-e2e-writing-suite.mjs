@@ -59,6 +59,10 @@ for (const marker of [
   "Übung suchen",
   "Neuerer Serverstand vorhanden",
   "Eigene Eingaben behalten",
+  "Schwierigkeitsgrad",
+  "Neue Variante von",
+  "für Vergleich auswählen",
+  "Verwendung von",
 ]) {
   if (!testFile.includes(marker)) throw new Error(`Writing E2E test marker is missing: ${marker}`);
 }

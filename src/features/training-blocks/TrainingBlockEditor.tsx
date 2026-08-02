@@ -1,6 +1,7 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { useDraftDirtyState } from "@/features/collaboration/useDraftDirtyState";
 import {
+  AlertTriangle,
   ArrowDown,
   ArrowUp,
   ClipboardCheck,
@@ -81,6 +82,11 @@ export function TrainingBlockEditor({
       .map(([key, title]) => ({ key, title }))
       .sort((left, right) => left.title.localeCompare(right.title, "de"));
   }, [exercises]);
+
+  const inactiveSelectedExercises = useMemo(() => values.items.flatMap((item) => {
+    const exercise = exerciseById.get(item.exerciseId);
+    return exercise && !exercise.isActive ? [exercise] : [];
+  }), [exerciseById, values.items]);
 
   const filteredExercises = useMemo(() => {
     const search = exerciseSearch.trim().toLocaleLowerCase("de");
@@ -236,6 +242,16 @@ export function TrainingBlockEditor({
         <div className="training-block-editor-body">
           {lockNotice}
           {localError && <div className="alert error compact-alert">{localError}</div>}
+          {inactiveSelectedExercises.length > 0 && (
+            <div className="alert warning compact-alert" role="alert">
+              <AlertTriangle aria-hidden="true" />
+              <span>
+                <strong>Inaktive Übungen im Block:</strong>{" "}
+                {[...new Set(inactiveSelectedExercises.map((exercise) => exercise.name))].join(", ")}.
+                Bestehende Verwendungen bleiben erhalten; vor neuer Planung bitte prüfen oder ersetzen.
+              </span>
+            </div>
+          )}
 
           <fieldset disabled={!canEdit || busy}>
             {section === "basis" && (

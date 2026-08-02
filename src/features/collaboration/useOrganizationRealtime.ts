@@ -8,6 +8,7 @@ export type CollaborationRealtimeTable =
   | "trainers"
   | "exercises"
   | "training_blocks"
+  | "training_block_user_favorites"
   | "athlete_training_plans"
   | "athlete_training_sessions";
 

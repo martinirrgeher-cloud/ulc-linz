@@ -13,6 +13,8 @@ import type {
   TrainingBlockExercise,
   TrainingBlockInput,
   TrainingBlockItem,
+  TrainingBlockVersion,
+  TrainingBlockVersionSnapshot,
 } from "@/features/training-blocks/types";
 
 type JsonRpc = (
@@ -137,6 +139,57 @@ function parseItems(value: unknown): TrainingBlockItem[] {
   }).sort((left, right) => left.sortOrder - right.sortOrder);
 }
 
+function parseVersionSnapshot(value: unknown): TrainingBlockVersionSnapshot {
+  if (!isRecord(value)) {
+    return {
+      name: "Unbekannter Stand",
+      goal: null,
+      description: null,
+      estimatedMinutes: null,
+      isActive: true,
+      groupIds: [],
+      itemCount: 0,
+      inactiveExerciseCount: 0,
+    };
+  }
+
+  const items = Array.isArray(value.items) ? value.items : [];
+  return {
+    name: typeof value.name === "string" ? value.name : "Unbekannter Stand",
+    goal: optionalString(value.goal),
+    description: optionalString(value.description),
+    estimatedMinutes: numberOrNull(value.estimated_minutes),
+    isActive: value.is_active !== false,
+    groupIds: parseStringArray(value.group_ids),
+    itemCount: items.length,
+    inactiveExerciseCount: items.filter((item) => isRecord(item) && item.exercise_is_active === false).length,
+  };
+}
+
+function parseVersions(value: unknown): TrainingBlockVersion[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item) => {
+    if (
+      !isRecord(item)
+      || typeof item.id !== "string"
+      || typeof item.version_number !== "number"
+      || typeof item.created_at !== "string"
+    ) return [];
+    const reason: TrainingBlockVersion["reason"] = item.reason === "variant_created"
+      ? "variant_created"
+      : item.reason === "created"
+        ? "created"
+        : "saved";
+    return [{
+      id: item.id,
+      versionNumber: item.version_number,
+      reason,
+      snapshot: parseVersionSnapshot(item.snapshot),
+      createdAt: item.created_at,
+    }];
+  }).sort((left, right) => right.versionNumber - left.versionNumber);
+}
+
 function parseBlocks(value: unknown): TrainingBlock[] {
   if (!Array.isArray(value)) return [];
   return value.flatMap((item) => {
@@ -148,7 +201,16 @@ function parseBlocks(value: unknown): TrainingBlock[] {
       description: optionalString(item.description),
       estimatedMinutes: numberOrNull(item.estimated_minutes),
       isActive: item.is_active !== false,
+      isFavorite: item.is_favorite === true,
       groupIds: parseStringArray(item.group_ids),
+      usedGroupIds: parseStringArray(item.used_group_ids),
+      lastUsedAt: optionalString(item.last_used_at),
+      inactiveExerciseCount: typeof item.inactive_exercise_count === "number" ? item.inactive_exercise_count : 0,
+      variantParentId: optionalString(item.variant_parent_id),
+      variantParentName: optionalString(item.variant_parent_name),
+      variantRootId: optionalString(item.variant_root_id),
+      variantNumber: typeof item.variant_number === "number" ? item.variant_number : 1,
+      versions: parseVersions(item.versions),
       items: parseItems(item.items),
       usageCount: typeof item.usage_count === "number" ? item.usage_count : 0,
       createdAt: typeof item.created_at === "string" ? item.created_at : "",
@@ -218,7 +280,7 @@ export async function loadTrainingBlocks(
   organizationId: string,
   includeInactive = true,
 ): Promise<TrainingBlockData> {
-  const data = await callJsonRpc("training_block_overview_v2", {
+  const data = await callJsonRpc("training_block_overview_v3", {
     p_organization_id: organizationId,
     p_include_inactive: includeInactive,
   });
@@ -260,7 +322,7 @@ export async function saveTrainingBlock(
     throw new Error("Die geschätzte Dauer ist ungültig.");
   }
 
-  const data = await callJsonRpc("save_training_block_v2", {
+  const data = await callJsonRpc("save_training_block_v3", {
     p_organization_id: organizationId,
     p_block_id: blockId,
     p_name: values.name.trim(),
@@ -278,6 +340,32 @@ export async function saveTrainingBlock(
     throw new Error("Der Trainingsblock wurde gespeichert, aber die Rückgabe ist ungültig.");
   }
   return data.id;
+}
+
+export async function createTrainingBlockVariant(
+  organizationId: string,
+  blockId: string,
+): Promise<string> {
+  const data = await callJsonRpc("create_training_block_variant", {
+    p_organization_id: organizationId,
+    p_block_id: blockId,
+  });
+  if (typeof data !== "string") {
+    throw new Error("Die Blockvariante wurde angelegt, aber die Rückgabe ist ungültig.");
+  }
+  return data;
+}
+
+export async function setTrainingBlockFavorite(
+  organizationId: string,
+  blockId: string,
+  isFavorite: boolean,
+): Promise<void> {
+  await callJsonRpc("set_training_block_favorite", {
+    p_organization_id: organizationId,
+    p_block_id: blockId,
+    p_is_favorite: isFavorite,
+  });
 }
 
 export async function duplicateTrainingBlock(

@@ -34,6 +34,25 @@ export type TrainingBlockItem = {
   parameters: ExerciseParameterDefinition[];
 };
 
+export type TrainingBlockVersionSnapshot = {
+  name: string;
+  goal: string | null;
+  description: string | null;
+  estimatedMinutes: number | null;
+  isActive: boolean;
+  groupIds: string[];
+  itemCount: number;
+  inactiveExerciseCount: number;
+};
+
+export type TrainingBlockVersion = {
+  id: string;
+  versionNumber: number;
+  reason: "created" | "saved" | "variant_created";
+  snapshot: TrainingBlockVersionSnapshot;
+  createdAt: string;
+};
+
 export type TrainingBlock = {
   id: string;
   name: string;
@@ -41,7 +60,16 @@ export type TrainingBlock = {
   description: string | null;
   estimatedMinutes: number | null;
   isActive: boolean;
+  isFavorite: boolean;
   groupIds: string[];
+  usedGroupIds: string[];
+  lastUsedAt: string | null;
+  inactiveExerciseCount: number;
+  variantParentId: string | null;
+  variantParentName: string | null;
+  variantRootId: string | null;
+  variantNumber: number;
+  versions: TrainingBlockVersion[];
   items: TrainingBlockItem[];
   usageCount: number;
   createdAt: string;

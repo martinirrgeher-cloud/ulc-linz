@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  Archive,
   BookOpen,
   ExternalLink,
   Filter,
   Pencil,
+  ListTree,
   Plus,
   Search,
   Star,
@@ -24,6 +26,7 @@ import {
   saveExercise,
   setExerciseFavorite,
 } from "@/features/exercise-catalog/api";
+import { ExerciseUsageDialog } from "@/features/exercise-catalog/ExerciseUsageDialog";
 import {
   ExerciseEditor,
   type EditorSection,
@@ -57,6 +60,7 @@ export function ExerciseCatalogPage() {
     categories: [],
     subcategories: [],
     materials: [],
+    difficulties: [],
     parameterOptions: [],
     groups: [],
     exercises: [],
@@ -72,8 +76,10 @@ export function ExerciseCatalogPage() {
   const [activityFilter, setActivityFilter] = useState<ActivityFilter>("active");
   const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [equipmentFilter, setEquipmentFilter] = useState("all");
+  const [difficultyFilter, setDifficultyFilter] = useState("all");
   const [groupFilter, setGroupFilter] = useState("all");
   const [videoFilter, setVideoFilter] = useState<VideoFilter>("all");
+  const [usageExercise, setUsageExercise] = useState<Exercise | null>(null);
   const [editorExercise, setEditorExercise] = useState<Exercise | null | undefined>(undefined);
   const [editorInitialSection, setEditorInitialSection] = useState<EditorSection>("basis");
   const [editorDirty, setEditorDirty] = useState(false);
@@ -165,6 +171,7 @@ export function ExerciseCatalogPage() {
     categoryFilter !== "all",
     subcategoryFilter !== "all",
     equipmentFilter !== "all",
+    difficultyFilter !== "all",
     groupFilter !== "all",
     videoFilter !== "all",
     activityFilter !== "active",
@@ -182,6 +189,7 @@ export function ExerciseCatalogPage() {
         if (categoryFilter !== "all" && exercise.categoryKey !== categoryFilter) return false;
         if (subcategoryFilter !== "all" && exercise.subcategory !== subcategoryFilter) return false;
         if (equipmentFilter !== "all" && !exercise.equipment.includes(equipmentFilter)) return false;
+        if (difficultyFilter !== "all" && exercise.difficultyKey !== difficultyFilter) return false;
         if (groupFilter === "club" && exercise.groupIds.length > 0) return false;
         if (groupFilter !== "all" && groupFilter !== "club" && exercise.groupIds.length > 0 && !exercise.groupIds.includes(groupFilter)) return false;
         if (videoFilter === "yes" && !hasVideo(exercise)) return false;
@@ -206,6 +214,7 @@ export function ExerciseCatalogPage() {
     categoryFilter,
     data.exercises,
     equipmentFilter,
+    difficultyFilter,
     favoritesOnly,
     groupFilter,
     searchTerm,
@@ -217,6 +226,7 @@ export function ExerciseCatalogPage() {
     setCategoryFilter("all");
     setSubcategoryFilter("all");
     setEquipmentFilter("all");
+    setDifficultyFilter("all");
     setGroupFilter("all");
     setVideoFilter("all");
     setActivityFilter("active");
@@ -411,6 +421,15 @@ export function ExerciseCatalogPage() {
               </select>
             </label>
             <label>
+              <span>Schwierigkeitsgrad</span>
+              <select value={difficultyFilter} onChange={(event) => setDifficultyFilter(event.target.value)}>
+                <option value="all">Alle Schwierigkeitsgrade</option>
+                {data.difficulties.map((difficulty) => (
+                  <option value={difficulty.key} key={difficulty.key}>{difficulty.label}</option>
+                ))}
+              </select>
+            </label>
+            <label>
               <span>Trainingsgruppe</span>
               <select value={groupFilter} onChange={(event) => setGroupFilter(event.target.value)}>
                 <option value="all">Alle Trainingsgruppen</option>
@@ -433,7 +452,7 @@ export function ExerciseCatalogPage() {
           <div className="exercise-filter-panel-footer">
             <div className="status-filter" aria-label="Übungsstatus filtern">
               <button type="button" className={activityFilter === "active" ? "active" : ""} onClick={() => setActivityFilter("active")}>Aktiv <span>{counts.active}</span></button>
-              <button type="button" className={activityFilter === "inactive" ? "active" : ""} onClick={() => setActivityFilter("inactive")}>Inaktiv <span>{counts.inactive}</span></button>
+              <button type="button" className={activityFilter === "inactive" ? "active" : ""} onClick={() => setActivityFilter("inactive")}><Archive aria-hidden="true" /> Archiv <span>{counts.inactive}</span></button>
               <button type="button" className={activityFilter === "all" ? "active" : ""} onClick={() => setActivityFilter("all")}>Alle <span>{data.exercises.length}</span></button>
             </div>
             <button type="button" className={`favorite-filter ${favoritesOnly ? "active" : ""}`} onClick={() => setFavoritesOnly((current) => !current)}>
@@ -476,6 +495,9 @@ export function ExerciseCatalogPage() {
                 </div>
                 {exercise.goal && <p className="exercise-goal">{exercise.goal}</p>}
                 <div className="exercise-card-meta">
+                  {exercise.difficultyLabel && <span>Schwierigkeit: {exercise.difficultyLabel}</span>}
+                  <span>{exercise.blockUsages.length} Block{exercise.blockUsages.length === 1 ? "" : "e"}</span>
+                  <span>{exercise.planUsages.length} Plan{exercise.planUsages.length === 1 ? "" : "e"}</span>
                   {exercise.parameters.slice(0, 5).map((parameter) => (
                     <span key={parameter.key}>{parameter.label}{parameter.defaultValue ? `: ${parameter.defaultValue}${parameter.unit ? ` ${parameter.unit}` : ""}` : ""}</span>
                   ))}
@@ -486,6 +508,16 @@ export function ExerciseCatalogPage() {
               </div>
 
               <div className="exercise-card-actions">
+                <button
+                  type="button"
+                  className="exercise-action-link"
+                  onClick={() => setUsageExercise(exercise)}
+                  aria-label={`Verwendung von ${exercise.name} anzeigen`}
+                  title="Verwendung anzeigen"
+                >
+                  <ListTree aria-hidden="true" />
+                  <span className="exercise-video-count">{exercise.blockUsages.length + exercise.planUsages.length}</span>
+                </button>
                 <button type="button" className={`exercise-favorite-button ${exercise.isFavorite ? "active" : ""}`} onClick={() => void handleFavorite(exercise)} aria-label={exercise.isFavorite ? "Aus Favoriten entfernen" : "Zu Favoriten hinzufügen"} title={exercise.isFavorite ? "Aus Favoriten entfernen" : "Favorit"}>
                   <Star aria-hidden="true" fill={exercise.isFavorite ? "currentColor" : "none"} />
                 </button>
@@ -508,13 +540,19 @@ export function ExerciseCatalogPage() {
         </div>
       )}
 
+      {usageExercise && (
+        <ExerciseUsageDialog exercise={usageExercise} onClose={() => setUsageExercise(null)} />
+      )}
+
       {editorExercise !== undefined && (
         <ExerciseEditor
           key={editorExercise?.id ?? "new-exercise"}
           exercise={editorExercise}
+          catalogExercises={data.exercises}
           categories={data.categories}
           subcategories={data.subcategories}
           materials={data.materials}
+          difficulties={data.difficulties}
           parameterOptions={data.parameterOptions}
           groups={data.groups}
           organizationId={organizationId ?? ""}

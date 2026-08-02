@@ -20,6 +20,7 @@ const EMPTY_DATA: DropdownSettingsData = {
   category: [],
   subcategory: [],
   material: [],
+  difficulty: [],
   planning_parameter: [],
 };
 

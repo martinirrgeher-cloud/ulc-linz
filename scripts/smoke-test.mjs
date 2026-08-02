@@ -675,3 +675,58 @@ test("E4 meldet Formularänderungen in allen gemeinsam bearbeiteten Stammdaten",
   }
 });
 
+
+const e5CatalogMigrationSource = await readFile(
+  new URL("../supabase/migrations/202608020033_catalog_block_intelligence.sql", import.meta.url),
+  "utf8",
+);
+const e5ExerciseEditorSource = await readFile(
+  new URL("../src/features/exercise-catalog/ExerciseEditor.tsx", import.meta.url),
+  "utf8",
+);
+const e5ExercisePageSource = await readFile(
+  new URL("../src/pages/ExerciseCatalogPage.tsx", import.meta.url),
+  "utf8",
+);
+const e5TrainingBlockPageSource = await readFile(
+  new URL("../src/pages/TrainingBlocksPage.tsx", import.meta.url),
+  "utf8",
+);
+const e5TrainingBlockEditorSource = await readFile(
+  new URL("../src/features/training-blocks/TrainingBlockEditor.tsx", import.meta.url),
+  "utf8",
+);
+const e5NameSimilaritySource = await readFile(
+  new URL("../src/features/exercise-catalog/name-similarity.ts", import.meta.url),
+  "utf8",
+);
+
+test("E5a ergänzt Schwierigkeitsgrad, Dubletten, ähnliche Übungen und Verwendung", () => {
+  assert.ok(e5CatalogMigrationSource.includes("difficulty_key"));
+  assert.ok(e5CatalogMigrationSource.includes("exercise_similarities"));
+  assert.ok(e5CatalogMigrationSource.includes("exercise_duplicate_candidates"));
+  assert.ok(e5ExerciseEditorSource.includes("Schwierigkeitsgrad"));
+  assert.ok(e5ExerciseEditorSource.includes("Ähnliche Übungen"));
+  assert.ok(e5ExerciseEditorSource.includes("Mögliche Dublette"));
+  assert.ok(e5ExercisePageSource.includes("ExerciseUsageDialog"));
+  assert.ok(e5ExercisePageSource.includes("Archiv"));
+  assert.ok(e5NameSimilaritySource.includes("exerciseNameSimilarity"));
+});
+
+test("E5b ergänzt Varianten, Versionen, Favoriten und Blockvergleich", () => {
+  assert.ok(e5CatalogMigrationSource.includes("training_block_versions"));
+  assert.ok(e5CatalogMigrationSource.includes("training_block_user_favorites"));
+  assert.ok(e5CatalogMigrationSource.includes("create_training_block_variant"));
+  assert.ok(e5TrainingBlockPageSource.includes("TrainingBlockCompareDialog"));
+  assert.ok(e5TrainingBlockPageSource.includes("Neue Variante erstellen"));
+  assert.ok(e5TrainingBlockPageSource.includes("Letzte Nutzung"));
+  assert.ok(e5TrainingBlockPageSource.includes("Versionsverlauf"));
+  assert.ok(e5TrainingBlockPageSource.includes("Tatsächlich verwendet von"));
+});
+
+test("E5b warnt vor inaktiven Übungen ohne historische Verwendungen zu verändern", () => {
+  assert.ok(e5TrainingBlockEditorSource.includes("Inaktive Übungen im Block"));
+  assert.ok(e5TrainingBlockEditorSource.includes("Bestehende Verwendungen bleiben erhalten"));
+  assert.ok(e5CatalogMigrationSource.includes("exercise_is_active"));
+  assert.ok(e5CatalogMigrationSource.includes("snapshot"));
+});

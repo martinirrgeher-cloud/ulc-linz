@@ -521,6 +521,7 @@ function collectMissingOptions(
     category: new Set(settings.category.map((item) => normalized(item.label))),
     subcategory: new Set(settings.subcategory.map((item) => normalized(item.label))),
     material: new Set(settings.material.map((item) => normalized(item.label))),
+    difficulty: new Set(settings.difficulty.map((item) => normalized(item.label))),
     planning_parameter: new Set(settings.planning_parameter.map((item) => normalized(item.label))),
   };
   const queue: Array<{ listKey: DropdownListKey; label: string; parameter?: ExerciseParameterImport }> = [];
