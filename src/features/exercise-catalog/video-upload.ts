@@ -4,6 +4,16 @@ import {
   exerciseVideoUploadKey,
   RESUMABLE_UPLOAD_MAX_AGE_MS,
 } from "@/lib/client-session-data";
+import {
+  isResumableUploadPausedError,
+  loadResumableUploadAuth,
+  ResumableUploadHttpError,
+  ResumableUploadPausedError,
+  throwIfResumableUploadPaused,
+  waitForResumableUploadRetry,
+  withResumableUploadAuthRefresh,
+  type ResumableUploadAuth,
+} from "@/lib/resumable-upload";
 
 export const EXERCISE_VIDEO_BUCKET = "exercise-videos";
 export const EXERCISE_VIDEO_MAX_BYTES = 50 * 1024 * 1024;
@@ -23,11 +33,8 @@ type UploadOptions = {
   exerciseId: string;
   file: File;
   onProgress?: (progress: ExerciseVideoUploadProgress) => void;
+  signal?: AbortSignal;
 };
-
-function wait(milliseconds: number): Promise<void> {
-  return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
-}
 
 function projectReference(): string {
   const host = new URL(env.supabaseUrl).hostname;
@@ -117,16 +124,6 @@ function readStoredUpload(
   }
 }
 
-async function uploadSession(): Promise<{ token: string; ownerUserId: string }> {
-  const supabase = requireSupabase();
-  const { data, error } = await supabase.auth.getSession();
-  if (error) throw error;
-  if (!data.session?.access_token) {
-    throw new Error("Die Anmeldung ist abgelaufen. Bitte neu anmelden.");
-  }
-  return { token: data.session.access_token, ownerUserId: data.session.user.id };
-}
-
 function commonHeaders(token: string): Record<string, string> {
   return {
     authorization: `Bearer ${token}`,
@@ -140,7 +137,9 @@ async function createUpload(
   token: string,
   storagePath: string,
   file: File,
+  signal?: AbortSignal,
 ): Promise<string> {
+  throwIfResumableUploadPaused(signal);
   const metadata = [
     `bucketName ${encodeMetadata(EXERCISE_VIDEO_BUCKET)}`,
     `objectName ${encodeMetadata(storagePath)}`,
@@ -156,11 +155,15 @@ async function createUpload(
       "Upload-Metadata": metadata,
       "x-upsert": "false",
     },
+    signal,
   });
 
   if (!response.ok) {
     const message = await response.text();
-    throw new Error(message || `Video-Upload konnte nicht gestartet werden (${response.status}).`);
+    throw new ResumableUploadHttpError(
+      response.status,
+      message || `Video-Upload konnte nicht gestartet werden (${response.status}).`,
+    );
   }
 
   const location = response.headers.get("location");
@@ -168,14 +171,25 @@ async function createUpload(
   return new URL(location, endpoint).toString();
 }
 
-async function readOffset(uploadUrl: string, token: string): Promise<number | null> {
+async function readOffset(
+  uploadUrl: string,
+  token: string,
+  signal?: AbortSignal,
+): Promise<number | null> {
+  throwIfResumableUploadPaused(signal);
   const response = await fetch(uploadUrl, {
     method: "HEAD",
     headers: commonHeaders(token),
+    signal,
   });
 
   if (response.status === 404 || response.status === 410) return null;
-  if (!response.ok) throw new Error(`Der unterbrochene Upload konnte nicht fortgesetzt werden (${response.status}).`);
+  if (!response.ok) {
+    throw new ResumableUploadHttpError(
+      response.status,
+      `Der unterbrochene Upload konnte nicht fortgesetzt werden (${response.status}).`,
+    );
+  }
 
   const offset = Number(response.headers.get("upload-offset"));
   return Number.isFinite(offset) && offset >= 0 ? offset : 0;
@@ -188,9 +202,42 @@ function uploadChunk(
   offset: number,
   totalBytes: number,
   onProgress?: (progress: ExerciseVideoUploadProgress) => void,
+  signal?: AbortSignal,
 ): Promise<number> {
   return new Promise((resolve, reject) => {
+    try {
+      throwIfResumableUploadPaused(signal);
+    } catch (error) {
+      reject(error);
+      return;
+    }
+
     const request = new XMLHttpRequest();
+    let settled = false;
+
+    function cleanup() {
+      signal?.removeEventListener("abort", abortRequest);
+    }
+
+    function resolveOnce(value: number) {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve(value);
+    }
+
+    function rejectOnce(error: unknown) {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reject(error);
+    }
+
+    function abortRequest() {
+      request.abort();
+    }
+
+    signal?.addEventListener("abort", abortRequest, { once: true });
     request.open("PATCH", uploadUrl);
     Object.entries(commonHeaders(token)).forEach(([key, value]) => request.setRequestHeader(key, value));
     request.setRequestHeader("Upload-Offset", String(offset));
@@ -206,15 +253,22 @@ function uploadChunk(
       });
     };
 
-    request.onerror = () => reject(new Error("Netzwerkfehler beim Video-Upload."));
-    request.onabort = () => reject(new Error("Der Video-Upload wurde abgebrochen."));
+    request.onerror = () => rejectOnce(new Error("Netzwerkfehler beim Video-Upload."));
+    request.onabort = () => rejectOnce(
+      signal?.aborted
+        ? new ResumableUploadPausedError()
+        : new Error("Der Video-Upload wurde abgebrochen."),
+    );
     request.onload = () => {
       if (request.status !== 204) {
-        reject(new Error(request.responseText || `Video-Upload fehlgeschlagen (${request.status}).`));
+        rejectOnce(new ResumableUploadHttpError(
+          request.status,
+          request.responseText || `Video-Upload fehlgeschlagen (${request.status}).`,
+        ));
         return;
       }
       const nextOffset = Number(request.getResponseHeader("Upload-Offset"));
-      resolve(Number.isFinite(nextOffset) ? nextOffset : offset + chunk.size);
+      resolveOnce(Number.isFinite(nextOffset) ? nextOffset : offset + chunk.size);
     };
 
     request.send(chunk);
@@ -223,25 +277,43 @@ function uploadChunk(
 
 async function uploadChunkWithRetry(
   uploadUrl: string,
-  token: string,
+  auth: ResumableUploadAuth,
   file: File,
   initialOffset: number,
   onProgress?: (progress: ExerciseVideoUploadProgress) => void,
+  signal?: AbortSignal,
 ): Promise<number> {
   let offset = initialOffset;
   let lastError: unknown = null;
 
   for (const delay of RETRY_DELAYS_MS) {
-    if (delay > 0) await wait(delay);
+    await waitForResumableUploadRetry(delay, signal);
     try {
-      const currentOffset = await readOffset(uploadUrl, token);
+      const currentOffset = await withResumableUploadAuthRefresh(
+        auth,
+        (token) => readOffset(uploadUrl, token, signal),
+      );
       if (currentOffset === null) throw new Error("Die Upload-Sitzung ist abgelaufen.");
       offset = Math.max(offset, currentOffset);
       if (offset >= file.size) return offset;
 
       const chunk = file.slice(offset, Math.min(file.size, offset + CHUNK_SIZE_BYTES));
-      return await uploadChunk(uploadUrl, token, chunk, offset, file.size, onProgress);
+      return await withResumableUploadAuthRefresh(
+        auth,
+        (token) => uploadChunk(
+          uploadUrl,
+          token,
+          chunk,
+          offset,
+          file.size,
+          onProgress,
+          signal,
+        ),
+      );
     } catch (error) {
+      if (isResumableUploadPausedError(error, signal)) {
+        throw new ResumableUploadPausedError();
+      }
       lastError = error;
     }
   }
@@ -272,10 +344,13 @@ export async function uploadExerciseVideoFile({
   exerciseId,
   file,
   onProgress,
+  signal,
 }: UploadOptions): Promise<string> {
   validateExerciseVideoFile(file);
+  throwIfResumableUploadPaused(signal);
 
-  const { token, ownerUserId } = await uploadSession();
+  const auth = await loadResumableUploadAuth();
+  const { ownerUserId } = auth;
   const localKey = fingerprintKey(file, organizationId, ownerUserId, exerciseId);
   const endpoint = `https://${projectReference()}.storage.supabase.co/storage/v1/upload/resumable`;
 
@@ -287,22 +362,32 @@ export async function uploadExerciseVideoFile({
 
   if (uploadUrl) {
     try {
-      const storedOffset = await readOffset(uploadUrl, token);
+      const storedOffset = await withResumableUploadAuthRefresh(
+        auth,
+        (token) => readOffset(uploadUrl as string, token, signal),
+      );
       if (storedOffset === null) {
         window.localStorage.removeItem(localKey);
         uploadUrl = null;
       } else {
         offset = storedOffset;
       }
-    } catch {
-      window.localStorage.removeItem(localKey);
-      uploadUrl = null;
+    } catch (error) {
+      if (isResumableUploadPausedError(error, signal)) {
+        throw new ResumableUploadPausedError();
+      }
+      // Bei Netzwerk- oder Authfehlern bleibt die gespeicherte TUS-Sitzung
+      // erhalten, damit kein zweiter Uploadpfad und damit kein Restobjekt entsteht.
+      throw error;
     }
   }
 
   if (!uploadUrl) {
     storagePath = exerciseVideoStoragePath(organizationId, exerciseId, file);
-    uploadUrl = await createUpload(endpoint, token, storagePath, file);
+    uploadUrl = await withResumableUploadAuthRefresh(
+      auth,
+      (token) => createUpload(endpoint, token, storagePath, file, signal),
+    );
     const createdAt = new Date();
     window.localStorage.setItem(localKey, JSON.stringify({
       ownerUserId,
@@ -321,7 +406,7 @@ export async function uploadExerciseVideoFile({
   });
 
   while (offset < file.size) {
-    offset = await uploadChunkWithRetry(uploadUrl, token, file, offset, onProgress);
+    offset = await uploadChunkWithRetry(uploadUrl, auth, file, offset, onProgress, signal);
   }
 
   window.localStorage.removeItem(localKey);

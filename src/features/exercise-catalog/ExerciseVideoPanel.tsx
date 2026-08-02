@@ -1,7 +1,8 @@
-import { useRef, useState, type ChangeEvent, type MouseEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type MouseEvent } from "react";
 import {
   CheckCircle2,
   Film,
+  PauseCircle,
   Play,
   Star,
   Trash2,
@@ -19,6 +20,7 @@ import {
   type ExerciseVideoUploadProgress,
 } from "@/features/exercise-catalog/video-upload";
 import type { ExerciseVideo } from "@/features/exercise-catalog/types";
+import { isResumableUploadPausedError } from "@/lib/resumable-upload";
 
 type ExerciseVideoPanelProps = {
   organizationId: string;
@@ -63,6 +65,11 @@ export function ExerciseVideoPanel({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const uploadAbortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => () => {
+    uploadAbortRef.current?.abort();
+  }, []);
 
   async function refreshVideos() {
     if (!exerciseId) return;
@@ -103,6 +110,8 @@ export function ExerciseVideoPanel({
     event?.preventDefault();
     event?.stopPropagation();
     if (!exerciseId || !selectedFile || busy) return;
+    const controller = new AbortController();
+    uploadAbortRef.current = controller;
     setOperationBusy(true);
     setError(null);
     setSuccess(null);
@@ -113,6 +122,7 @@ export function ExerciseVideoPanel({
         selectedFile,
         title.trim() || defaultTitle(selectedFile.name),
         setProgress,
+        controller.signal,
       );
       setSelectedFile(null);
       setTitle("");
@@ -121,10 +131,21 @@ export function ExerciseVideoPanel({
       await refreshVideos();
       setSuccess("Das Video wurde hochgeladen.");
     } catch (uploadError) {
-      setError(errorMessage(uploadError));
+      if (isResumableUploadPausedError(uploadError, controller.signal)) {
+        setSuccess("Der Upload ist pausiert. Mit „Fortsetzen“ wird an derselben Stelle weitergemacht.");
+      } else {
+        setError(errorMessage(uploadError));
+      }
     } finally {
+      if (uploadAbortRef.current === controller) uploadAbortRef.current = null;
       setOperationBusy(false);
     }
+  }
+
+  function handlePauseUpload(event: MouseEvent<HTMLButtonElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+    uploadAbortRef.current?.abort();
   }
 
   async function handlePrimary(video: ExerciseVideo) {
@@ -228,15 +249,27 @@ export function ExerciseVideoPanel({
                   <small>{progress.percent} % · {formatBytes(progress.uploadedBytes)} von {formatBytes(progress.totalBytes)}</small>
                 </div>
               )}
-              <button
-                type="button"
-                className="primary-button"
-                onClick={(event) => void handleUpload(event)}
-                disabled={disabled || busy}
-              >
-                <Upload aria-hidden="true" />
-                {busy ? "Wird hochgeladen …" : "Hochladen"}
-              </button>
+              {busy ? (
+                <button
+                  type="button"
+                  className="secondary-button"
+                  onClick={handlePauseUpload}
+                  disabled={disabled}
+                >
+                  <PauseCircle aria-hidden="true" />
+                  Upload pausieren
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="primary-button"
+                  onClick={(event) => void handleUpload(event)}
+                  disabled={disabled}
+                >
+                  <Upload aria-hidden="true" />
+                  {progress && progress.uploadedBytes > 0 ? "Fortsetzen" : "Hochladen"}
+                </button>
+              )}
             </div>
           )}
         </section>

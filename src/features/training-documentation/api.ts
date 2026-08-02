@@ -598,6 +598,16 @@ export async function registerTrainingDocumentationMedia(
   return data;
 }
 
+export async function removeTrainingDocumentationStorageObject(
+  storagePath: string,
+): Promise<void> {
+  const supabase = requireSupabase();
+  const { error } = await supabase.storage
+    .from(TRAINING_DOCUMENTATION_MEDIA_BUCKET)
+    .remove([storagePath]);
+  if (error) throw new Error(error.message);
+}
+
 export async function deleteTrainingDocumentationMedia(
   organizationId: string,
   mediaId: string,

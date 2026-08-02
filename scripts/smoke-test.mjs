@@ -441,3 +441,54 @@ test("E1a prüft Rollen, Legacy-RPCs, Sperren und Import-Rollback", async () => 
   assert.ok(importTests.includes("wird gerade durch"));
 });
 
+const resumableUploadSource = await readFile(
+  new URL("../src/lib/resumable-upload.ts", import.meta.url),
+  "utf8",
+);
+const e3aExerciseVideoUploadSource = await readFile(
+  new URL("../src/features/exercise-catalog/video-upload.ts", import.meta.url),
+  "utf8",
+);
+const exerciseVideoPanelSource = await readFile(
+  new URL("../src/features/exercise-catalog/ExerciseVideoPanel.tsx", import.meta.url),
+  "utf8",
+);
+const exerciseVideoApiSource = await readFile(
+  new URL("../src/features/exercise-catalog/api.ts", import.meta.url),
+  "utf8",
+);
+const documentationVideoUploadSource = await readFile(
+  new URL("../src/features/training-documentation/media-upload.ts", import.meta.url),
+  "utf8",
+);
+const documentationEditorSource = await readFile(
+  new URL("../src/features/training-documentation/TrainingDocumentationEditor.tsx", import.meta.url),
+  "utf8",
+);
+const documentationApiSource = await readFile(
+  new URL("../src/features/training-documentation/api.ts", import.meta.url),
+  "utf8",
+);
+
+test("E3a erneuert abgelaufene Upload-Tokens und bewahrt TUS-Sitzungen", () => {
+  assert.ok(resumableUploadSource.includes("refreshSession()"));
+  assert.ok(resumableUploadSource.includes("error.status !== 401"));
+  assert.ok(resumableUploadSource.includes("withResumableUploadAuthRefresh"));
+  assert.ok(e3aExerciseVideoUploadSource.includes("withResumableUploadAuthRefresh"));
+  assert.ok(documentationVideoUploadSource.includes("withResumableUploadAuthRefresh"));
+  assert.ok(e3aExerciseVideoUploadSource.includes("gespeicherte TUS-Sitzung"));
+  assert.ok(documentationVideoUploadSource.includes("Resume-Punkt"));
+});
+
+test("E3a unterstützt Pause, Fortsetzen und sichere Upload-Bereinigung", () => {
+  assert.ok(exerciseVideoPanelSource.includes("Upload pausieren"));
+  assert.ok(exerciseVideoPanelSource.includes('"Fortsetzen"'));
+  assert.ok(exerciseVideoApiSource.includes("signal?: AbortSignal"));
+  assert.ok(documentationEditorSource.includes("pauseVideoUpload"));
+  assert.ok(documentationEditorSource.includes("resumeVideoUpload"));
+  assert.ok(documentationEditorSource.includes("removeTrainingDocumentationStorageObject"));
+  assert.ok(documentationApiSource.includes("removeTrainingDocumentationStorageObject"));
+  assert.ok(e3aExerciseVideoUploadSource.includes("ResumableUploadPausedError"));
+  assert.ok(documentationVideoUploadSource.includes("ResumableUploadPausedError"));
+});
+

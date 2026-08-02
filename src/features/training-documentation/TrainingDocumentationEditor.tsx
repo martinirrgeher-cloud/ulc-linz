@@ -25,12 +25,14 @@ import {
 import {
   deleteTrainingDocumentationMedia,
   registerTrainingDocumentationMedia,
+  removeTrainingDocumentationStorageObject,
 } from "@/features/training-documentation/api";
 import {
   documentationVideoMimeType,
   uploadTrainingDocumentationVideo,
   validateDocumentationVideoFile,
 } from "@/features/training-documentation/media-upload";
+import { isResumableUploadPausedError } from "@/lib/resumable-upload";
 import {
   createDocumentationClientId,
   type DocumentationItemInput,
@@ -389,13 +391,20 @@ export function TrainingDocumentationEditor({
   const [completionOpen, setCompletionOpen] = useState(false);
   const [infoItem, setInfoItem] = useState<DocumentationItemInput | null>(null);
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
+  const [retryableUploads, setRetryableUploads] = useState<Record<string, boolean>>({});
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputs = useRef<Record<string, HTMLInputElement | null>>({});
+  const pendingUploadFiles = useRef<Record<string, File | undefined>>({});
+  const uploadControllers = useRef<Record<string, AbortController | undefined>>({});
   const progress = useMemo(() => completionCount(value), [value]);
 
   useEffect(() => {
     if (!value.canEdit) setCompletionOpen(false);
   }, [value.canEdit]);
+
+  useEffect(() => () => {
+    Object.values(uploadControllers.current).forEach((controller) => controller?.abort());
+  }, []);
 
   function toggleSet(current: Set<string>, id: string): Set<string> {
     const next = new Set(current);
@@ -424,19 +433,42 @@ export function TrainingDocumentationEditor({
     })));
   }
 
-  async function handleVideoSelected(item: DocumentationItemInput, event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-    if (!file) return;
+  function setUploadRetryable(itemId: string, retryable: boolean) {
+    setRetryableUploads((current) => {
+      const next = { ...current };
+      if (retryable) next[itemId] = true;
+      else delete next[itemId];
+      return next;
+    });
+  }
+
+  function pauseVideoUpload(itemId: string) {
+    uploadControllers.current[itemId]?.abort();
+  }
+
+  async function runVideoUpload(item: DocumentationItemInput, file: File) {
+    uploadControllers.current[item.id]?.abort();
+    const controller = new AbortController();
+    uploadControllers.current[item.id] = controller;
+    pendingUploadFiles.current[item.id] = file;
+    setUploadRetryable(item.id, false);
     setUploadError(null);
+    setUploadProgress((current) => ({ ...current, [item.id]: 0 }));
+
+    let storagePath: string | null = null;
+    let mediaRegistered = false;
+
     try {
-      validateDocumentationVideoFile(file);
-      const storagePath = await uploadTrainingDocumentationVideo({
+      storagePath = await uploadTrainingDocumentationVideo({
         organizationId,
         sessionId: value.sessionId,
         itemId: item.id,
         file,
-        onProgress: (upload) => setUploadProgress((current) => ({ ...current, [item.id]: upload.percent })),
+        signal: controller.signal,
+        onProgress: (upload) => setUploadProgress((current) => ({
+          ...current,
+          [item.id]: upload.percent,
+        })),
       });
       await registerTrainingDocumentationMedia(
         organizationId,
@@ -447,16 +479,69 @@ export function TrainingDocumentationEditor({
         documentationVideoMimeType(file),
         file.size,
       );
+      mediaRegistered = true;
+      delete pendingUploadFiles.current[item.id];
+      setUploadRetryable(item.id, false);
       await onReload();
     } catch (error) {
-      setUploadError(error instanceof Error ? error.message : "Das Video konnte nicht hochgeladen werden.");
+      if (isResumableUploadPausedError(error, controller.signal)) {
+        setUploadRetryable(item.id, true);
+        setUploadError(
+          "Der Video-Upload ist pausiert. Mit „Fortsetzen“ wird an derselben Stelle weitergemacht.",
+        );
+      } else {
+        let message = error instanceof Error
+          ? error.message
+          : "Das Video konnte nicht hochgeladen werden.";
+
+        if (storagePath && !mediaRegistered) {
+          try {
+            await removeTrainingDocumentationStorageObject(storagePath);
+          } catch (cleanupError) {
+            const cleanupMessage = cleanupError instanceof Error
+              ? cleanupError.message
+              : "Unbekannter Bereinigungsfehler";
+            message += ` Die unvollständige Storage-Datei konnte nicht automatisch entfernt werden: ${cleanupMessage}`;
+          }
+        }
+
+        setUploadRetryable(item.id, !mediaRegistered);
+        setUploadError(message);
+      }
     } finally {
+      if (uploadControllers.current[item.id] === controller) {
+        delete uploadControllers.current[item.id];
+      }
       setUploadProgress((current) => {
         const next = { ...current };
         delete next[item.id];
         return next;
       });
     }
+  }
+
+  function handleVideoSelected(item: DocumentationItemInput, event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    try {
+      validateDocumentationVideoFile(file);
+      pendingUploadFiles.current[item.id] = file;
+      void runVideoUpload(item, file);
+    } catch (error) {
+      setUploadError(error instanceof Error ? error.message : "Das Video konnte nicht ausgewählt werden.");
+    }
+  }
+
+  function resumeVideoUpload(item: DocumentationItemInput) {
+    const file = pendingUploadFiles.current[item.id];
+    if (!file) {
+      setUploadRetryable(item.id, false);
+      fileInputs.current[item.id]?.click();
+      return;
+    }
+    void runVideoUpload(item, file);
   }
 
   async function deleteMedia(mediaId: string) {
@@ -531,6 +616,9 @@ export function TrainingDocumentationEditor({
                     const statusOption = EXERCISE_STATUS_OPTIONS.find((option) => option.value === item.status);
                     const actualText = parameterText(item, true);
                     const plannedText = parameterText(item, false);
+                    const itemUploadPercent = uploadProgress[item.id];
+                    const itemUploading = itemUploadPercent !== undefined;
+                    const itemRetryable = retryableUploads[item.id] === true;
                     return (
                       <article className={`training-doc-item status-${item.status}`} key={item.id}>
                         <header className="training-doc-item-heading">
@@ -776,9 +864,19 @@ export function TrainingDocumentationEditor({
                                     <button
                                       type="button"
                                       className="secondary-button compact"
-                                      onClick={() => fileInputs.current[item.id]?.click()}
-                                      disabled={uploadProgress[item.id] !== undefined}
-                                    ><Upload aria-hidden="true" />{uploadProgress[item.id] !== undefined ? `${uploadProgress[item.id]} %` : "Video"}</button>
+                                      onClick={() => {
+                                        if (itemUploading) pauseVideoUpload(item.id);
+                                        else if (itemRetryable) resumeVideoUpload(item);
+                                        else fileInputs.current[item.id]?.click();
+                                      }}
+                                    >
+                                      {itemUploading ? <PauseCircle aria-hidden="true" /> : <Upload aria-hidden="true" />}
+                                      {itemUploading
+                                        ? `${itemUploadPercent} % · Pause`
+                                        : itemRetryable
+                                          ? "Fortsetzen"
+                                          : "Video"}
+                                    </button>
                                   </>
                                 )}
                               </header>

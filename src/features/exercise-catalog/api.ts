@@ -336,12 +336,14 @@ export async function uploadExerciseVideo(
   file: File,
   title: string,
   onProgress?: (progress: ExerciseVideoUploadProgress) => void,
+  signal?: AbortSignal,
 ): Promise<void> {
   const storagePath = await uploadExerciseVideoFile({
     organizationId,
     exerciseId,
     file,
     onProgress,
+    signal,
   });
 
   try {
