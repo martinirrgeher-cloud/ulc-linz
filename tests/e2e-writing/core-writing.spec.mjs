@@ -69,6 +69,68 @@ test.describe("Schreibende Kernabläufe in isolierter Supabase-Umgebung", () => 
     await expectNoAppError(page);
   });
 
+  test("Gruppen und Trainer werden in einer zweiten Sitzung sofort gesperrt", async ({ page, browser }) => {
+    await login(page, "admin");
+    await page.goto("/module/athletes?tab=groups");
+    await page.getByRole("button", { name: "E2E Leistungsgruppe bearbeiten", exact: true }).click();
+
+    const groupEditor = page.locator(".management-editor");
+    await expect(groupEditor.getByRole("heading", { name: "Gruppe bearbeiten", exact: true })).toBeVisible();
+    await expect(groupEditor.getByLabel("Gruppenname")).toBeEnabled({ timeout: 15_000 });
+
+    const groupContext = await browser.newContext({
+      locale: "de-AT",
+      timezoneId: "Europe/Vienna",
+      viewport: { width: 390, height: 844 },
+      hasTouch: true,
+      isMobile: true,
+    });
+    try {
+      const trainerPage = await groupContext.newPage();
+      await login(trainerPage, "trainer");
+      await trainerPage.goto("/module/athletes?tab=groups");
+      await trainerPage.getByRole("button", { name: "E2E Leistungsgruppe bearbeiten", exact: true }).click();
+      await expect(
+        trainerPage.getByRole("alert").filter({ hasText: "Der Datensatz wird bereits bearbeitet." }),
+      ).toBeVisible({ timeout: 15_000 });
+      await expect(trainerPage.getByLabel("Gruppenname")).toBeDisabled();
+    } finally {
+      await groupContext.close();
+    }
+
+    await groupEditor.getByRole("button", { name: "Abbrechen", exact: true }).click();
+    await page.waitForTimeout(600);
+    await page.getByRole("tab", { name: /Trainer/ }).click();
+    await page.getByRole("button", { name: "Tom E2E bearbeiten", exact: true }).click();
+
+    const trainerEditor = page.locator(".trainer-editor");
+    await expect(trainerEditor.getByRole("heading", { name: "Trainer bearbeiten", exact: true })).toBeVisible();
+    await expect(trainerEditor.getByLabel("Vorname")).toBeEnabled({ timeout: 15_000 });
+
+    const trainerContext = await browser.newContext({
+      locale: "de-AT",
+      timezoneId: "Europe/Vienna",
+      viewport: { width: 390, height: 844 },
+      hasTouch: true,
+      isMobile: true,
+    });
+    try {
+      const secondTrainerPage = await trainerContext.newPage();
+      await login(secondTrainerPage, "trainer");
+      await secondTrainerPage.goto("/module/athletes?tab=trainers");
+      await secondTrainerPage.getByRole("button", { name: "Tom E2E bearbeiten", exact: true }).click();
+      await expect(
+        secondTrainerPage.getByRole("alert").filter({ hasText: "Der Datensatz wird bereits bearbeitet." }),
+      ).toBeVisible({ timeout: 15_000 });
+      await expect(secondTrainerPage.getByLabel("Vorname")).toBeDisabled();
+      await expectNoAppError(secondTrainerPage);
+    } finally {
+      await trainerContext.close();
+    }
+
+    await expectNoAppError(page);
+  });
+
   test("Administrator legt eine Übung und einen Trainingsblock an", async ({ page }) => {
     await login(page, "admin");
     await page.goto("/module/exercise_catalog");

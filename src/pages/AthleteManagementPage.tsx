@@ -130,6 +130,9 @@ export function AthleteManagementPage() {
   const editorOpen = Boolean(athleteEditor || groupEditor || trainerEditor);
 
   const editedAthlete = athleteEditor?.type === "edit" ? athleteEditor.athlete : null;
+  const editedGroup = groupEditor?.type === "edit" ? groupEditor.group : null;
+  const editedTrainer = trainerEditor?.type === "edit" ? trainerEditor.trainer : null;
+
   const athleteLock = useEditLock({
     organizationId,
     entityType: "athlete",
@@ -137,7 +140,24 @@ export function AthleteManagementPage() {
     expectedUpdatedAt: editedAthlete?.updatedAt ?? null,
     enabled: canEdit && Boolean(editedAthlete?.id),
   });
+  const groupLock = useEditLock({
+    organizationId,
+    entityType: "training_group",
+    entityId: editedGroup?.id,
+    expectedUpdatedAt: editedGroup?.updatedAt ?? null,
+    enabled: canEdit && Boolean(editedGroup?.id),
+  });
+  const trainerLock = useEditLock({
+    organizationId,
+    entityType: "trainer",
+    entityId: editedTrainer?.id,
+    expectedUpdatedAt: editedTrainer?.updatedAt ?? null,
+    enabled: canEdit && Boolean(editedTrainer?.id),
+  });
+
   const athleteEditorCanEdit = canEdit && (!editedAthlete || athleteLock.isEditable);
+  const groupEditorCanEdit = canEdit && (!editedGroup || groupLock.isEditable);
+  const trainerEditorCanEdit = canEdit && (!editedTrainer || trainerLock.isEditable);
 
   const loadData = useCallback(async () => {
     if (!organizationId || !canView) return;
@@ -285,7 +305,8 @@ export function AthleteManagementPage() {
         await createTrainingGroup(activeOrganizationId, values);
         setSuccess("Die Trainingsgruppe wurde angelegt.");
       } else {
-        await updateTrainingGroup(activeOrganizationId, groupEditor.group.id, values);
+        const editLock = groupLock.getWriteGuard();
+        await updateTrainingGroup(activeOrganizationId, groupEditor.group.id, values, editLock);
         setSuccess("Die Trainingsgruppe wurde gespeichert.");
       }
       setGroupEditor(null);
@@ -305,7 +326,8 @@ export function AthleteManagementPage() {
         await createTrainer(activeOrganizationId, values);
         setSuccess("Der Trainer wurde angelegt.");
       } else {
-        await updateTrainer(activeOrganizationId, trainerEditor.trainer.id, values);
+        const editLock = trainerLock.getWriteGuard();
+        await updateTrainer(activeOrganizationId, trainerEditor.trainer.id, values, editLock);
         setSuccess("Die Trainerdaten wurden gespeichert.");
       }
       setTrainerEditor(null);
@@ -371,6 +393,8 @@ export function AthleteManagementPage() {
           key={groupEditor.type === "create" ? "new-group" : `group-${groupEditor.group.id}`}
           mode={groupEditor}
           busy={busy}
+          canEdit={groupEditorCanEdit}
+          lockNotice={editedGroup ? <EditLockNotice lock={groupLock} /> : null}
           onCancel={closeEditors}
           onSubmit={handleGroupSubmit}
         />
@@ -383,6 +407,8 @@ export function AthleteManagementPage() {
           groups={groups}
           linkableUsers={linkableUsers}
           busy={busy}
+          canEdit={trainerEditorCanEdit}
+          lockNotice={editedTrainer ? <EditLockNotice lock={trainerLock} /> : null}
           onCancel={closeEditors}
           onSubmit={handleTrainerSubmit}
         />

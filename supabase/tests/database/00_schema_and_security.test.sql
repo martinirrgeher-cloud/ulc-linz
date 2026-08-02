@@ -1,6 +1,6 @@
 begin;
 
-select plan(26);
+select plan(30);
 
 select is(
   (
@@ -72,6 +72,22 @@ select ok(
     'EXECUTE'
   ),
   'Der atomare Athletenspeicher ist für authenticated freigegeben'
+);
+select ok(
+  has_function_privilege(
+    'authenticated',
+    'public.update_trainer_v4(uuid,uuid,text,text,text,text,text,boolean,uuid[],uuid,uuid,timestamp with time zone)',
+    'EXECUTE'
+  ),
+  'Der atomare Trainerspeicher ist für authenticated freigegeben'
+);
+select ok(
+  has_function_privilege(
+    'authenticated',
+    'public.update_training_group_v4(uuid,uuid,text,text,text,boolean,integer,text,smallint[],boolean,boolean,smallint,time without time zone,smallint,boolean,uuid,timestamp with time zone)',
+    'EXECUTE'
+  ),
+  'Der atomare Gruppenspeicher ist für authenticated freigegeben'
 );
 select ok(
   has_function_privilege(
@@ -157,6 +173,22 @@ select ok(
 select ok(
   not has_function_privilege(
     'authenticated',
+    'public.update_trainer_v3(uuid,uuid,text,text,text,text,text,boolean,uuid[],uuid)',
+    'EXECUTE'
+  ),
+  'Der ungesperrte Trainerspeicher V3 ist gesperrt'
+);
+select ok(
+  not has_function_privilege(
+    'authenticated',
+    'public.update_training_group_v3(uuid,uuid,text,text,text,boolean,integer,text,smallint[],boolean,boolean,smallint,time without time zone,smallint,boolean)',
+    'EXECUTE'
+  ),
+  'Der ungesperrte Gruppenspeicher V3 ist gesperrt'
+);
+select ok(
+  not has_function_privilege(
+    'authenticated',
     'public.save_athlete_training_plan(uuid,uuid,uuid,uuid,date,text,text,jsonb)',
     'EXECUTE'
   ),
@@ -197,8 +229,10 @@ select ok(
       and table_row.relname = 'edit_locks'
       and constraint_row.contype = 'c'
       and pg_get_constraintdef(constraint_row.oid) like '%training_documentation%'
+      and pg_get_constraintdef(constraint_row.oid) like '%training_group%'
+      and pg_get_constraintdef(constraint_row.oid) like '%trainer%'
   ),
-  'Die Bearbeitungssperre unterstützt Trainingsdokumentationen'
+  'Die Bearbeitungssperre unterstützt Dokumentationen, Gruppen und Trainer'
 );
 select ok(
   (

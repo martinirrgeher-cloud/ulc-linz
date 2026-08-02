@@ -246,6 +246,13 @@ test("Lokale sensible Daten sind benutzergebunden und zeitlich begrenzt", () => 
 const appLayoutSource = await readFile(new URL("../src/components/layout/AppLayout.tsx", import.meta.url), "utf8");
 const athleteManagementSource = await readFile(new URL("../src/pages/AthleteManagementPage.tsx", import.meta.url), "utf8");
 const trainingGroupEditorSource = await readFile(new URL("../src/features/athletes/TrainingGroupEditor.tsx", import.meta.url), "utf8");
+const trainerEditorSource = await readFile(new URL("../src/features/athletes/TrainerEditor.tsx", import.meta.url), "utf8");
+const athleteApiSource = await readFile(new URL("../src/features/athletes/api.ts", import.meta.url), "utf8");
+const editLocksSource = await readFile(new URL("../src/features/collaboration/edit-locks.ts", import.meta.url), "utf8");
+const trainerGroupLockMigrationSource = await readFile(
+  new URL("../supabase/migrations/202608020031_trainer_group_edit_locks.sql", import.meta.url),
+  "utf8",
+);
 const userManagementSource = await readFile(new URL("../src/pages/UserManagementPage.tsx", import.meta.url), "utf8");
 const exerciseCatalogCssSource = await readFile(new URL("../src/styles/exercise-catalog.css", import.meta.url), "utf8");
 const trainingBlocksPageSource = await readFile(new URL("../src/pages/TrainingBlocksPage.tsx", import.meta.url), "utf8");
@@ -267,6 +274,24 @@ test("Benutzerverwaltung kann nach Rolle filtern", () => {
   assert.ok(userManagementSource.includes("roleFilter"));
   assert.ok(userManagementSource.includes("Alle Rollen"));
   assert.ok(userManagementSource.includes("Benutzer nach Rolle filtern"));
+});
+
+test("E2 schützt Trainer und Gruppen atomar vor paralleler Bearbeitung", () => {
+  assert.ok(editLocksSource.includes('"training_group"'));
+  assert.ok(editLocksSource.includes('"trainer"'));
+  assert.ok(athleteManagementSource.includes('entityType: "training_group"'));
+  assert.ok(athleteManagementSource.includes('entityType: "trainer"'));
+  assert.ok(athleteManagementSource.includes("groupLock.getWriteGuard()"));
+  assert.ok(athleteManagementSource.includes("trainerLock.getWriteGuard()"));
+  assert.ok(trainingGroupEditorSource.includes("lockNotice"));
+  assert.ok(trainingGroupEditorSource.includes("disabled={!canEdit || busy}"));
+  assert.ok(trainerEditorSource.includes("lockNotice"));
+  assert.ok(trainerEditorSource.includes("disabled={!canEdit || busy}"));
+  assert.ok(athleteApiSource.includes('callJsonRpc("update_training_group_v4"'));
+  assert.ok(athleteApiSource.includes('callJsonRpc("update_trainer_v4"'));
+  assert.ok(trainerGroupLockMigrationSource.includes("public.update_training_group_v4"));
+  assert.ok(trainerGroupLockMigrationSource.includes("public.update_trainer_v4"));
+  assert.ok(trainerGroupLockMigrationSource.includes("from authenticated, anon, public"));
 });
 
 test("Übungs- und Trainingsblockinformationen nutzen die mobile Breite einheitlich", () => {
@@ -349,6 +374,8 @@ test("E0 hält Import-Schema, Supabase-Typen und API konsistent", () => {
   assert.ok(generatedDatabaseTypesSource.includes("apply_exercise_import_v1: {"));
   assert.ok(generatedDatabaseTypesSource.includes("apply_athlete_import_v1: {"));
   assert.ok(generatedDatabaseTypesSource.includes("assert_import_entity_available: {"));
+  assert.ok(generatedDatabaseTypesSource.includes("update_training_group_v4: {"));
+  assert.ok(generatedDatabaseTypesSource.includes("update_trainer_v4: {"));
   assert.doesNotMatch(dataImportApiTypedSource, /supabase\.rpc\.bind/);
   assert.doesNotMatch(dataImportApiTypedSource, /name:\s*string,/);
   assert.ok(dataImportApiTypedSource.includes('rpc("apply_exercise_import_v1"'));

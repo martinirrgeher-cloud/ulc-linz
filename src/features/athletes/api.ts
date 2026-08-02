@@ -350,8 +350,9 @@ export async function updateTrainingGroup(
   organizationId: string,
   groupId: string,
   values: TrainingGroupInput,
+  editLock: EditLockWriteGuard | null,
 ): Promise<void> {
-  await callJsonRpc("update_training_group_v3", {
+  const data = await callJsonRpc("update_training_group_v4", {
     p_organization_id: organizationId,
     p_group_id: groupId,
     p_name: values.name.trim(),
@@ -367,7 +368,13 @@ export async function updateTrainingGroup(
     p_registration_deadline_time: values.registrationDeadlineTime,
     p_performance_weeks_ahead: values.performanceWeeksAhead,
     p_allow_late_registration: values.allowLateRegistration,
+    p_lock_token: editLock?.lockToken ?? null,
+    p_expected_updated_at: editLock?.expectedUpdatedAt ?? null,
   });
+
+  if (!isRecord(data) || typeof data.id !== "string" || typeof data.updated_at !== "string") {
+    throw new Error("Die Trainingsgruppe wurde gespeichert, aber die Rückgabe ist ungültig.");
+  }
 }
 
 export async function createTrainer(
@@ -396,8 +403,9 @@ export async function updateTrainer(
   organizationId: string,
   trainerId: string,
   values: TrainerInput,
+  editLock: EditLockWriteGuard | null,
 ): Promise<void> {
-  await callJsonRpc("update_trainer_v3", {
+  const data = await callJsonRpc("update_trainer_v4", {
     p_organization_id: organizationId,
     p_trainer_id: trainerId,
     p_first_name: values.firstName.trim(),
@@ -408,7 +416,13 @@ export async function updateTrainer(
     p_is_active: values.isActive,
     p_group_ids: values.groupIds,
     p_linked_user_id: values.linkedUserId,
+    p_lock_token: editLock?.lockToken ?? null,
+    p_expected_updated_at: editLock?.expectedUpdatedAt ?? null,
   });
+
+  if (!isRecord(data) || typeof data.id !== "string" || typeof data.updated_at !== "string") {
+    throw new Error("Der Trainer wurde gespeichert, aber die Rückgabe ist ungültig.");
+  }
 }
 
 export async function deactivateAthleteFromTraining(

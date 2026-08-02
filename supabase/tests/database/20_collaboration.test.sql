@@ -1,6 +1,6 @@
 begin;
 
-select plan(13);
+select plan(21);
 
 create function public.e1a_capture_error(p_sql text)
 returns text
@@ -46,6 +46,43 @@ values (
   'Athlet',
   2010
 );
+
+insert into public.training_groups (
+  id,
+  organization_id,
+  name,
+  short_name,
+  is_active,
+  sort_order,
+  regular_weekdays,
+  allow_special_training
+)
+values (
+  '33000000-0000-0000-0000-000000000002',
+  '31000000-0000-0000-0000-000000000001',
+  'Lock Gruppe',
+  'LG',
+  true,
+  10,
+  array[1, 3, 5]::smallint[],
+  true
+);
+
+insert into public.trainers (
+  id,
+  organization_id,
+  first_name,
+  last_name,
+  is_active
+)
+values (
+  '33000000-0000-0000-0000-000000000003',
+  '31000000-0000-0000-0000-000000000001',
+  'Lock',
+  'Trainer',
+  true
+);
+
 
 select set_config(
   'e1a.initial_athlete_version',
@@ -238,6 +275,136 @@ select ok(
     '34000000-0000-0000-0000-000000000004'
   ),
   'Die erneute Sperre kann sauber freigegeben werden'
+);
+
+reset role;
+
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '30000000-0000-0000-0000-000000000001', true);
+select set_config('request.jwt.claim.role', 'authenticated', true);
+select set_config('request.jwt.claims', '{"sub":"30000000-0000-0000-0000-000000000001","role":"authenticated"}', true);
+
+select set_config(
+  'e1a.group_lock_result',
+  public.acquire_edit_lock(
+    '31000000-0000-0000-0000-000000000001',
+    'training_group',
+    '33000000-0000-0000-0000-000000000002',
+    '34000000-0000-0000-0000-000000000005',
+    false,
+    120
+  )::text,
+  true
+);
+select ok(
+  (current_setting('e1a.group_lock_result')::jsonb ->> 'acquired')::boolean,
+  'Trainingsgruppen können reserviert werden'
+);
+select is(
+  public.update_training_group_v4(
+    '31000000-0000-0000-0000-000000000001',
+    '33000000-0000-0000-0000-000000000002',
+    'Lock Gruppe aktualisiert',
+    'LGA',
+    'Atomar geschützte Gruppe',
+    true,
+    10,
+    null,
+    array[1, 3, 5]::smallint[],
+    true,
+    false,
+    7::smallint,
+    '18:00'::time,
+    4::smallint,
+    true,
+    '34000000-0000-0000-0000-000000000005',
+    (current_setting('e1a.group_lock_result')::jsonb ->> 'record_version')::timestamptz
+  ) ->> 'id',
+  '33000000-0000-0000-0000-000000000002',
+  'Trainingsgruppen werden nur über den atomaren V4-Speicher aktualisiert'
+);
+select alike(
+  public.e1a_capture_error(format(
+    'select public.assert_edit_lock(%L::uuid,%L,%L::uuid,%L::uuid,%L::timestamptz)',
+    '31000000-0000-0000-0000-000000000001',
+    'training_group',
+    '33000000-0000-0000-0000-000000000002',
+    '34000000-0000-0000-0000-000000000005',
+    (
+      (current_setting('e1a.group_lock_result')::jsonb ->> 'record_version')::timestamptz
+      - interval '1 second'
+    )::text
+  )),
+  '%seit dem Öffnen verändert%',
+  'Trainingsgruppen lehnen eine veraltete Version ab'
+);
+select ok(
+  public.release_edit_lock(
+    '31000000-0000-0000-0000-000000000001',
+    'training_group',
+    '33000000-0000-0000-0000-000000000002',
+    '34000000-0000-0000-0000-000000000005'
+  ),
+  'Die Gruppensperre kann freigegeben werden'
+);
+
+select set_config(
+  'e1a.trainer_lock_result',
+  public.acquire_edit_lock(
+    '31000000-0000-0000-0000-000000000001',
+    'trainer',
+    '33000000-0000-0000-0000-000000000003',
+    '34000000-0000-0000-0000-000000000006',
+    false,
+    120
+  )::text,
+  true
+);
+select ok(
+  (current_setting('e1a.trainer_lock_result')::jsonb ->> 'acquired')::boolean,
+  'Trainer können reserviert werden'
+);
+select is(
+  public.update_trainer_v4(
+    '31000000-0000-0000-0000-000000000001',
+    '33000000-0000-0000-0000-000000000003',
+    'Lock',
+    'Trainer aktualisiert',
+    null,
+    'lock.trainer@example.test',
+    'Atomar geschützter Trainer',
+    true,
+    array[]::uuid[],
+    null,
+    '34000000-0000-0000-0000-000000000006',
+    (current_setting('e1a.trainer_lock_result')::jsonb ->> 'record_version')::timestamptz
+  ) ->> 'id',
+  '33000000-0000-0000-0000-000000000003',
+  'Trainer werden nur über den atomaren V4-Speicher aktualisiert'
+);
+select alike(
+  public.e1a_capture_error(format(
+    'select public.assert_edit_lock(%L::uuid,%L,%L::uuid,%L::uuid,%L::timestamptz)',
+    '31000000-0000-0000-0000-000000000001',
+    'trainer',
+    '33000000-0000-0000-0000-000000000003',
+    '34000000-0000-0000-0000-000000000006',
+    (
+      (current_setting('e1a.trainer_lock_result')::jsonb ->> 'record_version')::timestamptz
+      - interval '1 second'
+    )::text
+  )),
+  '%seit dem Öffnen verändert%',
+  'Trainer lehnen eine veraltete Version ab'
+);
+select ok(
+  public.release_edit_lock(
+    '31000000-0000-0000-0000-000000000001',
+    'trainer',
+    '33000000-0000-0000-0000-000000000003',
+    '34000000-0000-0000-0000-000000000006'
+  ),
+  'Die Trainersperre kann freigegeben werden'
 );
 
 reset role;

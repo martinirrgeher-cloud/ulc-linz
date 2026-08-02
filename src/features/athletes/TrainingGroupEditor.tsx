@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useState, type FormEvent, type ReactNode } from "react";
 import { CalendarClock, CalendarDays, Save, X } from "lucide-react";
 import type {
   TrainingGroup,
@@ -12,6 +12,8 @@ export type TrainingGroupEditorMode =
 type TrainingGroupEditorProps = {
   mode: TrainingGroupEditorMode;
   busy: boolean;
+  canEdit: boolean;
+  lockNotice?: ReactNode;
   onCancel: () => void;
   onSubmit: (values: TrainingGroupInput) => Promise<void>;
 };
@@ -65,6 +67,8 @@ function initialValues(mode: TrainingGroupEditorMode): TrainingGroupInput {
 export function TrainingGroupEditor({
   mode,
   busy,
+  canEdit,
+  lockNotice,
   onCancel,
   onSubmit,
 }: TrainingGroupEditorProps) {
@@ -76,7 +80,7 @@ export function TrainingGroupEditor({
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!canSave || busy) return;
+    if (!canEdit || !canSave || busy) return;
 
     setError(null);
     try {
@@ -120,9 +124,11 @@ export function TrainingGroupEditor({
         </button>
       </div>
 
+      {lockNotice}
       {error && <div className="alert error">{error}</div>}
 
       <form className="management-form" onSubmit={handleSubmit}>
+        <fieldset className="athlete-editor-lock-fieldset" disabled={!canEdit || busy}>
         <div className="form-grid">
           <label>
             Gruppenname
@@ -361,6 +367,8 @@ export function TrainingGroupEditor({
           <small>{values.description.length} / 1000 Zeichen</small>
         </label>
 
+        </fieldset>
+
         <div className="management-actions">
           <button
             type="button"
@@ -368,12 +376,14 @@ export function TrainingGroupEditor({
             onClick={onCancel}
             disabled={busy}
           >
-            Abbrechen
+            {canEdit ? "Abbrechen" : "Schließen"}
           </button>
-          <button type="submit" className="primary-button" disabled={!canSave || busy}>
-            <Save aria-hidden="true" />
-            {busy ? "Speichert …" : "Speichern"}
-          </button>
+          {canEdit && (
+            <button type="submit" className="primary-button" disabled={!canSave || busy}>
+              <Save aria-hidden="true" />
+              {busy ? "Speichert …" : "Speichern"}
+            </button>
+          )}
         </div>
       </form>
     </section>

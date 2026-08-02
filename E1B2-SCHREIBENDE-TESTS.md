@@ -11,14 +11,15 @@ Die wichtigsten schreibenden App-Abläufe werden mit künstlichen Benutzern und 
 - vollständiger Neuaufbau aus allen Repository-Migrationen
 - vier künstliche Rollen: Administrator, Trainer, Athlet und Elternteil
 - Chromium auf 390 x 844 Pixel
-- ein serieller Testprozess ohne parallele Schreibzugriffe
+- ein einzelner Playwright-Worker; unabhängige Tests laufen auch nach einem Einzelfehler weiter
 
 ## Aktuelle Tests
 
 1. Administrator legt Gruppe, Athlet und Trainer an und prüft die Persistenz nach einem Reload.
-2. Administrator legt eine Übung und einen Trainingsblock an.
-3. Athlet speichert die eigene Trainingsanmeldung und prüft sie nach einem Reload.
-4. Administrator speichert einen Trainingsplan; eine zweite Trainersitzung wird durch den Bearbeitungsschutz blockiert.
+2. Eine zweite Trainersitzung wird bei einer bereits geöffneten Gruppe und einem bereits geöffneten Trainer sofort schreibgeschützt.
+3. Administrator legt eine Übung und einen Trainingsblock an.
+4. Athlet speichert die eigene Trainingsanmeldung und prüft sie nach einem Reload.
+5. Administrator speichert einen Trainingsplan; eine zweite Trainersitzung wird durch den Bearbeitungsschutz blockiert.
 
 ## Sicherheit
 

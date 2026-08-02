@@ -2961,6 +2961,23 @@ export type Database = {
         };
         Returns: undefined;
       };
+      update_trainer_v4: {
+        Args: {
+          p_organization_id: string;
+          p_trainer_id: string;
+          p_first_name: string;
+          p_last_name: string;
+          p_phone: string | null;
+          p_email: string | null;
+          p_notes: string | null;
+          p_is_active: boolean;
+          p_group_ids: string[];
+          p_linked_user_id: string | null;
+          p_lock_token: string;
+          p_expected_updated_at: string;
+        };
+        Returns: Json;
+      };
       update_training_group: {
         Args: {
           p_organization_id: string;
@@ -3007,6 +3024,28 @@ export type Database = {
           p_allow_late_registration?: boolean;
         };
         Returns: undefined;
+      };
+      update_training_group_v4: {
+        Args: {
+          p_organization_id: string;
+          p_group_id: string;
+          p_name: string;
+          p_short_name: string | null;
+          p_description: string | null;
+          p_is_active: boolean;
+          p_sort_order: number;
+          p_module_key: string | null;
+          p_regular_weekdays: number[];
+          p_allow_special_training: boolean;
+          p_is_performance_group: boolean;
+          p_registration_deadline_weekday: number;
+          p_registration_deadline_time: string;
+          p_performance_weeks_ahead: number;
+          p_allow_late_registration: boolean;
+          p_lock_token: string;
+          p_expected_updated_at: string;
+        };
+        Returns: Json;
       };
     };
     Enums: {
