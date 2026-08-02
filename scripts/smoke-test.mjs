@@ -516,3 +516,32 @@ test("E3b zeigt Build-Stand und kopierbare Diagnose an", () => {
   assert.ok(appErrorBoundaryDiagnosticsSource.includes("Fehler-ID"));
   assert.ok(appErrorBoundaryDiagnosticsSource.includes("Diagnose kopieren"));
 });
+
+const e3cVercelConfigSource = await readFile(new URL("../vercel.json", import.meta.url), "utf8");
+const e3cPackageSource = await readFile(new URL("../package.json", import.meta.url), "utf8");
+const e3cSecurityCheckerSource = await readFile(
+  new URL("./check-security-headers.mjs", import.meta.url),
+  "utf8",
+);
+
+test("E3c schützt App, Frames und Skriptausführung mit Sicherheitsheadern", () => {
+  assert.ok(e3cVercelConfigSource.includes('"Content-Security-Policy"'));
+  assert.ok(e3cVercelConfigSource.includes("script-src 'self'"));
+  assert.ok(e3cVercelConfigSource.includes("frame-ancestors 'none'"));
+  assert.ok(e3cVercelConfigSource.includes("object-src 'none'"));
+  assert.ok(e3cVercelConfigSource.includes('"X-Frame-Options"'));
+  assert.ok(e3cVercelConfigSource.includes('"X-Content-Type-Options"'));
+  assert.doesNotMatch(e3cVercelConfigSource, /script-src[^;]*unsafe-(?:inline|eval)/);
+});
+
+test("E3c erlaubt Supabase, Videos, Uploads und Bildschirm-Wachhalten gezielt", () => {
+  assert.ok(e3cVercelConfigSource.includes("https://*.storage.supabase.co"));
+  assert.ok(e3cVercelConfigSource.includes("wss://*.supabase.co"));
+  assert.ok(e3cVercelConfigSource.includes("media-src 'self' blob:"));
+  assert.ok(e3cVercelConfigSource.includes("screen-wake-lock=(self)"));
+  assert.ok(e3cPackageSource.includes('"check:security-headers"'));
+  assert.ok(e3cPackageSource.includes("npm run check:security-headers"));
+  assert.ok(e3cSecurityCheckerSource.includes("validateDeployedUrl"));
+  assert.ok(e3cSecurityCheckerSource.includes("Globale CSP-Wildcard ist nicht erlaubt"));
+});
+
