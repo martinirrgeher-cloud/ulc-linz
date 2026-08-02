@@ -1,0 +1,127 @@
+name: Schreibende E2E-Tests mit isoliertem Supabase
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "**"
+    paths:
+      - "src/**"
+      - "public/**"
+      - "supabase/**"
+      - "tests/e2e-writing/**"
+      - "playwright.writing.config.mjs"
+      - "scripts/seed-e2e-writing.mjs"
+      - "scripts/check-e2e-writing-suite.mjs"
+      - "scripts/run-e2e-writing.ps1"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/e2e-writing.yml"
+  pull_request:
+    paths:
+      - "src/**"
+      - "public/**"
+      - "supabase/**"
+      - "tests/e2e-writing/**"
+      - "playwright.writing.config.mjs"
+      - "scripts/seed-e2e-writing.mjs"
+      - "scripts/check-e2e-writing-suite.mjs"
+      - "scripts/run-e2e-writing.ps1"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/e2e-writing.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-writing-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  writing-e2e:
+    name: Schreibende Kernablaeufe auf 390 px
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      E2E_WRITING_BASE_URL: http://127.0.0.1:4174
+      E2E_SEED_OUTPUT: test-results/e2e-writing/seed.json
+      VITE_ALLOW_SELF_SIGNUP: "false"
+
+    steps:
+      - name: Projekt auschecken
+        uses: actions/checkout@v4
+
+      - name: Node.js einrichten
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Projektabhaengigkeiten installieren
+        run: npm ci
+
+      - name: Supabase CLI einrichten
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.109.1
+
+      - name: Docker-Umgebung pruefen
+        run: docker info
+
+      - name: Isolierte lokale Supabase-Umgebung starten
+        run: >
+          supabase start
+          -x studio,imgproxy,mailpit,edge-runtime,logflare,vector,supavisor
+
+      - name: Datenbank aus Migrationen neu aufbauen
+        run: supabase db reset
+
+      - name: Lokale Supabase-Zugangsdaten bereitstellen
+        shell: bash
+        run: |
+          supabase status -o env > supabase-local.env
+          grep -E '^(API_URL|ANON_KEY|SERVICE_ROLE_KEY)=' supabase-local.env >> "$GITHUB_ENV"
+          API_URL_VALUE="$(grep '^API_URL=' supabase-local.env | cut -d= -f2- | tr -d '"')"
+          ANON_KEY_VALUE="$(grep '^ANON_KEY=' supabase-local.env | cut -d= -f2- | tr -d '"')"
+          SERVICE_ROLE_VALUE="$(grep '^SERVICE_ROLE_KEY=' supabase-local.env | cut -d= -f2- | tr -d '"')"
+          test -n "$API_URL_VALUE"
+          test -n "$ANON_KEY_VALUE"
+          test -n "$SERVICE_ROLE_VALUE"
+          echo "SUPABASE_URL=$API_URL_VALUE" >> "$GITHUB_ENV"
+          echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_VALUE" >> "$GITHUB_ENV"
+          echo "VITE_SUPABASE_URL=$API_URL_VALUE" >> "$GITHUB_ENV"
+          echo "VITE_SUPABASE_PUBLISHABLE_KEY=$ANON_KEY_VALUE" >> "$GITHUB_ENV"
+
+      - name: Kuenstliche Testbenutzer und Testdaten anlegen
+        run: node scripts/seed-e2e-writing.mjs
+
+      - name: Playwright Test isoliert installieren
+        run: npm install --no-save --package-lock=false @playwright/test@1.62.1
+
+      - name: Chromium und Systemabhaengigkeiten installieren
+        run: npx playwright install --with-deps chromium
+
+      - name: Teststruktur pruefen
+        run: npm run check:e2e-writing-suite
+
+      - name: Anwendung gegen lokales Supabase bauen
+        run: npm run build
+
+      - name: Schreibende End-to-End-Tests ausfuehren
+        run: npm run test:e2e:writing:ci
+
+      - name: Testbericht hochladen
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-writing-report-${{ github.run_id }}
+          path: |
+            playwright-report-writing
+            test-results/e2e-writing
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Lokale Testumgebung entfernen
+        if: always()
+        run: supabase stop --no-backup || true

@@ -17,3 +17,9 @@ _v1/
 
 # Temporäres Patchskript im Projektstamm
 /apply-patch.ps1
+# Lokale Browser-Testergebnisse
+playwright-report/
+playwright-report-writing/
+test-results/
+supabase-local.env
+
