@@ -1,4 +1,5 @@
 import { useMemo, useState, type ReactNode } from "react";
+import { useDraftDirtyState } from "@/features/collaboration/useDraftDirtyState";
 import {
   ArrowDown,
   ArrowUp,
@@ -36,6 +37,7 @@ export type TrainingBlockEditorProps = {
   lockNotice?: ReactNode;
   onCancel: () => void;
   onSubmit: (values: TrainingBlockInput) => Promise<void>;
+  onDirtyChange?: (dirty: boolean) => void;
 };
 
 type EditorSection = "basis" | "exercises";
@@ -54,6 +56,7 @@ export function TrainingBlockEditor({
   lockNotice,
   onCancel,
   onSubmit,
+  onDirtyChange,
 }: TrainingBlockEditorProps) {
   const [section, setSection] = useState<EditorSection>("basis");
   const [values, setValues] = useState<TrainingBlockInput>(() =>
@@ -64,6 +67,7 @@ export function TrainingBlockEditor({
   const [exerciseCategory, setExerciseCategory] = useState("all");
   const [localError, setLocalError] = useState<string | null>(null);
   const [infoExercise, setInfoExercise] = useState<TrainingBlockExercise | null>(null);
+  useDraftDirtyState(values, onDirtyChange);
 
   const exerciseById = useMemo(
     () => new Map(exercises.map((exercise) => [exercise.id, exercise])),

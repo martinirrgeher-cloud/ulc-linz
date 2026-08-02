@@ -1,4 +1,5 @@
 import { useState, type FormEvent, type ReactNode } from "react";
+import { useDraftDirtyState } from "@/features/collaboration/useDraftDirtyState";
 import { CalendarClock, CalendarDays, Save, X } from "lucide-react";
 import type {
   TrainingGroup,
@@ -17,6 +18,7 @@ type TrainingGroupEditorProps = {
   lockNotice?: ReactNode;
   onCancel: () => void;
   onSubmit: (values: TrainingGroupInput) => Promise<void>;
+  onDirtyChange?: (dirty: boolean) => void;
 };
 
 const WEEKDAYS = [
@@ -72,9 +74,11 @@ export function TrainingGroupEditor({
   lockNotice,
   onCancel,
   onSubmit,
+  onDirtyChange,
 }: TrainingGroupEditorProps) {
   const [values, setValues] = useState<TrainingGroupInput>(() => initialValues(mode));
   const [error, setError] = useState<string | null>(null);
+  useDraftDirtyState(values, onDirtyChange);
   const canSave =
     values.name.trim().length >= 2 &&
     ((values.moduleKey === null && !values.isPerformanceGroup) || values.regularWeekdays.length > 0);

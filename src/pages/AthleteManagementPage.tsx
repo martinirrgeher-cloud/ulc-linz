@@ -13,7 +13,13 @@ import {
 } from "lucide-react";
 import { Navigate, useSearchParams } from "react-router-dom";
 import { EditLockNotice } from "@/components/collaboration/EditLockNotice";
+import { RemoteChangeNotice } from "@/components/collaboration/RemoteChangeNotice";
+import {
+  collaborationVersionsDiffer,
+  isCollaborationConflictError,
+} from "@/features/collaboration/conflicts";
 import { useEditLock } from "@/features/collaboration/useEditLock";
+import { useOrganizationRealtime } from "@/features/collaboration/useOrganizationRealtime";
 import { useAuth } from "@/features/auth/AuthContext";
 import {
   createAthlete,
@@ -50,6 +56,8 @@ import { diagnosticErrorMessage } from "@/lib/diagnostics";
 type ActiveFilter = "active" | "inactive" | "all";
 type AthleteSort = "lastName" | "firstName" | "birthYearAsc" | "birthYearDesc";
 type ViewTab = "athletes" | "groups" | "trainers";
+
+const ATHLETE_REALTIME_TABLES = ["athletes", "training_groups", "trainers"] as const;
 
 function errorMessage(error: unknown): string {
   return diagnosticErrorMessage(error, "Die Stammdaten konnten nicht geladen werden.", "athlete_management");
@@ -128,6 +136,9 @@ export function AthleteManagementPage() {
   const [athleteEditor, setAthleteEditor] = useState<AthleteEditorMode | null>(null);
   const [groupEditor, setGroupEditor] = useState<TrainingGroupEditorMode | null>(null);
   const [trainerEditor, setTrainerEditor] = useState<TrainerEditorMode | null>(null);
+  const [editorDirty, setEditorDirty] = useState(false);
+  const [remoteChangePending, setRemoteChangePending] = useState(false);
+  const [remoteSyncBusy, setRemoteSyncBusy] = useState(false);
   const editorOpen = Boolean(athleteEditor || groupEditor || trainerEditor);
 
   const editedAthlete = athleteEditor?.type === "edit" ? athleteEditor.athlete : null;
@@ -156,14 +167,29 @@ export function AthleteManagementPage() {
     enabled: canEdit && Boolean(editedTrainer?.id),
   });
 
+  useEffect(() => {
+    const versionMismatch =
+      collaborationVersionsDiffer(editedAthlete?.updatedAt, athleteLock.recordVersion)
+      || collaborationVersionsDiffer(editedGroup?.updatedAt, groupLock.recordVersion)
+      || collaborationVersionsDiffer(editedTrainer?.updatedAt, trainerLock.recordVersion);
+    if (versionMismatch) setRemoteChangePending(true);
+  }, [
+    athleteLock.recordVersion,
+    editedAthlete?.updatedAt,
+    editedGroup?.updatedAt,
+    editedTrainer?.updatedAt,
+    groupLock.recordVersion,
+    trainerLock.recordVersion,
+  ]);
+
   const athleteEditorCanEdit = canEdit && (!editedAthlete || athleteLock.isEditable);
   const groupEditorCanEdit = canEdit && (!editedGroup || groupLock.isEditable);
   const trainerEditorCanEdit = canEdit && (!editedTrainer || trainerLock.isEditable);
 
-  const loadData = useCallback(async () => {
-    if (!organizationId || !canView) return;
+  const loadData = useCallback(async (showLoading = true) => {
+    if (!organizationId || !canView) return null;
 
-    setLoading(true);
+    if (showLoading) setLoading(true);
     setError(null);
     try {
       const data = await loadAthleteManagement(organizationId, canEdit);
@@ -171,16 +197,42 @@ export function AthleteManagementPage() {
       setGroups(data.groups);
       setTrainers(data.trainers);
       setLinkableUsers(data.linkableUsers);
+      return data;
     } catch (loadError) {
       setError(errorMessage(loadError));
+      return null;
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   }, [canEdit, canView, organizationId]);
 
   useEffect(() => {
     void loadData();
   }, [loadData]);
+
+  const handleRealtimeRefresh = useCallback((refresh: {
+    reason: "database" | "reconnected";
+    changes: Array<{ table: string; recordId: string | null }>;
+  }) => {
+    if (busy || remoteSyncBusy) return;
+    const currentChanged = refresh.reason === "reconnected" || refresh.changes.some((change) => (
+      (editedAthlete && change.table === "athletes" && change.recordId === editedAthlete.id)
+      || (editedGroup && change.table === "training_groups" && change.recordId === editedGroup.id)
+      || (editedTrainer && change.table === "trainers" && change.recordId === editedTrainer.id)
+    ));
+    if (currentChanged && (editedAthlete || editedGroup || editedTrainer)) {
+      setRemoteChangePending(true);
+      return;
+    }
+    void loadData(false);
+  }, [busy, editedAthlete, editedGroup, editedTrainer, loadData, remoteSyncBusy]);
+
+  useOrganizationRealtime({
+    organizationId,
+    tables: ATHLETE_REALTIME_TABLES,
+    enabled: canView,
+    onRefresh: handleRealtimeRefresh,
+  });
 
   const filteredAthletes = useMemo(() => {
     const search = searchTerm.trim().toLocaleLowerCase("de-AT");
@@ -252,6 +304,63 @@ export function AthleteManagementPage() {
     setAthleteEditor(null);
     setGroupEditor(null);
     setTrainerEditor(null);
+    setEditorDirty(false);
+    setRemoteChangePending(false);
+  }
+
+  async function applyRemoteServerState(keepDraft: boolean) {
+    const athleteId = editedAthlete?.id ?? null;
+    const groupId = editedGroup?.id ?? null;
+    const trainerId = editedTrainer?.id ?? null;
+    if (!athleteId && !groupId && !trainerId) {
+      setRemoteChangePending(false);
+      await loadData(false);
+      return;
+    }
+
+    setRemoteSyncBusy(true);
+    setError(null);
+    if (!keepDraft) {
+      setAthleteEditor(null);
+      setGroupEditor(null);
+      setTrainerEditor(null);
+      setEditorDirty(false);
+    }
+
+    try {
+      const latest = await loadData(false);
+      if (!latest) return;
+
+      if (athleteId) {
+        const athlete = latest.athletes.find((item) => item.id === athleteId);
+        if (!athlete) throw new Error("Der Athlet wurde auf einem anderen Gerät gelöscht.");
+        setAthleteEditor({ type: "edit", athlete });
+        if (keepDraft) await athleteLock.retry();
+        athleteLock.acceptRecordVersion(athlete.updatedAt);
+      } else if (groupId) {
+        const group = latest.groups.find((item) => item.id === groupId);
+        if (!group) throw new Error("Die Trainingsgruppe wurde auf einem anderen Gerät gelöscht.");
+        setGroupEditor({ type: "edit", group });
+        if (keepDraft) await groupLock.retry();
+        groupLock.acceptRecordVersion(group.updatedAt);
+      } else if (trainerId) {
+        const trainer = latest.trainers.find((item) => item.id === trainerId);
+        if (!trainer) throw new Error("Der Trainer wurde auf einem anderen Gerät gelöscht.");
+        setTrainerEditor({ type: "edit", trainer });
+        if (keepDraft) await trainerLock.retry();
+        trainerLock.acceptRecordVersion(trainer.updatedAt);
+      }
+
+      setRemoteChangePending(false);
+      if (keepDraft && editorDirty) {
+        setSuccess("Die aktuelle Serverversion wurde übernommen. Deine Eingaben bleiben im Formular erhalten.");
+      }
+    } catch (remoteError) {
+      closeEditors();
+      setError(errorMessage(remoteError));
+    } finally {
+      setRemoteSyncBusy(false);
+    }
   }
 
   function switchTab(nextTab: ViewTab) {
@@ -290,7 +399,12 @@ export function AthleteManagementPage() {
         setSuccess("Die Athletendaten wurden gespeichert.");
       }
       setAthleteEditor(null);
+      setEditorDirty(false);
+      setRemoteChangePending(false);
       await loadData();
+    } catch (saveError) {
+      if (isCollaborationConflictError(saveError)) setRemoteChangePending(true);
+      throw saveError;
     } finally {
       setBusy(false);
     }
@@ -311,7 +425,12 @@ export function AthleteManagementPage() {
         setSuccess("Die Trainingsgruppe wurde gespeichert.");
       }
       setGroupEditor(null);
+      setEditorDirty(false);
+      setRemoteChangePending(false);
       await loadData();
+    } catch (saveError) {
+      if (isCollaborationConflictError(saveError)) setRemoteChangePending(true);
+      throw saveError;
     } finally {
       setBusy(false);
     }
@@ -332,7 +451,12 @@ export function AthleteManagementPage() {
         setSuccess("Die Trainerdaten wurden gespeichert.");
       }
       setTrainerEditor(null);
+      setEditorDirty(false);
+      setRemoteChangePending(false);
       await loadData();
+    } catch (saveError) {
+      if (isCollaborationConflictError(saveError)) setRemoteChangePending(true);
+      throw saveError;
     } finally {
       setBusy(false);
     }
@@ -375,6 +499,13 @@ export function AthleteManagementPage() {
       {error && <div className="alert error">{error}</div>}
       {success && <div className="alert success">{success}</div>}
 
+      <RemoteChangeNotice
+        visible={remoteChangePending}
+        busy={busy || remoteSyncBusy}
+        onLoadServer={() => applyRemoteServerState(false)}
+        onKeepDraft={() => applyRemoteServerState(true)}
+      />
+
       {athleteEditor && (
         <AthleteEditor
           key={athleteEditor.type === "create" ? "new-athlete" : `athlete-${athleteEditor.athlete.id}`}
@@ -386,6 +517,7 @@ export function AthleteManagementPage() {
           lockNotice={editedAthlete ? <EditLockNotice lock={athleteLock} /> : null}
           onCancel={closeEditors}
           onSubmit={handleAthleteSubmit}
+          onDirtyChange={setEditorDirty}
         />
       )}
 
@@ -398,6 +530,7 @@ export function AthleteManagementPage() {
           lockNotice={editedGroup ? <EditLockNotice lock={groupLock} /> : null}
           onCancel={closeEditors}
           onSubmit={handleGroupSubmit}
+          onDirtyChange={setEditorDirty}
         />
       )}
 
@@ -412,6 +545,7 @@ export function AthleteManagementPage() {
           lockNotice={editedTrainer ? <EditLockNotice lock={trainerLock} /> : null}
           onCancel={closeEditors}
           onSubmit={handleTrainerSubmit}
+          onDirtyChange={setEditorDirty}
         />
       )}
 

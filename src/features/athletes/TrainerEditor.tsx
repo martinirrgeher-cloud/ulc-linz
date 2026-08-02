@@ -1,4 +1,5 @@
 import { useState, type FormEvent, type ReactNode } from "react";
+import { useDraftDirtyState } from "@/features/collaboration/useDraftDirtyState";
 import { Save, X } from "lucide-react";
 import type { LinkableUser, Trainer, TrainerInput, TrainingGroup } from "@/features/athletes/types";
 
@@ -16,6 +17,7 @@ type TrainerEditorProps = {
   lockNotice?: ReactNode;
   onCancel: () => void;
   onSubmit: (values: TrainerInput) => Promise<void>;
+  onDirtyChange?: (dirty: boolean) => void;
 };
 
 function initialValues(mode: TrainerEditorMode): TrainerInput {
@@ -53,9 +55,11 @@ export function TrainerEditor({
   lockNotice,
   onCancel,
   onSubmit,
+  onDirtyChange,
 }: TrainerEditorProps) {
   const [values, setValues] = useState<TrainerInput>(() => initialValues(mode));
   const [error, setError] = useState<string | null>(null);
+  useDraftDirtyState(values, onDirtyChange);
 
   const canSave = values.firstName.trim().length > 0 && values.lastName.trim().length > 0;
 

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   CalendarDays,
@@ -11,8 +11,14 @@ import {
   Users,
 } from "lucide-react";
 import { EditLockNotice } from "@/components/collaboration/EditLockNotice";
+import { RemoteChangeNotice } from "@/components/collaboration/RemoteChangeNotice";
 import { useNavigationGuard } from "@/components/layout/NavigationGuardContext";
+import {
+  collaborationVersionsDiffer,
+  isCollaborationConflictError,
+} from "@/features/collaboration/conflicts";
 import { useEditLock } from "@/features/collaboration/useEditLock";
+import { useOrganizationRealtime } from "@/features/collaboration/useOrganizationRealtime";
 import { useAuth } from "@/features/auth/AuthContext";
 import {
   loadTrainingPlan,
@@ -64,6 +70,8 @@ function errorMessage(error: unknown): string {
   return diagnosticErrorMessage(error, "Ein unbekannter Fehler ist aufgetreten.", "training_planning");
 }
 
+const TRAINING_PLAN_REALTIME_TABLES = ["athlete_training_plans"] as const;
+
 const EMPTY_DATA: TrainingPlanningData = {
   groups: [],
   athletes: [],
@@ -95,6 +103,9 @@ export function TrainingPlanningPage() {
   const [overviewOpen, setOverviewOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [remoteChangePending, setRemoteChangePending] = useState(false);
+  const [remoteSyncBusy, setRemoteSyncBusy] = useState(false);
+  const localWriteUntilRef = useRef(0);
 
   const planLock = useEditLock({
     organizationId,
@@ -104,6 +115,12 @@ export function TrainingPlanningPage() {
     enabled: canEdit && Boolean(plan?.id),
   });
   const editorCanEdit = canEdit && (!plan?.id || planLock.isEditable);
+
+  useEffect(() => {
+    if (collaborationVersionsDiffer(plan?.updatedAt, planLock.recordVersion)) {
+      setRemoteChangePending(true);
+    }
+  }, [plan?.updatedAt, planLock.recordVersion]);
 
   function updatePlanningUrl(nextDate: string, nextGroupId: string, nextAthleteId: string) {
     const next = new URLSearchParams();
@@ -146,6 +163,30 @@ export function TrainingPlanningPage() {
     setData(next);
     return next;
   }, [organizationId]);
+
+  const handleRealtimeRefresh = useCallback((refresh: {
+    reason: "database" | "reconnected";
+    changes: Array<{ table: string; recordId: string | null }>;
+  }) => {
+    if (Date.now() < localWriteUntilRef.current || busy || remoteSyncBusy) return;
+    const currentChanged = Boolean(plan?.id) && (
+      refresh.reason === "reconnected"
+      || refresh.changes.some((change) => (
+        change.table === "athlete_training_plans" && change.recordId === plan?.id
+      ))
+    );
+    if (currentChanged) {
+      setRemoteChangePending(true);
+      return;
+    }
+    void refreshOverview(trainingDate, groupId || null);
+  }, [busy, groupId, plan?.id, refreshOverview, remoteSyncBusy, trainingDate]);
+
+  useOrganizationRealtime({
+    organizationId,
+    tables: TRAINING_PLAN_REALTIME_TABLES,
+    onRefresh: handleRealtimeRefresh,
+  });
 
   useEffect(() => {
     if (!organizationId) return;
@@ -193,6 +234,7 @@ export function TrainingPlanningPage() {
     setAthleteId(nextAthleteId);
     setError(null);
     setSuccess(null);
+    setRemoteChangePending(false);
 
     const summary = overview.plans.find((item) => item.athleteId === nextAthleteId);
     if (!summary) {
@@ -234,6 +276,7 @@ export function TrainingPlanningPage() {
     setValues(createEmptyTrainingPlanInput(nextDate));
     setDirty(false);
     setSuccess(null);
+    setRemoteChangePending(false);
     setOverviewOpen(false);
   }
 
@@ -246,7 +289,43 @@ export function TrainingPlanningPage() {
     setValues(createEmptyTrainingPlanInput(trainingDate));
     setDirty(false);
     setSuccess(null);
+    setRemoteChangePending(false);
     setOverviewOpen(false);
+  }
+
+  async function applyRemoteServerState(keepDraft: boolean) {
+    if (!organizationId || !plan?.id) {
+      setRemoteChangePending(false);
+      await refreshOverview(trainingDate, groupId || null);
+      return;
+    }
+
+    setRemoteSyncBusy(true);
+    setError(null);
+    if (!keepDraft) setPlanLoading(true);
+
+    try {
+      const [latestPlan, overview] = await Promise.all([
+        loadTrainingPlan(organizationId, plan.id),
+        loadTrainingPlanningOverview(organizationId, trainingDate, groupId || null),
+      ]);
+      setData(overview);
+      setPlan(latestPlan);
+      if (keepDraft) await planLock.retry();
+      planLock.acceptRecordVersion(latestPlan.updatedAt);
+      if (!keepDraft) {
+        setValues(trainingPlanToInput(latestPlan));
+        setDirty(false);
+      } else if (dirty) {
+        setSuccess("Die aktuelle Serverversion wurde übernommen. Deine Planeingaben bleiben erhalten.");
+      }
+      setRemoteChangePending(false);
+    } catch (remoteError) {
+      setError(errorMessage(remoteError));
+    } finally {
+      setPlanLoading(false);
+      setRemoteSyncBusy(false);
+    }
   }
 
   function handleValuesChange(next: TrainingPlanInput) {
@@ -262,6 +341,7 @@ export function TrainingPlanningPage() {
     setSuccess(null);
     try {
       const editLock = planLock.getWriteGuard();
+      localWriteUntilRef.current = Date.now() + 3_000;
       const planId = await saveTrainingPlan(
         organizationId,
         plan?.id ?? null,
@@ -276,11 +356,14 @@ export function TrainingPlanningPage() {
         refreshOverview(trainingDate, groupId),
       ]);
       setPlan(loadedPlan);
+      planLock.acceptRecordVersion(loadedPlan.updatedAt);
       setValues(trainingPlanToInput(loadedPlan));
       setDirty(false);
+      setRemoteChangePending(false);
       setSuccess("Der Trainingsplan wurde gespeichert.");
       if (overview) setData(overview);
     } catch (saveError) {
+      if (isCollaborationConflictError(saveError)) setRemoteChangePending(true);
       setError(errorMessage(saveError));
     } finally {
       setBusy(false);
@@ -307,6 +390,13 @@ export function TrainingPlanningPage() {
 
       {error && <div className="alert error">{error}</div>}
       {success && <div className="alert success">{success}</div>}
+
+      <RemoteChangeNotice
+        visible={remoteChangePending}
+        busy={busy || remoteSyncBusy}
+        onLoadServer={() => applyRemoteServerState(false)}
+        onKeepDraft={() => applyRemoteServerState(true)}
+      />
 
       <section className="training-planning-selection" aria-label="Trainingstag und Athlet auswählen">
         <label>

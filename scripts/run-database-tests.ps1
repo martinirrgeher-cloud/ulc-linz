@@ -24,7 +24,8 @@ $DatabaseTests = @(
   "supabase/tests/database/00_schema_and_security.test.sql",
   "supabase/tests/database/10_role_matrix.test.sql",
   "supabase/tests/database/20_collaboration.test.sql",
-  "supabase/tests/database/30_transactional_import.test.sql"
+  "supabase/tests/database/30_transactional_import.test.sql",
+  "supabase/tests/database/40_realtime_collaboration.test.sql"
 )
 
 Write-Host "Checking Docker..."

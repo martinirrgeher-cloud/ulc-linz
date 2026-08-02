@@ -1,4 +1,5 @@
 import { useMemo, useState, type ReactNode } from "react";
+import { useDraftDirtyState } from "@/features/collaboration/useDraftDirtyState";
 import {
   Check,
   Dumbbell,
@@ -41,6 +42,7 @@ export type ExerciseEditorProps = {
   onCancel: () => void;
   onSubmit: (values: ExerciseInput) => Promise<void>;
   onVideosChanged: (videos: Exercise["videos"]) => void;
+  onDirtyChange?: (dirty: boolean) => void;
 };
 
 function nullableNumber(value: string): number | null {
@@ -68,6 +70,7 @@ export function ExerciseEditor({
   onCancel,
   onSubmit,
   onVideosChanged,
+  onDirtyChange,
 }: ExerciseEditorProps) {
   const defaultCategoryKey = categories.find((category) => category.isActive !== false)?.key ?? categories[0]?.key ?? "warmup";
   const [section, setSection] = useState<EditorSection>(initialSection);
@@ -78,6 +81,7 @@ export function ExerciseEditor({
   const [videoBusy, setVideoBusy] = useState(false);
   const [videos, setVideos] = useState<Exercise["videos"]>(exercise?.videos ?? []);
   const [videoCount, setVideoCount] = useState(exercise?.videos.length ?? 0);
+  useDraftDirtyState(values, onDirtyChange);
 
   const selectedParameterKeys = useMemo(
     () => new Set(values.parameters.map((parameter) => parameter.key)),

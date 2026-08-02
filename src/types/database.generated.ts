@@ -6,7 +6,7 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[];
 
-// Aus den versionierten Supabase-Migrationen 001–030 abgeleitet.
+// Aus den versionierten Supabase-Migrationen 001–032 abgeleitet.
 // Nach einem lokalen `supabase db reset` kann die Datei mit
 // `npm run supabase:types:local` gegen die echte Datenbank neu erzeugt werden.
 export type Database = {

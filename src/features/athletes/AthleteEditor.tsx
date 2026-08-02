@@ -1,4 +1,5 @@
 import { useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { useDraftDirtyState } from "@/features/collaboration/useDraftDirtyState";
 import {
   Layers3,
   Phone,
@@ -32,6 +33,7 @@ type AthleteEditorProps = {
   lockNotice?: ReactNode;
   onCancel: () => void;
   onSubmit: (values: AthleteInput) => Promise<void>;
+  onDirtyChange?: (dirty: boolean) => void;
 };
 
 type EditorSection = "master" | "groups" | "contacts";
@@ -89,11 +91,13 @@ export function AthleteEditor({
   lockNotice,
   onCancel,
   onSubmit,
+  onDirtyChange,
 }: AthleteEditorProps) {
   const [values, setValues] = useState<AthleteInput>(() => initialValues(mode));
   const [section, setSection] = useState<EditorSection>("master");
   const [error, setError] = useState<string | null>(null);
   const currentYear = new Date().getFullYear();
+  useDraftDirtyState(values, onDirtyChange);
 
   const availableUsers = useMemo(
     () => linkableUsers.filter((user) => (

@@ -7,6 +7,7 @@ const UI_ATHLETE = { firstName: "Eva", lastName: "E2E UI" };
 const UI_TRAINER = { firstName: "Tina", lastName: "E2E UI" };
 const UI_EXERCISE = "E2E UI Sprintlauf";
 const UI_BLOCK = "E2E UI Sprintblock";
+const UI_REALTIME_ATHLETE = { firstName: "Rita", lastName: "E4 Realtime" };
 const PLAN_DATE = "2026-08-03";
 
 function athleteFullName() {
@@ -126,6 +127,78 @@ test.describe("Schreibende Kernabläufe in isolierter Supabase-Umgebung", () => 
       await expectNoAppError(secondTrainerPage);
     } finally {
       await trainerContext.close();
+    }
+
+    await expectNoAppError(page);
+  });
+
+  test("Realtime aktualisiert Listen und bewahrt einen lokalen Konfliktentwurf", async ({ page, browser }) => {
+    await login(page, "admin");
+    await page.goto("/module/athletes");
+    await expect(page.getByRole("heading", { name: "Athleten, Trainer & Gruppen" })).toBeVisible();
+
+    const createActions = page.getByLabel("Stammdaten anlegen");
+    await createActions.getByRole("button", { name: /Athlet/ }).click();
+    const firstEditor = page.locator(".athlete-editor");
+    await firstEditor.getByLabel("Vorname").fill(UI_REALTIME_ATHLETE.firstName);
+    await firstEditor.getByLabel("Nachname").fill(UI_REALTIME_ATHLETE.lastName);
+    await firstEditor.getByRole("button", { name: "Speichern", exact: true }).click();
+
+    const originalName = `${UI_REALTIME_ATHLETE.firstName} ${UI_REALTIME_ATHLETE.lastName}`;
+    const changedName = `${UI_REALTIME_ATHLETE.firstName} E4 Server`;
+    await expect(page.getByRole("heading", { name: originalName, exact: true })).toBeVisible();
+
+    const secondContext = await browser.newContext({
+      locale: "de-AT",
+      timezoneId: "Europe/Vienna",
+      viewport: { width: 390, height: 844 },
+      hasTouch: true,
+      isMobile: true,
+    });
+
+    try {
+      const secondPage = await secondContext.newPage();
+      await login(secondPage, "admin");
+      await secondPage.goto("/module/athletes");
+      await secondPage.getByRole("button", { name: `${originalName} bearbeiten`, exact: true }).click();
+
+      const secondEditor = secondPage.locator(".athlete-editor");
+      await expect(secondEditor.getByLabel("Nachname")).toBeEnabled({ timeout: 15_000 });
+      await secondEditor.getByLabel("Nachname").fill("E4 Server");
+      await secondEditor.getByRole("button", { name: "Speichern", exact: true }).click();
+
+      await expect(page.getByRole("heading", { name: changedName, exact: true })).toBeVisible({
+        timeout: 15_000,
+      });
+
+      await page.getByRole("button", { name: `${changedName} bearbeiten`, exact: true }).click();
+      await firstEditor.getByLabel("Interne Notiz").fill("Lokaler E4 Konfliktentwurf");
+
+      await secondPage.getByRole("button", { name: `${changedName} bearbeiten`, exact: true }).click();
+      await expect(
+        secondPage.getByRole("alert").filter({ hasText: "Der Datensatz wird bereits bearbeitet." }),
+      ).toBeVisible({ timeout: 15_000 });
+      await secondPage.getByRole("button", { name: "Bearbeitung übernehmen", exact: true }).click();
+      await expect(secondEditor.getByLabel("Nachname")).toBeEnabled({ timeout: 15_000 });
+      await secondEditor.getByLabel("Nachname").fill("E4 Fremdstand");
+      await secondEditor.getByRole("button", { name: "Speichern", exact: true }).click();
+
+      const conflictNotice = page
+        .getByRole("alert")
+        .filter({ hasText: "Neuerer Serverstand vorhanden" });
+      await expect(conflictNotice).toBeVisible({ timeout: 15_000 });
+      await expect(firstEditor.getByLabel("Interne Notiz")).toHaveValue("Lokaler E4 Konfliktentwurf");
+
+      await conflictNotice.getByRole("button", { name: "Eigene Eingaben behalten", exact: true }).click();
+      await expect(firstEditor.getByLabel("Interne Notiz")).toHaveValue("Lokaler E4 Konfliktentwurf");
+      await expect(firstEditor.getByLabel("Vorname")).toBeEnabled({ timeout: 15_000 });
+      await firstEditor.getByRole("button", { name: "Speichern", exact: true }).click();
+      await expect(page.getByText("Die Athletendaten wurden gespeichert.", { exact: true })).toBeVisible({
+        timeout: 15_000,
+      });
+      await expectNoAppError(secondPage);
+    } finally {
+      await secondContext.close();
     }
 
     await expectNoAppError(page);
