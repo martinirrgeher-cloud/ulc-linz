@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - "**"
+      - main
     paths:
       - "src/**"
       - "public/**"
@@ -61,6 +61,10 @@ jobs:
       - name: Projektabhaengigkeiten installieren
         run: npm ci
 
+      # Fail fast before Docker images and the local Supabase stack are started.
+      - name: Teststruktur pruefen
+        run: npm run check:e2e-writing-suite
+
       - name: Supabase CLI einrichten
         uses: supabase/setup-cli@v1
         with:
@@ -104,9 +108,6 @@ jobs:
 
       - name: Chromium und Systemabhaengigkeiten installieren
         run: npx playwright install --with-deps chromium
-
-      - name: Teststruktur pruefen
-        run: npm run check:e2e-writing-suite
 
       - name: Anwendung gegen lokales Supabase bauen
         run: npm run build
