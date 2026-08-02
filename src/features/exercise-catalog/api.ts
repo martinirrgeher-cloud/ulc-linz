@@ -266,12 +266,14 @@ async function withSignedVideoUrls(
 async function loadExerciseVideoRows(
   organizationId: string,
   exerciseId: string | null = null,
+  signUrls = false,
 ): Promise<ExerciseVideoRow[]> {
   const data = await callJsonRpc("exercise_video_overview", {
     p_organization_id: organizationId,
     p_exercise_id: exerciseId,
   });
-  return withSignedVideoUrls(parseExerciseVideos(data));
+  const videos = parseExerciseVideos(data);
+  return signUrls ? withSignedVideoUrls(videos) : videos;
 }
 
 export async function loadExerciseCatalog(
@@ -315,7 +317,7 @@ export async function loadExerciseVideosForExercise(
   organizationId: string,
   exerciseId: string,
 ): Promise<ExerciseVideo[]> {
-  return loadExerciseVideoRows(organizationId, exerciseId);
+  return loadExerciseVideoRows(organizationId, exerciseId, true);
 }
 
 function parametersToJson(parameters: ExerciseParameterDefinition[]): Json {
