@@ -170,6 +170,9 @@ test.describe("Schreibende Kernabläufe in isolierter Supabase-Umgebung", () => 
     const originalName = `${UI_REALTIME_ATHLETE.firstName} ${UI_REALTIME_ATHLETE.lastName}`;
     const changedName = `${UI_REALTIME_ATHLETE.firstName} E4 Server`;
     await expect(page.getByRole("heading", { name: originalName, exact: true })).toBeVisible();
+    await expect(
+      page.locator('.athlete-management-page[data-realtime-status="subscribed"]'),
+    ).toBeVisible({ timeout: 15_000 });
 
     const secondContext = await browser.newContext({
       locale: "de-AT",

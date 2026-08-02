@@ -158,6 +158,8 @@ select ok(
   'Elternkonto kann mit zwei Athleten gespeichert werden'
 );
 
+reset role;
+
 select is(
   (
     select count(*)::bigint
@@ -238,6 +240,8 @@ select set_config(
   ),
   true
 );
+set local role authenticated;
+
 select ok(
   (public.acquire_edit_lock(
     '71000000-0000-0000-0000-000000000001',
