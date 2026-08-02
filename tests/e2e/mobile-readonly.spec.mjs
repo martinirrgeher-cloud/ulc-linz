@@ -138,6 +138,20 @@ test.describe("Authentifizierte, nicht schreibende Modulprüfungen", () => {
     });
   }
 
+
+  test("Benutzerverwaltung zeigt offene Einladungen und Kontowarnungen mobil", async ({ page }) => {
+    const problems = monitorBrowserProblems(page);
+    const unhandled = await installSupabaseMock(page);
+
+    await page.goto("/module/user_management");
+    await page.getByRole("button", { name: /Einladung offen/ }).click();
+    await expect(page.getByRole("heading", { name: "Offene Einladung", exact: true })).toBeVisible();
+    await expect(page.getByText("Letzter Versand", { exact: true })).toBeVisible();
+    await expect(page.getByText("Trainerkonto ohne Trainerverknüpfung", { exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Erneut senden", exact: true })).toBeVisible();
+    await expectHealthyPage(page, problems, unhandled);
+  });
+
   test("Kopfzeile trennt Home und Benutzermenü sicher", async ({ page }) => {
     const problems = monitorBrowserProblems(page);
     const unhandled = await installSupabaseMock(page);

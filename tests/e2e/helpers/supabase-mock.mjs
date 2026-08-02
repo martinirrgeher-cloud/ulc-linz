@@ -224,7 +224,48 @@ const rpcPayloads = new Map([
     exercises: [exercise],
     plans: [],
   }],
-  ["admin_member_overview", []],
+  ["admin_member_overview_v2", [
+    {
+      membership_id: E2E_IDS.membership,
+      user_id: E2E_IDS.user,
+      email: user.email,
+      display_name: "E2E Administrator",
+      role: "admin",
+      status: "active",
+      email_confirmed_at: "2026-08-01T08:00:00.000Z",
+      last_sign_in_at: "2026-08-02T08:00:00.000Z",
+      created_at: "2026-08-01T08:00:00.000Z",
+      updated_at: "2026-08-02T08:00:00.000Z",
+      invitation_last_sent_at: null,
+      invitation_send_count: 0,
+      linked_athlete_id: null,
+      linked_athlete_name: null,
+      linked_trainer_id: null,
+      linked_trainer_name: null,
+      permissions: moduleKeys.map((moduleKey) => ({ module_key: moduleKey, can_view: true, can_edit: true })),
+    },
+    {
+      membership_id: "11000000-0000-0000-0000-00000000e2e2",
+      user_id: "00000000-0000-0000-0000-00000000e2e2",
+      email: "offen@example.test",
+      display_name: "Offene Einladung",
+      role: "trainer",
+      status: "invited",
+      email_confirmed_at: null,
+      last_sign_in_at: null,
+      created_at: "2026-08-02T07:00:00.000Z",
+      updated_at: "2026-08-02T07:00:00.000Z",
+      invitation_last_sent_at: "2026-08-02T07:00:00.000Z",
+      invitation_send_count: 1,
+      linked_athlete_id: null,
+      linked_athlete_name: null,
+      linked_trainer_id: null,
+      linked_trainer_name: null,
+      permissions: [{ module_key: "kindertraining", can_view: true, can_edit: true }],
+    },
+  ]],
+  ["admin_member_link_options", { athletes: [], trainers: [] }],
+  ["admin_member_audit_overview", []],
   ["dropdown_settings_overview", {
     category: [{ id: null, key: "sprint", label: "Sprint", sort_order: 10, is_active: true, usage_count: 1 }],
     subcategory: [],
@@ -257,7 +298,10 @@ function tablePayload(table, request) {
         user_id: E2E_IDS.user,
         role: "admin",
         status: "active",
+        invitation_last_sent_at: null,
+        invitation_send_count: 0,
         created_at: "2026-08-01T08:00:00.000Z",
+        updated_at: "2026-08-02T08:00:00.000Z",
       });
     case "organizations":
       return single({ id: E2E_IDS.organization, name: "ULC Linz E2E", slug: "ulc-linz-e2e" });
@@ -284,6 +328,10 @@ export async function installAuthenticatedSession(page) {
 
 export async function installSupabaseMock(page) {
   const unhandled = [];
+
+  // The read-only suite uses an intentionally fake Supabase host. Intercept
+  // Realtime WebSockets so Chromium does not perform a real DNS lookup.
+  await page.routeWebSocket("wss://e2e.supabase.co/**", () => {});
 
   await page.route(`${SUPABASE_ORIGIN}/**`, async (route) => {
     const request = route.request();

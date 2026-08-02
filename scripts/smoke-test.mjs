@@ -433,6 +433,8 @@ const databaseTestFiles = [
   "../supabase/tests/database/20_collaboration.test.sql",
   "../supabase/tests/database/30_transactional_import.test.sql",
   "../supabase/tests/database/40_realtime_collaboration.test.sql",
+  "../supabase/tests/database/50_catalog_block_intelligence.test.sql",
+  "../supabase/tests/database/60_user_management_e5c.test.sql",
 ];
 
 test("E1a baut die Datenbank isoliert neu auf und führt pgTAP-Tests aus", async () => {
@@ -445,7 +447,10 @@ test("E1a baut die Datenbank isoliert neu auf und führt pgTAP-Tests aus", async
   assert.ok(databaseTestRunnerSource.includes('"test", "db"'));
 
   for (const relativePath of databaseTestFiles) {
+    const repositoryPath = relativePath.replace(/^\.\.\//, "");
     const source = await readFile(new URL(relativePath, import.meta.url), "utf8");
+    assert.ok(databaseTestsWorkflowSource.includes(repositoryPath), `Workflow fuehrt ${repositoryPath} nicht aus`);
+    assert.ok(databaseTestRunnerSource.includes(repositoryPath), `Lokaler Runner fuehrt ${repositoryPath} nicht aus`);
     assert.ok(source.includes("select plan("), `pgTAP-Plan fehlt in ${relativePath}`);
     assert.ok(source.includes("select * from finish();"), `pgTAP-Abschluss fehlt in ${relativePath}`);
     assert.ok(source.includes("rollback;"), `Test-Rollback fehlt in ${relativePath}`);
@@ -729,4 +734,60 @@ test("E5b warnt vor inaktiven Übungen ohne historische Verwendungen zu verände
   assert.ok(e5TrainingBlockEditorSource.includes("Bestehende Verwendungen bleiben erhalten"));
   assert.ok(e5CatalogMigrationSource.includes("exercise_is_active"));
   assert.ok(e5CatalogMigrationSource.includes("snapshot"));
+});
+
+const e5cMigrationSource = await readFile(
+  new URL("../supabase/migrations/202608020034_user_management_e5c.sql", import.meta.url),
+  "utf8",
+);
+const e5cPageSource = await readFile(
+  new URL("../src/pages/UserManagementPage.tsx", import.meta.url),
+  "utf8",
+);
+const e5cEditorSource = await readFile(
+  new URL("../src/features/user-management/MemberEditor.tsx", import.meta.url),
+  "utf8",
+);
+const e5cTemplatesSource = await readFile(
+  new URL("../src/features/user-management/permission-templates.ts", import.meta.url),
+  "utf8",
+);
+const e5cEdgeSource = await readFile(
+  new URL("../supabase/functions/invite-member/index.ts", import.meta.url),
+  "utf8",
+);
+
+ test("E5c ergänzt Einladungsstatus, Verknüpfungen und Kontowarnungen", () => {
+  for (const marker of [
+    "Einladung offen",
+    "Erneut senden",
+    "Ohne Verknüpfung",
+    "Mit Warnung",
+    "invitationLastSentAt",
+    "linkedAthleteName",
+    "linkedTrainerName",
+  ]) {
+    assert.ok(e5cPageSource.includes(marker), `E5c-Anzeige fehlt: ${marker}`);
+  }
+  assert.ok(e5cMigrationSource.includes("invitation_last_sent_at"));
+  assert.ok(e5cMigrationSource.includes("invitation_send_count"));
+  assert.ok(e5cEdgeSource.includes('payload.action === "resend"'));
+});
+
+test("E5c Rechtevorlagen bleiben individuell anpassbar", () => {
+  for (const template of ["Kindertrainer", "Leistungstrainer", "Athlet", "Elternteil"]) {
+    assert.ok(e5cTemplatesSource.includes(template), `Rechtevorlage fehlt: ${template}`);
+  }
+  assert.ok(e5cEditorSource.includes("Einzelne Rechte bleiben danach frei anpassbar"));
+  assert.ok(e5cEditorSource.includes("PermissionEditor"));
+});
+
+test("E5c nutzt Audit, Bearbeitungssperre und Realtime ohne globale CSS-Änderung", () => {
+  assert.ok(e5cMigrationSource.includes("admin_member_audit_overview"));
+  assert.ok(e5cMigrationSource.includes("organization_member"));
+  assert.ok(e5cPageSource.includes('entityType: "organization_member"'));
+  assert.ok(e5cPageSource.includes("useOrganizationRealtime"));
+  assert.ok(e5cPageSource.includes("RemoteChangeNotice"));
+  assert.ok(e5cPageSource.includes('import "@/styles/user-management-e5c.css"'));
+  assert.doesNotMatch(e5cMigrationSource, /password|access_token|refresh_token/i);
 });

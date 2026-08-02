@@ -8,12 +8,23 @@ type PermissionInput = {
   canEdit: boolean;
 };
 
-type InviteRequest = {
-  organizationId: string;
+type IncomingRequest = {
+  action?: "invite" | "resend";
+  organizationId?: string;
+  membershipId?: string;
+  email?: string;
+  displayName?: string;
+  role?: AppRole;
+  permissions?: PermissionInput[];
+};
+
+type InvitationTarget = {
+  user_id: string;
   email: string;
-  displayName: string;
-  role: AppRole;
-  permissions: PermissionInput[];
+  status: "invited" | "active" | "disabled";
+  email_confirmed_at: string | null;
+  invitation_last_sent_at: string | null;
+  invitation_send_count: number;
 };
 
 const allowedRoles = new Set<AppRole>(["admin", "trainer", "athlete", "parent"]);
@@ -77,6 +88,10 @@ function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+function isUuid(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
 function normalizePermissions(permissions: PermissionInput[]): Array<{
   module_key: string;
   can_view: boolean;
@@ -101,6 +116,24 @@ function normalizePermissions(permissions: PermissionInput[]): Array<{
   return [...unique.values()];
 }
 
+function invitationRedirect(origin: string | null, allowedOrigins: string[]): string {
+  const configuredRedirect = Deno.env.get("APP_INVITE_REDIRECT_URL")?.trim();
+  const fallbackRedirect = origin ? `${origin}/passwort-neu` : undefined;
+  const redirectTo = configuredRedirect || fallbackRedirect;
+
+  if (!redirectTo) {
+    throw new Error(
+      "Für Einladungen fehlt APP_INVITE_REDIRECT_URL und die Anfrage enthält keine Herkunft.",
+    );
+  }
+
+  const redirectOrigin = new URL(redirectTo).origin;
+  if (!allowedOrigins.includes(redirectOrigin)) {
+    throw new Error("Die konfigurierte Einladungsadresse ist nicht freigegeben.");
+  }
+  return redirectTo;
+}
+
 Deno.serve(async (request: Request) => {
   const origin = request.headers.get("Origin");
   const allowedOrigins = getAllowedOrigins();
@@ -121,14 +154,8 @@ Deno.serve(async (request: Request) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     if (!supabaseUrl) throw new Error("SUPABASE_URL ist nicht verfügbar.");
 
-    const publishableKey = getKeyFromDictionary(
-      "SUPABASE_PUBLISHABLE_KEYS",
-      "SUPABASE_ANON_KEY",
-    );
-    const secretKey = getKeyFromDictionary(
-      "SUPABASE_SECRET_KEYS",
-      "SUPABASE_SERVICE_ROLE_KEY",
-    );
+    const publishableKey = getKeyFromDictionary("SUPABASE_PUBLISHABLE_KEYS", "SUPABASE_ANON_KEY");
+    const secretKey = getKeyFromDictionary("SUPABASE_SECRET_KEYS", "SUPABASE_SERVICE_ROLE_KEY");
     const authorization = request.headers.get("Authorization");
 
     if (!authorization?.startsWith("Bearer ")) {
@@ -137,19 +164,10 @@ Deno.serve(async (request: Request) => {
 
     const userClient = createClient(supabaseUrl, publishableKey, {
       global: { headers: { Authorization: authorization } },
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false,
-        detectSessionInUrl: false,
-      },
+      auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
     });
-
     const adminClient = createClient(supabaseUrl, secretKey, {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false,
-        detectSessionInUrl: false,
-      },
+      auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
     });
 
     const {
@@ -161,37 +179,106 @@ Deno.serve(async (request: Request) => {
       return jsonResponse({ error: "Die Anmeldung ist ungültig oder abgelaufen." }, 401, origin);
     }
 
-    const payload = (await request.json()) as Partial<InviteRequest>;
-    const organizationId = payload.organizationId?.trim() ?? "";
-    const email = normalizeEmail(payload.email ?? "");
-    const displayName = payload.displayName?.trim() ?? "";
-    const role = payload.role;
-    const permissions = Array.isArray(payload.permissions) ? payload.permissions : [];
+    const payload = (await request.json()) as IncomingRequest;
+    const organizationId = typeof payload.organizationId === "string"
+      ? payload.organizationId.trim()
+      : "";
 
-    if (!/^[0-9a-f-]{36}$/i.test(organizationId)) {
+    if (!isUuid(organizationId)) {
       return jsonResponse({ error: "Die Vereins-ID ist ungültig." }, 400, origin);
-    }
-    if (!isValidEmail(email)) {
-      return jsonResponse({ error: "Bitte gib eine gültige E-Mail-Adresse ein." }, 400, origin);
-    }
-    if (displayName.length < 2 || displayName.length > 120) {
-      return jsonResponse(
-        { error: "Der Anzeigename muss zwischen 2 und 120 Zeichen lang sein." },
-        400,
-        origin,
-      );
-    }
-    if (!role || !allowedRoles.has(role)) {
-      return jsonResponse({ error: "Die ausgewählte Rolle ist ungültig." }, 400, origin);
     }
 
     const { data: isAdmin, error: adminCheckError } = await userClient.rpc("is_org_admin", {
       target_organization_id: organizationId,
     });
-
     if (adminCheckError) throw adminCheckError;
     if (!isAdmin) {
       return jsonResponse({ error: "Für diese Aktion fehlen die Administratorrechte." }, 403, origin);
+    }
+
+    if (payload.action === "resend") {
+      const membershipId = typeof payload.membershipId === "string"
+        ? payload.membershipId.trim()
+        : "";
+      if (!isUuid(membershipId)) {
+        return jsonResponse({ error: "Die Benutzerzuordnung ist ungültig." }, 400, origin);
+      }
+
+      const { data: targetRows, error: targetError } = await adminClient.rpc(
+        "admin_member_invitation_target",
+        {
+          p_organization_id: organizationId,
+          p_membership_id: membershipId,
+          p_actor_user_id: callingUser.id,
+        },
+      );
+      if (targetError) throw targetError;
+
+      const target = (targetRows?.[0] ?? null) as InvitationTarget | null;
+      if (!target) {
+        return jsonResponse({ error: "Die offene Einladung wurde nicht gefunden." }, 404, origin);
+      }
+      if (target.status !== "invited" || target.email_confirmed_at) {
+        return jsonResponse({ error: "Für dieses Konto besteht keine offene Einladung." }, 409, origin);
+      }
+
+      if (target.invitation_last_sent_at) {
+        const elapsed = Date.now() - Date.parse(target.invitation_last_sent_at);
+        if (Number.isFinite(elapsed) && elapsed < 30_000) {
+          return jsonResponse(
+            { error: "Die Einladung wurde gerade erst versendet. Bitte versuche es später erneut." },
+            429,
+            origin,
+          );
+        }
+      }
+
+      const redirectTo = invitationRedirect(origin, allowedOrigins);
+      const { error: resendError } = await adminClient.auth.resend({
+        type: "signup",
+        email: target.email,
+        options: { emailRedirectTo: redirectTo },
+      });
+      if (resendError) throw resendError;
+
+      const { data: recorded, error: recordError } = await adminClient.rpc(
+        "record_member_invitation_sent",
+        {
+          p_organization_id: organizationId,
+          p_membership_id: membershipId,
+          p_actor_user_id: callingUser.id,
+          p_is_resend: target.invitation_send_count > 0,
+        },
+      );
+      if (recordError) throw recordError;
+
+      const record = recorded && typeof recorded === "object" && !Array.isArray(recorded)
+        ? recorded as Record<string, unknown>
+        : {};
+
+      return jsonResponse({
+        ok: true,
+        message: target.invitation_send_count > 0
+          ? "Die Einladung wurde erneut versendet."
+          : "Die Einladung wurde versendet.",
+        sentAt: record.sent_at,
+        sendCount: record.send_count,
+      }, 200, origin);
+    }
+
+    const email = normalizeEmail(typeof payload.email === "string" ? payload.email : "");
+    const displayName = typeof payload.displayName === "string" ? payload.displayName.trim() : "";
+    const role = payload.role;
+    const permissions = Array.isArray(payload.permissions) ? payload.permissions : [];
+
+    if (!isValidEmail(email)) {
+      return jsonResponse({ error: "Bitte gib eine gültige E-Mail-Adresse ein." }, 400, origin);
+    }
+    if (displayName.length < 2 || displayName.length > 120) {
+      return jsonResponse({ error: "Der Anzeigename muss zwischen 2 und 120 Zeichen lang sein." }, 400, origin);
+    }
+    if (!role || !allowedRoles.has(role)) {
+      return jsonResponse({ error: "Die ausgewählte Rolle ist ungültig." }, 400, origin);
     }
 
     let targetUser: User | null = null;
@@ -203,10 +290,9 @@ Deno.serve(async (request: Request) => {
         await adminClient.auth.admin.listUsers({ page, perPage });
       if (userListError) throw userListError;
 
-      targetUser =
-        userPage.users.find(
-          (user) => normalizeEmail(user.email ?? "") === email,
-        ) ?? null;
+      targetUser = userPage.users.find(
+        (user) => normalizeEmail(user.email ?? "") === email,
+      ) ?? null;
 
       if (targetUser) break;
       if (userPage.users.length < perPage) {
@@ -216,29 +302,14 @@ Deno.serve(async (request: Request) => {
     }
 
     if (!targetUser && !searchExhausted) {
-      throw new Error(
-        "Die Benutzersuche wurde aus Sicherheitsgründen nach 10.000 Konten beendet.",
-      );
+      throw new Error("Die Benutzersuche wurde aus Sicherheitsgründen nach 10.000 Konten beendet.");
     }
 
     let invitationSent = false;
+    let invitationSentAt: string | null = null;
 
     if (!targetUser) {
-      const configuredRedirect = Deno.env.get("APP_INVITE_REDIRECT_URL")?.trim();
-      const fallbackRedirect = origin ? `${origin}/passwort-neu` : undefined;
-      const redirectTo = configuredRedirect || fallbackRedirect;
-
-      if (!redirectTo) {
-        throw new Error(
-          "Für Einladungen fehlt APP_INVITE_REDIRECT_URL und die Anfrage enthält keine Herkunft.",
-        );
-      }
-
-      const redirectOrigin = new URL(redirectTo).origin;
-      if (!allowedOrigins.includes(redirectOrigin)) {
-        throw new Error("Die konfigurierte Einladungsadresse ist nicht freigegeben.");
-      }
-
+      const redirectTo = invitationRedirect(origin, allowedOrigins);
       const { data: inviteData, error: inviteError } =
         await adminClient.auth.admin.inviteUserByEmail(email, {
           data: { display_name: displayName },
@@ -250,12 +321,12 @@ Deno.serve(async (request: Request) => {
 
       targetUser = inviteData.user;
       invitationSent = true;
+      invitationSentAt = new Date().toISOString();
     }
 
     const membershipStatus = targetUser.email_confirmed_at ? "active" : "invited";
-
     const { error: provisionError } = await adminClient.rpc(
-      "provision_organization_member",
+      "provision_organization_member_v2",
       {
         p_organization_id: organizationId,
         p_user_id: targetUser.id,
@@ -264,32 +335,29 @@ Deno.serve(async (request: Request) => {
         p_status: membershipStatus,
         p_permissions: normalizePermissions(permissions),
         p_created_by: callingUser.id,
+        p_invitation_sent_at: invitationSentAt,
       },
     );
 
     if (provisionError) {
       if (invitationSent) {
         const { error: cleanupError } = await adminClient.auth.admin.deleteUser(targetUser.id);
-        if (cleanupError) {
-          console.error("invite-member cleanup failed", cleanupError);
-        }
+        if (cleanupError) console.error("invite-member cleanup failed", cleanupError);
       }
       throw provisionError;
     }
 
-    return jsonResponse(
-      {
-        ok: true,
-        invitationSent,
-        existingAccount: !invitationSent,
-        status: membershipStatus,
-        message: invitationSent
-          ? "Die Einladung wurde versendet."
-          : "Das bestehende Supabase-Konto wurde dem Verein zugeordnet.",
-      },
-      200,
-      origin,
-    );
+    return jsonResponse({
+      ok: true,
+      invitationSent,
+      existingAccount: !invitationSent,
+      status: membershipStatus,
+      message: invitationSent
+        ? "Die Einladung wurde versendet."
+        : targetUser.email_confirmed_at
+          ? "Das bestehende Supabase-Konto wurde dem Verein zugeordnet."
+          : "Das bestehende unbestätigte Konto wurde zugeordnet. Sende die Einladung bei Bedarf erneut.",
+    }, 200, origin);
   } catch (error) {
     console.error("invite-member failed", error);
     const message = error instanceof Error ? error.message : "Ein unbekannter Fehler ist aufgetreten.";
