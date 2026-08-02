@@ -1,0 +1,388 @@
+name: Mobilen Patch pruefen und vorbereiten
+
+on:
+  push:
+    branches:
+      - "mobile-patch/**"
+    paths:
+      - "MOBILE-PATCH-*.zip"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mobile-patch-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  detect:
+    name: Patch erkennen
+    runs-on: ubuntu-latest
+    outputs:
+      has_patch: ${{ steps.detect.outputs.has_patch }}
+      patch_file: ${{ steps.detect.outputs.patch_file }}
+
+    steps:
+      - name: Branch auschecken
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Branch und Patch pruefen
+        id: detect
+        shell: bash
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+
+          if [[ "$GITHUB_REF_NAME" != mobile-patch/* ]]; then
+            echo "Dieser Workflow darf nur auf einem Branch mobile-patch/... laufen."
+            exit 1
+          fi
+
+          git fetch origin "$DEFAULT_BRANCH"
+          if ! git merge-base --is-ancestor "origin/$DEFAULT_BRANCH" HEAD; then
+            echo "Der mobile Branch basiert nicht auf dem aktuellen Hauptbranch."
+            echo "Bitte einen neuen Branch direkt vom aktuellen $DEFAULT_BRANCH erstellen."
+            exit 1
+          fi
+
+          mapfile -t PATCHES < <(
+            find . -maxdepth 1 -type f -name 'MOBILE-PATCH-*.zip' -printf '%f\n' | sort
+          )
+
+          if [[ "${#PATCHES[@]}" -eq 0 ]]; then
+            echo "has_patch=false" >> "$GITHUB_OUTPUT"
+            echo "Kein unbearbeiteter mobiler Patch vorhanden."
+            exit 0
+          fi
+
+          if [[ "${#PATCHES[@]}" -ne 1 ]]; then
+            echo "Es muss genau eine MOBILE-PATCH-*.zip im Hauptverzeichnis liegen."
+            printf '%s\n' "${PATCHES[@]}"
+            exit 1
+          fi
+
+          echo "has_patch=true" >> "$GITHUB_OUTPUT"
+          echo "patch_file=${PATCHES[0]}" >> "$GITHUB_OUTPUT"
+
+  verify:
+    name: Patch anwenden und testen
+    needs: detect
+    if: needs.detect.outputs.has_patch == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+
+    steps:
+      - name: Branch auschecken
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Node.js einrichten
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Patch sicher pruefen und anwenden
+        shell: bash
+        env:
+          PATCH_FILE: ${{ needs.detect.outputs.patch_file }}
+        run: |
+          set -euo pipefail
+
+          python3 <<'PY'
+          import hashlib
+          import json
+          import os
+          import shutil
+          import stat
+          import zipfile
+          from pathlib import Path, PurePosixPath
+
+          repo = Path(os.environ["GITHUB_WORKSPACE"]).resolve()
+          archive_path = (repo / os.environ["PATCH_FILE"]).resolve()
+          runner_temp = Path(os.environ["RUNNER_TEMP"]).resolve()
+          result_path = runner_temp / "mobile-patch-result.json"
+          expected_paths_path = runner_temp / "mobile-patch-expected-paths.txt"
+
+          if archive_path.parent != repo or not archive_path.is_file():
+              raise SystemExit("Die Patch-ZIP muss direkt im Hauptverzeichnis liegen.")
+
+          forbidden_prefixes = (
+              ".git/",
+              ".github/",
+              "node_modules/",
+              "dist/",
+              "_patch_backup/",
+          )
+
+          def safe_path(value: str) -> str:
+              if not isinstance(value, str) or not value:
+                  raise SystemExit("Leerer oder ungueltiger Dateipfad im Manifest.")
+              if "\\" in value or "\x00" in value:
+                  raise SystemExit(f"Ungueltiger Dateipfad: {value}")
+              path = PurePosixPath(value)
+              if path.is_absolute() or ".." in path.parts or "." in path.parts:
+                  raise SystemExit(f"Unsicherer Dateipfad: {value}")
+              normalized = path.as_posix()
+              if normalized.startswith(forbidden_prefixes):
+                  raise SystemExit(f"Geschuetzter Dateipfad: {normalized}")
+              if normalized.startswith("MOBILE-PATCH-"):
+                  raise SystemExit(f"Patchdateien duerfen sich nicht selbst veraendern: {normalized}")
+              return normalized
+
+          def sha256_bytes(data: bytes) -> str:
+              return hashlib.sha256(data).hexdigest()
+
+          def sha256_file(path: Path) -> str:
+              digest = hashlib.sha256()
+              with path.open("rb") as handle:
+                  for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                      digest.update(chunk)
+              return digest.hexdigest()
+
+          with zipfile.ZipFile(archive_path) as archive:
+              infos = archive.infolist()
+              names = []
+
+              for info in infos:
+                  if info.is_dir():
+                      continue
+                  name = info.filename
+                  if "\\" in name or "\x00" in name:
+                      raise SystemExit(f"Ungueltiger ZIP-Eintrag: {name}")
+                  path = PurePosixPath(name)
+                  if path.is_absolute() or ".." in path.parts:
+                      raise SystemExit(f"Unsicherer ZIP-Eintrag: {name}")
+
+                  file_type = (info.external_attr >> 16) & 0o170000
+                  if file_type == stat.S_IFLNK:
+                      raise SystemExit(f"Symbolische Links sind nicht erlaubt: {name}")
+                  names.append(path.as_posix())
+
+              if names.count("manifest.json") != 1:
+                  raise SystemExit("manifest.json fehlt oder ist mehrfach vorhanden.")
+
+              manifest = json.loads(archive.read("manifest.json").decode("utf-8"))
+              if manifest.get("format") != 1:
+                  raise SystemExit("Nicht unterstuetztes mobiles Patchformat.")
+              if not isinstance(manifest.get("patchId"), str) or not manifest["patchId"].strip():
+                  raise SystemExit("patchId fehlt.")
+              if not isinstance(manifest.get("commitMessage"), str) or not manifest["commitMessage"].strip():
+                  raise SystemExit("commitMessage fehlt.")
+
+              files = manifest.get("files")
+              if not isinstance(files, list) or not files:
+                  raise SystemExit("Das Manifest enthaelt keine Dateien.")
+
+              targets = []
+              expected_archive_entries = {"manifest.json"}
+
+              for entry in files:
+                  if not isinstance(entry, dict):
+                      raise SystemExit("Ungueltiger Dateieintrag im Manifest.")
+
+                  target = safe_path(entry.get("path"))
+                  mode = entry.get("mode")
+                  if mode not in {"create", "replace", "delete"}:
+                      raise SystemExit(f"Ungueltiger Patchmodus fuer {target}: {mode}")
+                  if target in targets:
+                      raise SystemExit(f"Datei ist mehrfach im Manifest enthalten: {target}")
+                  targets.append(target)
+
+                  target_path = (repo / target).resolve()
+                  if repo not in target_path.parents:
+                      raise SystemExit(f"Dateipfad verlaesst das Repository: {target}")
+
+                  old_hash = entry.get("oldSha256")
+                  new_hash = entry.get("newSha256")
+
+                  if mode == "create":
+                      if target_path.exists():
+                          raise SystemExit(f"Neue Datei existiert bereits: {target}")
+                      if old_hash not in (None, ""):
+                          raise SystemExit(f"create darf keinen oldSha256 besitzen: {target}")
+                  else:
+                      if not target_path.is_file():
+                          raise SystemExit(f"Bestehende Datei fehlt: {target}")
+                      if not isinstance(old_hash, str) or len(old_hash) != 64:
+                          raise SystemExit(f"oldSha256 fehlt: {target}")
+                      actual_old = sha256_file(target_path)
+                      if actual_old != old_hash.lower():
+                          raise SystemExit(
+                              f"Ausgangsdatei stimmt nicht mit dem erwarteten Stand ueberein: {target}"
+                          )
+
+                  if mode == "delete":
+                      if new_hash not in (None, ""):
+                          raise SystemExit(f"delete darf keinen newSha256 besitzen: {target}")
+                  else:
+                      payload_name = f"payload/{target}"
+                      expected_archive_entries.add(payload_name)
+                      if payload_name not in names:
+                          raise SystemExit(f"Payload-Datei fehlt: {target}")
+                      payload = archive.read(payload_name)
+                      if not isinstance(new_hash, str) or len(new_hash) != 64:
+                          raise SystemExit(f"newSha256 fehlt: {target}")
+                      if sha256_bytes(payload) != new_hash.lower():
+                          raise SystemExit(f"Payload-Hash stimmt nicht: {target}")
+
+              actual_entries = set(names)
+              if actual_entries != expected_archive_entries:
+                  extras = sorted(actual_entries - expected_archive_entries)
+                  missing = sorted(expected_archive_entries - actual_entries)
+                  raise SystemExit(
+                      f"ZIP-Inhalt stimmt nicht mit dem Manifest ueberein. "
+                      f"Zusaetzlich: {extras}; Fehlend: {missing}"
+                  )
+
+              # Erst nachdem alle Dateien validiert sind, werden Aenderungen vorgenommen.
+              for entry in files:
+                  target = safe_path(entry["path"])
+                  mode = entry["mode"]
+                  target_path = repo / target
+
+                  if mode == "delete":
+                      target_path.unlink()
+                      continue
+
+                  payload = archive.read(f"payload/{target}")
+                  target_path.parent.mkdir(parents=True, exist_ok=True)
+                  target_path.write_bytes(payload)
+
+                  if sha256_file(target_path) != entry["newSha256"].lower():
+                      raise SystemExit(f"Hashpruefung nach dem Schreiben fehlgeschlagen: {target}")
+
+          result = {
+              "patchId": manifest["patchId"],
+              "title": manifest.get("title", manifest["patchId"]),
+              "commitMessage": manifest["commitMessage"],
+              "patchFile": archive_path.name,
+              "files": targets,
+          }
+          result_path.write_text(
+              json.dumps(result, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          expected_paths_path.write_text(
+              "\n".join(sorted([archive_path.name, *targets])) + "\n",
+              encoding="utf-8",
+          )
+          PY
+
+          rm -- "$PATCH_FILE"
+          git add -A
+          git diff --cached --check
+
+          git diff --cached --name-only | sort > "$RUNNER_TEMP/mobile-patch-actual-paths.txt"
+          diff -u \
+            "$RUNNER_TEMP/mobile-patch-expected-paths.txt" \
+            "$RUNNER_TEMP/mobile-patch-actual-paths.txt"
+
+          git diff --cached --binary --full-index > "$RUNNER_TEMP/verified-mobile.patch"
+          test -s "$RUNNER_TEMP/verified-mobile.patch"
+
+      - name: Abhaengigkeiten reproduzierbar installieren
+        run: npm ci
+
+      - name: Vollstaendige Qualitaetspruefung
+        run: npm run ci:quality
+
+      - name: Geprueften Patch als internes Artefakt ablegen
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p mobile-patch-artifact
+          cp "$RUNNER_TEMP/verified-mobile.patch" mobile-patch-artifact/
+          cp "$RUNNER_TEMP/mobile-patch-result.json" mobile-patch-artifact/
+
+      - name: Internes Patchartefakt hochladen
+        uses: actions/upload-artifact@v4
+        with:
+          name: verified-mobile-patch-${{ github.run_id }}
+          path: mobile-patch-artifact
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Pruefergebnis zusammenfassen
+        shell: bash
+        run: |
+          {
+            echo "## Mobiler Patch erfolgreich geprueft"
+            echo
+            echo "- Branch: \`$GITHUB_REF_NAME\`"
+            echo "- Qualitaetspruefung: erfolgreich"
+            echo "- Der Patch wird nun in denselben Branch geschrieben."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  commit:
+    name: Geprueften Patch in Branch schreiben
+    needs:
+      - detect
+      - verify
+    if: needs.detect.outputs.has_patch == 'true' && needs.verify.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Branch frisch auschecken
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+
+      - name: Geprueftes Patchartefakt laden
+        uses: actions/download-artifact@v4
+        with:
+          name: verified-mobile-patch-${{ github.run_id }}
+          path: mobile-patch-artifact
+
+      - name: Exakt gepruefte Aenderungen uebernehmen
+        shell: bash
+        run: |
+          set -euo pipefail
+          git apply --index --whitespace=error-all \
+            mobile-patch-artifact/verified-mobile.patch
+
+          COMMIT_MESSAGE="$(
+            python3 -c \
+              'import json; print(json.load(open("mobile-patch-artifact/mobile-patch-result.json", encoding="utf-8"))["commitMessage"])'
+          )"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "$COMMIT_MESSAGE"
+          git push origin "HEAD:$GITHUB_REF_NAME"
+
+      - name: Naechsten Schritt anzeigen
+        shell: bash
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          COMPARE_URL="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/compare/$DEFAULT_BRANCH...$GITHUB_REF_NAME?expand=1"
+          {
+            echo "## Patch wurde in den mobilen Branch geschrieben"
+            echo
+            echo "Erstelle jetzt bewusst einen Pull Request:"
+            echo
+            echo "[$COMPARE_URL]($COMPARE_URL)"
+            echo
+            echo "Durch das manuelle Erstellen des Pull Requests laufen die normalen"
+            echo "Qualitaets-, Datenbank- und E2E-Workflows wie gewohnt."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  no-patch:
+    name: Kein offener Patch
+    needs: detect
+    if: needs.detect.outputs.has_patch == 'false'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Status ausgeben
+        run: echo "Dieser mobile Patch wurde bereits verarbeitet oder es wurde keine ZIP hochgeladen."
