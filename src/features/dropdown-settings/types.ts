@@ -1,4 +1,4 @@
-export type DropdownListKey = "category" | "subcategory" | "material" | "planning_parameter";
+export type DropdownListKey = "category" | "subcategory" | "material" | "difficulty" | "planning_parameter";
 export type DropdownInputType = "number" | "text";
 
 export type DropdownSettingOption = {
@@ -31,6 +31,7 @@ export const DROPDOWN_LISTS: Array<{
   { key: "category", title: "Kategorien", description: "Hauptkategorien im Übungskatalog" },
   { key: "subcategory", title: "Unterkategorien", description: "Feinere Einteilung der Übungen" },
   { key: "material", title: "Material", description: "Mehrfach auswählbares Trainingsmaterial" },
+  { key: "difficulty", title: "Schwierigkeit", description: "Schwierigkeitsgrade für Übungen" },
   { key: "planning_parameter", title: "Planungsparameter", description: "Wertefelder für Übungen und Trainingsblöcke" },
 ];
 

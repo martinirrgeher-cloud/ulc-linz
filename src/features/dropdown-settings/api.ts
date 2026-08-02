@@ -54,6 +54,7 @@ export async function loadDropdownSettings(organizationId: string): Promise<Drop
     category: parseOptions(data.category),
     subcategory: parseOptions(data.subcategory),
     material: parseOptions(data.material),
+    difficulty: parseOptions(data.difficulty),
     planning_parameter: parseOptions(data.planning_parameter),
   };
 }

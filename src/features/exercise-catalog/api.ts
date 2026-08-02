@@ -4,7 +4,10 @@ import type { EditLockWriteGuard } from "@/features/collaboration/edit-locks";
 import {
   type Exercise,
   type ExerciseCatalogData,
+  type ExerciseBlockUsage,
   type ExerciseCategory,
+  type ExerciseDifficulty,
+  type ExercisePlanUsage,
   type ExerciseInput,
   type ExerciseParameterDefinition,
   type ExerciseParameterInputType,
@@ -84,6 +87,45 @@ function parseListOptions(value: unknown): ExerciseListOption[] {
   }).sort((left, right) => left.sortOrder - right.sortOrder || left.label.localeCompare(right.label, "de"));
 }
 
+function parseDifficulties(value: unknown): ExerciseDifficulty[] {
+  return parseListOptions(value).map((option) => ({
+    key: option.key,
+    label: option.label,
+    sortOrder: option.sortOrder,
+    isActive: option.isActive,
+  }));
+}
+
+function parseBlockUsages(value: unknown): ExerciseBlockUsage[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item) => {
+    if (!isRecord(item) || typeof item.id !== "string" || typeof item.name !== "string") return [];
+    return [{
+      id: item.id,
+      name: item.name,
+      isActive: item.is_active !== false,
+    }];
+  });
+}
+
+function parsePlanUsages(value: unknown): ExercisePlanUsage[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item) => {
+    if (
+      !isRecord(item)
+      || typeof item.id !== "string"
+      || typeof item.title !== "string"
+      || typeof item.training_date !== "string"
+    ) return [];
+    return [{
+      id: item.id,
+      title: item.title,
+      trainingDate: item.training_date,
+      viaBlockName: optionalString(item.via_block_name),
+    }];
+  });
+}
+
 function parseParameterOptions(value: unknown): ExerciseParameterOption[] {
   if (!Array.isArray(value)) return [];
   return value.flatMap((item) => {
@@ -150,6 +192,12 @@ function parseExercises(value: unknown): Exercise[] {
       videoUrl: optionalString(item.video_url),
       isActive: item.is_active !== false,
       isFavorite: item.is_favorite === true,
+      difficultyKey: optionalString(item.difficulty_key),
+      difficultyLabel: optionalString(item.difficulty_label),
+      similarExerciseIds: parseStringArray(item.similar_exercise_ids),
+      blockUsages: parseBlockUsages(item.block_usages),
+      planUsages: parsePlanUsages(item.plan_usages),
+      lastUsedAt: optionalString(item.last_used_at),
       groupIds: parseStringArray(item.group_ids),
       parameters: parseParameters(item.parameters),
       videos: [],
@@ -231,7 +279,7 @@ export async function loadExerciseCatalog(
   includeInactive = true,
 ): Promise<ExerciseCatalogData> {
   const [data, videos] = await Promise.all([
-    callJsonRpc("exercise_catalog_overview_v2", {
+    callJsonRpc("exercise_catalog_overview_v3", {
       p_organization_id: organizationId,
       p_include_inactive: includeInactive,
     }),
@@ -253,6 +301,7 @@ export async function loadExerciseCatalog(
     categories: parseCategories(data.categories),
     subcategories: parseListOptions(data.subcategories),
     materials: parseListOptions(data.materials),
+    difficulties: parseDifficulties(data.difficulties),
     parameterOptions: parseParameterOptions(data.parameter_options),
     groups: parseGroups(data.groups),
     exercises: parseExercises(data.exercises).map((exercise) => ({
@@ -286,13 +335,43 @@ function parametersToJson(parameters: ExerciseParameterDefinition[]): Json {
     }));
 }
 
+export type ExerciseDuplicateCandidate = {
+  id: string;
+  name: string;
+  score: number;
+  exactNormalized: boolean;
+};
+
+export async function loadExerciseDuplicateCandidates(
+  organizationId: string,
+  exerciseId: string | null,
+  name: string,
+): Promise<ExerciseDuplicateCandidate[]> {
+  const data = await callJsonRpc("exercise_duplicate_candidates", {
+    p_organization_id: organizationId,
+    p_exercise_id: exerciseId,
+    p_name: name,
+    p_limit: 5,
+  });
+  if (!Array.isArray(data)) return [];
+  return data.flatMap((item) => {
+    if (!isRecord(item) || typeof item.id !== "string" || typeof item.name !== "string") return [];
+    return [{
+      id: item.id,
+      name: item.name,
+      score: typeof item.score === "number" ? item.score : 0,
+      exactNormalized: item.exact_normalized === true,
+    }];
+  });
+}
+
 export async function saveExercise(
   organizationId: string,
   exerciseId: string | null,
   values: ExerciseInput,
   editLock: EditLockWriteGuard | null,
 ): Promise<string> {
-  const data = await callJsonRpc("save_exercise_catalog_item_v3", {
+  const data = await callJsonRpc("save_exercise_catalog_item_v4", {
     p_organization_id: organizationId,
     p_exercise_id: exerciseId,
     p_name: values.name.trim(),
@@ -307,6 +386,8 @@ export async function saveExercise(
     p_is_active: values.isActive,
     p_group_ids: values.groupIds,
     p_parameters: parametersToJson(values.parameters),
+    p_difficulty_key: values.difficultyKey || null,
+    p_similar_exercise_ids: values.similarExerciseIds,
     p_lock_token: editLock?.lockToken ?? null,
     p_expected_updated_at: editLock?.expectedUpdatedAt ?? null,
   });

@@ -1,16 +1,21 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  AlertTriangle,
   BarChart3,
+  CalendarDays,
   ChevronDown,
   ChevronUp,
   ClipboardCheck,
   Clock3,
-  Copy,
+  GitBranchPlus,
+  GitCompareArrows,
+  History,
   Filter,
   Info,
   Pencil,
   Plus,
   Search,
+  Star,
   Trash2,
   X,
 } from "lucide-react";
@@ -24,11 +29,13 @@ import { useEditLock } from "@/features/collaboration/useEditLock";
 import { useOrganizationRealtime } from "@/features/collaboration/useOrganizationRealtime";
 import { useAuth } from "@/features/auth/AuthContext";
 import {
+  createTrainingBlockVariant,
   deleteTrainingBlock,
-  duplicateTrainingBlock,
   loadTrainingBlocks,
   saveTrainingBlock,
+  setTrainingBlockFavorite,
 } from "@/features/training-blocks/api";
+import { TrainingBlockCompareDialog } from "@/features/training-blocks/TrainingBlockCompareDialog";
 import { TrainingBlockEditor } from "@/features/training-blocks/TrainingBlockEditor";
 import { TrainingBlockExerciseInfoDialog } from "@/features/training-blocks/TrainingBlockExerciseInfoDialog";
 import type {
@@ -40,11 +47,11 @@ import type {
 
 import { diagnosticErrorMessage } from "@/lib/diagnostics";
 type ActivityFilter = "active" | "inactive" | "all";
-type SortMode = "name" | "usage" | "updated";
+type SortMode = "name" | "usage" | "updated" | "last_used";
 type UsageFilter = "all" | "unused" | "used";
 type DurationFilter = "all" | "none" | "short" | "medium" | "long" | "very_long";
 
-const TRAINING_BLOCK_REALTIME_TABLES = ["training_blocks"] as const;
+const TRAINING_BLOCK_REALTIME_TABLES = ["training_blocks", "training_block_user_favorites"] as const;
 
 function formatItemValues(item: TrainingBlock["items"][number]): string {
   return item.parameters.map((parameter) => {
@@ -70,6 +77,14 @@ function durationMatches(minutes: number | null, filter: DurationFilter): boolea
   return minutes > 60;
 }
 
+function formatUsageDate(value: string | null): string {
+  if (!value) return "Noch nie";
+  const parsed = new Date(`${value}T00:00:00`);
+  return Number.isNaN(parsed.getTime())
+    ? value
+    : new Intl.DateTimeFormat("de-AT", { day: "2-digit", month: "2-digit", year: "numeric" }).format(parsed);
+}
+
 export function TrainingBlocksPage() {
   const { appContext, canEditModule } = useAuth();
   const organizationId = appContext?.organization?.id;
@@ -92,6 +107,9 @@ export function TrainingBlocksPage() {
   const [durationFilter, setDurationFilter] = useState<DurationFilter>("all");
   const [activityFilter, setActivityFilter] = useState<ActivityFilter>("active");
   const [sortMode, setSortMode] = useState<SortMode>("name");
+  const [favoritesOnly, setFavoritesOnly] = useState(false);
+  const [compareBlockIds, setCompareBlockIds] = useState<string[]>([]);
+  const [compareOpen, setCompareOpen] = useState(false);
   const [expandedBlockIds, setExpandedBlockIds] = useState<Set<string>>(() => new Set());
   const [editorBlock, setEditorBlock] = useState<TrainingBlock | null | undefined>(undefined);
   const [infoExercise, setInfoExercise] = useState<TrainingBlockExercise | null>(null);
@@ -171,6 +189,7 @@ export function TrainingBlocksPage() {
   const counts = useMemo(() => ({
     active: data.blocks.filter((block) => block.isActive).length,
     inactive: data.blocks.filter((block) => !block.isActive).length,
+    favorites: data.blocks.filter((block) => block.isFavorite).length,
   }), [data.blocks]);
 
   const activeFilterCount = [
@@ -183,6 +202,7 @@ export function TrainingBlocksPage() {
     durationFilter !== "all",
     activityFilter !== "active",
     sortMode !== "name",
+    favoritesOnly,
   ].filter(Boolean).length;
 
   const filteredBlocks = useMemo(() => {
@@ -196,6 +216,7 @@ export function TrainingBlocksPage() {
 
         if (activityFilter === "active" && !block.isActive) return false;
         if (activityFilter === "inactive" && block.isActive) return false;
+        if (favoritesOnly && !block.isFavorite) return false;
         if (groupFilter === "club" && block.groupIds.length > 0) return false;
         if (groupFilter !== "all" && groupFilter !== "club" && block.groupIds.length > 0 && !block.groupIds.includes(groupFilter)) return false;
         if (categoryFilter !== "all" && !exercises.some((exercise) => exercise.categoryKey === categoryFilter)) return false;
@@ -216,8 +237,10 @@ export function TrainingBlocksPage() {
         ].some((value) => value.toLocaleLowerCase("de").includes(search));
       })
       .sort((left, right) => {
+        if (left.isFavorite !== right.isFavorite) return left.isFavorite ? -1 : 1;
         if (sortMode === "usage") return right.usageCount - left.usageCount || left.name.localeCompare(right.name, "de");
         if (sortMode === "updated") return right.updatedAt.localeCompare(left.updatedAt);
+        if (sortMode === "last_used") return (right.lastUsedAt ?? "").localeCompare(left.lastUsedAt ?? "") || left.name.localeCompare(right.name, "de");
         return left.name.localeCompare(right.name, "de", { sensitivity: "base" });
       });
   }, [
@@ -227,6 +250,7 @@ export function TrainingBlocksPage() {
     durationFilter,
     exerciseById,
     exerciseFilter,
+    favoritesOnly,
     groupFilter,
     materialFilter,
     searchTerm,
@@ -245,6 +269,7 @@ export function TrainingBlocksPage() {
     setDurationFilter("all");
     setActivityFilter("active");
     setSortMode("name");
+    setFavoritesOnly(false);
   }
 
   function openEditor(block: TrainingBlock | null) {
@@ -342,23 +367,55 @@ export function TrainingBlocksPage() {
     }
   }
 
-  async function handleDuplicate(block: TrainingBlock) {
+  async function handleVariant(block: TrainingBlock) {
     if (!organizationId || busyBlockId) return;
     setBusyBlockId(block.id);
     setError(null);
     setSuccess(null);
     try {
-      const duplicatedId = await duplicateTrainingBlock(organizationId, block.id);
+      const variantId = await createTrainingBlockVariant(organizationId, block.id);
       const next = await loadData();
-      setSuccess("Der Trainingsblock wurde dupliziert.");
-      const duplicatedBlock = next?.blocks.find((item) => item.id === duplicatedId);
-      if (duplicatedBlock) openEditor(duplicatedBlock);
-    } catch (duplicateError) {
-      setError(errorMessage(duplicateError));
+      setSuccess("Eine neue Blockvariante wurde angelegt.");
+      const variant = next?.blocks.find((item) => item.id === variantId);
+      if (variant) openEditor(variant);
+    } catch (variantError) {
+      setError(errorMessage(variantError));
     } finally {
       setBusyBlockId(null);
     }
   }
+
+  async function handleFavorite(block: TrainingBlock) {
+    if (!organizationId || busyBlockId) return;
+    const nextFavorite = !block.isFavorite;
+    setData((current) => ({
+      ...current,
+      blocks: current.blocks.map((item) => item.id === block.id ? { ...item, isFavorite: nextFavorite } : item),
+    }));
+    try {
+      await setTrainingBlockFavorite(organizationId, block.id, nextFavorite);
+    } catch (favoriteError) {
+      setData((current) => ({
+        ...current,
+        blocks: current.blocks.map((item) => item.id === block.id ? { ...item, isFavorite: block.isFavorite } : item),
+      }));
+      setError(errorMessage(favoriteError));
+    }
+  }
+
+  function toggleCompare(blockId: string) {
+    setCompareBlockIds((current) => {
+      if (current.includes(blockId)) return current.filter((id) => id !== blockId);
+      const next = [...current, blockId].slice(-2);
+      if (next.length === 2) setCompareOpen(true);
+      return next;
+    });
+  }
+
+  const compareBlocks = compareBlockIds
+    .map((blockId) => data.blocks.find((block) => block.id === blockId))
+    .filter((block): block is TrainingBlock => Boolean(block));
+
 
   return (
     <section className="training-blocks-page">
@@ -403,6 +460,19 @@ export function TrainingBlocksPage() {
           {activeFilterCount > 0 && <span className="filter-toggle-count">{activeFilterCount}</span>}
           <ChevronDown className="filter-toggle-chevron" aria-hidden="true" />
         </button>
+        <button
+          type="button"
+          className={`secondary-button ${compareBlockIds.length > 0 ? "active" : ""}`}
+          onClick={() => {
+            if (compareBlocks.length === 2) setCompareOpen(true);
+            else setSuccess("Wähle bei zwei Blöcken das Vergleichssymbol aus.");
+          }}
+          aria-label="Trainingsblöcke vergleichen"
+          title="Trainingsblöcke vergleichen"
+        >
+          <GitCompareArrows aria-hidden="true" />
+          Vergleich {compareBlockIds.length}/2
+        </button>
       </div>
 
       {filtersOpen && (
@@ -415,7 +485,7 @@ export function TrainingBlocksPage() {
             <label><span>Übung</span><select value={exerciseFilter} onChange={(event) => setExerciseFilter(event.target.value)}><option value="all">Alle Übungen</option>{data.exercises.map((exercise) => <option value={exercise.id} key={exercise.id}>{exercise.name}</option>)}</select></label>
             <label><span>Verwendung</span><select value={usageFilter} onChange={(event) => setUsageFilter(event.target.value as UsageFilter)}><option value="all">Alle</option><option value="unused">Noch nie verwendet</option><option value="used">Bereits verwendet</option></select></label>
             <label><span>Dauer</span><select value={durationFilter} onChange={(event) => setDurationFilter(event.target.value as DurationFilter)}><option value="all">Alle Dauern</option><option value="none">Ohne Dauer</option><option value="short">Bis 15 min</option><option value="medium">16–30 min</option><option value="long">31–60 min</option><option value="very_long">Über 60 min</option></select></label>
-            <label><span>Sortierung</span><select value={sortMode} onChange={(event) => setSortMode(event.target.value as SortMode)}><option value="name">Alphabetisch</option><option value="usage">Am häufigsten verwendet</option><option value="updated">Zuletzt bearbeitet</option></select></label>
+            <label><span>Sortierung</span><select value={sortMode} onChange={(event) => setSortMode(event.target.value as SortMode)}><option value="name">Alphabetisch</option><option value="usage">Am häufigsten verwendet</option><option value="updated">Zuletzt bearbeitet</option><option value="last_used">Zuletzt verwendet</option></select></label>
           </div>
           <div className="training-block-filter-footer">
             <div className="status-filter" aria-label="Status der Trainingsblöcke filtern">
@@ -423,6 +493,10 @@ export function TrainingBlocksPage() {
               <button type="button" className={activityFilter === "inactive" ? "active" : ""} onClick={() => setActivityFilter("inactive")}>Inaktiv <span>{counts.inactive}</span></button>
               <button type="button" className={activityFilter === "all" ? "active" : ""} onClick={() => setActivityFilter("all")}>Alle <span>{data.blocks.length}</span></button>
             </div>
+            <button type="button" className={`favorite-filter ${favoritesOnly ? "active" : ""}`} onClick={() => setFavoritesOnly((current) => !current)}>
+              <Star aria-hidden="true" fill={favoritesOnly ? "currentColor" : "none"} />
+              Favoriten <span>{counts.favorites}</span>
+            </button>
             {activeFilterCount > 0 && <button type="button" className="text-button" onClick={resetFilters}><X aria-hidden="true" /> Zurücksetzen</button>}
           </div>
         </section>
@@ -445,6 +519,7 @@ export function TrainingBlocksPage() {
               <article className={`training-block-card ${block.isActive ? "" : "inactive"}`} key={block.id}>
                 <button type="button" className="training-block-card-summary" onClick={() => toggleExpanded(block.id)} aria-expanded={expandedBlockIds.has(block.id)}>
                   <span className="training-block-status-dot" title={block.isActive ? "Aktiv" : "Inaktiv"} />
+                  {block.isFavorite && <Star aria-hidden="true" fill="currentColor" />}
                   <strong>{block.name}</strong>
                   <span>{block.items.length} Übung{block.items.length === 1 ? "" : "en"}</span>
                   <span className="training-block-summary-duration"><Clock3 aria-hidden="true" />{block.estimatedMinutes ? `${block.estimatedMinutes} min` : "–"}</span>
@@ -454,17 +529,79 @@ export function TrainingBlocksPage() {
                 {expandedBlockIds.has(block.id) && (
                   <div className="training-block-card-details">
                     {block.goal && <p className="training-block-card-goal">{block.goal}</p>}
+                    {block.inactiveExerciseCount > 0 && (
+                      <div className="alert warning">
+                        <AlertTriangle aria-hidden="true" />
+                        {block.inactiveExerciseCount} inaktive Übung{block.inactiveExerciseCount === 1 ? "" : "en"} im Block. Bitte vor neuer Verwendung prüfen.
+                      </div>
+                    )}
+                    {block.variantParentName && (
+                      <p><GitBranchPlus aria-hidden="true" /> Variante {block.variantNumber} von „{block.variantParentName}“</p>
+                    )}
                     <div className="training-block-card-detail-head">
-                      <div className="training-block-card-meta"><span><BarChart3 aria-hidden="true" /> {block.usageCount}-mal verwendet</span></div>
+                      <div className="training-block-card-meta">
+                        <span><BarChart3 aria-hidden="true" /> {block.usageCount}-mal verwendet</span>
+                        <span><CalendarDays aria-hidden="true" /> Letzte Nutzung: {formatUsageDate(block.lastUsedAt)}</span>
+                        <span><History aria-hidden="true" /> {block.versions.length} Version{block.versions.length === 1 ? "" : "en"}</span>
+                      </div>
                       <div className="training-block-card-actions">
+                        <button
+                          type="button"
+                          className={block.isFavorite ? "active" : ""}
+                          onClick={() => void handleFavorite(block)}
+                          aria-label={block.isFavorite ? `${block.name} aus Favoriten entfernen` : `${block.name} zu Favoriten hinzufügen`}
+                          title={block.isFavorite ? "Aus Favoriten entfernen" : "Favorit"}
+                        >
+                          <Star aria-hidden="true" fill={block.isFavorite ? "currentColor" : "none"} />
+                        </button>
+                        <button
+                          type="button"
+                          className={compareBlockIds.includes(block.id) ? "active" : ""}
+                          onClick={() => toggleCompare(block.id)}
+                          aria-label={`${block.name} für Vergleich ${compareBlockIds.includes(block.id) ? "abwählen" : "auswählen"}`}
+                          title="Für Vergleich auswählen"
+                        >
+                          <GitCompareArrows aria-hidden="true" />
+                        </button>
                         {canEdit && <>
-                          <button type="button" onClick={() => void handleDuplicate(block)} disabled={busyBlockId === block.id} aria-label={`${block.name} duplizieren`} title="Duplizieren"><Copy aria-hidden="true" /></button>
+                          <button type="button" onClick={() => void handleVariant(block)} disabled={busyBlockId === block.id} aria-label={`Neue Variante von ${block.name} erstellen`} title="Neue Variante erstellen"><GitBranchPlus aria-hidden="true" /></button>
                           {block.usageCount === 0 && <button type="button" className="danger" onClick={() => void handleDelete(block)} disabled={busyBlockId === block.id} aria-label={`${block.name} löschen`} title="Endgültig löschen"><Trash2 aria-hidden="true" /></button>}
                         </>}
                         <button type="button" onClick={() => openEditor(block)} aria-label={`${block.name} ${canEdit ? "bearbeiten" : "anzeigen"}`} title={canEdit ? "Bearbeiten" : "Anzeigen"}>{canEdit ? <Pencil aria-hidden="true" /> : <ClipboardCheck aria-hidden="true" />}</button>
                       </div>
                     </div>
-                    <div className="training-block-card-groups">{assignedGroups.length === 0 ? <span>Vereinsweit</span> : assignedGroups.map((group) => <span key={group.id}>{group.shortName || group.name}</span>)}</div>
+                    <div className="training-block-card-groups">
+                      <strong>Geeignet für:</strong>
+                      {assignedGroups.length === 0 ? <span>Vereinsweit</span> : assignedGroups.map((group) => <span key={group.id}>{group.shortName || group.name}</span>)}
+                    </div>
+                    <div className="training-block-card-groups">
+                      <strong>Tatsächlich verwendet von:</strong>
+                      {block.usedGroupIds.length === 0
+                        ? <span>Noch keine Trainingsgruppe</span>
+                        : block.usedGroupIds.map((groupId) => {
+                          const group = groupById.get(groupId);
+                          return <span key={groupId}>{group?.shortName || group?.name || "Unbekannte Gruppe"}</span>;
+                        })}
+                    </div>
+                    {block.versions.length > 0 && (
+                      <details>
+                        <summary>Versionsverlauf ({block.versions.length})</summary>
+                        <ol>
+                          {block.versions.map((version) => (
+                            <li key={version.id}>
+                              <strong>Version {version.versionNumber}</strong>
+                              {" · "}{version.reason === "variant_created" ? "Variante angelegt" : version.reason === "created" ? "Angelegt" : "Gespeichert"}
+                              {" · "}{new Intl.DateTimeFormat("de-AT", { dateStyle: "short", timeStyle: "short" }).format(new Date(version.createdAt))}
+                              <small>
+                                {" · "}{version.snapshot.itemCount} Übung{version.snapshot.itemCount === 1 ? "" : "en"}
+                                {version.snapshot.estimatedMinutes ? ` · ${version.snapshot.estimatedMinutes} min` : ""}
+                                {version.snapshot.inactiveExerciseCount > 0 ? ` · ${version.snapshot.inactiveExerciseCount} inaktiv` : ""}
+                              </small>
+                            </li>
+                          ))}
+                        </ol>
+                      </details>
+                    )}
                     <ol className="training-block-card-exercises">
                       {block.items.map((item) => {
                         const values = formatItemValues(item);
@@ -472,7 +609,7 @@ export function TrainingBlocksPage() {
                         return (
                           <li key={item.id}>
                             <div className="training-block-card-exercise-heading">
-                              <strong>{item.exerciseName}</strong>
+                              <strong>{item.exerciseName}{!item.exerciseIsActive ? " · inaktiv" : ""}</strong>
                               {exercise && (
                                 <button
                                   type="button"
@@ -496,6 +633,15 @@ export function TrainingBlocksPage() {
             );
           })}
         </div>
+      )}
+
+      {compareOpen && compareBlocks.length === 2 && (
+        <TrainingBlockCompareDialog
+          left={compareBlocks[0]!}
+          right={compareBlocks[1]!}
+          groups={data.groups}
+          onClose={() => setCompareOpen(false)}
+        />
       )}
 
       {editorBlock !== undefined && (

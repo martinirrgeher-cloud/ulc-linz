@@ -205,6 +205,7 @@ test.describe("Schreibende Kernabläufe in isolierter Supabase-Umgebung", () => 
   });
 
   test("Administrator legt eine Übung und einen Trainingsblock an", async ({ page }) => {
+    test.setTimeout(90_000);
     await login(page, "admin");
     await page.goto("/module/exercise_catalog");
     await expect(page.getByRole("heading", { name: "Übungskatalog" })).toBeVisible();
@@ -212,6 +213,7 @@ test.describe("Schreibende Kernabläufe in isolierter Supabase-Umgebung", () => 
     await page.getByRole("button", { name: "Übung", exact: true }).click();
     const exerciseDialog = page.getByRole("dialog", { name: "Übung anlegen" });
     await exerciseDialog.getByLabel("Name *").fill(UI_EXERCISE);
+    await exerciseDialog.getByLabel("Schwierigkeitsgrad").selectOption("medium");
     await exerciseDialog.getByRole("button", { name: "Anleitung", exact: true }).click();
     await exerciseDialog.getByLabel("Durchführung").fill("Kontrollierter Sprint mit sauberer Beschleunigung.");
     await exerciseDialog.getByRole("button", { name: /Parameter/ }).click();
@@ -239,6 +241,38 @@ test.describe("Schreibende Kernabläufe in isolierter Supabase-Umgebung", () => 
     await blockDialog.getByRole("button", { name: "Speichern", exact: true }).click();
     await expect(page.getByText("Der Trainingsblock wurde angelegt.", { exact: true })).toBeVisible();
     await expect(page.getByText(UI_BLOCK, { exact: true })).toBeVisible();
+
+    const createdBlockCard = page.locator(".training-block-card").filter({ hasText: UI_BLOCK });
+    await createdBlockCard.locator(".training-block-card-summary").click();
+    await createdBlockCard.getByRole("button", { name: `${UI_BLOCK} zu Favoriten hinzufügen` }).click();
+    await createdBlockCard.getByRole("button", { name: `Neue Variante von ${UI_BLOCK} erstellen` }).click();
+
+    const variantDialog = page.getByRole("dialog", { name: `${UI_BLOCK} – Variante 2` });
+    await expect(variantDialog).toBeVisible({ timeout: 15_000 });
+    await variantDialog.getByRole("button", { name: "Trainingsblock schließen" }).click();
+
+    const refreshedBlockCard = page.locator(".training-block-card").filter({ hasText: UI_BLOCK }).first();
+    if (!(await refreshedBlockCard.locator(".training-block-card-details").isVisible())) {
+      await refreshedBlockCard.locator(".training-block-card-summary").click();
+    }
+    await refreshedBlockCard.getByRole("button", { name: `${UI_BLOCK} für Vergleich auswählen` }).click();
+
+    const variantCard = page.locator(".training-block-card").filter({ hasText: `${UI_BLOCK} – Variante 2` });
+    if (!(await variantCard.locator(".training-block-card-details").isVisible())) {
+      await variantCard.locator(".training-block-card-summary").click();
+    }
+    await variantCard.getByRole("button", { name: `${UI_BLOCK} – Variante 2 für Vergleich auswählen` }).click();
+    const compareDialog = page.getByRole("dialog", { name: "Vergleich" });
+    await expect(compareDialog).toBeVisible();
+    await compareDialog.getByRole("button", { name: "Schließen", exact: true }).click();
+
+    await page.goto("/module/exercise_catalog");
+    const exerciseCard = page.locator(".exercise-card").filter({ hasText: UI_EXERCISE });
+    await expect(exerciseCard.getByText("Schwierigkeit: Mittel", { exact: true })).toBeVisible();
+    await exerciseCard.getByRole("button", { name: `Verwendung von ${UI_EXERCISE} anzeigen` }).click();
+    const usageDialog = page.getByRole("dialog", { name: UI_EXERCISE });
+    await expect(usageDialog.getByText(UI_BLOCK, { exact: true })).toBeVisible();
+    await usageDialog.getByRole("button", { name: "Schließen", exact: true }).click();
     await expectNoAppError(page);
   });
 
