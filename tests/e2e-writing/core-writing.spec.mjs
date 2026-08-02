@@ -93,8 +93,11 @@ test.describe.serial("Schreibende Kernabläufe in isolierter Supabase-Umgebung",
     await blockDialog.getByLabel("Geschätzte Dauer").fill("18");
     await blockDialog.getByRole("tab", { name: /Übungen/ }).click();
     await blockDialog.getByRole("button", { name: "Übung hinzufügen", exact: true }).click();
-    await blockDialog.getByLabel("Übung suchen").fill(UI_EXERCISE);
-    await blockDialog.locator(".training-block-picker-add").filter({ hasText: UI_EXERCISE }).click();
+    const exerciseOption = blockDialog
+      .locator(".training-block-picker-add")
+      .filter({ hasText: UI_EXERCISE });
+    await expect(exerciseOption).toBeVisible({ timeout: 15_000 });
+    await exerciseOption.click();
     await blockDialog.getByRole("button", { name: "Speichern", exact: true }).click();
     await expect(page.getByText("Der Trainingsblock wurde angelegt.", { exact: true })).toBeVisible();
     await expect(page.getByText(UI_BLOCK, { exact: true })).toBeVisible();
