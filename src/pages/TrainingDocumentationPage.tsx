@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { EditLockNotice } from "@/components/collaboration/EditLockNotice";
+import { RemoteChangeNotice } from "@/components/collaboration/RemoteChangeNotice";
 import { useNavigationGuard } from "@/components/layout/NavigationGuardContext";
 import {
   TRAINING_DOCUMENTATION_DRAFT_MAX_AGE_MS,
@@ -22,6 +23,7 @@ import {
 import { useAuth } from "@/features/auth/AuthContext";
 import type { EditLockWriteGuard } from "@/features/collaboration/edit-locks";
 import { useEditLock } from "@/features/collaboration/useEditLock";
+import { useOrganizationRealtime } from "@/features/collaboration/useOrganizationRealtime";
 import {
   loadTrainingDocumentationDetail,
   loadTrainingDocumentationOverview,
@@ -49,6 +51,7 @@ import {
   startOfIsoWeek,
 } from "@/features/performance-registration/date";
 
+import { collaborationVersionsDiffer } from "@/features/collaboration/conflicts";
 import { diagnosticErrorMessage } from "@/lib/diagnostics";
 type PageMode = "document" | "team" | "statistics";
 
@@ -118,6 +121,8 @@ type QueuedDocumentationSave = {
   lockToken: string;
   waiters: Array<(saved: boolean) => void>;
 };
+
+const DOCUMENTATION_REALTIME_TABLES = ["athlete_training_sessions"] as const;
 
 const VERSION_CONFLICT_NOTICE =
   "Die Trainingsdokumentation wurde inzwischen auf einem anderen Gerät geändert. "
@@ -232,7 +237,10 @@ export function TrainingDocumentationPage() {
   const saveRunnerRef = useRef<Promise<void> | null>(null);
   const serverUpdatedAtBySessionRef = useRef(new Map<string, string>());
   const conflictedSessionIdsRef = useRef(new Set<string>());
+  const localWriteUntilRef = useRef(0);
   const [versionConflict, setVersionConflict] = useState(false);
+  const [remoteChangePending, setRemoteChangePending] = useState(false);
+  const [remoteSyncBusy, setRemoteSyncBusy] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [loading, setLoading] = useState(true);
@@ -258,6 +266,13 @@ export function TrainingDocumentationPage() {
     ...sessionValue,
     canEdit: sessionValue.canEdit && documentationLock.isEditable,
   } : null, [documentationLock.isEditable, sessionValue]);
+
+  useEffect(() => {
+    if (collaborationVersionsDiffer(sessionValue?.updatedAt, documentationLock.recordVersion)) {
+      setRemoteChangePending(true);
+      setVersionConflict(true);
+    }
+  }, [documentationLock.recordVersion, sessionValue?.updatedAt]);
 
   useEffect(() => { sessionValueRef.current = sessionValue; }, [sessionValue]);
 
@@ -335,6 +350,7 @@ export function TrainingDocumentationPage() {
     setError(null);
     setNotice(null);
     setVersionConflict(false);
+    setRemoteChangePending(false);
     try {
       const next = await loadTrainingDocumentationDetail(organizationId, planId);
       setDetail(next);
@@ -369,6 +385,7 @@ export function TrainingDocumentationPage() {
       }
       sessionValueRef.current = nextSession;
       setSessionValue(nextSession);
+      documentationLock.acceptRecordVersion(nextSession?.updatedAt);
       return true;
     } catch (loadError) {
       setError(errorMessage(loadError));
@@ -376,7 +393,7 @@ export function TrainingDocumentationPage() {
     } finally {
       setDetailLoading(false);
     }
-  }, [guardUnsaved, organizationId, ownerUserId, updateUrl]);
+  }, [documentationLock.acceptRecordVersion, guardUnsaved, organizationId, ownerUserId, updateUrl]);
 
   const openPlan = useCallback((planId: string) => loadPlan(planId, false), [loadPlan]);
 
@@ -385,6 +402,51 @@ export function TrainingDocumentationPage() {
     if (detail?.preview.planId === selectedPlanId) return;
     void openPlan(selectedPlanId);
   }, [detail?.preview.planId, openPlan, organizationId, selectedPlanId]);
+
+  const handleRealtimeRefresh = useCallback((refresh: {
+    reason: "database" | "reconnected";
+    changes: Array<{ table: string; recordId: string | null }>;
+  }) => {
+    if (Date.now() < localWriteUntilRef.current || busy || detailLoading || remoteSyncBusy) return;
+
+    const current = sessionValueRef.current;
+    const currentChanged = Boolean(current) && (
+      refresh.reason === "reconnected"
+      || refresh.changes.some((change) => (
+        change.table === "athlete_training_sessions" && change.recordId === current?.sessionId
+      ))
+    );
+    if (current && dirty && currentChanged) {
+      conflictedSessionIdsRef.current.add(current.sessionId);
+      if (organizationId && ownerUserId) {
+        writeLocalDraft(organizationId, ownerUserId, current, true);
+      }
+      setRemoteChangePending(true);
+      setVersionConflict(true);
+      setSaveState("error");
+      setError(VERSION_CONFLICT_NOTICE);
+      return;
+    }
+
+    void loadOverview();
+    if (selectedPlanId && currentChanged) void loadPlan(selectedPlanId, true);
+  }, [
+    busy,
+    detailLoading,
+    dirty,
+    loadOverview,
+    loadPlan,
+    organizationId,
+    ownerUserId,
+    remoteSyncBusy,
+    selectedPlanId,
+  ]);
+
+  useOrganizationRealtime({
+    organizationId,
+    tables: DOCUMENTATION_REALTIME_TABLES,
+    onRefresh: handleRealtimeRefresh,
+  });
 
   const drainSaveQueue = useCallback((): Promise<void> => {
     const activeRunner = saveRunnerRef.current;
@@ -406,6 +468,7 @@ export function TrainingDocumentationPage() {
             throw new Error("Die Serverversion der Trainingsdokumentation fehlt. Bitte den Trainingsplan neu laden.");
           }
 
+          localWriteUntilRef.current = Date.now() + 3_000;
           const result = await saveTrainingDocumentation(
             organizationId,
             request.value,
@@ -415,6 +478,7 @@ export function TrainingDocumentationPage() {
             },
           );
           serverUpdatedAtBySessionRef.current.set(request.value.sessionId, result.updatedAt);
+          documentationLock.acceptRecordVersion(result.updatedAt);
           conflictedSessionIdsRef.current.delete(request.value.sessionId);
           overviewNeedsRefresh = true;
 
@@ -441,6 +505,7 @@ export function TrainingDocumentationPage() {
             setDirty(false);
             setSaveState("saved");
             setVersionConflict(false);
+            setRemoteChangePending(false);
             setError(null);
             clearLocalDraft(organizationId, ownerUserId, request.value.sessionId);
           } else if (isStillCurrentSession) {
@@ -463,6 +528,7 @@ export function TrainingDocumentationPage() {
             setDirty(true);
             setSaveState(navigator.onLine ? "error" : "local");
             setVersionConflict(isConflict);
+            if (isConflict) setRemoteChangePending(true);
             setError(isConflict ? VERSION_CONFLICT_NOTICE : errorMessage(saveError));
           }
 
@@ -491,7 +557,7 @@ export function TrainingDocumentationPage() {
       if (saveRunnerRef.current === runner) saveRunnerRef.current = null;
     });
     return runner;
-  }, [loadOverview, organizationId, ownerUserId]);
+  }, [documentationLock.acceptRecordVersion, loadOverview, organizationId, ownerUserId]);
 
   const saveNow = useCallback(async (explicitValue?: TrainingDocumentationInput): Promise<boolean> => {
     if (!organizationId || !ownerUserId) return false;
@@ -637,10 +703,50 @@ export function TrainingDocumentationPage() {
     clearLocalDraft(organizationId, ownerUserId, currentSessionId);
     conflictedSessionIdsRef.current.delete(currentSessionId);
     setVersionConflict(false);
+    setRemoteChangePending(false);
     setError(null);
     setDirty(false);
     setSaveState("idle");
     await loadPlan(selectedPlanId, true);
+    documentationLock.acceptRecordVersion(sessionValueRef.current?.updatedAt);
+  }
+
+  async function keepLocalDraftAfterRemoteChange() {
+    if (!organizationId || !ownerUserId || !selectedPlanId || !sessionValueRef.current) return;
+    const current = sessionValueRef.current;
+    setRemoteSyncBusy(true);
+    setError(null);
+
+    try {
+      const latest = await loadTrainingDocumentationDetail(organizationId, selectedPlanId);
+      if (!latest.session || latest.session.sessionId !== current.sessionId) {
+        throw new Error("Die Trainingsdokumentation wurde auf einem anderen Gerät gelöscht oder ersetzt.");
+      }
+
+      const rebased = {
+        ...current,
+        updatedAt: latest.session.updatedAt,
+        canEdit: latest.session.canEdit,
+        canReview: latest.session.canReview,
+      };
+      serverUpdatedAtBySessionRef.current.set(current.sessionId, latest.session.updatedAt);
+      conflictedSessionIdsRef.current.delete(current.sessionId);
+      sessionValueRef.current = rebased;
+      setDetail(latest);
+      setSessionValue(rebased);
+      await documentationLock.retry();
+      documentationLock.acceptRecordVersion(rebased.updatedAt);
+      setVersionConflict(false);
+      setRemoteChangePending(false);
+      setSaveState("idle");
+      setDirty(true);
+      writeLocalDraft(organizationId, ownerUserId, rebased, false);
+      setNotice("Die aktuelle Serverversion wurde übernommen. Dein lokaler Dokumentationsentwurf bleibt erhalten.");
+    } catch (remoteError) {
+      setError(errorMessage(remoteError));
+    } finally {
+      setRemoteSyncBusy(false);
+    }
   }
 
   function clearSelectedPlan() {
@@ -649,6 +755,7 @@ export function TrainingDocumentationPage() {
     sessionValueRef.current = null;
     setSessionValue(null);
     setVersionConflict(false);
+    setRemoteChangePending(false);
     setDirty(false);
     setSaveState("idle");
     updateUrl({ plan: "", date: "" });
@@ -727,6 +834,13 @@ export function TrainingDocumentationPage() {
         </div>
       )}
       {notice && <div className="alert success">{notice}</div>}
+
+      <RemoteChangeNotice
+        visible={remoteChangePending}
+        busy={busy || remoteSyncBusy}
+        onLoadServer={loadServerVersionAfterConflict}
+        onKeepDraft={keepLocalDraftAfterRemoteChange}
+      />
 
       <nav className="training-doc-tabs" aria-label="Bereiche der Trainingsdokumentation">
         <button type="button" className={mode === "document" ? "active" : ""} onClick={() => changeMode("document")}>

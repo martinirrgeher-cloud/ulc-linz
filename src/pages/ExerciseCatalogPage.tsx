@@ -11,7 +11,13 @@ import {
   X,
 } from "lucide-react";
 import { EditLockNotice } from "@/components/collaboration/EditLockNotice";
+import { RemoteChangeNotice } from "@/components/collaboration/RemoteChangeNotice";
+import {
+  collaborationVersionsDiffer,
+  isCollaborationConflictError,
+} from "@/features/collaboration/conflicts";
 import { useEditLock } from "@/features/collaboration/useEditLock";
+import { useOrganizationRealtime } from "@/features/collaboration/useOrganizationRealtime";
 import { useAuth } from "@/features/auth/AuthContext";
 import {
   loadExerciseCatalog,
@@ -31,6 +37,8 @@ import type {
 import { diagnosticErrorMessage } from "@/lib/diagnostics";
 type ActivityFilter = "active" | "inactive" | "all";
 type VideoFilter = "all" | "yes" | "no";
+
+const EXERCISE_REALTIME_TABLES = ["exercises"] as const;
 
 function errorMessage(error: unknown): string {
   return diagnosticErrorMessage(error, "Der Übungskatalog konnte nicht geladen werden.", "exercise_catalog");
@@ -68,6 +76,9 @@ export function ExerciseCatalogPage() {
   const [videoFilter, setVideoFilter] = useState<VideoFilter>("all");
   const [editorExercise, setEditorExercise] = useState<Exercise | null | undefined>(undefined);
   const [editorInitialSection, setEditorInitialSection] = useState<EditorSection>("basis");
+  const [editorDirty, setEditorDirty] = useState(false);
+  const [remoteChangePending, setRemoteChangePending] = useState(false);
+  const [remoteSyncBusy, setRemoteSyncBusy] = useState(false);
 
   const exerciseLock = useEditLock({
     organizationId,
@@ -78,22 +89,55 @@ export function ExerciseCatalogPage() {
   });
   const editorCanEdit = canEdit && (!editorExercise?.id || exerciseLock.isEditable);
 
-  const loadData = useCallback(async () => {
-    if (!organizationId) return;
-    setLoading(true);
+  useEffect(() => {
+    if (collaborationVersionsDiffer(editorExercise?.updatedAt, exerciseLock.recordVersion)) {
+      setRemoteChangePending(true);
+    }
+  }, [editorExercise?.updatedAt, exerciseLock.recordVersion]);
+
+  const loadData = useCallback(async (showLoading = true): Promise<ExerciseCatalogData | null> => {
+    if (!organizationId) return null;
+    if (showLoading) setLoading(true);
     setError(null);
     try {
-      setData(await loadExerciseCatalog(organizationId, true));
+      const next = await loadExerciseCatalog(organizationId, true);
+      setData(next);
+      return next;
     } catch (loadError) {
       setError(errorMessage(loadError));
+      return null;
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   }, [organizationId]);
 
   useEffect(() => {
     void loadData();
   }, [loadData]);
+
+  const handleRealtimeRefresh = useCallback((refresh: {
+    reason: "database" | "reconnected";
+    changes: Array<{ table: string; recordId: string | null }>;
+  }) => {
+    if (busy || remoteSyncBusy) return;
+    const currentChanged = Boolean(editorExercise?.id) && (
+      refresh.reason === "reconnected"
+      || refresh.changes.some((change) => (
+        change.table === "exercises" && change.recordId === editorExercise?.id
+      ))
+    );
+    if (currentChanged) {
+      setRemoteChangePending(true);
+      return;
+    }
+    void loadData(false);
+  }, [busy, editorExercise?.id, loadData, remoteSyncBusy]);
+
+  useOrganizationRealtime({
+    organizationId,
+    tables: EXERCISE_REALTIME_TABLES,
+    onRefresh: handleRealtimeRefresh,
+  });
 
   const counts = useMemo(() => ({
     active: data.exercises.filter((exercise) => exercise.isActive).length,
@@ -188,9 +232,12 @@ export function ExerciseCatalogPage() {
       const editLock = exerciseLock.getWriteGuard();
       await saveExercise(organizationId, editorExercise?.id ?? null, values, editLock);
       setEditorExercise(undefined);
+      setEditorDirty(false);
+      setRemoteChangePending(false);
       setSuccess(editorExercise ? "Die Übung wurde gespeichert." : "Die Übung wurde angelegt.");
       await loadData();
     } catch (saveError) {
+      if (isCollaborationConflictError(saveError)) setRemoteChangePending(true);
       setError(errorMessage(saveError));
     } finally {
       setBusy(false);
@@ -200,8 +247,50 @@ export function ExerciseCatalogPage() {
   function openEditor(exercise: Exercise | null, section: EditorSection = "basis") {
     setError(null);
     setSuccess(null);
+    setEditorDirty(false);
+    setRemoteChangePending(false);
     setEditorInitialSection(section);
     setEditorExercise(exercise);
+  }
+
+  function closeEditor() {
+    setEditorExercise(undefined);
+    setEditorDirty(false);
+    setRemoteChangePending(false);
+  }
+
+  async function applyRemoteServerState(keepDraft: boolean) {
+    const exerciseId = editorExercise?.id;
+    if (!exerciseId) {
+      setRemoteChangePending(false);
+      await loadData(false);
+      return;
+    }
+
+    setRemoteSyncBusy(true);
+    setError(null);
+    if (!keepDraft) {
+      setEditorExercise(undefined);
+      setEditorDirty(false);
+    }
+
+    try {
+      const latest = await loadData(false);
+      const exercise = latest?.exercises.find((item) => item.id === exerciseId);
+      if (!exercise) throw new Error("Die Übung wurde auf einem anderen Gerät gelöscht.");
+      setEditorExercise(exercise);
+      if (keepDraft) await exerciseLock.retry();
+      exerciseLock.acceptRecordVersion(exercise.updatedAt);
+      setRemoteChangePending(false);
+      if (keepDraft && editorDirty) {
+        setSuccess("Die aktuelle Serverversion wurde übernommen. Deine Eingaben bleiben im Formular erhalten.");
+      }
+    } catch (remoteError) {
+      closeEditor();
+      setError(errorMessage(remoteError));
+    } finally {
+      setRemoteSyncBusy(false);
+    }
   }
 
   function handleVideosChanged(exerciseId: string, videos: Exercise["videos"]) {
@@ -259,6 +348,13 @@ export function ExerciseCatalogPage() {
 
       {error && <div className="alert error">{error}</div>}
       {success && <div className="alert success">{success}</div>}
+
+      <RemoteChangeNotice
+        visible={remoteChangePending}
+        busy={busy || remoteSyncBusy}
+        onLoadServer={() => applyRemoteServerState(false)}
+        onKeepDraft={() => applyRemoteServerState(true)}
+      />
 
       <div className="exercise-catalog-toolbar exercise-catalog-toolbar-compact">
         <label className="exercise-search">
@@ -426,8 +522,9 @@ export function ExerciseCatalogPage() {
           canEdit={editorCanEdit}
           busy={busy}
           lockNotice={editorExercise?.id ? <EditLockNotice lock={exerciseLock} /> : null}
-          onCancel={() => setEditorExercise(undefined)}
+          onCancel={closeEditor}
           onSubmit={handleSave}
+          onDirtyChange={setEditorDirty}
           onVideosChanged={(videos) => {
             if (editorExercise?.id) handleVideosChanged(editorExercise.id, videos);
           }}

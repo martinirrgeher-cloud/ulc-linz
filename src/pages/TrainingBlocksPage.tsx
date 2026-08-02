@@ -15,7 +15,13 @@ import {
   X,
 } from "lucide-react";
 import { EditLockNotice } from "@/components/collaboration/EditLockNotice";
+import { RemoteChangeNotice } from "@/components/collaboration/RemoteChangeNotice";
+import {
+  collaborationVersionsDiffer,
+  isCollaborationConflictError,
+} from "@/features/collaboration/conflicts";
 import { useEditLock } from "@/features/collaboration/useEditLock";
+import { useOrganizationRealtime } from "@/features/collaboration/useOrganizationRealtime";
 import { useAuth } from "@/features/auth/AuthContext";
 import {
   deleteTrainingBlock,
@@ -37,6 +43,8 @@ type ActivityFilter = "active" | "inactive" | "all";
 type SortMode = "name" | "usage" | "updated";
 type UsageFilter = "all" | "unused" | "used";
 type DurationFilter = "all" | "none" | "short" | "medium" | "long" | "very_long";
+
+const TRAINING_BLOCK_REALTIME_TABLES = ["training_blocks"] as const;
 
 function formatItemValues(item: TrainingBlock["items"][number]): string {
   return item.parameters.map((parameter) => {
@@ -87,6 +95,9 @@ export function TrainingBlocksPage() {
   const [expandedBlockIds, setExpandedBlockIds] = useState<Set<string>>(() => new Set());
   const [editorBlock, setEditorBlock] = useState<TrainingBlock | null | undefined>(undefined);
   const [infoExercise, setInfoExercise] = useState<TrainingBlockExercise | null>(null);
+  const [editorDirty, setEditorDirty] = useState(false);
+  const [remoteChangePending, setRemoteChangePending] = useState(false);
+  const [remoteSyncBusy, setRemoteSyncBusy] = useState(false);
 
   const blockLock = useEditLock({
     organizationId,
@@ -97,9 +108,15 @@ export function TrainingBlocksPage() {
   });
   const editorCanEdit = canEdit && (!editorBlock?.id || blockLock.isEditable);
 
-  const loadData = useCallback(async (): Promise<TrainingBlockData | null> => {
+  useEffect(() => {
+    if (collaborationVersionsDiffer(editorBlock?.updatedAt, blockLock.recordVersion)) {
+      setRemoteChangePending(true);
+    }
+  }, [blockLock.recordVersion, editorBlock?.updatedAt]);
+
+  const loadData = useCallback(async (showLoading = true): Promise<TrainingBlockData | null> => {
     if (!organizationId) return null;
-    setLoading(true);
+    if (showLoading) setLoading(true);
     setError(null);
     try {
       const next = await loadTrainingBlocks(organizationId, true);
@@ -109,13 +126,37 @@ export function TrainingBlocksPage() {
       setError(errorMessage(loadError));
       return null;
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   }, [organizationId]);
 
   useEffect(() => {
     void loadData();
   }, [loadData]);
+
+  const handleRealtimeRefresh = useCallback((refresh: {
+    reason: "database" | "reconnected";
+    changes: Array<{ table: string; recordId: string | null }>;
+  }) => {
+    if (busy || busyBlockId || remoteSyncBusy) return;
+    const currentChanged = Boolean(editorBlock?.id) && (
+      refresh.reason === "reconnected"
+      || refresh.changes.some((change) => (
+        change.table === "training_blocks" && change.recordId === editorBlock?.id
+      ))
+    );
+    if (currentChanged) {
+      setRemoteChangePending(true);
+      return;
+    }
+    void loadData(false);
+  }, [busy, busyBlockId, editorBlock?.id, loadData, remoteSyncBusy]);
+
+  useOrganizationRealtime({
+    organizationId,
+    tables: TRAINING_BLOCK_REALTIME_TABLES,
+    onRefresh: handleRealtimeRefresh,
+  });
 
   const groupById = useMemo(() => new Map(data.groups.map((group) => [group.id, group])), [data.groups]);
   const exerciseById = useMemo(() => new Map(data.exercises.map((exercise) => [exercise.id, exercise])), [data.exercises]);
@@ -206,6 +247,54 @@ export function TrainingBlocksPage() {
     setSortMode("name");
   }
 
+  function openEditor(block: TrainingBlock | null) {
+    setEditorBlock(block);
+    setEditorDirty(false);
+    setRemoteChangePending(false);
+    setError(null);
+    setSuccess(null);
+  }
+
+  function closeEditor() {
+    setEditorBlock(undefined);
+    setEditorDirty(false);
+    setRemoteChangePending(false);
+  }
+
+  async function applyRemoteServerState(keepDraft: boolean) {
+    const blockId = editorBlock?.id;
+    if (!blockId) {
+      setRemoteChangePending(false);
+      await loadData(false);
+      return;
+    }
+
+    setRemoteSyncBusy(true);
+    setError(null);
+    if (!keepDraft) {
+      setEditorBlock(undefined);
+      setEditorDirty(false);
+    }
+
+    try {
+      const latest = await loadData(false);
+      const block = latest?.blocks.find((item) => item.id === blockId);
+      if (!block) throw new Error("Der Trainingsblock wurde auf einem anderen Gerät gelöscht.");
+      setEditorBlock(block);
+      if (keepDraft) await blockLock.retry();
+      blockLock.acceptRecordVersion(block.updatedAt);
+      setRemoteChangePending(false);
+      if (keepDraft && editorDirty) {
+        setSuccess("Die aktuelle Serverversion wurde übernommen. Deine Eingaben bleiben im Formular erhalten.");
+      }
+    } catch (remoteError) {
+      closeEditor();
+      setError(errorMessage(remoteError));
+    } finally {
+      setRemoteSyncBusy(false);
+    }
+  }
+
   async function handleSave(values: TrainingBlockInput) {
     if (!organizationId) return;
     setBusy(true);
@@ -215,9 +304,12 @@ export function TrainingBlocksPage() {
       const editLock = blockLock.getWriteGuard();
       await saveTrainingBlock(organizationId, editorBlock?.id ?? null, values, editLock);
       setEditorBlock(undefined);
+      setEditorDirty(false);
+      setRemoteChangePending(false);
       setSuccess(editorBlock ? "Der Trainingsblock wurde gespeichert." : "Der Trainingsblock wurde angelegt.");
       await loadData();
     } catch (saveError) {
+      if (isCollaborationConflictError(saveError)) setRemoteChangePending(true);
       setError(errorMessage(saveError));
     } finally {
       setBusy(false);
@@ -260,7 +352,7 @@ export function TrainingBlocksPage() {
       const next = await loadData();
       setSuccess("Der Trainingsblock wurde dupliziert.");
       const duplicatedBlock = next?.blocks.find((item) => item.id === duplicatedId);
-      if (duplicatedBlock) setEditorBlock(duplicatedBlock);
+      if (duplicatedBlock) openEditor(duplicatedBlock);
     } catch (duplicateError) {
       setError(errorMessage(duplicateError));
     } finally {
@@ -277,7 +369,7 @@ export function TrainingBlocksPage() {
           <p>Wiederverwendbare Übungsfolgen erstellen und Leistungsgruppen zuordnen.</p>
         </div>
         {canEdit && (
-          <button type="button" className="primary-button" onClick={() => setEditorBlock(null)} disabled={loading || busy || data.exercises.filter((exercise) => exercise.isActive).length === 0}>
+          <button type="button" className="primary-button" onClick={() => openEditor(null)} disabled={loading || busy || data.exercises.filter((exercise) => exercise.isActive).length === 0}>
             <Plus aria-hidden="true" />Block
           </button>
         )}
@@ -285,6 +377,13 @@ export function TrainingBlocksPage() {
 
       {error && <div className="alert error">{error}</div>}
       {success && <div className="alert success">{success}</div>}
+
+      <RemoteChangeNotice
+        visible={remoteChangePending}
+        busy={busy || remoteSyncBusy}
+        onLoadServer={() => applyRemoteServerState(false)}
+        onKeepDraft={() => applyRemoteServerState(true)}
+      />
 
       <div className="training-blocks-toolbar training-blocks-toolbar-compact">
         <label className="training-block-search">
@@ -336,7 +435,7 @@ export function TrainingBlocksPage() {
       ) : filteredBlocks.length === 0 ? (
         <div className="empty-state">
           <ClipboardCheck aria-hidden="true" /><h2>Keine Trainingsblöcke gefunden</h2><p>{data.blocks.length === 0 ? "Lege den ersten wiederverwendbaren Trainingsblock an." : "Passe Suche oder Filter an."}</p>
-          {canEdit && data.blocks.length === 0 && <button type="button" className="primary-button" onClick={() => setEditorBlock(null)}><Plus aria-hidden="true" />Ersten Block anlegen</button>}
+          {canEdit && data.blocks.length === 0 && <button type="button" className="primary-button" onClick={() => openEditor(null)}><Plus aria-hidden="true" />Ersten Block anlegen</button>}
         </div>
       ) : (
         <div className="training-block-list">
@@ -362,7 +461,7 @@ export function TrainingBlocksPage() {
                           <button type="button" onClick={() => void handleDuplicate(block)} disabled={busyBlockId === block.id} aria-label={`${block.name} duplizieren`} title="Duplizieren"><Copy aria-hidden="true" /></button>
                           {block.usageCount === 0 && <button type="button" className="danger" onClick={() => void handleDelete(block)} disabled={busyBlockId === block.id} aria-label={`${block.name} löschen`} title="Endgültig löschen"><Trash2 aria-hidden="true" /></button>}
                         </>}
-                        <button type="button" onClick={() => setEditorBlock(block)} aria-label={`${block.name} ${canEdit ? "bearbeiten" : "anzeigen"}`} title={canEdit ? "Bearbeiten" : "Anzeigen"}>{canEdit ? <Pencil aria-hidden="true" /> : <ClipboardCheck aria-hidden="true" />}</button>
+                        <button type="button" onClick={() => openEditor(block)} aria-label={`${block.name} ${canEdit ? "bearbeiten" : "anzeigen"}`} title={canEdit ? "Bearbeiten" : "Anzeigen"}>{canEdit ? <Pencil aria-hidden="true" /> : <ClipboardCheck aria-hidden="true" />}</button>
                       </div>
                     </div>
                     <div className="training-block-card-groups">{assignedGroups.length === 0 ? <span>Vereinsweit</span> : assignedGroups.map((group) => <span key={group.id}>{group.shortName || group.name}</span>)}</div>

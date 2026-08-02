@@ -30,10 +30,12 @@ export type EditLockState = {
   status: EditLockStatus;
   owner: EditLockOwner | null;
   canForce: boolean;
+  recordVersion: string | null;
   error: string | null;
   isEditable: boolean;
   retry: () => Promise<void>;
   forceAcquire: () => Promise<void>;
+  acceptRecordVersion: (version: string | null | undefined) => void;
   getWriteGuard: () => EditLockWriteGuard | null;
   validateBeforeSave: () => Promise<void>;
 };
@@ -62,6 +64,7 @@ export function useEditLock({
   const [status, setStatus] = useState<EditLockStatus>("idle");
   const [owner, setOwner] = useState<EditLockOwner | null>(null);
   const [canForce, setCanForce] = useState(false);
+  const [recordVersion, setRecordVersion] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const key = organizationId && entityId
@@ -90,6 +93,7 @@ export function useEditLock({
 
       setCanForce(result.canForce);
       setOwner(result.owner);
+      setRecordVersion(result.recordVersion);
       setStatus(result.acquired ? "acquired" : "blocked");
     } catch (acquireError) {
       if (
@@ -108,6 +112,7 @@ export function useEditLock({
     tokenRef.current = createLockToken();
     setOwner(null);
     setCanForce(false);
+    setRecordVersion(null);
     setError(null);
 
     if (!enabled || !organizationId || !entityId || !key) {
@@ -195,6 +200,9 @@ export function useEditLock({
 
   const retry = useCallback(async () => acquire(false), [acquire]);
   const forceAcquire = useCallback(async () => acquire(true), [acquire]);
+  const acceptRecordVersion = useCallback((version: string | null | undefined) => {
+    if (version) setRecordVersion(version);
+  }, []);
 
   const getWriteGuard = useCallback((): EditLockWriteGuard | null => {
     if (!enabled || !organizationId || !entityId) return null;
@@ -228,11 +236,13 @@ export function useEditLock({
     status,
     owner,
     canForce,
+    recordVersion,
     error,
     isEditable: !enabled || status === "acquired",
     retry,
     forceAcquire,
+    acceptRecordVersion,
     getWriteGuard,
     validateBeforeSave,
-  }), [canForce, enabled, error, forceAcquire, getWriteGuard, owner, retry, status, validateBeforeSave]);
+  }), [acceptRecordVersion, canForce, enabled, error, forceAcquire, getWriteGuard, owner, recordVersion, retry, status, validateBeforeSave]);
 }

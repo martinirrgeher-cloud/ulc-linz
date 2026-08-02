@@ -432,6 +432,7 @@ const databaseTestFiles = [
   "../supabase/tests/database/10_role_matrix.test.sql",
   "../supabase/tests/database/20_collaboration.test.sql",
   "../supabase/tests/database/30_transactional_import.test.sql",
+  "../supabase/tests/database/40_realtime_collaboration.test.sql",
 ];
 
 test("E1a baut die Datenbank isoliert neu auf und führt pgTAP-Tests aus", async () => {
@@ -573,5 +574,104 @@ test("E3c erlaubt Supabase, Videos, Uploads und Bildschirm-Wachhalten gezielt", 
   assert.ok(e3cPackageSource.includes("npm run check:security-headers"));
   assert.ok(e3cSecurityCheckerSource.includes("validateDeployedUrl"));
   assert.ok(e3cSecurityCheckerSource.includes("Globale CSP-Wildcard ist nicht erlaubt"));
+});
+
+const e4RealtimeMigrationSource = await readFile(
+  new URL("../supabase/migrations/202608020032_realtime_collaboration.sql", import.meta.url),
+  "utf8",
+);
+const organizationRealtimeHookSource = await readFile(
+  new URL("../src/features/collaboration/useOrganizationRealtime.ts", import.meta.url),
+  "utf8",
+);
+const e4EditLockHookSource = await readFile(
+  new URL("../src/features/collaboration/useEditLock.ts", import.meta.url),
+  "utf8",
+);
+const remoteChangeNoticeSource = await readFile(
+  new URL("../src/components/collaboration/RemoteChangeNotice.tsx", import.meta.url),
+  "utf8",
+);
+const collaborationConflictSource = await readFile(
+  new URL("../src/features/collaboration/conflicts.ts", import.meta.url),
+  "utf8",
+);
+const e4AthletePageSource = await readFile(
+  new URL("../src/pages/AthleteManagementPage.tsx", import.meta.url),
+  "utf8",
+);
+const e4ExercisePageSource = await readFile(
+  new URL("../src/pages/ExerciseCatalogPage.tsx", import.meta.url),
+  "utf8",
+);
+const e4TrainingBlockPageSource = await readFile(
+  new URL("../src/pages/TrainingBlocksPage.tsx", import.meta.url),
+  "utf8",
+);
+const e4TrainingPlanningPageSource = await readFile(
+  new URL("../src/pages/TrainingPlanningPage.tsx", import.meta.url),
+  "utf8",
+);
+const e4TrainingDocumentationPageSource = await readFile(
+  new URL("../src/pages/TrainingDocumentationPage.tsx", import.meta.url),
+  "utf8",
+);
+
+test("E4 veröffentlicht alle Kerndatensätze sicher über Supabase Realtime", () => {
+  for (const table of [
+    "athletes",
+    "training_groups",
+    "trainers",
+    "exercises",
+    "training_blocks",
+    "athlete_training_plans",
+    "athlete_training_sessions",
+  ]) {
+    assert.ok(e4RealtimeMigrationSource.includes(`'${table}'`), `Realtime-Tabelle fehlt: ${table}`);
+  }
+  assert.ok(e4RealtimeMigrationSource.includes("supabase_realtime"));
+  assert.ok(e4RealtimeMigrationSource.includes("replica identity full"));
+  assert.ok(organizationRealtimeHookSource.includes('"postgres_changes"'));
+  assert.ok(organizationRealtimeHookSource.includes("organization_id=eq."));
+  assert.ok(organizationRealtimeHookSource.includes('"reconnected"'));
+  assert.ok(organizationRealtimeHookSource.includes('"online"'));
+  assert.ok(!organizationRealtimeHookSource.includes('window.addEventListener("focus"'));
+});
+
+test("E4 aktualisiert Listen und schützt lokale Entwürfe vor Überschreiben", () => {
+  for (const source of [
+    e4AthletePageSource,
+    e4ExercisePageSource,
+    e4TrainingBlockPageSource,
+    e4TrainingPlanningPageSource,
+    e4TrainingDocumentationPageSource,
+  ]) {
+    assert.ok(source.includes("useOrganizationRealtime"));
+    assert.ok(source.includes("RemoteChangeNotice"));
+    assert.ok(source.includes("applyRemoteServerState") || source.includes("keepLocalDraftAfterRemoteChange"));
+  }
+  assert.ok(remoteChangeNoticeSource.includes("Serverstand laden"));
+  assert.ok(remoteChangeNoticeSource.includes("Eigene Eingaben behalten"));
+  assert.ok(collaborationConflictSource.includes("collaborationVersionsDiffer"));
+  assert.ok(e4TrainingDocumentationPageSource.includes("writeLocalDraft"));
+  assert.ok(e4TrainingDocumentationPageSource.includes("localWriteUntilRef"));
+  assert.ok(e4TrainingPlanningPageSource.includes("localWriteUntilRef"));
+  assert.ok(e4EditLockHookSource.includes("acceptRecordVersion"));
+  assert.ok(e4TrainingPlanningPageSource.includes("acceptRecordVersion"));
+  assert.ok(e4TrainingDocumentationPageSource.includes("acceptRecordVersion"));
+});
+
+test("E4 meldet Formularänderungen in allen gemeinsam bearbeiteten Stammdaten", async () => {
+  for (const relativePath of [
+    "../src/features/athletes/AthleteEditor.tsx",
+    "../src/features/athletes/TrainerEditor.tsx",
+    "../src/features/athletes/TrainingGroupEditor.tsx",
+    "../src/features/exercise-catalog/ExerciseEditor.tsx",
+    "../src/features/training-blocks/TrainingBlockEditor.tsx",
+  ]) {
+    const source = await readFile(new URL(relativePath, import.meta.url), "utf8");
+    assert.ok(source.includes("useDraftDirtyState"), `Entwurfsstatus fehlt in ${relativePath}`);
+    assert.ok(source.includes("onDirtyChange"), `Dirty-Callback fehlt in ${relativePath}`);
+  }
 });
 
