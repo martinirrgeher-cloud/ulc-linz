@@ -1,0 +1,87 @@
+name: Mobile E2E-Tests ohne Schreibzugriffe
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "**"
+    paths:
+      - "src/**"
+      - "public/**"
+      - "index.html"
+      - "package.json"
+      - "package-lock.json"
+      - "playwright.config.mjs"
+      - "tests/e2e/**"
+      - "scripts/run-e2e-readonly.ps1"
+      - "scripts/check-e2e-suite.mjs"
+      - ".github/workflows/e2e-readonly.yml"
+  pull_request:
+    paths:
+      - "src/**"
+      - "public/**"
+      - "index.html"
+      - "package.json"
+      - "package-lock.json"
+      - "playwright.config.mjs"
+      - "tests/e2e/**"
+      - "scripts/run-e2e-readonly.ps1"
+      - "scripts/check-e2e-suite.mjs"
+      - ".github/workflows/e2e-readonly.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-readonly-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  mobile-e2e:
+    name: Chromium 360, 390, 430 und Desktop
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      VITE_SUPABASE_URL: https://e2e.supabase.co
+      VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_e2e_readonly_tests
+      VITE_ALLOW_SELF_SIGNUP: "false"
+      E2E_BASE_URL: http://127.0.0.1:4173
+
+    steps:
+      - name: Projekt auschecken
+        uses: actions/checkout@v4
+
+      - name: Node.js einrichten
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Projektabhängigkeiten installieren
+        run: npm ci
+
+      - name: Playwright Test isoliert installieren
+        run: npm install --no-save --package-lock=false @playwright/test@1.62.1
+
+      - name: Chromium und Systemabhängigkeiten installieren
+        run: npx playwright install --with-deps chromium
+
+      - name: Teststruktur prüfen
+        run: npm run check:e2e-suite
+
+      - name: Anwendung bauen
+        run: npm run build
+
+      - name: Nicht schreibende Mobile-E2E-Tests ausführen
+        run: npm run test:e2e:readonly:ci
+
+      - name: Testbericht hochladen
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-readonly-report-${{ github.run_id }}
+          path: |
+            playwright-report
+            test-results/e2e
+          if-no-files-found: ignore
+          retention-days: 14
