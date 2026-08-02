@@ -1,0 +1,263 @@
+/* E5c ist bewusst lokal importiert. Keine globalen Layout- oder Basisregeln. */
+.user-management-page .e5c-toolbar {
+  grid-template-columns: minmax(0, 1fr) minmax(9rem, 0.75fr) minmax(10rem, 0.85fr) auto;
+  align-items: end;
+}
+
+.user-management-page .e5c-editor-fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.user-management-page .e5c-template-panel {
+  display: grid;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+  padding: 0.8rem;
+  border: 1px solid var(--border-color, #d6ddd8);
+  border-radius: 0.8rem;
+  background: color-mix(in srgb, var(--surface, #fff) 92%, #1d7a46 8%);
+}
+
+.user-management-page .e5c-template-panel label {
+  display: grid;
+  grid-template-columns: minmax(8rem, auto) minmax(0, 1fr);
+  gap: 0.65rem;
+  align-items: center;
+}
+
+.user-management-page .e5c-template-panel label > span {
+  display: inline-flex;
+  gap: 0.4rem;
+  align-items: center;
+  font-weight: 700;
+}
+
+.user-management-page .e5c-template-panel svg,
+.user-management-page .e5c-warning-list svg,
+.user-management-page .e5c-links svg,
+.user-management-page .e5c-audit-log svg {
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 auto;
+}
+
+.user-management-page .e5c-link-grid {
+  margin-top: 0.9rem;
+}
+
+.user-management-page .member-card {
+  grid-template-columns: minmax(13rem, 1.2fr) auto minmax(15rem, 1fr);
+}
+
+.user-management-page .member-card .member-primary {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.user-management-page .member-card .member-badges {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.user-management-page .member-card .e5c-card-actions {
+  grid-column: 3;
+  grid-row: 1;
+  margin-top: 0;
+}
+
+.user-management-page .member-card .e5c-warning-list,
+.user-management-page .member-card .e5c-member-details,
+.user-management-page .member-card .e5c-links {
+  grid-column: 1 / -1;
+}
+
+.user-management-page .e5c-warning-list {
+  display: grid;
+  gap: 0.35rem;
+  margin-top: 0.7rem;
+}
+
+.user-management-page .e5c-warning-list span {
+  display: flex;
+  gap: 0.4rem;
+  align-items: flex-start;
+  padding: 0.45rem 0.6rem;
+  border-radius: 0.6rem;
+  background: #fff4d6;
+  color: #765000;
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+
+.user-management-page .e5c-member-details {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.user-management-page .e5c-links {
+  display: grid;
+  gap: 0.35rem;
+  margin-top: 0.7rem;
+}
+
+.user-management-page .e5c-links span {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  min-width: 0;
+  font-size: 0.84rem;
+}
+
+.user-management-page .e5c-links .linked {
+  color: #17633a;
+}
+
+.user-management-page .e5c-links .unlinked {
+  color: #6b7280;
+}
+
+.user-management-page .e5c-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.8rem;
+}
+
+.user-management-page .e5c-card-actions .secondary-button {
+  margin: 0;
+}
+
+.user-management-page .e5c-audit-log {
+  margin-top: 1rem;
+  border: 1px solid var(--border-color, #d6ddd8);
+  border-radius: 0.8rem;
+  overflow: hidden;
+}
+
+.user-management-page .e5c-audit-log summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.8rem;
+  align-items: center;
+  padding: 0.75rem 0.85rem;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.user-management-page .e5c-audit-log summary > span:first-child {
+  display: inline-flex;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.user-management-page .e5c-audit-log summary > span:last-child {
+  min-width: 1.6rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  background: #edf2ef;
+  text-align: center;
+  font-size: 0.78rem;
+}
+
+.user-management-page .e5c-audit-log > p {
+  padding: 0 0.85rem 0.8rem;
+}
+
+.user-management-page .e5c-audit-log ol {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--border-color, #d6ddd8);
+}
+
+.user-management-page .e5c-audit-log li {
+  display: grid;
+  gap: 0.3rem;
+  padding: 0.7rem 0.85rem;
+  border-bottom: 1px solid var(--border-color, #d6ddd8);
+}
+
+.user-management-page .e5c-audit-log li:last-child {
+  border-bottom: 0;
+}
+
+.user-management-page .e5c-audit-log li div {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.35rem 0.8rem;
+}
+
+.user-management-page .e5c-audit-log li span,
+.user-management-page .e5c-audit-log li p {
+  color: #66706a;
+  font-size: 0.8rem;
+}
+
+.user-management-page .e5c-audit-log li p {
+  margin: 0;
+}
+
+@media (max-width: 760px) {
+  .user-management-page .member-card {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .user-management-page .member-card .e5c-card-actions {
+    grid-column: 1 / -1;
+    grid-row: auto;
+  }
+
+  .user-management-page .e5c-toolbar {
+    grid-template-columns: minmax(0, 1fr) minmax(7.5rem, 0.8fr);
+  }
+
+  .user-management-page .e5c-toolbar .search-field {
+    grid-column: 1 / -1;
+  }
+
+  .user-management-page .e5c-template-panel label {
+    grid-template-columns: 1fr;
+  }
+
+  .user-management-page .e5c-member-details {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .user-management-page .e5c-card-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .user-management-page .e5c-card-actions .secondary-button {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 430px) {
+  .user-management-page .member-card {
+    grid-template-columns: 1fr;
+  }
+
+  .user-management-page .member-card .member-primary,
+  .user-management-page .member-card .member-badges {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .user-management-page .e5c-toolbar,
+  .user-management-page .e5c-member-details,
+  .user-management-page .e5c-card-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .user-management-page .e5c-audit-log li div {
+    display: grid;
+  }
+}

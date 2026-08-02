@@ -67,6 +67,22 @@ test.describe("Schreibende Kernabläufe in isolierter Supabase-Umgebung", () => 
 
     await page.getByRole("tab", { name: /Trainer/ }).click();
     await expect(page.getByRole("heading", { name: trainerFullName(), exact: true })).toBeVisible();
+
+    await page.goto("/module/user_management");
+    await expect(page.getByRole("heading", { name: "Benutzerverwaltung", exact: true })).toBeVisible();
+    const parentCard = page.locator(".member-card").filter({ hasText: "E2E Elternteil" });
+    await parentCard.getByRole("button", { name: "Bearbeiten", exact: true }).click();
+    const memberEditor = page.locator(".management-editor");
+    await expect(memberEditor.getByLabel("Rechtevorlage")).toBeEnabled({ timeout: 15_000 });
+    await memberEditor.getByLabel("Rechtevorlage").selectOption("parent");
+    await memberEditor.getByRole("button", { name: "Änderungen speichern", exact: true }).click();
+    await expect(page.getByText("Die Benutzerdaten wurden gespeichert.", { exact: true })).toBeVisible({ timeout: 15_000 });
+
+    await parentCard.getByRole("button", { name: "Bearbeiten", exact: true }).click();
+    await expect(memberEditor.getByText("Änderungsprotokoll", { exact: true })).toBeVisible({ timeout: 15_000 });
+    await memberEditor.getByText("Änderungsprotokoll", { exact: true }).click();
+    await expect(memberEditor.getByText("Rolle, Status oder Rechte geändert", { exact: true })).toBeVisible();
+    await memberEditor.getByRole("button", { name: "Abbrechen", exact: true }).click();
     await expectNoAppError(page);
   });
 

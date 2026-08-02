@@ -10,7 +10,9 @@ export type CollaborationRealtimeTable =
   | "training_blocks"
   | "training_block_user_favorites"
   | "athlete_training_plans"
-  | "athlete_training_sessions";
+  | "athlete_training_sessions"
+  | "organization_members"
+  | "audit_log";
 
 export type CollaborationRealtimeChange = {
   table: CollaborationRealtimeTable;

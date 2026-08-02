@@ -6,7 +6,7 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[];
 
-// Aus den versionierten Supabase-Migrationen 001–032 abgeleitet.
+// Aus den versionierten Supabase-Migrationen 001–034 abgeleitet.
 // Nach einem lokalen `supabase db reset` kann die Datei mit
 // `npm run supabase:types:local` gegen die echte Datenbank neu erzeugt werden.
 export type Database = {
@@ -1121,6 +1121,8 @@ export type Database = {
           role: Database["public"]["Enums"]["app_role"];
           status: Database["public"]["Enums"]["membership_status"];
           created_by: string | null;
+          invitation_last_sent_at: string | null;
+          invitation_send_count: number;
           created_at: string;
           updated_at: string;
         };
@@ -1131,6 +1133,8 @@ export type Database = {
           role?: Database["public"]["Enums"]["app_role"];
           status?: Database["public"]["Enums"]["membership_status"];
           created_by?: string | null;
+          invitation_last_sent_at?: string | null;
+          invitation_send_count?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -1141,6 +1145,8 @@ export type Database = {
           role?: Database["public"]["Enums"]["app_role"];
           status?: Database["public"]["Enums"]["membership_status"];
           created_by?: string | null;
+          invitation_last_sent_at?: string | null;
+          invitation_send_count?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -1896,6 +1902,10 @@ export type Database = {
         };
         Returns: Json;
       };
+      audit_member_link_change: {
+        Args: Record<PropertyKey, never>;
+        Returns: unknown;
+      };
       acquire_edit_lock: {
         Args: {
           p_organization_id: string;
@@ -1928,6 +1938,50 @@ export type Database = {
           permissions: Json;
         }>;
       };
+      admin_member_overview_v2: {
+        Args: {
+          p_organization_id: string;
+        };
+        Returns: Array<{
+          membership_id: string;
+          user_id: string;
+          email: string;
+          display_name: string;
+          role: Database["public"]["Enums"]["app_role"];
+          status: Database["public"]["Enums"]["membership_status"];
+          email_confirmed_at: string | null;
+          last_sign_in_at: string | null;
+          created_at: string;
+          updated_at: string;
+          invitation_last_sent_at: string | null;
+          invitation_send_count: number;
+          linked_athlete_id: string | null;
+          linked_athlete_name: string | null;
+          linked_trainer_id: string | null;
+          linked_trainer_name: string | null;
+          permissions: Json;
+        }>;
+      };
+      admin_member_link_options: {
+        Args: {
+          p_organization_id: string;
+        };
+        Returns: Json;
+      };
+      admin_member_audit_overview: {
+        Args: {
+          p_organization_id: string;
+          p_membership_id: string;
+        };
+        Returns: Array<{
+          audit_id: number;
+          actor_display_name: string;
+          action: string;
+          before_data: Json | null;
+          after_data: Json | null;
+          created_at: string;
+        }>;
+      };
       admin_update_organization_member: {
         Args: {
           p_organization_id: string;
@@ -1938,6 +1992,36 @@ export type Database = {
           p_permissions: Json;
         };
         Returns: undefined;
+      };
+      admin_member_invitation_target: {
+        Args: {
+          p_organization_id: string;
+          p_membership_id: string;
+          p_actor_user_id: string;
+        };
+        Returns: Array<{
+          user_id: string;
+          email: string;
+          status: Database["public"]["Enums"]["membership_status"];
+          email_confirmed_at: string | null;
+          invitation_last_sent_at: string | null;
+          invitation_send_count: number;
+        }>;
+      };
+      admin_update_organization_member_v2: {
+        Args: {
+          p_organization_id: string;
+          p_membership_id: string;
+          p_display_name: string;
+          p_role: Database["public"]["Enums"]["app_role"];
+          p_status: Database["public"]["Enums"]["membership_status"];
+          p_permissions: Json;
+          p_linked_athlete_id: string | null;
+          p_linked_trainer_id: string | null;
+          p_lock_token: string;
+          p_expected_updated_at: string;
+        };
+        Returns: Json;
       };
       apply_athlete_import_v1: {
         Args: {
@@ -2461,6 +2545,28 @@ export type Database = {
           p_created_by: string;
         };
         Returns: string;
+      };
+      provision_organization_member_v2: {
+        Args: {
+          p_organization_id: string;
+          p_user_id: string;
+          p_display_name: string;
+          p_role: Database["public"]["Enums"]["app_role"];
+          p_status: Database["public"]["Enums"]["membership_status"];
+          p_permissions: Json;
+          p_created_by: string;
+          p_invitation_sent_at?: string | null;
+        };
+        Returns: string;
+      };
+      record_member_invitation_sent: {
+        Args: {
+          p_organization_id: string;
+          p_membership_id: string;
+          p_actor_user_id: string;
+          p_is_resend?: boolean;
+        };
+        Returns: Json;
       };
       release_edit_lock: {
         Args: {
