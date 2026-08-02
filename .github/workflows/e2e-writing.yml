@@ -74,8 +74,11 @@ jobs:
           supabase start
           -x studio,imgproxy,mailpit,edge-runtime,logflare,vector,supavisor
 
-      - name: Datenbank aus Migrationen neu aufbauen
-        run: supabase db reset
+      # supabase start applies all migrations before Realtime is started.
+      # A second db reset here recreated Postgres while Realtime was already connected
+      # and made the Postgres-Changes E2E test unreliable.
+      - name: Lokalen Migrationsstand anzeigen
+        run: supabase migration list --local
 
       - name: Lokale Supabase-Zugangsdaten bereitstellen
         shell: bash
