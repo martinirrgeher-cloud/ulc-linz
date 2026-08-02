@@ -70,6 +70,23 @@ for (const relativePath of requiredFiles) {
   await requireNonEmpty(relativePath);
 }
 
+async function optionalFileSize(relativePath) {
+  try {
+    const fileStat = await stat(safeResolve(relativePath));
+    return fileStat.isFile() ? fileStat.size : 0;
+  } catch (error) {
+    if (error?.code === "ENOENT") return 0;
+    throw error;
+  }
+}
+
+const historySchemaSize = await optionalFileSize("database/history_schema.sql");
+const historyDataSize = await optionalFileSize("database/history_data.sql");
+if ((historySchemaSize > 0) !== (historyDataSize > 0)) {
+  throw new Error("Der Export der Supabase-Migrationshistorie ist unvollständig.");
+}
+const migrationHistoryExport = historySchemaSize > 0 && historyDataSize > 0;
+
 const migrationDirectory = safeResolve("project/migrations");
 const migrationEntries = await readdir(migrationDirectory, { withFileTypes: true });
 const migrationCount = migrationEntries.filter((entry) => entry.isFile() && entry.name.endsWith(".sql")).length;
@@ -190,6 +207,7 @@ const summary = {
   storageBuckets: manifest.buckets.length,
   storageFiles: storageFileCount,
   storageBytes,
+  migrationHistoryExport,
 };
 
 if (jsonOutputPath) {

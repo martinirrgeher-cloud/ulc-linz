@@ -9,8 +9,7 @@ function requiredEnvironment(name) {
   return value;
 }
 
-const fullDatabaseUrl = requiredEnvironment("FULL_RESTORE_DB_URL");
-const portableDatabaseUrl = requiredEnvironment("PORTABLE_RESTORE_DB_URL");
+const restoreDatabaseUrl = requiredEnvironment("RESTORE_DB_URL");
 const backupRoot = path.resolve(requiredEnvironment("BACKUP_ROOT"));
 const outputJson = path.resolve(process.env.RESTORE_REPORT_JSON ?? "restore-report.json");
 const outputMarkdown = path.resolve(process.env.RESTORE_REPORT_MARKDOWN ?? "restore-report.md");
@@ -18,12 +17,12 @@ const backupFile = process.env.BACKUP_FILE?.trim() || "unbekannt";
 const encryptedSha256 = process.env.BACKUP_ENCRYPTED_SHA256?.trim() || "unbekannt";
 const encryptedBytes = Number(process.env.BACKUP_ENCRYPTED_BYTES ?? 0);
 const dumpCatalogEntries = Number(process.env.DUMP_CATALOG_ENTRIES ?? 0);
+const migrationHistoryRestored = process.env.MIGRATION_HISTORY_RESTORED === "true";
 
-const requiredFullTables = [
+const requiredTables = [
   "auth.users",
   "storage.buckets",
   "storage.objects",
-  "supabase_migrations.schema_migrations",
   "public.organizations",
   "public.organization_members",
   "public.athletes",
@@ -34,8 +33,6 @@ const requiredFullTables = [
   "public.training_sessions",
   "public.edit_locks",
 ];
-
-const requiredPortableTables = requiredFullTables.filter((table) => table.startsWith("public."));
 
 function queryDatabase(databaseUrl) {
   const sql = String.raw`
@@ -146,9 +143,9 @@ select jsonb_build_object(
   return JSON.parse(output);
 }
 
-function missingTables(report, requiredTables) {
+function missingTables(report, required) {
   const existing = new Set(Object.keys(report.tableCounts ?? {}));
-  return requiredTables.filter((table) => !existing.has(table));
+  return required.filter((table) => !existing.has(table));
 }
 
 function numberValue(report, table) {
@@ -176,34 +173,27 @@ const manifestBytes = manifestBuckets.reduce(
   0,
 );
 
-const full = queryDatabase(fullDatabaseUrl);
-const portable = queryDatabase(portableDatabaseUrl);
-const missingFull = missingTables(full, requiredFullTables);
-const missingPortable = missingTables(portable, requiredPortableTables);
-
+const restored = queryDatabase(restoreDatabaseUrl);
+const missing = missingTables(restored, requiredTables);
 const keyCounts = {
-  organizations: numberValue(full, "public.organizations"),
-  organizationMembers: numberValue(full, "public.organization_members"),
-  authUsers: numberValue(full, "auth.users"),
-  athletes: numberValue(full, "public.athletes"),
-  trainers: numberValue(full, "public.trainers"),
-  trainingGroups: numberValue(full, "public.training_groups"),
-  exercises: numberValue(full, "public.exercises"),
-  trainingBlocks: numberValue(full, "public.training_blocks"),
-  trainingSessions: numberValue(full, "public.training_sessions"),
-  storageObjectsMetadata: numberValue(full, "storage.objects"),
+  organizations: numberValue(restored, "public.organizations"),
+  organizationMembers: numberValue(restored, "public.organization_members"),
+  authUsers: numberValue(restored, "auth.users"),
+  athletes: numberValue(restored, "public.athletes"),
+  trainers: numberValue(restored, "public.trainers"),
+  trainingGroups: numberValue(restored, "public.training_groups"),
+  exercises: numberValue(restored, "public.exercises"),
+  trainingBlocks: numberValue(restored, "public.training_blocks"),
+  trainingSessions: numberValue(restored, "public.training_sessions"),
+  storageObjectsMetadata: numberValue(restored, "storage.objects"),
 };
 
 const warnings = [];
-for (const table of requiredPortableTables) {
-  const fullCount = numberValue(full, table);
-  const portableCount = numberValue(portable, table);
-  if (fullCount !== portableCount) {
-    warnings.push(
-      `${table}: Vollauszug=${fullCount}, portabler Export=${portableCount}. `
-      + "Die Exporte wurden nacheinander aus einem laufenden System erzeugt.",
-    );
-  }
+if (!migrationHistoryRestored) {
+  warnings.push(
+    "Dieses ältere Backup enthält noch keinen separaten Export der Supabase-Migrationshistorie. "
+    + "Der Projektstand wird daher anhand der im Archiv enthaltenen Migrationsdateien dokumentiert.",
+  );
 }
 if (keyCounts.storageObjectsMetadata !== manifestFiles) {
   warnings.push(
@@ -213,15 +203,16 @@ if (keyCounts.storageObjectsMetadata !== manifestFiles) {
 }
 
 const failures = [];
-if (missingFull.length > 0) failures.push(`Fehlende Tabellen im Vollauszug: ${missingFull.join(", ")}`);
-if (missingPortable.length > 0) failures.push(`Fehlende Tabellen im portablen Export: ${missingPortable.join(", ")}`);
-if (full.latestMigration !== expectedMigration) {
-  failures.push(`Migrationsstand stimmt nicht: Dump=${full.latestMigration ?? "fehlt"}, Backup=${expectedMigration}`);
+if (missing.length > 0) failures.push(`Fehlende Tabellen nach dem Restore: ${missing.join(", ")}`);
+if (migrationHistoryRestored && restored.latestMigration !== expectedMigration) {
+  failures.push(
+    `Migrationsstand stimmt nicht: Restore=${restored.latestMigration ?? "fehlt"}, Backup=${expectedMigration}`,
+  );
 }
-if (keyCounts.organizations < 1) failures.push("Der Vollauszug enthält keine Organisation.");
-if (keyCounts.organizationMembers < 1) failures.push("Der Vollauszug enthält keine Organisationsmitgliedschaft.");
-if (keyCounts.authUsers < 1) failures.push("Der Vollauszug enthält keinen Auth-Benutzer.");
-if (dumpCatalogEntries < 1) failures.push("Der PostgreSQL-Dump-Katalog ist leer.");
+if (keyCounts.organizations < 1) failures.push("Der Restore enthält keine Organisation.");
+if (keyCounts.organizationMembers < 1) failures.push("Der Restore enthält keine Organisationsmitgliedschaft.");
+if (keyCounts.authUsers < 1) failures.push("Der Restore enthält keinen Auth-Benutzer.");
+if (dumpCatalogEntries < 1) failures.push("Der Katalog des zusätzlichen PostgreSQL-Rohdumps ist leer.");
 
 const report = {
   createdAt: new Date().toISOString(),
@@ -230,11 +221,11 @@ const report = {
     sha256: encryptedSha256,
     bytes: encryptedBytes,
   },
-  dumpCatalogEntries,
+  rawDumpCatalogEntries: dumpCatalogEntries,
   expectedMigration,
   migrationFiles: migrationFiles.length,
-  fullRestore: full,
-  portableRestore: portable,
+  migrationHistoryRestored,
+  logicalRestore: restored,
   keyCounts,
   storageManifest: {
     buckets: manifestBuckets.length,
@@ -253,28 +244,23 @@ const markdown = [
   `- Ergebnis: **${report.status === "success" ? "erfolgreich" : "fehlgeschlagen"}**`,
   `- Verschlüsseltes Archiv: ${encryptedBytes} Byte`,
   `- SHA-256: \`${encryptedSha256}\``,
-  `- Dump-Katalogeinträge: ${dumpCatalogEntries}`,
+  `- Katalogeinträge im zusätzlichen Rohdump: ${dumpCatalogEntries}`,
   `- Migrationen im Backup: ${migrationFiles.length}`,
-  `- Neueste Migration: \`${expectedMigration}\``,
+  `- Neueste Projektmigration: \`${expectedMigration}\``,
+  `- Migrationshistorie separat wiederhergestellt: ${migrationHistoryRestored ? "ja" : "nein"}`,
   "",
-  "## Vollständiger PostgreSQL-Auszug",
+  "## Logischer Supabase-Restore",
   "",
-  `- Tabellen: ${full.tables}`,
-  `- Public-Tabellen: ${full.publicTables}`,
-  `- Public-Tabellen mit RLS: ${full.publicRlsTables}`,
-  `- Funktionen: ${full.functions}`,
-  `- Trigger: ${full.triggers}`,
+  `- Tabellen: ${restored.tables}`,
+  `- Public-Tabellen: ${restored.publicTables}`,
+  `- Public-Tabellen mit RLS: ${restored.publicRlsTables}`,
+  `- Funktionen: ${restored.functions}`,
+  `- Trigger: ${restored.triggers}`,
   `- Organisationen: ${keyCounts.organizations}`,
   `- Mitglieder: ${keyCounts.organizationMembers}`,
   `- Auth-Benutzer: ${keyCounts.authUsers}`,
   `- Athleten: ${keyCounts.athletes}`,
   `- Trainer: ${keyCounts.trainers}`,
-  "",
-  "## Portabler Schema-/Datenexport",
-  "",
-  `- Tabellen: ${portable.tables}`,
-  `- Public-Tabellen: ${portable.publicTables}`,
-  `- Public-Tabellen mit RLS: ${portable.publicRlsTables}`,
   "",
   "## Storage-Manifest",
   "",

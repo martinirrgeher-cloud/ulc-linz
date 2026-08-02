@@ -83,9 +83,22 @@ jobs:
         run: supabase db dump --db-url "$SUPABASE_DB_URL" -f backup/database/schema.sql
 
       - name: Datenbankinhalt sichern
-        run: supabase db dump --db-url "$SUPABASE_DB_URL" -f backup/database/data.sql --data-only --use-copy
+        run: >-
+          supabase db dump --db-url "$SUPABASE_DB_URL"
+          -f backup/database/data.sql
+          --data-only
+          --use-copy
+          -x "storage.buckets_vectors"
+          -x "storage.vector_indexes"
 
-      - name: Vollständigen PostgreSQL-Notfallauszug erstellen
+      - name: Migrationshistorie separat sichern
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase db dump --db-url "$SUPABASE_DB_URL" -f backup/database/history_schema.sql --schema supabase_migrations
+          supabase db dump --db-url "$SUPABASE_DB_URL" -f backup/database/history_data.sql --data-only --use-copy --schema supabase_migrations
+
+      - name: Zusätzlichen PostgreSQL-Rohdump für Kataloganalyse erstellen
         shell: bash
         run: |
           set -euo pipefail
@@ -105,11 +118,11 @@ jobs:
         run: |
           set -euo pipefail
           cat > backup/RESTORE-HINWEIS.txt <<'NOTICE'
-          Dieses Archiv enthält portable SQL-Exporte, einen zusätzlichen PostgreSQL-
-          Vollauszug inklusive Auth- und Storage-Metadaten sowie sämtliche tatsächlichen
-          Supabase-Storage-Dateien. Vor einer Wiederherstellung zuerst die zum Archiv
-          gehörenden Migrationen und die Supabase-Dokumentation prüfen. Niemals ungeprüft
-          in die produktive Datenbank einspielen.
+          Dieses Archiv enthält den mit der Supabase CLI erzeugten logischen Export,
+          eine separate Migrationshistorie, einen zusätzlichen PostgreSQL-Rohdump zur
+          Katalog- und Einzelobjektanalyse sowie sämtliche tatsächlichen Storage-Dateien.
+          Der Rohdump enthält Supabase-interne Objekte und ist nicht für ein ungefiltertes
+          pg_restore vorgesehen. Niemals ungeprüft in die Produktivdatenbank einspielen.
           NOTICE
           (
             cd backup

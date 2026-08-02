@@ -123,35 +123,61 @@ jobs:
           node scripts/verify-backup-archive.mjs \
             restore/extracted/backup \
             --json=restore/report/archive-verification.json
+
           entries="$(docker run --rm \
             -v "$PWD/restore/extracted/backup/database:/backup:ro" \
             postgres:17-alpine \
             pg_restore --list /backup/full-database.dump \
             | grep -cve '^;' || true)"
           if [ "${entries:-0}" -le 0 ]; then
-            echo "Der PostgreSQL-Dump-Katalog ist leer." >&2
+            echo "Der zusätzliche PostgreSQL-Rohdump besitzt keinen lesbaren Katalog." >&2
             exit 1
           fi
-          echo "$entries" > restore/report/pg-restore-entry-count.txt
-          echo "catalog_entries=$entries" >> "$GITHUB_OUTPUT"
 
-      - name: Isolierte lokale Supabase-Umgebung starten
+          history_export=false
+          history_schema="restore/extracted/backup/database/history_schema.sql"
+          history_data="restore/extracted/backup/database/history_data.sql"
+          if [ -e "$history_schema" ] || [ -e "$history_data" ]; then
+            if [ ! -s "$history_schema" ] || [ ! -s "$history_data" ]; then
+              echo "Der Migrationshistorien-Export ist unvollständig." >&2
+              exit 1
+            fi
+            history_export=true
+          fi
+
+          echo "$entries" > restore/report/pg-restore-entry-count.txt
+          echo "$history_export" > restore/report/migration-history-export.txt
+          echo "catalog_entries=$entries" >> "$GITHUB_OUTPUT"
+          echo "history_export=$history_export" >> "$GITHUB_OUTPUT"
+
+      - name: Leere isolierte Supabase-Testumgebung starten
         shell: bash
-        env:
-          OPENAI_API_KEY: not-used-in-restore-test
-          SUPABASE_AUTH_SMS_TWILIO_AUTH_TOKEN: not-used-in-restore-test
-          SUPABASE_AUTH_EXTERNAL_APPLE_SECRET: not-used-in-restore-test
-          S3_HOST: not-used-in-restore-test
-          S3_REGION: local
-          S3_ACCESS_KEY: not-used-in-restore-test
-          S3_SECRET_KEY: not-used-in-restore-test
         run: |
           set -euo pipefail
-          supabase start -x studio,imgproxy,mailpit,edge-runtime,logflare,vector,supavisor,realtime
-          supabase status -o env > restore/local-supabase.env
+          mkdir -p restore/local-project
+          supabase init --workdir restore/local-project --force
+          python3 <<'PY'
+          from pathlib import Path
+          import re
+
+          config = Path("restore/local-project/supabase/config.toml")
+          text = config.read_text(encoding="utf-8")
+          text = re.sub(
+              r'(?m)^major_version\s*=\s*\d+\s*$',
+              'major_version = 17',
+              text,
+              count=1,
+          )
+          config.write_text(text, encoding="utf-8")
+          PY
+          supabase start \
+            --workdir restore/local-project \
+            -x studio,imgproxy,mailpit,edge-runtime,logflare,vector,supavisor,realtime
+          supabase status --workdir restore/local-project -o env > restore/local-supabase.env
           test -s restore/local-supabase.env
 
-      - name: Vollauszug und portablen Export in getrennte Datenbanken einspielen
+      - name: Offiziellen logischen Supabase-Export wiederherstellen
+        id: database_restore
         shell: bash
         run: |
           set -euo pipefail
@@ -159,58 +185,54 @@ jobs:
           source restore/local-supabase.env
           set +a
           : "${DB_URL:?DB_URL wurde von Supabase CLI nicht geliefert.}"
-          base_db_url="${DB_URL%/*}"
-          full_db_url="$base_db_url/ulc_restore_full"
-          portable_db_url="$base_db_url/ulc_restore_portable"
-
-          for database in ulc_restore_full ulc_restore_portable; do
-            docker run --rm --network host postgres:17-alpine \
-              psql -X -v ON_ERROR_STOP=1 "$DB_URL" \
-              -c "drop database if exists $database with (force);"
-            docker run --rm --network host postgres:17-alpine \
-              psql -X -v ON_ERROR_STOP=1 "$DB_URL" \
-              -c "create database $database;"
-          done
 
           docker run --rm --network host \
             -v "$PWD/restore/extracted/backup/database:/backup:ro" \
             postgres:17-alpine \
-            pg_restore \
-              --dbname "$full_db_url" \
-              --no-owner \
-              --no-privileges \
-              --exit-on-error \
-              /backup/full-database.dump
+            psql -X \
+              --single-transaction \
+              --variable ON_ERROR_STOP=1 \
+              --file /backup/roles.sql \
+              --file /backup/schema.sql \
+              --command 'SET session_replication_role = replica' \
+              --file /backup/data.sql \
+              "$DB_URL"
 
-          docker run --rm --network host \
-            -v "$PWD/restore/extracted/backup/database:/backup:ro" \
-            postgres:17-alpine \
-            psql -X -v ON_ERROR_STOP=1 "$portable_db_url" -f /backup/schema.sql
-          docker run --rm --network host \
-            -v "$PWD/restore/extracted/backup/database:/backup:ro" \
-            postgres:17-alpine \
-            psql -X -v ON_ERROR_STOP=1 "$portable_db_url" -f /backup/data.sql
+          migration_history_restored=false
+          if [ "${{ steps.archive.outputs.history_export }}" = "true" ]; then
+            docker run --rm --network host \
+              -v "$PWD/restore/extracted/backup/database:/backup:ro" \
+              postgres:17-alpine \
+              psql -X \
+                --single-transaction \
+                --variable ON_ERROR_STOP=1 \
+                --file /backup/history_schema.sql \
+                --file /backup/history_data.sql \
+                "$DB_URL"
+            migration_history_restored=true
+          fi
 
-          cat > restore/database-urls.env <<EOF
-          FULL_RESTORE_DB_URL=$full_db_url
-          PORTABLE_RESTORE_DB_URL=$portable_db_url
+          cat > restore/database-url.env <<EOF
+          RESTORE_DB_URL=$DB_URL
           EOF
-          chmod 600 restore/database-urls.env
+          chmod 600 restore/database-url.env
+          echo "migration_history_restored=$migration_history_restored" >> "$GITHUB_OUTPUT"
 
-      - name: Wiederhergestellte Datenbanken fachlich prüfen
+      - name: Wiederhergestellte Datenbank fachlich prüfen
         shell: bash
         env:
           BACKUP_FILE: ${{ steps.backup.outputs.file }}
           BACKUP_ENCRYPTED_SHA256: ${{ steps.backup.outputs.sha256 }}
           BACKUP_ENCRYPTED_BYTES: ${{ steps.backup.outputs.bytes }}
           DUMP_CATALOG_ENTRIES: ${{ steps.archive.outputs.catalog_entries }}
+          MIGRATION_HISTORY_RESTORED: ${{ steps.database_restore.outputs.migration_history_restored }}
           BACKUP_ROOT: restore/extracted/backup
           RESTORE_REPORT_JSON: restore/report/database-restore-report.json
           RESTORE_REPORT_MARKDOWN: restore/report/database-restore-report.md
         run: |
           set -euo pipefail
           set -a
-          source restore/database-urls.env
+          source restore/database-url.env
           set +a
           node scripts/verify-restored-database.mjs
           cat restore/report/database-restore-report.md >> "$GITHUB_STEP_SUMMARY"
@@ -247,7 +269,7 @@ jobs:
         if: always()
         shell: bash
         run: |
-          supabase stop --no-backup || true
+          supabase stop --workdir restore/local-project --no-backup || true
           rm -rf restore
 
       - name: Ergebnis zusammenfassen
@@ -258,8 +280,9 @@ jobs:
             echo "## E3d Backup-Wiederherstellungsprobe"
             echo ""
             echo "- Backup: ${{ steps.backup.outputs.file || 'nicht ausgewählt' }}"
-            echo "- Vollauszug: isolierte Datenbank ulc_restore_full"
-            echo "- Portabler Export: isolierte Datenbank ulc_restore_portable"
+            echo "- Datenbank: offizieller logischer Supabase-Export in leerer lokaler Testinstanz"
+            echo "- PostgreSQL-Rohdump: Katalog lesbar, nicht direkt eingespielt"
+            echo "- Migrationshistorie eingespielt: ${{ steps.database_restore.outputs.migration_history_restored || 'nein' }}"
             echo "- Storage: lokale Supabase-Storage-Instanz mit SHA-256-Rückprüfung"
             echo "- Produktivsystem verändert: nein"
             echo "- Bericht: GitHub-Artefakt e3d-backup-restore-report-${{ github.run_id }}"

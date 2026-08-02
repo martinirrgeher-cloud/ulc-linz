@@ -140,18 +140,20 @@ test("Wöchentliches Backup ist verschlüsselt und vollständig rückgeprüft", 
   assert.ok(verifyBackupSource.includes("PGDMP"));
 });
 
-test("E3d stellt Vollauszug, portablen Export und Storage isoliert wieder her", () => {
+test("E3d stellt logischen Supabase-Export und Storage isoliert wieder her", () => {
   assert.ok(quarterlyRestoreWorkflowSource.includes('cron: "45 3 1 1,4,7,10 *"'));
-  assert.ok(quarterlyRestoreWorkflowSource.includes("ulc_restore_full"));
-  assert.ok(quarterlyRestoreWorkflowSource.includes("ulc_restore_portable"));
+  assert.ok(quarterlyRestoreWorkflowSource.includes("supabase init --workdir restore/local-project"));
   assert.ok(quarterlyRestoreWorkflowSource.includes("supabase start"));
-  assert.ok(quarterlyRestoreWorkflowSource.includes("pg_restore"));
+  assert.ok(quarterlyRestoreWorkflowSource.includes("pg_restore --list"));
+  assert.ok(quarterlyRestoreWorkflowSource.includes("roles.sql"));
   assert.ok(quarterlyRestoreWorkflowSource.includes("schema.sql"));
   assert.ok(quarterlyRestoreWorkflowSource.includes("data.sql"));
+  assert.ok(quarterlyRestoreWorkflowSource.includes("SET session_replication_role = replica"));
   assert.ok(quarterlyRestoreWorkflowSource.includes("restore-supabase-storage.mjs"));
   assert.ok(quarterlyRestoreWorkflowSource.includes("--verify"));
   assert.ok(quarterlyRestoreWorkflowSource.includes("actions/upload-artifact@v4"));
   assert.doesNotMatch(quarterlyRestoreWorkflowSource, /secrets\.SUPABASE_(?:DB_URL|URL|SERVICE_ROLE_KEY)/);
+  assert.doesNotMatch(quarterlyRestoreWorkflowSource, /ulc_restore_(?:full|portable)/);
   assert.ok(restoreStorageSource.includes("hashRemoteObject"));
   assert.ok(restoreStorageSource.includes("--sync-buckets"));
   assert.ok(restoreStorageSource.includes("--report-json="));
@@ -162,17 +164,20 @@ test("E3d prüft Migrationsstand und zentrale wiederhergestellte Daten", () => {
   for (const marker of [
     "auth.users",
     "storage.objects",
-    "supabase_migrations.schema_migrations",
     "public.organizations",
     "public.organization_members",
     "expectedMigration",
-    "portableRestore",
+    "migrationHistoryRestored",
+    "logicalRestore",
+    "rawDumpCatalogEntries",
   ]) {
     assert.ok(restoredDatabaseVerifierSource.includes(marker), `E3d-Prüfung fehlt: ${marker}`);
   }
   assert.ok(backupRestoreCheckerSource.includes("secrets.SUPABASE_DB_URL"));
   assert.ok(backupRestoreCheckerSource.includes("actions/upload-artifact@v4"));
   assert.ok(quarterlyRestoreWorkflowSource.includes("database-restore-report.md"));
+  assert.ok(backupWorkflowSource.includes("history_schema.sql"));
+  assert.ok(backupWorkflowSource.includes("history_data.sql"));
 });
 
 const trainingDocumentationPageSource = await readFile(new URL("../src/pages/TrainingDocumentationPage.tsx", import.meta.url), "utf8");

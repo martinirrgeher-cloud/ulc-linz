@@ -2,31 +2,45 @@
 
 ## Ziel
 
-Ein vorhandenes verschlüsseltes Google-Drive-Backup wird nicht nur entpackt, sondern vollständig in isolierte Testziele zurückgespielt und fachlich geprüft.
+Ein vorhandenes verschlüsseltes Google-Drive-Backup wird vollständig in eine leere,
+isolierte lokale Supabase-Instanz zurückgespielt und fachlich geprüft.
+
+## Korrigierter Wiederherstellungsweg
+
+Der Wiederherstellungstest verwendet `roles.sql`, `schema.sql` und `data.sql`, die
+mit `supabase db dump` erzeugt wurden. Das ist der von Supabase vorgesehene logische
+Restore-Weg. Der zusätzliche `full-database.dump` wird weiterhin auf Lesbarkeit und
+Katalogumfang geprüft, aber nicht ungefiltert eingespielt, weil ein roher `pg_dump`
+Supabase-interne Schemas enthält.
 
 ## Testumfang
 
 1. Neueste oder manuell ausgewählte Backup-Datei aus Google Drive laden.
-2. SHA-256 des verschlüsselten Archivs protokollieren.
-3. Mit dem vorhandenen Backup-Passwort entschlüsseln.
-4. TAR-Inhalt, Pflichtdateien und sämtliche internen Prüfsummen kontrollieren.
-5. PostgreSQL-Custom-Dump-Katalog mit `pg_restore --list` prüfen.
-6. Vollauszug in `ulc_restore_full` wiederherstellen.
-7. Portables Schema und Daten in `ulc_restore_portable` wiederherstellen.
-8. Kernschemas, Kerntabellen, RLS, Funktionen, Trigger und Migrationsstand prüfen.
-9. Organisationen, Mitgliedschaften und Auth-Benutzer als Mindestdatenbestand prüfen.
-10. Alle Storage-Dateien in die lokale Supabase-Instanz hochladen und erneut per SHA-256 vergleichen.
-11. Bericht als GitHub-Artefakt speichern.
-12. Lokale Supabase-Umgebung und entschlüsselte Dateien löschen.
+2. Verschlüsseltes Archiv per SHA-256 protokollieren und entschlüsseln.
+3. TAR-Struktur, Pflichtdateien und interne Prüfsummen kontrollieren.
+4. Katalog des zusätzlichen PostgreSQL-Rohdumps mit `pg_restore --list` prüfen.
+5. Eine eigene leere lokale Supabase-Instanz ohne Projektmigrationen starten.
+6. Rollen, logisches Schema und Daten in einer Transaktion wiederherstellen.
+7. Falls vorhanden, die separat gesicherte Supabase-Migrationshistorie einspielen.
+8. Auth-Benutzer, Storage-Metadaten, Public-Tabellen, RLS, Funktionen und Trigger prüfen.
+9. Alle tatsächlichen Storage-Dateien lokal hochladen und per SHA-256 rückprüfen.
+10. Datensparsamen Bericht als GitHub-Artefakt speichern.
+11. Lokale Testumgebung und entschlüsselte Dateien vollständig löschen.
+
+## Alte und neue Backups
+
+Backups vor dieser Korrektur enthalten noch keine Dateien `history_schema.sql` und
+`history_data.sql`. Sie werden trotzdem vollständig wiederhergestellt; der Bericht
+weist lediglich darauf hin, dass der Datenbankeintrag der Migrationshistorie nicht
+separat geprüft werden konnte. Neue Wochenbackups enthalten diese beiden Dateien.
 
 ## Sicherheit
 
-Der Workflow enthält keine Produktiv-URL, keinen produktiven Datenbankzugang und keinen Service-Role-Key des Produktivprojekts. Er nutzt nur die bestehenden Secrets für Google Drive und die Backup-Entschlüsselung.
+Der Workflow verwendet keine Produktiv-URL, keinen Produktiv-Datenbankzugang und
+keinen Service-Role-Key des Produktivprojekts. Er nutzt nur die bestehenden Secrets
+für Google Drive und die Entschlüsselung.
 
 ## Start
 
-GitHub → Actions → **E3d Backup-Wiederherstellungsprobe** → **Run workflow**. Das Feld `backup_file` kann leer bleiben; dann wird das neueste Backup ausgewählt.
-
-## Ergebnis
-
-Bei Erfolg ist der Lauf grün und enthält das Artefakt `e3d-backup-restore-report-<Laufnummer>`. Der wichtigste Inhalt ist `database-restore-report.md`.
+GitHub → Actions → **E3d Backup-Wiederherstellungsprobe** → **Run workflow**.
+Das Feld `backup_file` kann leer bleiben; dann wird das neueste Backup ausgewählt.

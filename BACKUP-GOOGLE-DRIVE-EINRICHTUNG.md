@@ -3,8 +3,9 @@
 Die GitHub Action `.github/workflows/weekly-encrypted-backup.yml` läuft jeden Montag um 02:15 UTC und kann zusätzlich manuell gestartet werden. Sie sichert:
 
 - Datenbankrollen
-- portables Schema und Daten der anwendungseigenen Datenbankbereiche
-- zusätzlichen PostgreSQL-Vollauszug inklusive Auth- und Storage-Metadaten
+- portables Schema und Daten einschließlich Auth- und Storage-Daten
+- separate Supabase-Migrationshistorie
+- zusätzlichen PostgreSQL-Rohdump zur Katalog- und Einzelobjektanalyse
 - alle Supabase-Storage-Buckets samt tatsächlichen Dateien
 - die zum Stand gehörenden Migrationen
 
@@ -17,7 +18,7 @@ Ein Backup gilt erst als erfolgreich, wenn alle folgenden Prüfungen bestanden w
 1. Alle Dateien sind in `SHA256SUMS` erfasst und stimmen mit ihren Prüfsummen überein.
 2. Pflichtdateien, Migrationen und Storage-Manifest sind vorhanden.
 3. Jede Storage-Datei stimmt mit Größe und SHA-256-Wert im Storage-Manifest überein.
-4. Der PostgreSQL-Vollauszug besitzt ein gültiges Custom-Dump-Format.
+4. Der zusätzliche PostgreSQL-Rohdump besitzt ein gültiges Custom-Dump-Format.
 5. Das verschlüsselte Archiv lässt sich direkt nach der Erstellung wieder entschlüsseln.
 6. Die nach Google Drive hochgeladene Datei wird zurückgeladen, mit dem lokalen verschlüsselten Archiv verglichen, erneut entschlüsselt und vollständig geprüft.
 7. Erst danach werden Google-Drive-Backups gelöscht, die älter als zwölf Wochen sind.
@@ -26,11 +27,11 @@ Ein Backup gilt erst als erfolgreich, wenn alle folgenden Prüfungen bestanden w
 
 Die GitHub Action `.github/workflows/quarterly-backup-restore-test.yml` läuft am 1. Jänner, April, Juli und Oktober um 03:45 UTC und kann jederzeit manuell gestartet werden.
 
-Sie verwendet standardmäßig das neueste Backup aus Google Drive und führt drei voneinander getrennte Wiederherstellungen durch:
+Sie verwendet standardmäßig das neueste Backup aus Google Drive und prüft drei voneinander getrennte Bestandteile:
 
-- `full-database.dump` in die isolierte Datenbank `ulc_restore_full`
-- `schema.sql` und `data.sql` in die isolierte Datenbank `ulc_restore_portable`
-- sämtliche tatsächlichen Storage-Dateien in die lokale Supabase-Storage-Instanz
+- `roles.sql`, `schema.sql` und `data.sql` werden in eine eigens erzeugte leere lokale Supabase-Instanz eingespielt
+- `full-database.dump` wird als zusätzlicher Rohdump auf Katalog und Lesbarkeit geprüft, aber nicht ungefiltert wiederhergestellt
+- sämtliche tatsächlichen Storage-Dateien werden in die lokale Supabase-Storage-Instanz eingespielt
 
 Geprüft werden unter anderem:
 
@@ -38,7 +39,7 @@ Geprüft werden unter anderem:
 - Lesbarkeit und Umfang des PostgreSQL-Dump-Katalogs
 - vorhandene Kernschemas und Kerntabellen
 - Organisationen, Mitgliedschaften und Auth-Benutzer
-- neueste Migration im Dump gegenüber den Migrationen im Backup
+- neueste Migration gegenüber den Migrationen im Backup, sofern der separate Historienexport vorhanden ist
 - Tabellen- und RLS-Struktur
 - Bucket-Einstellungen sowie Größe und SHA-256 jeder wiederhergestellten Storage-Datei
 
@@ -146,10 +147,11 @@ tar.exe -xzf .\ULC-Linz-App-Backup.tar.gz
 node .\scripts\verify-backup-archive.mjs .\backup
 ```
 
-Der Ordner enthält zwei Datenbankvarianten:
+Der Ordner enthält:
 
-- `roles.sql`, `schema.sql` und `data.sql` für eine portable Wiederherstellung der anwendungseigenen Bereiche
-- `full-database.dump` als vollständigen Notfallauszug einschließlich Auth- und Storage-Metadaten
+- `roles.sql`, `schema.sql` und `data.sql` für den offiziellen logischen Supabase-Restore
+- bei neuen Backups `history_schema.sql` und `history_data.sql` für die Migrationshistorie
+- `full-database.dump` als zusätzlichen Rohdump für Katalog- und gezielte Einzelobjektanalyse; er enthält Supabase-interne Objekte und darf nicht ungefiltert eingespielt werden
 
 Die tatsächlichen Dateien aus Supabase Storage befinden sich unter `storage/`. Das Manifest `storage/storage-manifest.json` dokumentiert Buckets, Objektpfade, Dateigrößen und SHA-256-Prüfsummen.
 
