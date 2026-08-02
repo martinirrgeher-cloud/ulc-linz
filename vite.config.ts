@@ -31,6 +31,9 @@ const appBuildTime = new Date().toISOString();
 
 export default defineConfig({
   plugins: [react()],
+  build: {
+    manifest: true,
+  },
   define: {
     __APP_VERSION__: JSON.stringify(appVersion),
     __APP_COMMIT__: JSON.stringify(appCommit),

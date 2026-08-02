@@ -7,6 +7,8 @@ const migration = await readFile(migrationPath, "utf8");
 const packageSource = await readFile(path.resolve("package.json"), "utf8");
 const exercisePage = await readFile(path.resolve("src/pages/ExerciseCatalogPage.tsx"), "utf8");
 const exerciseEditor = await readFile(path.resolve("src/features/exercise-catalog/ExerciseEditor.tsx"), "utf8");
+const exerciseApi = await readFile(path.resolve("src/features/exercise-catalog/api.ts"), "utf8");
+const exerciseVideoPanel = await readFile(path.resolve("src/features/exercise-catalog/ExerciseVideoPanel.tsx"), "utf8");
 const trainingBlocksPage = await readFile(path.resolve("src/pages/TrainingBlocksPage.tsx"), "utf8");
 const trainingBlockEditor = await readFile(path.resolve("src/features/training-blocks/TrainingBlockEditor.tsx"), "utf8");
 const databaseTest = await readFile(path.resolve("supabase/tests/database/50_catalog_block_intelligence.test.sql"), "utf8");
@@ -68,4 +70,19 @@ await collect(path.resolve("src"));
 const changedCssMarkers = sourceFiles.filter((file) => file.endsWith(".css"));
 assert.ok(changedCssMarkers.length > 0, "Projekt-CSS konnte nicht gefunden werden.");
 
-console.log("E5a/E5b-Strukturprüfung erfolgreich: Katalog, Blöcke, Migration und Tests sind vollständig verknüpft.");
+
+assert.ok(exerciseApi.includes("signUrls = false"), "Video-Metadaten muessen standardmaessig ohne signierte URLs geladen werden.");
+assert.ok(
+  exerciseApi.includes("loadExerciseVideoRows(organizationId, exerciseId, true)"),
+  "Signierte Video-URLs muessen gezielt je Uebung geladen werden.",
+);
+assert.ok(
+  exerciseVideoPanel.includes("loadExerciseVideosForExercise(organizationId, exerciseId)"),
+  "Das Video-Panel muss die signierten URLs erst beim Oeffnen laden.",
+);
+assert.ok(
+  exerciseVideoPanel.includes("setLoadingVideos(true)"),
+  "Das Video-Panel muss den bedarfsgesteuerten Ladevorgang absichern.",
+);
+
+console.log("E5a/E5b/P1a-Strukturprüfung erfolgreich: Katalog, Blöcke, Lazy-Video-URLs, Migration und Tests sind vollständig verknüpft.");
