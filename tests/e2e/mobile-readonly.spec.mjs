@@ -163,7 +163,11 @@ test.describe("Authentifizierte, nicht schreibende Modulprüfungen", () => {
 
     await page.goto("/module/training_planning");
     await expect(page.getByRole("heading", { name: "Athletenpläne" })).toBeVisible();
-    await page.getByLabel("Athlet").selectOption(E2E_IDS.athlete);
+    const athleteSelect = page
+      .getByRole("region", { name: "Trainingstag und Athlet auswählen", exact: true })
+      .locator("select")
+      .nth(1);
+    await athleteSelect.selectOption(E2E_IDS.athlete);
     await expect(page.getByRole("heading", { name: "Anna Testathletin" })).toBeVisible();
     await page.getByRole("button", { name: "Block", exact: true }).click();
     await page.getByRole("button", { name: /Sprinttechnik mit koordinativem Schwerpunkt/ }).click();
