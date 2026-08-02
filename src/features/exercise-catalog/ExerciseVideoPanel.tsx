@@ -22,6 +22,7 @@ import {
 import type { ExerciseVideo } from "@/features/exercise-catalog/types";
 import { isResumableUploadPausedError } from "@/lib/resumable-upload";
 
+import { diagnosticErrorMessage } from "@/lib/diagnostics";
 type ExerciseVideoPanelProps = {
   organizationId: string;
   exerciseId: string | null;
@@ -40,7 +41,7 @@ function formatBytes(bytes: number): string {
 }
 
 function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : "Das Video konnte nicht verarbeitet werden.";
+  return diagnosticErrorMessage(error, "Das Video konnte nicht verarbeitet werden.", "exercise_video");
 }
 
 function defaultTitle(fileName: string): string {

@@ -28,11 +28,12 @@ import type {
   ExerciseInput,
 } from "@/features/exercise-catalog/types";
 
+import { diagnosticErrorMessage } from "@/lib/diagnostics";
 type ActivityFilter = "active" | "inactive" | "all";
 type VideoFilter = "all" | "yes" | "no";
 
 function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : "Der Übungskatalog konnte nicht geladen werden.";
+  return diagnosticErrorMessage(error, "Der Übungskatalog konnte nicht geladen werden.", "exercise_catalog");
 }
 
 function hasVideo(exercise: Exercise): boolean {

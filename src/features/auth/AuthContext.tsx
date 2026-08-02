@@ -23,6 +23,7 @@ import type {
   ModulePermission,
 } from "@/types/auth";
 
+import { diagnosticErrorMessage } from "@/lib/diagnostics";
 export type ContextStatus =
   | "idle"
   | "loading"
@@ -55,12 +56,16 @@ export type AuthState = {
 
 const AuthContext = createContext<AuthState | null>(null);
 
-function errorMessage(error: unknown): string {
+function rawErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Ein unbekannter Fehler ist aufgetreten.";
 }
 
+function errorMessage(error: unknown): string {
+  return diagnosticErrorMessage(error, "Ein unbekannter Fehler ist aufgetreten.", "auth");
+}
+
 function isInvalidSessionError(error: unknown): boolean {
-  const message = errorMessage(error).toLocaleLowerCase("de");
+  const message = rawErrorMessage(error).toLocaleLowerCase("de");
   return [
     "jwt expired",
     "invalid jwt",

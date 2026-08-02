@@ -25,6 +25,7 @@ import {
   type TrainingBlockItemInput,
 } from "@/features/training-blocks/types";
 
+import { diagnosticErrorMessage } from "@/lib/diagnostics";
 export type TrainingBlockEditorProps = {
   block: TrainingBlock | null;
   organizationId: string;
@@ -40,7 +41,7 @@ export type TrainingBlockEditorProps = {
 type EditorSection = "basis" | "exercises";
 
 function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : "Der Trainingsblock konnte nicht gespeichert werden.";
+  return diagnosticErrorMessage(error, "Der Trainingsblock konnte nicht gespeichert werden.", "training_block.editor");
 }
 
 export function TrainingBlockEditor({

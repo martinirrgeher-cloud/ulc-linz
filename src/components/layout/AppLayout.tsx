@@ -9,6 +9,7 @@ import { useAuth } from "@/features/auth/AuthContext";
 import { APP_MODULES } from "@/config/modules";
 import { env } from "@/lib/env";
 
+import { copySupportInformation, reportTechnicalError } from "@/lib/diagnostics";
 const roleNames = {
   admin: "Administrator",
   trainer: "Trainer",
@@ -22,6 +23,7 @@ function AppLayoutContent() {
   const navigate = useNavigate();
   const location = useLocation();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [diagnosticsCopied, setDiagnosticsCopied] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
   const displayName =
@@ -67,6 +69,16 @@ function AppLayoutContent() {
     window.setTimeout(() => {
       if (window.location.pathname !== "/") window.location.assign("/");
     }, 150);
+  }
+
+  async function handleCopyDiagnostics() {
+    try {
+      await copySupportInformation();
+      setDiagnosticsCopied(true);
+      window.setTimeout(() => setDiagnosticsCopied(false), 2500);
+    } catch (error) {
+      reportTechnicalError(error, "app_menu.copy_diagnostics");
+    }
   }
 
   async function handleSignOut() {
@@ -119,6 +131,15 @@ function AppLayoutContent() {
                 <div className="app-user-menu-identity">
                   <strong>{displayName}</strong>
                   {role && <small>{roleNames[role]}</small>}
+                  <small>App-Stand: {env.appBuildLabel}</small>
+                  <button
+                    type="button"
+                    className="text-button"
+                    onClick={() => void handleCopyDiagnostics()}
+                    role="menuitem"
+                  >
+                    {diagnosticsCopied ? "Diagnoseinformationen kopiert" : "Diagnoseinformationen kopieren"}
+                  </button>
                 </div>
                 <button
                   type="button"

@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import { AlertTriangle, Save, UserPlus, X } from "lucide-react";
 import type { QuickAthleteResult } from "@/features/kindertraining/types";
 
+import { diagnosticErrorMessage } from "@/lib/diagnostics";
 type QuickAthleteValues = {
   firstName: string;
   lastName: string;
@@ -58,9 +59,11 @@ export function QuickAthleteDialog({
       onCompleted(result);
     } catch (submitError) {
       setError(
-        submitError instanceof Error
-          ? submitError.message
-          : "Das Kind konnte nicht angelegt werden.",
+        diagnosticErrorMessage(
+          submitError,
+          "Das Kind konnte nicht angelegt werden.",
+          "quick_athlete.create",
+        ),
       );
     } finally {
       setSubmitting(false);

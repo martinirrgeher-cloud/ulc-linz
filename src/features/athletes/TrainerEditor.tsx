@@ -2,6 +2,7 @@ import { useState, type FormEvent, type ReactNode } from "react";
 import { Save, X } from "lucide-react";
 import type { LinkableUser, Trainer, TrainerInput, TrainingGroup } from "@/features/athletes/types";
 
+import { diagnosticErrorMessage } from "@/lib/diagnostics";
 export type TrainerEditorMode =
   | { type: "create" }
   | { type: "edit"; trainer: Trainer };
@@ -82,9 +83,7 @@ export function TrainerEditor({
       await onSubmit(values);
     } catch (submitError) {
       setError(
-        submitError instanceof Error
-          ? submitError.message
-          : "Der Trainer konnte nicht gespeichert werden.",
+        diagnosticErrorMessage(submitError, "Der Trainer konnte nicht gespeichert werden.", "trainer_editor.save"),
       );
     }
   }

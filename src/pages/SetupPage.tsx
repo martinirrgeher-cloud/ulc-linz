@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/features/auth/AuthContext";
 
+import { diagnosticErrorMessage } from "@/lib/diagnostics";
 function normalizeSlug(value: string): string {
   return value
     .toLowerCase()
@@ -45,9 +46,11 @@ export function SetupPage() {
       await bootstrapOrganization(organizationName, slug, displayName);
     } catch (submitError) {
       setError(
-        submitError instanceof Error
-          ? submitError.message
-          : "Die Einrichtung konnte nicht abgeschlossen werden.",
+        diagnosticErrorMessage(
+          submitError,
+          "Die Einrichtung konnte nicht abgeschlossen werden.",
+          "organization.setup",
+        ),
       );
     } finally {
       setSubmitting(false);

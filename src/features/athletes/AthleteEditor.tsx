@@ -18,6 +18,7 @@ import type {
   TrainingGroup,
 } from "@/features/athletes/types";
 
+import { diagnosticErrorMessage } from "@/lib/diagnostics";
 export type AthleteEditorMode =
   | { type: "create" }
   | { type: "edit"; athlete: Athlete };
@@ -128,9 +129,7 @@ export function AthleteEditor({
       await onSubmit(values);
     } catch (submitError) {
       setError(
-        submitError instanceof Error
-          ? submitError.message
-          : "Der Athlet konnte nicht gespeichert werden.",
+        diagnosticErrorMessage(submitError, "Der Athlet konnte nicht gespeichert werden.", "athlete_editor.save"),
       );
     }
   }

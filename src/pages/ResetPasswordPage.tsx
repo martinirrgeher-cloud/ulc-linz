@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/features/auth/AuthContext";
 
+import { diagnosticErrorMessage } from "@/lib/diagnostics";
 export function ResetPasswordPage() {
   const { updatePassword, isAuthenticated } = useAuth();
   const [password, setPassword] = useState("");
@@ -25,9 +26,11 @@ export function ResetPasswordPage() {
       setSuccess(true);
     } catch (submitError) {
       setError(
-        submitError instanceof Error
-          ? submitError.message
-          : "Das Passwort konnte nicht geändert werden.",
+        diagnosticErrorMessage(
+          submitError,
+          "Das Passwort konnte nicht geändert werden.",
+          "auth.password_update",
+        ),
       );
     } finally {
       setSubmitting(false);

@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/features/auth/AuthContext";
 
+import { diagnosticErrorMessage } from "@/lib/diagnostics";
 export function ForgotPasswordPage() {
   const { requestPasswordReset, configurationError } = useAuth();
   const [email, setEmail] = useState("");
@@ -22,9 +23,11 @@ export function ForgotPasswordPage() {
       );
     } catch (submitError) {
       setError(
-        submitError instanceof Error
-          ? submitError.message
-          : "Die Anfrage konnte nicht gesendet werden.",
+        diagnosticErrorMessage(
+          submitError,
+          "Die Anfrage konnte nicht gesendet werden.",
+          "auth.password_reset_request",
+        ),
       );
     } finally {
       setSubmitting(false);

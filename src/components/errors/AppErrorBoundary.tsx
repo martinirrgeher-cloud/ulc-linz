@@ -1,22 +1,21 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
-import { Home, LogIn, RefreshCw, TriangleAlert } from "lucide-react";
+import { ClipboardCopy, Home, LogIn, RefreshCw, TriangleAlert } from "lucide-react";
 
+import { copySupportInformation, reportTechnicalError } from "@/lib/diagnostics";
+import { env } from "@/lib/env";
 type Props = { children: ReactNode };
-type State = { error: Error | null; reference: string | null };
-
-function errorReference(): string {
-  return new Date().toISOString().replace(/[-:.TZ]/g, "").slice(0, 14);
-}
+type State = { error: Error | null; reference: string | null; copied: boolean };
 
 export class AppErrorBoundary extends Component<Props, State> {
-  state: State = { error: null, reference: null };
+  state: State = { error: null, reference: null, copied: false };
 
   static getDerivedStateFromError(error: Error): State {
-    return { error, reference: errorReference() };
+    const diagnostic = reportTechnicalError(error, "react.render");
+    return { error, reference: diagnostic.reference, copied: false };
   }
 
   componentDidCatch(error: Error, info: ErrorInfo): void {
-    console.error("Unbehandelter App-Fehler", error, info.componentStack);
+    reportTechnicalError(error, "react.component", { componentStack: info.componentStack });
   }
 
   private reload = () => {
@@ -29,6 +28,15 @@ export class AppErrorBoundary extends Component<Props, State> {
 
   private goToLogin = () => {
     window.location.assign("/login");
+  };
+
+  private copyDiagnostics = async () => {
+    try {
+      await copySupportInformation();
+      this.setState({ copied: true });
+    } catch (error) {
+      reportTechnicalError(error, "error_boundary.copy_diagnostics");
+    }
   };
 
   render() {
@@ -44,7 +52,8 @@ export class AppErrorBoundary extends Component<Props, State> {
             Deine bereits am Server gespeicherten Daten bleiben erhalten. Lade die App neu. Falls
             der Fehler wiederkommt, melde die unten angeführte Referenz.
           </p>
-          <small>Fehlerreferenz: {this.state.reference}</small>
+          <small>Fehler-ID: {this.state.reference}</small>
+          <small>App-Stand: {env.appBuildLabel}</small>
           <div className="app-error-actions">
             <button type="button" className="primary-button" onClick={this.reload}>
               <RefreshCw aria-hidden="true" />Neu laden
@@ -54,6 +63,10 @@ export class AppErrorBoundary extends Component<Props, State> {
             </button>
             <button type="button" className="secondary-button" onClick={this.goToLogin}>
               <LogIn aria-hidden="true" />Zur Anmeldung
+            </button>
+            <button type="button" className="secondary-button" onClick={() => void this.copyDiagnostics()}>
+              <ClipboardCopy aria-hidden="true" />
+              {this.state.copied ? "Diagnose kopiert" : "Diagnose kopieren"}
             </button>
           </div>
         </section>

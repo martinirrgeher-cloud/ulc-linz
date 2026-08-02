@@ -1,9 +1,10 @@
-import { LogIn, RefreshCw, ServerCrash, WifiOff } from "lucide-react";
+import { ClipboardCopy, LogIn, RefreshCw, ServerCrash, WifiOff } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { LoadingScreen } from "@/components/layout/LoadingScreen";
 import { useAuth } from "@/features/auth/AuthContext";
 
+import { copySupportInformation, reportTechnicalError } from "@/lib/diagnostics";
 export function ConnectionErrorPage() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -20,6 +21,7 @@ export function ConnectionErrorPage() {
     signOut,
   } = useAuth();
   const [busy, setBusy] = useState(false);
+  const [diagnosticsCopied, setDiagnosticsCopied] = useState(false);
 
   const destination = useMemo(() => {
     if (
@@ -68,6 +70,15 @@ export function ConnectionErrorPage() {
     }
   }
 
+  async function copyDiagnostics() {
+    try {
+      await copySupportInformation();
+      setDiagnosticsCopied(true);
+    } catch (error) {
+      reportTechnicalError(error, "connection_page.copy_diagnostics");
+    }
+  }
+
   async function returnToLogin() {
     if (busy) return;
     setBusy(true);
@@ -108,6 +119,14 @@ export function ConnectionErrorPage() {
         >
           <RefreshCw aria-hidden="true" />
           {busy || contextLoading ? "Verbindung wird geprüft …" : "Erneut versuchen"}
+        </button>
+        <button
+          type="button"
+          className="text-button"
+          onClick={() => void copyDiagnostics()}
+        >
+          <ClipboardCopy aria-hidden="true" />
+          {diagnosticsCopied ? "Diagnose kopiert" : "Diagnose kopieren"}
         </button>
         <button
           type="button"

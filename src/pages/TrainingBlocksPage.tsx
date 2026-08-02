@@ -32,6 +32,7 @@ import type {
   TrainingBlockInput,
 } from "@/features/training-blocks/types";
 
+import { diagnosticErrorMessage } from "@/lib/diagnostics";
 type ActivityFilter = "active" | "inactive" | "all";
 type SortMode = "name" | "usage" | "updated";
 type UsageFilter = "all" | "unused" | "used";
@@ -48,7 +49,7 @@ function formatItemValues(item: TrainingBlock["items"][number]): string {
 }
 
 function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : "Die Trainingsblöcke konnten nicht geladen werden.";
+  return diagnosticErrorMessage(error, "Die Trainingsblöcke konnten nicht geladen werden.", "training_blocks");
 }
 
 function durationMatches(minutes: number | null, filter: DurationFilter): boolean {

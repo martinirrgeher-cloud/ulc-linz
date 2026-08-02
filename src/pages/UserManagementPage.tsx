@@ -28,6 +28,7 @@ import type {
   MembershipStatus,
 } from "@/features/user-management/types";
 
+import { diagnosticErrorMessage } from "@/lib/diagnostics";
 const roleNames = {
   admin: "Administrator",
   trainer: "Trainer",
@@ -44,7 +45,7 @@ const statusNames: Record<MembershipStatus, string> = {
 type RoleFilter = "all" | ManagedMember["role"];
 
 function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : "Die Daten konnten nicht geladen werden.";
+  return diagnosticErrorMessage(error, "Die Daten konnten nicht geladen werden.", "user_management");
 }
 
 function formatDate(value: string | null): string {

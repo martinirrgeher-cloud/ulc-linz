@@ -29,6 +29,7 @@ import type {
   TrainingWeekOverview,
 } from "@/features/training-overview/types";
 
+import { diagnosticErrorMessage } from "@/lib/diagnostics";
 const EMPTY_OVERVIEW: TrainingWeekOverview = {
   weekStart: startOfIsoWeek(new Date()),
   weekEnd: startOfIsoWeek(new Date()),
@@ -62,7 +63,7 @@ const DOCUMENTATION_LABELS: Record<TrainingOverviewDocumentationStatus, string> 
 };
 
 function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : "Ein unbekannter Fehler ist aufgetreten.";
+  return diagnosticErrorMessage(error, "Ein unbekannter Fehler ist aufgetreten.", "training_overview");
 }
 
 function personName(firstName: string, lastName: string): string {

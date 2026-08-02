@@ -17,6 +17,9 @@ import "@/styles/data-import.css";
 import "@/styles/countdown.css";
 import "@/styles/mobile-foundation.css";
 
+import { installGlobalDiagnostics } from "@/lib/diagnostics";
+installGlobalDiagnostics();
+
 const rootElement = document.getElementById("root");
 if (!rootElement) throw new Error("Root-Element wurde nicht gefunden.");
 

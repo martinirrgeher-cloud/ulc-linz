@@ -3,6 +3,7 @@ import { Link, Navigate } from "react-router-dom";
 import { useAuth } from "@/features/auth/AuthContext";
 import { env } from "@/lib/env";
 
+import { diagnosticErrorMessage } from "@/lib/diagnostics";
 export function RegisterPage() {
   const { signUp, isAuthenticated, configurationError } = useAuth();
   const [displayName, setDisplayName] = useState("");
@@ -25,9 +26,7 @@ export function RegisterPage() {
       setSuccess(true);
     } catch (submitError) {
       setError(
-        submitError instanceof Error
-          ? submitError.message
-          : "Registrierung fehlgeschlagen.",
+        diagnosticErrorMessage(submitError, "Registrierung fehlgeschlagen.", "auth.register"),
       );
     } finally {
       setSubmitting(false);

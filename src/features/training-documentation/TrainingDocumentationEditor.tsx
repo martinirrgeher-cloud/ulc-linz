@@ -44,6 +44,7 @@ import {
   type TrainingSessionStatus,
 } from "@/features/training-documentation/types";
 
+import { diagnosticErrorMessage, reportTechnicalError } from "@/lib/diagnostics";
 const EXERCISE_STATUS_OPTIONS: Array<{
   value: Exclude<ExerciseDocumentationStatus, "planned">;
   label: string;
@@ -490,18 +491,21 @@ export function TrainingDocumentationEditor({
           "Der Video-Upload ist pausiert. Mit „Fortsetzen“ wird an derselben Stelle weitergemacht.",
         );
       } else {
-        let message = error instanceof Error
-          ? error.message
-          : "Das Video konnte nicht hochgeladen werden.";
+        let message = diagnosticErrorMessage(
+          error,
+          "Das Video konnte nicht hochgeladen werden.",
+          "training_documentation.video_upload",
+        );
 
         if (storagePath && !mediaRegistered) {
           try {
             await removeTrainingDocumentationStorageObject(storagePath);
           } catch (cleanupError) {
-            const cleanupMessage = cleanupError instanceof Error
-              ? cleanupError.message
-              : "Unbekannter Bereinigungsfehler";
-            message += ` Die unvollständige Storage-Datei konnte nicht automatisch entfernt werden: ${cleanupMessage}`;
+            const cleanupDiagnostic = reportTechnicalError(
+              cleanupError,
+              "training_documentation.storage_cleanup",
+            );
+            message += ` Die unvollständige Storage-Datei konnte nicht automatisch entfernt werden. Fehler-ID: ${cleanupDiagnostic.reference}`;
           }
         }
 
@@ -530,7 +534,13 @@ export function TrainingDocumentationEditor({
       pendingUploadFiles.current[item.id] = file;
       void runVideoUpload(item, file);
     } catch (error) {
-      setUploadError(error instanceof Error ? error.message : "Das Video konnte nicht ausgewählt werden.");
+      setUploadError(
+        diagnosticErrorMessage(
+          error,
+          "Das Video konnte nicht ausgewählt werden.",
+          "training_documentation.video_selection",
+        ),
+      );
     }
   }
 
@@ -551,7 +561,13 @@ export function TrainingDocumentationEditor({
       await deleteTrainingDocumentationMedia(organizationId, mediaId);
       await onReload();
     } catch (error) {
-      setUploadError(error instanceof Error ? error.message : "Das Video konnte nicht gelöscht werden.");
+      setUploadError(
+        diagnosticErrorMessage(
+          error,
+          "Das Video konnte nicht gelöscht werden.",
+          "training_documentation.video_delete",
+        ),
+      );
     }
   }
 

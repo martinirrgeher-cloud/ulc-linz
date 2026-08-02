@@ -4,6 +4,7 @@ import type { ExerciseVideo } from "@/features/exercise-catalog/types";
 import { loadTrainingBlockExerciseVideos } from "@/features/training-blocks/api";
 import type { PlanningExercise, PlanningGroup } from "@/features/training-planning/types";
 
+import { diagnosticErrorMessage } from "@/lib/diagnostics";
 type TrainingPlanningExerciseInfoDialogProps = {
   organizationId: string;
   exercise: PlanningExercise;
@@ -12,7 +13,7 @@ type TrainingPlanningExerciseInfoDialogProps = {
 };
 
 function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : "Die Videos konnten nicht geladen werden.";
+  return diagnosticErrorMessage(error, "Die Videos konnten nicht geladen werden.", "training_plan.exercise_info");
 }
 
 export function TrainingPlanningExerciseInfoDialog({

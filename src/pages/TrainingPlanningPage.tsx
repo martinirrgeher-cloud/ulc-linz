@@ -30,6 +30,7 @@ import {
   type TrainingPlanningData,
 } from "@/features/training-planning/types";
 
+import { diagnosticErrorMessage } from "@/lib/diagnostics";
 function localDateKey(date = new Date()): string {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -60,7 +61,7 @@ function dateLabel(value: string): string {
 }
 
 function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : "Ein unbekannter Fehler ist aufgetreten.";
+  return diagnosticErrorMessage(error, "Ein unbekannter Fehler ist aufgetreten.", "training_planning");
 }
 
 const EMPTY_DATA: TrainingPlanningData = {

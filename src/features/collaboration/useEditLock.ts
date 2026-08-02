@@ -9,6 +9,7 @@ import {
   type LockableEntityType,
 } from "@/features/collaboration/edit-locks";
 
+import { diagnosticErrorMessage } from "@/lib/diagnostics";
 export type EditLockStatus =
   | "idle"
   | "acquiring"
@@ -45,9 +46,7 @@ function createLockToken(): string {
 }
 
 function errorMessage(error: unknown): string {
-  return error instanceof Error
-    ? error.message
-    : "Die Bearbeitungsreservierung konnte nicht geprüft werden.";
+  return diagnosticErrorMessage(error, "Die Bearbeitungsreservierung konnte nicht geprüft werden.", "edit_lock");
 }
 
 export function useEditLock({

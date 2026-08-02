@@ -46,12 +46,13 @@ import type {
   TrainingGroupInput,
 } from "@/features/athletes/types";
 
+import { diagnosticErrorMessage } from "@/lib/diagnostics";
 type ActiveFilter = "active" | "inactive" | "all";
 type AthleteSort = "lastName" | "firstName" | "birthYearAsc" | "birthYearDesc";
 type ViewTab = "athletes" | "groups" | "trainers";
 
 function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : "Die Stammdaten konnten nicht geladen werden.";
+  return diagnosticErrorMessage(error, "Die Stammdaten konnten nicht geladen werden.", "athlete_management");
 }
 
 function athleteName(athlete: Athlete): string {

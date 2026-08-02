@@ -44,6 +44,7 @@ import type {
 import { useAuth } from "@/features/auth/AuthContext";
 import { deactivateAthleteFromTraining } from "@/features/athletes/api";
 
+import { diagnosticErrorMessage } from "@/lib/diagnostics";
 const STATUS_OPTIONS: Array<{
   value: AttendanceStatus;
   label: string;
@@ -71,7 +72,11 @@ function errorMessage(error: unknown): string {
     return "Die Gruppenzusammensetzung hat sich geändert. Bitte lade das Training neu.";
   }
 
-  return message;
+  return diagnosticErrorMessage(
+    error,
+    "Die Trainingsdaten konnten nicht verarbeitet werden.",
+    "kindertraining",
+  );
 }
 
 function isoDate(date: Date): string {

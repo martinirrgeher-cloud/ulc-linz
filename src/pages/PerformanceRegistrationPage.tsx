@@ -41,6 +41,7 @@ import type {
 } from "@/features/performance-registration/types";
 import { useAuth } from "@/features/auth/AuthContext";
 
+import { diagnosticErrorMessage } from "@/lib/diagnostics";
 type PageMode = "registration" | "overview";
 type SaveState = "idle" | "pending" | "saving" | "saved" | "error";
 
@@ -62,9 +63,7 @@ const STATUS_OPTIONS: Array<{
 ];
 
 function errorMessage(error: unknown): string {
-  return error instanceof Error
-    ? error.message
-    : "Die Leistungsgruppen-Daten konnten nicht verarbeitet werden.";
+  return diagnosticErrorMessage(error, "Die Leistungsgruppen-Daten konnten nicht verarbeitet werden.", "performance_registration");
 }
 
 function personName(person: { firstName: string; lastName: string }): string {

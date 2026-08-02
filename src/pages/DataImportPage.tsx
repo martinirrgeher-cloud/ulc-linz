@@ -37,6 +37,7 @@ import { loadExerciseCatalog } from "@/features/exercise-catalog/api";
 import type { ExerciseCatalogData } from "@/features/exercise-catalog/types";
 import { useAuth } from "@/features/auth/AuthContext";
 
+import { diagnosticErrorMessage } from "@/lib/diagnostics";
 const EMPTY_CATALOG: ExerciseCatalogData = {
   categories: [],
   subcategories: [],
@@ -85,7 +86,7 @@ function normalized(value: string): string {
 }
 
 function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : "Die Importdatei konnte nicht verarbeitet werden.";
+  return diagnosticErrorMessage(error, "Die Importdatei konnte nicht verarbeitet werden.", "data_import");
 }
 
 function createImportRunId(): string {

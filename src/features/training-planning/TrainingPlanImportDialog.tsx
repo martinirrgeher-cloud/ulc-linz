@@ -9,6 +9,7 @@ import type {
   TrainingPlanSummary,
 } from "@/features/training-planning/types";
 
+import { diagnosticErrorMessage } from "@/lib/diagnostics";
 export type TrainingPlanImportDialogProps = {
   organizationId: string;
   groupId: string;
@@ -20,7 +21,7 @@ export type TrainingPlanImportDialogProps = {
 };
 
 function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : "Ein unbekannter Fehler ist aufgetreten.";
+  return diagnosticErrorMessage(error, "Ein unbekannter Fehler ist aufgetreten.", "training_plan.import");
 }
 
 export function TrainingPlanImportDialog({

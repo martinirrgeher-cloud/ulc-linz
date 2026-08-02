@@ -5,6 +5,7 @@ import type {
   TrainingGroupInput,
 } from "@/features/athletes/types";
 
+import { diagnosticErrorMessage } from "@/lib/diagnostics";
 export type TrainingGroupEditorMode =
   | { type: "create" }
   | { type: "edit"; group: TrainingGroup };
@@ -87,9 +88,7 @@ export function TrainingGroupEditor({
       await onSubmit(values);
     } catch (submitError) {
       setError(
-        submitError instanceof Error
-          ? submitError.message
-          : "Die Trainingsgruppe konnte nicht gespeichert werden.",
+        diagnosticErrorMessage(submitError, "Die Trainingsgruppe konnte nicht gespeichert werden.", "training_group_editor.save"),
       );
     }
   }

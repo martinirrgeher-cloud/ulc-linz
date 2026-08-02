@@ -15,6 +15,7 @@ import {
   type DropdownSettingsData,
 } from "@/features/dropdown-settings/types";
 
+import { diagnosticErrorMessage } from "@/lib/diagnostics";
 const EMPTY_DATA: DropdownSettingsData = {
   category: [],
   subcategory: [],
@@ -23,7 +24,7 @@ const EMPTY_DATA: DropdownSettingsData = {
 };
 
 function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : "Die Auswahllisten konnten nicht geladen werden.";
+  return diagnosticErrorMessage(error, "Die Auswahllisten konnten nicht geladen werden.", "dropdown_settings");
 }
 
 export function DropdownSettingsPage() {

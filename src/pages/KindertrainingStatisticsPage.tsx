@@ -18,6 +18,7 @@ import {
 } from "@/features/kindertraining-statistics/api";
 import type { KindertrainingStatistics } from "@/features/kindertraining-statistics/types";
 
+import { diagnosticErrorMessage } from "@/lib/diagnostics";
 type StatisticsTab = "sessions" | "athletes" | "development" | "trainers";
 
 function isoToday(): string {
@@ -72,7 +73,7 @@ function environmentLabel(value: string | null): string {
 }
 
 function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : "Die Statistik konnte nicht geladen werden.";
+  return diagnosticErrorMessage(error, "Die Statistik konnte nicht geladen werden.", "kindertraining.statistics");
 }
 
 export function KindertrainingStatisticsPage() {

@@ -492,3 +492,27 @@ test("E3a unterstützt Pause, Fortsetzen und sichere Upload-Bereinigung", () => 
   assert.ok(documentationVideoUploadSource.includes("ResumableUploadPausedError"));
 });
 
+const diagnosticsSource = await readFile(new URL("../src/lib/diagnostics.ts", import.meta.url), "utf8");
+const appLayoutDiagnosticsSource = await readFile(new URL("../src/components/layout/AppLayout.tsx", import.meta.url), "utf8");
+const appErrorBoundaryDiagnosticsSource = await readFile(new URL("../src/components/errors/AppErrorBoundary.tsx", import.meta.url), "utf8");
+const viteConfigDiagnosticsSource = await readFile(new URL("../vite.config.ts", import.meta.url), "utf8");
+
+test("E3b erzeugt datensparsame Fehler-IDs und Supportinformationen", () => {
+  assert.ok(diagnosticsSource.includes("ULC-${date}-${time}-${randomPart()}"));
+  assert.ok(diagnosticsSource.includes("MAX_RECORDS = 8"));
+  assert.ok(diagnosticsSource.includes("messageFingerprint"));
+  assert.ok(diagnosticsSource.includes("Technische Meldung ausgeblendet"));
+  assert.ok(diagnosticsSource.includes("sessionStorage"));
+  assert.ok(diagnosticsSource.includes("Enthält keine Namen, E-Mail-Adressen, Trainingsinhalte oder Zugangsdaten."));
+  assert.doesNotMatch(diagnosticsSource, /localStorage/);
+});
+
+test("E3b zeigt Build-Stand und kopierbare Diagnose an", () => {
+  assert.ok(viteConfigDiagnosticsSource.includes("VERCEL_GIT_COMMIT_SHA"));
+  assert.ok(viteConfigDiagnosticsSource.includes("__APP_VERSION__"));
+  assert.ok(viteConfigDiagnosticsSource.includes("__APP_COMMIT__"));
+  assert.ok(appLayoutDiagnosticsSource.includes("env.appBuildLabel"));
+  assert.ok(appLayoutDiagnosticsSource.includes("copySupportInformation"));
+  assert.ok(appErrorBoundaryDiagnosticsSource.includes("Fehler-ID"));
+  assert.ok(appErrorBoundaryDiagnosticsSource.includes("Diagnose kopieren"));
+});

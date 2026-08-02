@@ -9,4 +9,8 @@ export const env = {
   allowSelfSignup:
     (import.meta.env.VITE_ALLOW_SELF_SIGNUP ?? "false").toLowerCase() === "true",
   isSupabaseConfigured: Boolean(supabaseUrl && supabasePublishableKey),
+  appVersion: __APP_VERSION__,
+  appCommit: __APP_COMMIT__,
+  appBuildTime: __APP_BUILD_TIME__,
+  appBuildLabel: `v${__APP_VERSION__} · ${__APP_COMMIT__}`,
 } as const;

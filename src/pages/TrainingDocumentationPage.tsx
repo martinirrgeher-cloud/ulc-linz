@@ -49,6 +49,7 @@ import {
   startOfIsoWeek,
 } from "@/features/performance-registration/date";
 
+import { diagnosticErrorMessage } from "@/lib/diagnostics";
 type PageMode = "document" | "team" | "statistics";
 
 function parsePageMode(value: string | null): PageMode {
@@ -68,7 +69,7 @@ const EMPTY_OVERVIEW: TrainingDocumentationOverview = {
 };
 
 function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : "Ein unbekannter Fehler ist aufgetreten.";
+  return diagnosticErrorMessage(error, "Ein unbekannter Fehler ist aufgetreten.", "training_documentation");
 }
 
 function dateKey(date = new Date()): string {

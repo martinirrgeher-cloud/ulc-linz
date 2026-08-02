@@ -9,6 +9,7 @@ import type {
 } from "@/features/user-management/types";
 import type { AppRole } from "@/types/auth";
 
+import { diagnosticErrorMessage } from "@/lib/diagnostics";
 export type MemberEditorMode =
   | { type: "invite" }
   | { type: "edit"; member: ManagedMember; isCurrentUser: boolean };
@@ -107,9 +108,11 @@ export function MemberEditor({
       });
     } catch (submitError) {
       setError(
-        submitError instanceof Error
-          ? submitError.message
-          : "Die Benutzerdaten konnten nicht gespeichert werden.",
+        diagnosticErrorMessage(
+          submitError,
+          "Die Benutzerdaten konnten nicht gespeichert werden.",
+          "member_editor.save",
+        ),
       );
     }
   }

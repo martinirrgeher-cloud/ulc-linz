@@ -4,6 +4,7 @@ import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { env } from "@/lib/env";
 import { useAuth } from "@/features/auth/AuthContext";
 
+import { diagnosticErrorMessage } from "@/lib/diagnostics";
 export function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -33,9 +34,7 @@ export function LoginPage() {
       navigate(destination, { replace: true });
     } catch (submitError) {
       setError(
-        submitError instanceof Error
-          ? submitError.message
-          : "Anmeldung fehlgeschlagen.",
+        diagnosticErrorMessage(submitError, "Anmeldung fehlgeschlagen.", "auth.login"),
       );
     } finally {
       setSubmitting(false);
