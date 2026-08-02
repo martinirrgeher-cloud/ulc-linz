@@ -28,7 +28,17 @@ export type MemberWarningCode =
   | "invitation_not_sent"
   | "email_not_confirmed"
   | "athlete_link_missing"
+  | "parent_link_missing"
   | "trainer_link_missing";
+
+export type MemberAthleteRelation = "self" | "managed";
+
+export type ManagedAthleteLink = {
+  id: string;
+  name: string;
+  isActive: boolean;
+  relationType: MemberAthleteRelation;
+};
 
 export type ManagedMember = {
   membershipId: string;
@@ -44,8 +54,7 @@ export type ManagedMember = {
   invitationLastSentAt: string | null;
   invitationSendCount: number;
   invitationStatus: InvitationStatus;
-  linkedAthleteId: string | null;
-  linkedAthleteName: string | null;
+  linkedAthletes: ManagedAthleteLink[];
   linkedTrainerId: string | null;
   linkedTrainerName: string | null;
   warnings: MemberWarningCode[];
@@ -93,7 +102,7 @@ export type UpdateMemberInput = {
   role: AppRole;
   status: MembershipStatus;
   permissions: ManagedPermission[];
-  linkedAthleteId: string | null;
+  linkedAthleteIds: string[];
   linkedTrainerId: string | null;
   editLock: EditLockWriteGuard;
 };

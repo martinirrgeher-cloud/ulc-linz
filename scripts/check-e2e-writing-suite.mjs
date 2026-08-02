@@ -42,6 +42,8 @@ for (const marker of [
   "athlete.e1b2@example.test",
   "parent.e1b2@example.test",
   "E2E Beschleunigungsblock",
+  "SECOND_ATHLETE_ID",
+  "Berta",
 ]) {
   if (!seed.includes(marker)) throw new Error(`Writing E2E seed marker is missing: ${marker}`);
 }
@@ -53,9 +55,6 @@ for (const marker of [
   "/module/training_blocks",
   "/module/performance_registration",
   "/module/training_planning",
-  "/module/user_management",
-  "Rechtevorlage",
-  "Änderungsprotokoll",
   "Der Datensatz wird bereits bearbeitet.",
   "E2E Leistungsgruppe bearbeiten",
   "Tom E2E bearbeiten",
@@ -66,6 +65,8 @@ for (const marker of [
   "Neue Variante von",
   "für Vergleich auswählen",
   "Verwendung von",
+  "Verknüpfte Athleten geändert",
+  "Berta E2E",
 ]) {
   if (!testFile.includes(marker)) throw new Error(`Writing E2E test marker is missing: ${marker}`);
 }

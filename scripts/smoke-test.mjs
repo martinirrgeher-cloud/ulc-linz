@@ -764,7 +764,7 @@ const e5cEdgeSource = await readFile(
     "Ohne Verknüpfung",
     "Mit Warnung",
     "invitationLastSentAt",
-    "linkedAthleteName",
+    "linkedAthletes",
     "linkedTrainerName",
   ]) {
     assert.ok(e5cPageSource.includes(marker), `E5c-Anzeige fehlt: ${marker}`);
@@ -790,4 +790,52 @@ test("E5c nutzt Audit, Bearbeitungssperre und Realtime ohne globale CSS-Änderun
   assert.ok(e5cPageSource.includes("RemoteChangeNotice"));
   assert.ok(e5cPageSource.includes('import "@/styles/user-management-e5c.css"'));
   assert.doesNotMatch(e5cMigrationSource, /password|access_token|refresh_token/i);
+});
+
+
+const e5c3MigrationSource = await readFile(
+  new URL("../supabase/migrations/202608020035_parent_multi_athlete_links.sql", import.meta.url),
+  "utf8",
+);
+const e5c3TypesSource = await readFile(
+  new URL("../src/features/user-management/types.ts", import.meta.url),
+  "utf8",
+);
+const e5c3ApiSource = await readFile(
+  new URL("../src/features/user-management/api.ts", import.meta.url),
+  "utf8",
+);
+const e5c3AuditSource = await readFile(
+  new URL("../src/features/user-management/MemberAuditLog.tsx", import.meta.url),
+  "utf8",
+);
+
+test("E5c3 speichert Eltern-Athleten mehrfach und Athletenkonten weiterhin eindeutig", () => {
+  for (const marker of [
+    "organization_member_athlete_links",
+    "relation_type in ('self', 'managed')",
+    "admin_member_overview_v3",
+    "admin_update_organization_member_v3",
+    "p_linked_athlete_ids uuid[]",
+    "Ein Athletenkonto kann nur mit einem Athleten verknuepft werden",
+  ]) {
+    assert.ok(e5c3MigrationSource.includes(marker), `E5c3-Migrationsmarker fehlt: ${marker}`);
+  }
+  assert.ok(e5c3TypesSource.includes("linkedAthletes: ManagedAthleteLink[]"));
+  assert.ok(e5c3ApiSource.includes('supabase.rpc("admin_member_overview_v3"'));
+  assert.ok(e5c3ApiSource.includes('supabase.rpc("admin_update_organization_member_v3"'));
+});
+
+test("E5c3 bietet eine mobile Eltern-Mehrfachauswahl mit Audit", () => {
+  for (const marker of [
+    "Verknüpfte Athleten",
+    "Mehrere Kinder können gleichzeitig ausgewählt werden",
+    "Athletenverknüpfungen",
+    "ausgewählt",
+  ]) {
+    assert.ok(e5cEditorSource.includes(marker) || e5c3MigrationSource.includes(marker), `E5c3-UI-Marker fehlt: ${marker}`);
+  }
+  assert.ok(e5c3AuditSource.includes('"member.athlete_links_changed"'));
+  assert.ok(e5c3MigrationSource.includes("jsonb_build_object('athlete_ids'"));
+  assert.doesNotMatch(e5c3MigrationSource, /password|access_token|refresh_token/i);
 });
