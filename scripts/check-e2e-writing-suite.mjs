@@ -54,9 +54,16 @@ for (const marker of [
   "/module/performance_registration",
   "/module/training_planning",
   "Der Datensatz wird bereits bearbeitet.",
-  "Übung hinzufügen",
+  "Übung suchen",
 ]) {
   if (!testFile.includes(marker)) throw new Error(`Writing E2E test marker is missing: ${marker}`);
+}
+if (testFile.includes("test.describe.serial")) {
+  throw new Error("Writing E2E tests must continue after an individual failure.");
+}
+const writingTestCount = (testFile.match(/\btest\("/g) ?? []).length;
+if (writingTestCount !== 4) {
+  throw new Error(`Expected 4 writing E2E tests, found ${writingTestCount}.`);
 }
 
 const workflow = readFileSync(".github/workflows/e2e-writing.yml", "utf8");

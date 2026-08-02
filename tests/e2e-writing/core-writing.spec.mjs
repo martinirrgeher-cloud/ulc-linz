@@ -17,7 +17,7 @@ function trainerFullName() {
   return `${UI_TRAINER.firstName} ${UI_TRAINER.lastName}`;
 }
 
-test.describe.serial("Schreibende Kernabläufe in isolierter Supabase-Umgebung", () => {
+test.describe("Schreibende Kernabläufe in isolierter Supabase-Umgebung", () => {
   test("Administrator legt Gruppe, Athlet und Trainer an und Änderungen bleiben erhalten", async ({ page }) => {
     await login(page, "admin");
     await page.goto("/module/athletes");
@@ -92,7 +92,10 @@ test.describe.serial("Schreibende Kernabläufe in isolierter Supabase-Umgebung",
     await blockDialog.getByLabel("Name *").fill(UI_BLOCK);
     await blockDialog.getByLabel("Geschätzte Dauer").fill("18");
     await blockDialog.getByRole("tab", { name: /Übungen/ }).click();
-    await blockDialog.getByRole("button", { name: "Übung hinzufügen", exact: true }).click();
+    const exerciseSearch = blockDialog.getByLabel("Übung suchen");
+    await expect(exerciseSearch).toBeVisible({ timeout: 15_000 });
+    await exerciseSearch.fill(UI_EXERCISE);
+
     const exerciseOption = blockDialog
       .locator(".training-block-picker-add")
       .filter({ hasText: UI_EXERCISE });
