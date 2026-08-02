@@ -73,6 +73,7 @@ jobs:
           cp supabase/config.toml backup/project/config.toml
           cp scripts/restore-supabase-storage.mjs backup/project/restore-supabase-storage.mjs
           cp scripts/verify-backup-archive.mjs backup/project/verify-backup-archive.mjs
+          cp scripts/verify-restored-database.mjs backup/project/verify-restored-database.mjs
           cp BACKUP-GOOGLE-DRIVE-EINRICHTUNG.md backup/project/README-BACKUP.md
 
       - name: Datenbankrollen sichern

@@ -71,6 +71,8 @@ const backupStorageSource = await readFile(new URL("./backup-supabase-storage.mj
 const restoreStorageSource = await readFile(new URL("./restore-supabase-storage.mjs", import.meta.url), "utf8");
 const verifyBackupSource = await readFile(new URL("./verify-backup-archive.mjs", import.meta.url), "utf8");
 const quarterlyRestoreWorkflowSource = await readFile(new URL("../.github/workflows/quarterly-backup-restore-test.yml", import.meta.url), "utf8");
+const restoredDatabaseVerifierSource = await readFile(new URL("./verify-restored-database.mjs", import.meta.url), "utf8");
+const backupRestoreCheckerSource = await readFile(new URL("./check-backup-restore-suite.mjs", import.meta.url), "utf8");
 
 
 test("Bearbeitungsschutz reserviert, verlängert und prüft Datensätze", () => {
@@ -138,16 +140,39 @@ test("Wöchentliches Backup ist verschlüsselt und vollständig rückgeprüft", 
   assert.ok(verifyBackupSource.includes("PGDMP"));
 });
 
-test("Vierteljährliche Wiederherstellungsprobe bleibt vom Produktivsystem getrennt", () => {
+test("E3d stellt Vollauszug, portablen Export und Storage isoliert wieder her", () => {
   assert.ok(quarterlyRestoreWorkflowSource.includes('cron: "45 3 1 1,4,7,10 *"'));
-  assert.ok(quarterlyRestoreWorkflowSource.includes("ulc_restore_test"));
+  assert.ok(quarterlyRestoreWorkflowSource.includes("ulc_restore_full"));
+  assert.ok(quarterlyRestoreWorkflowSource.includes("ulc_restore_portable"));
   assert.ok(quarterlyRestoreWorkflowSource.includes("supabase start"));
   assert.ok(quarterlyRestoreWorkflowSource.includes("pg_restore"));
+  assert.ok(quarterlyRestoreWorkflowSource.includes("schema.sql"));
+  assert.ok(quarterlyRestoreWorkflowSource.includes("data.sql"));
   assert.ok(quarterlyRestoreWorkflowSource.includes("restore-supabase-storage.mjs"));
   assert.ok(quarterlyRestoreWorkflowSource.includes("--verify"));
-  assert.doesNotMatch(quarterlyRestoreWorkflowSource, /SUPABASE_DB_URL/);
+  assert.ok(quarterlyRestoreWorkflowSource.includes("actions/upload-artifact@v4"));
+  assert.doesNotMatch(quarterlyRestoreWorkflowSource, /secrets\.SUPABASE_(?:DB_URL|URL|SERVICE_ROLE_KEY)/);
   assert.ok(restoreStorageSource.includes("hashRemoteObject"));
   assert.ok(restoreStorageSource.includes("--sync-buckets"));
+  assert.ok(restoreStorageSource.includes("--report-json="));
+  assert.ok(verifyBackupSource.includes("--json="));
+});
+
+test("E3d prüft Migrationsstand und zentrale wiederhergestellte Daten", () => {
+  for (const marker of [
+    "auth.users",
+    "storage.objects",
+    "supabase_migrations.schema_migrations",
+    "public.organizations",
+    "public.organization_members",
+    "expectedMigration",
+    "portableRestore",
+  ]) {
+    assert.ok(restoredDatabaseVerifierSource.includes(marker), `E3d-Prüfung fehlt: ${marker}`);
+  }
+  assert.ok(backupRestoreCheckerSource.includes("secrets.SUPABASE_DB_URL"));
+  assert.ok(backupRestoreCheckerSource.includes("actions/upload-artifact@v4"));
+  assert.ok(quarterlyRestoreWorkflowSource.includes("database-restore-report.md"));
 });
 
 const trainingDocumentationPageSource = await readFile(new URL("../src/pages/TrainingDocumentationPage.tsx", import.meta.url), "utf8");

@@ -1,5 +1,5 @@
 import { createReadStream } from "node:fs";
-import { readFile, stat } from "node:fs/promises";
+import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import path from "node:path";
 import process from "node:process";
@@ -11,6 +11,10 @@ const apply = args.has("--apply");
 const overwrite = args.has("--overwrite");
 const verifyRemote = args.has("--verify");
 const syncBuckets = args.has("--sync-buckets");
+const reportArgument = rawArgs.find((value) => value.startsWith("--report-json="));
+const reportPath = reportArgument
+  ? path.resolve(reportArgument.slice("--report-json=".length))
+  : null;
 const sourceArgument = rawArgs.find((value) => !value.startsWith("--"));
 const sourceRoot = path.resolve(sourceArgument ?? "backup/storage");
 const manifestPath = path.join(sourceRoot, "storage-manifest.json");
@@ -91,6 +95,10 @@ if (apply) {
 
 let fileCount = 0;
 let totalBytes = 0;
+let restoredFiles = 0;
+let verifiedFiles = 0;
+let createdBuckets = 0;
+let updatedBuckets = 0;
 
 for (const bucket of manifest.buckets) {
   if (!bucket?.name || !Array.isArray(bucket.objects)) {
@@ -108,9 +116,11 @@ for (const bucket of manifest.buckets) {
       const { error: createError } = await supabase.storage.createBucket(bucket.name, bucketOptions);
       if (createError) throw createError;
       existingBuckets.push({ name: bucket.name });
+      createdBuckets += 1;
     } else if (syncBuckets) {
       const { error: updateError } = await supabase.storage.updateBucket(bucket.name, bucketOptions);
       if (updateError) throw updateError;
+      updatedBuckets += 1;
     }
   }
 
@@ -153,6 +163,7 @@ for (const bucket of manifest.buckets) {
     if (uploadError) {
       throw new Error(`${bucket.name}/${object.name}: ${uploadError.message}`);
     }
+    restoredFiles += 1;
 
     if (verifyRemote) {
       const remote = await hashRemoteObject(bucket.name, object.name);
@@ -162,10 +173,31 @@ for (const bucket of manifest.buckets) {
       if (typeof object.sha256 === "string" && object.sha256.length === 64 && remote.sha256 !== object.sha256.toLowerCase()) {
         throw new Error(`${bucket.name}/${object.name}: Wiederhergestellte Prüfsumme stimmt nicht.`);
       }
+      verifiedFiles += 1;
     }
 
     console.log(`[Wiederhergestellt${verifyRemote ? " und geprüft" : ""}] ${bucket.name}/${object.name}`);
   }
+}
+
+const summary = {
+  verifiedAt: new Date().toISOString(),
+  apply,
+  overwrite,
+  verifyRemote,
+  syncBuckets,
+  buckets: manifest.buckets.length,
+  files: fileCount,
+  bytes: totalBytes,
+  createdBuckets,
+  updatedBuckets,
+  restoredFiles,
+  verifiedFiles,
+};
+
+if (reportPath) {
+  await mkdir(path.dirname(reportPath), { recursive: true });
+  await writeFile(reportPath, `${JSON.stringify(summary, null, 2)}\n`, "utf8");
 }
 
 console.log(`${fileCount} Datei(en), ${totalBytes} Byte geprüft${apply ? " und hochgeladen" : ""}.`);

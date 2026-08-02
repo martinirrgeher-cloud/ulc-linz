@@ -22,21 +22,29 @@ Ein Backup gilt erst als erfolgreich, wenn alle folgenden Prüfungen bestanden w
 6. Die nach Google Drive hochgeladene Datei wird zurückgeladen, mit dem lokalen verschlüsselten Archiv verglichen, erneut entschlüsselt und vollständig geprüft.
 7. Erst danach werden Google-Drive-Backups gelöscht, die älter als zwölf Wochen sind.
 
-## Vierteljährliche Wiederherstellungsprobe
+## E3d-Wiederherstellungsprobe
 
 Die GitHub Action `.github/workflows/quarterly-backup-restore-test.yml` läuft am 1. Jänner, April, Juli und Oktober um 03:45 UTC und kann jederzeit manuell gestartet werden.
 
-Sie verwendet standardmäßig das neueste Backup aus Google Drive und führt eine echte, aber isolierte Wiederherstellungsprobe durch:
+Sie verwendet standardmäßig das neueste Backup aus Google Drive und führt drei voneinander getrennte Wiederherstellungen durch:
 
-- Download und Entschlüsselung des Google-Drive-Archivs
-- vollständige Prüfung aller Prüfsummen
-- Prüfung des PostgreSQL-Dump-Katalogs
-- Start einer lokalen Supabase-Testumgebung im GitHub-Runner
-- Wiederherstellung des vollständigen PostgreSQL-Dumps in eine neue lokale Testdatenbank `ulc_restore_test`
-- Wiederherstellung aller Storage-Dateien in die lokale Supabase-Testumgebung
-- erneuter Download und SHA-256-Vergleich jeder wiederhergestellten Storage-Datei
+- `full-database.dump` in die isolierte Datenbank `ulc_restore_full`
+- `schema.sql` und `data.sql` in die isolierte Datenbank `ulc_restore_portable`
+- sämtliche tatsächlichen Storage-Dateien in die lokale Supabase-Storage-Instanz
 
-Die Produktivdatenbank und das produktive Supabase Storage werden dabei nicht verändert. Die lokale Testumgebung wird nach dem Lauf gelöscht.
+Geprüft werden unter anderem:
+
+- Verschlüsselung, TAR-Struktur und alle SHA-256-Prüfsummen
+- Lesbarkeit und Umfang des PostgreSQL-Dump-Katalogs
+- vorhandene Kernschemas und Kerntabellen
+- Organisationen, Mitgliedschaften und Auth-Benutzer
+- neueste Migration im Dump gegenüber den Migrationen im Backup
+- Tabellen- und RLS-Struktur
+- Bucket-Einstellungen sowie Größe und SHA-256 jeder wiederhergestellten Storage-Datei
+
+Der Lauf erzeugt das GitHub-Artefakt `e3d-backup-restore-report-<Laufnummer>` mit einem Markdown- und JSON-Bericht sowie den technischen Archivprüfungen. Das Artefakt enthält keine Datenbankinhalte, keine Storage-Dateien und keine Secrets. Es wird 30 Tage aufbewahrt.
+
+Die Produktivdatenbank und das produktive Supabase Storage werden dabei nie verbunden oder verändert. Für E3d sind keine zusätzlichen Secrets erforderlich; verwendet werden ausschließlich `BACKUP_ENCRYPTION_PASSWORD` und `RCLONE_CONFIG_B64`. Die lokale Testumgebung und alle entschlüsselten Dateien werden nach dem Bericht gelöscht.
 
 ## 1. Google Drive mit rclone verbinden
 
@@ -126,7 +134,7 @@ GitHub → **Actions → Vierteljährliche Backup-Wiederherstellungsprobe → Ru
 
 Das Feld `backup_file` kann leer bleiben. Dann wird automatisch das neueste Backup verwendet. Alternativ kann ein exakter Dateiname aus Google Drive eingetragen werden.
 
-Ein erfolgreicher grüner Lauf bestätigt, dass Datenbankdump und Storage-Dateien in der isolierten Testumgebung wiederhergestellt und geprüft werden konnten.
+Ein erfolgreicher grüner Lauf bestätigt, dass Vollauszug, portabler Export und Storage-Dateien in isolierten Testzielen wiederhergestellt und fachlich geprüft wurden. Den Detailbericht findest du beim Workflow unter **Artifacts**.
 
 ## 6. Archiv lokal prüfen
 

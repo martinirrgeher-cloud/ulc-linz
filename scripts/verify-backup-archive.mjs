@@ -1,10 +1,16 @@
 import { createReadStream } from "node:fs";
-import { readdir, readFile, stat } from "node:fs/promises";
+import { mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import path from "node:path";
 import process from "node:process";
 
-const sourceRoot = path.resolve(process.argv[2] ?? "backup");
+const rawArgs = process.argv.slice(2);
+const sourceArgument = rawArgs.find((value) => !value.startsWith("--"));
+const jsonArgument = rawArgs.find((value) => value.startsWith("--json="));
+const sourceRoot = path.resolve(sourceArgument ?? "backup");
+const jsonOutputPath = jsonArgument
+  ? path.resolve(jsonArgument.slice("--json=".length))
+  : null;
 const checksumPath = path.join(sourceRoot, "SHA256SUMS");
 
 const requiredFiles = [
@@ -84,6 +90,9 @@ for (const rawLine of checksumText.split(/\r?\n/)) {
   if (relativePath === "SHA256SUMS") {
     throw new Error("SHA256SUMS darf sich nicht selbst enthalten.");
   }
+  if (checksumEntries.has(relativePath)) {
+    throw new Error(`Datei ist mehrfach in SHA256SUMS enthalten: ${relativePath}`);
+  }
   checksumEntries.set(relativePath, match[1].toLowerCase());
 }
 
@@ -131,14 +140,29 @@ if (!Array.isArray(manifest.buckets)) {
 
 let storageFileCount = 0;
 let storageBytes = 0;
+const bucketNames = new Set();
+const storageLocalPaths = new Set();
 for (const bucket of manifest.buckets) {
   if (!bucket?.name || !Array.isArray(bucket.objects)) {
     throw new Error("Ungültiger Bucket-Eintrag im Storage-Manifest.");
   }
+  if (bucketNames.has(bucket.name)) {
+    throw new Error(`Bucket ist mehrfach im Storage-Manifest enthalten: ${bucket.name}`);
+  }
+  bucketNames.add(bucket.name);
+  const objectNames = new Set();
   for (const object of bucket.objects) {
     if (!object?.name || !object?.localPath) {
       throw new Error(`Ungültiger Storage-Eintrag in Bucket ${bucket.name}.`);
     }
+    if (objectNames.has(object.name)) {
+      throw new Error(`Storage-Objekt ist mehrfach enthalten: ${bucket.name}/${object.name}`);
+    }
+    objectNames.add(object.name);
+    if (storageLocalPaths.has(object.localPath)) {
+      throw new Error(`Lokaler Storage-Pfad ist mehrfach enthalten: ${object.localPath}`);
+    }
+    storageLocalPaths.add(object.localPath);
     const localPath = safeResolve(path.posix.join("storage", object.localPath));
     const fileStat = await stat(localPath);
     if (!fileStat.isFile()) {
@@ -167,6 +191,11 @@ const summary = {
   storageFiles: storageFileCount,
   storageBytes,
 };
+
+if (jsonOutputPath) {
+  await mkdir(path.dirname(jsonOutputPath), { recursive: true });
+  await writeFile(jsonOutputPath, `${JSON.stringify(summary, null, 2)}\n`, "utf8");
+}
 
 console.log("Backup erfolgreich geprüft:");
 console.log(JSON.stringify(summary, null, 2));

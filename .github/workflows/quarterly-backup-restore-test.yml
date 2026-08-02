@@ -1,4 +1,4 @@
-name: Vierteljährliche Backup-Wiederherstellungsprobe
+name: E3d Backup-Wiederherstellungsprobe
 
 on:
   workflow_dispatch:
@@ -48,6 +48,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          mkdir -p restore/report
           if [ -z "${BACKUP_ENCRYPTION_PASSWORD:-}" ] || [ -z "${RCLONE_CONFIG_B64:-}" ]; then
             echo "BACKUP_ENCRYPTION_PASSWORD oder RCLONE_CONFIG_B64 fehlt." >&2
             exit 1
@@ -56,6 +57,7 @@ jobs:
             echo "BACKUP_ENCRYPTION_PASSWORD muss mindestens 20 Zeichen lang sein." >&2
             exit 1
           fi
+          docker info >/dev/null
 
       - name: rclone installieren und Google Drive konfigurieren
         shell: bash
@@ -91,12 +93,20 @@ jobs:
             ULC-Linz-App-Backup_*.tar.gz.gpg) ;;
             *) echo "Ungültiger Backup-Dateiname: $selected" >&2; exit 1 ;;
           esac
-          mkdir -p restore/download restore/extracted
+          mkdir -p restore/download restore/extracted restore/report
           rclone copyto "$DRIVE_TARGET/$selected" "restore/download/$selected" --transfers 1 --checkers 4 --retries 5
           test -s "restore/download/$selected"
+          sha256="$(sha256sum "restore/download/$selected" | cut -d' ' -f1)"
+          bytes="$(stat -c '%s' "restore/download/$selected")"
+          printf '%s\n' "$selected" > restore/report/selected-backup.txt
+          printf '%s  %s\n' "$sha256" "$selected" > restore/report/encrypted-archive.sha256
+          printf '%s\n' "$bytes" > restore/report/encrypted-archive.bytes
           echo "file=$selected" >> "$GITHUB_OUTPUT"
+          echo "sha256=$sha256" >> "$GITHUB_OUTPUT"
+          echo "bytes=$bytes" >> "$GITHUB_OUTPUT"
 
-      - name: Backup entschlüsseln und Archiv prüfen
+      - name: Backup entschlüsseln und Archiv vollständig prüfen
+        id: archive
         shell: bash
         run: |
           set -euo pipefail
@@ -108,12 +118,22 @@ jobs:
             --passphrase-fd 0 \
             --output restore/backup.tar.gz \
             --decrypt "restore/download/$file"
+          tar -tzf restore/backup.tar.gz >/dev/null
           tar -xzf restore/backup.tar.gz -C restore/extracted
-          node scripts/verify-backup-archive.mjs restore/extracted/backup
-          docker run --rm \
+          node scripts/verify-backup-archive.mjs \
+            restore/extracted/backup \
+            --json=restore/report/archive-verification.json
+          entries="$(docker run --rm \
             -v "$PWD/restore/extracted/backup/database:/backup:ro" \
             postgres:17-alpine \
-            pg_restore --list /backup/full-database.dump >/dev/null
+            pg_restore --list /backup/full-database.dump \
+            | grep -cve '^;' || true)"
+          if [ "${entries:-0}" -le 0 ]; then
+            echo "Der PostgreSQL-Dump-Katalog ist leer." >&2
+            exit 1
+          fi
+          echo "$entries" > restore/report/pg-restore-entry-count.txt
+          echo "catalog_entries=$entries" >> "$GITHUB_OUTPUT"
 
       - name: Isolierte lokale Supabase-Umgebung starten
         shell: bash
@@ -131,7 +151,7 @@ jobs:
           supabase status -o env > restore/local-supabase.env
           test -s restore/local-supabase.env
 
-      - name: PostgreSQL-Vollauszug in isolierte Testdatenbank einspielen
+      - name: Vollauszug und portablen Export in getrennte Datenbanken einspielen
         shell: bash
         run: |
           set -euo pipefail
@@ -139,34 +159,63 @@ jobs:
           source restore/local-supabase.env
           set +a
           : "${DB_URL:?DB_URL wurde von Supabase CLI nicht geliefert.}"
-          restore_db_url="${DB_URL%/*}/ulc_restore_test"
+          base_db_url="${DB_URL%/*}"
+          full_db_url="$base_db_url/ulc_restore_full"
+          portable_db_url="$base_db_url/ulc_restore_portable"
 
-          docker run --rm --network host postgres:17-alpine \
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-            -c "drop database if exists ulc_restore_test with (force);"
-          docker run --rm --network host postgres:17-alpine \
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-            -c "create database ulc_restore_test;"
+          for database in ulc_restore_full ulc_restore_portable; do
+            docker run --rm --network host postgres:17-alpine \
+              psql -X -v ON_ERROR_STOP=1 "$DB_URL" \
+              -c "drop database if exists $database with (force);"
+            docker run --rm --network host postgres:17-alpine \
+              psql -X -v ON_ERROR_STOP=1 "$DB_URL" \
+              -c "create database $database;"
+          done
+
           docker run --rm --network host \
             -v "$PWD/restore/extracted/backup/database:/backup:ro" \
             postgres:17-alpine \
             pg_restore \
-              --dbname "$restore_db_url" \
+              --dbname "$full_db_url" \
               --no-owner \
               --no-privileges \
               --exit-on-error \
               /backup/full-database.dump
 
-          table_count="$(docker run --rm --network host postgres:17-alpine \
-            psql "$restore_db_url" -At -v ON_ERROR_STOP=1 \
-            -c "select count(*) from pg_catalog.pg_tables where schemaname not in ('pg_catalog', 'information_schema');")"
-          if [ "${table_count:-0}" -le 0 ]; then
-            echo "Die Testwiederherstellung enthält keine Tabellen." >&2
-            exit 1
-          fi
-          echo "Wiederhergestellte Tabellen: $table_count"
+          docker run --rm --network host \
+            -v "$PWD/restore/extracted/backup/database:/backup:ro" \
+            postgres:17-alpine \
+            psql -X -v ON_ERROR_STOP=1 "$portable_db_url" -f /backup/schema.sql
+          docker run --rm --network host \
+            -v "$PWD/restore/extracted/backup/database:/backup:ro" \
+            postgres:17-alpine \
+            psql -X -v ON_ERROR_STOP=1 "$portable_db_url" -f /backup/data.sql
 
-      - name: Storage in lokale Testumgebung einspielen und prüfen
+          cat > restore/database-urls.env <<EOF
+          FULL_RESTORE_DB_URL=$full_db_url
+          PORTABLE_RESTORE_DB_URL=$portable_db_url
+          EOF
+          chmod 600 restore/database-urls.env
+
+      - name: Wiederhergestellte Datenbanken fachlich prüfen
+        shell: bash
+        env:
+          BACKUP_FILE: ${{ steps.backup.outputs.file }}
+          BACKUP_ENCRYPTED_SHA256: ${{ steps.backup.outputs.sha256 }}
+          BACKUP_ENCRYPTED_BYTES: ${{ steps.backup.outputs.bytes }}
+          DUMP_CATALOG_ENTRIES: ${{ steps.archive.outputs.catalog_entries }}
+          BACKUP_ROOT: restore/extracted/backup
+          RESTORE_REPORT_JSON: restore/report/database-restore-report.json
+          RESTORE_REPORT_MARKDOWN: restore/report/database-restore-report.md
+        run: |
+          set -euo pipefail
+          set -a
+          source restore/database-urls.env
+          set +a
+          node scripts/verify-restored-database.mjs
+          cat restore/report/database-restore-report.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Storage in lokale Testumgebung einspielen und vollständig prüfen
         shell: bash
         run: |
           set -euo pipefail
@@ -182,9 +231,19 @@ jobs:
               --apply \
               --overwrite \
               --verify \
-              --sync-buckets
+              --sync-buckets \
+              --report-json=restore/report/storage-restore.json
 
-      - name: Lokale Testumgebung stoppen
+      - name: Wiederherstellungsbericht als Artefakt speichern
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e3d-backup-restore-report-${{ github.run_id }}
+          path: restore/report
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Lokale Testumgebung und entschlüsselte Daten entfernen
         if: always()
         shell: bash
         run: |
@@ -196,10 +255,13 @@ jobs:
         shell: bash
         run: |
           {
-            echo "## Vierteljährliche Backup-Wiederherstellungsprobe"
+            echo "## E3d Backup-Wiederherstellungsprobe"
             echo ""
             echo "- Backup: ${{ steps.backup.outputs.file || 'nicht ausgewählt' }}"
-            echo "- Ziel: isolierte lokale Supabase-Umgebung im GitHub-Runner"
+            echo "- Vollauszug: isolierte Datenbank ulc_restore_full"
+            echo "- Portabler Export: isolierte Datenbank ulc_restore_portable"
+            echo "- Storage: lokale Supabase-Storage-Instanz mit SHA-256-Rückprüfung"
             echo "- Produktivsystem verändert: nein"
+            echo "- Bericht: GitHub-Artefakt e3d-backup-restore-report-${{ github.run_id }}"
             echo "- Status: ${{ job.status }}"
           } >> "$GITHUB_STEP_SUMMARY"
