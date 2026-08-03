@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { APP_MODULE_GROUPS, APP_MODULES, type AppModuleGroupKey } from "@/config/modules";
 import { useAuth } from "@/features/auth/AuthContext";
+import "@/styles/dashboard.css";
 
 type DashboardLocationState = {
   openGroupKey?: AppModuleGroupKey | null;

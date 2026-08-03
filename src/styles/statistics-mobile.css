@@ -1,0 +1,22 @@
+/* Routebezogene Mobile-Nachbesserungen: statistics. */
+
+@media screen and (max-width: 760px) {
+  .statistics-filter-grid input,
+  .statistics-filter-grid select {
+    min-height: 42px;
+        padding: 8px 10px;
+        font-size: 16px;
+        border-radius: 10px;
+  }
+  .statistics-filter-card {
+    gap: 8px;
+        padding: 9px;
+        border-radius: 12px;
+  }
+  .statistics-filter-grid {
+    gap: 7px;
+  }
+  .statistics-filter-actions {
+    gap: 7px;
+  }
+}

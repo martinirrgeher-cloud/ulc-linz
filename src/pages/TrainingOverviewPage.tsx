@@ -30,6 +30,8 @@ import type {
 } from "@/features/training-overview/types";
 
 import { diagnosticErrorMessage } from "@/lib/diagnostics";
+import "@/styles/training-overview.css";
+import "@/styles/training-overview-mobile.css";
 const EMPTY_OVERVIEW: TrainingWeekOverview = {
   weekStart: startOfIsoWeek(new Date()),
   weekEnd: startOfIsoWeek(new Date()),

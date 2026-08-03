@@ -1,0 +1,119 @@
+/* Routebezogene Mobile-Nachbesserungen: training-blocks. */
+
+@media screen and (max-width: 760px) {
+  .training-blocks-heading {
+    gap: 9px;
+        margin-bottom: 12px;
+  }
+  .training-blocks-heading h1 {
+    font-size: clamp(1.35rem, 6vw, 1.62rem);
+        line-height: 1.12;
+  }
+  .training-blocks-heading p:not(.eyebrow) {
+    margin-top: 4px;
+        font-size: 0.82rem;
+        line-height: 1.35;
+  }
+  .training-blocks-heading .eyebrow {
+    margin-bottom: 4px !important;
+        font-size: 0.68rem;
+  }
+  .training-block-search input,
+  .training-block-filter-grid select {
+    min-height: 42px;
+        padding: 8px 10px;
+        font-size: 16px;
+        border-radius: 10px;
+  }
+  .training-blocks-toolbar {
+    grid-template-columns: minmax(0, 1fr) 42px;
+        gap: 6px;
+        align-items: stretch;
+  }
+  .training-block-filter-toggle {
+    width: 42px;
+        min-width: 42px;
+        min-height: 42px;
+        padding: 0;
+  }
+  .training-block-filter-toggle .filter-toggle-label,
+  .training-block-filter-toggle .filter-toggle-chevron {
+    display: none;
+  }
+  .filter-toggle-count {
+    position: absolute;
+        top: -4px;
+        right: -4px;
+        min-width: 18px;
+        height: 18px;
+        display: grid;
+        place-items: center;
+        padding: 0 4px;
+        border: 2px solid #fff;
+        border-radius: 999px;
+        font-size: 0.65rem;
+  }
+  .training-block-filter-toggle {
+    position: relative;
+  }
+  .training-block-filter-panel {
+    gap: 8px;
+        padding: 9px;
+        border-radius: 12px;
+  }
+  .training-block-filter-grid {
+    gap: 7px;
+  }
+  .training-block-filter-footer {
+    gap: 7px;
+  }
+  .training-block-filter-footer .text-button {
+    min-height: 38px;
+        padding: 6px 9px;
+        font-size: 0.76rem;
+  }
+  .training-blocks-page small {
+    font-size: 0.75rem;
+  }
+  .training-block-editor-backdrop {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+@media screen and (max-width: 760px) {
+  .training-block-card-actions button,
+  .training-block-item-actions button,
+  .training-block-item-info-button {
+    width: 40px;
+        height: 40px;
+        min-width: 40px;
+        min-height: 40px;
+        border-radius: 9px;
+  }
+  .training-block-card-actions,
+  .training-block-item-actions {
+    gap: 5px;
+  }
+  .training-block-card-actions svg,
+  .training-block-item-actions svg {
+    width: 17px;
+        height: 17px;
+  }
+}
+@media screen and (max-width: 390px) {
+  .training-block-card-actions button,
+  .training-block-item-actions button,
+  .training-block-item-info-button {
+    width: 38px;
+        height: 38px;
+        min-width: 38px;
+        min-height: 38px;
+  }
+}
+@media screen and (pointer: coarse) and (max-width: 760px) {
+  .training-block-card-actions button,
+  .training-block-item-actions button,
+  .training-block-item-info-button {
+    min-width: 42px;
+        min-height: 42px;
+  }
+}

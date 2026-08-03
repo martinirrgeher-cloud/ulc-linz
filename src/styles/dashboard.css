@@ -1,0 +1,52 @@
+/* Routebezogene Mobile-Regeln fuer die Moduluebersicht. */
+
+@media (max-width: 760px) {
+  .dashboard-page .dashboard-heading {
+    margin-bottom: 14px;
+  }
+  .dashboard-page .module-sections {
+    gap: 8px;
+  }
+  .dashboard-page .module-section {
+    border-radius: 13px;
+  }
+  .dashboard-page .module-section > summary {
+    min-height: 48px;
+        padding: 7px 10px;
+  }
+  .dashboard-page .module-section-copy strong {
+    font-size: 0.92rem;
+  }
+  .dashboard-page .module-section-meta > span {
+    min-width: 22px;
+        font-size: 0.72rem;
+  }
+  .dashboard-page .module-section-meta svg {
+    width: 17px;
+        height: 17px;
+  }
+  .dashboard-page .module-section .module-grid {
+    grid-template-columns: 1fr;
+        gap: 5px;
+        padding: 6px;
+  }
+  .dashboard-page .module-card {
+    min-height: 52px;
+        grid-template-columns: 32px minmax(0, 1fr) 17px;
+        gap: 9px;
+        padding: 7px 9px;
+        border-radius: 10px;
+  }
+  .dashboard-page .module-icon {
+    width: 32px;
+        height: 32px;
+        border-radius: 8px;
+  }
+  .dashboard-page .module-icon svg {
+    width: 17px;
+        height: 17px;
+  }
+  .dashboard-page .module-copy strong {
+    font-size: 0.91rem;
+  }
+}

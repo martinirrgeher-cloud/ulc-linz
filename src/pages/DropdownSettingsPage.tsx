@@ -16,6 +16,8 @@ import {
 } from "@/features/dropdown-settings/types";
 
 import { diagnosticErrorMessage } from "@/lib/diagnostics";
+import "@/styles/dropdown-settings.css";
+import "@/styles/dropdown-settings-mobile.css";
 const EMPTY_DATA: DropdownSettingsData = {
   category: [],
   subcategory: [],

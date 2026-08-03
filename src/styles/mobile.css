@@ -1,27 +1,18 @@
-/*
- * Mobile-First-Ergänzungen für die ULC-Linz-App.
- *
- * Diese Datei wird bewusst nach global.css geladen. Sie verändert keine
- * Fachlogik und überschreibt die bestehenden Desktop-Regeln nur auf kleinen
- * Bildschirmen beziehungsweise bei Touch-Bedienung.
- */
+/* Globale Mobile-Basis. Feature-Regeln werden routebezogen geladen. */
 
 html {
   -webkit-text-size-adjust: 100%;
-  text-size-adjust: 100%;
+    text-size-adjust: 100%;
 }
-
 body {
   overflow-x: hidden;
 }
-
 button,
 input,
 select,
 textarea {
   font: inherit;
 }
-
 button,
 a,
 input,
@@ -29,74 +20,59 @@ select,
 textarea {
   touch-action: manipulation;
 }
-
 @media (pointer: coarse) {
   .primary-button,
   .secondary-button,
   .icon-button,
   .status-filter button,
-  .management-tabs button,
   .back-link {
     min-height: 46px;
   }
-
   .icon-button {
     width: 46px;
-    height: 46px;
+        height: 46px;
   }
 }
-
 @media (max-width: 760px) {
   .auth-page,
   .setup-page,
   .status-page,
   .loading-screen {
     min-height: 100svh;
-    padding-top: max(14px, env(safe-area-inset-top));
-    padding-right: max(14px, env(safe-area-inset-right));
-    padding-bottom: max(14px, env(safe-area-inset-bottom));
-    padding-left: max(14px, env(safe-area-inset-left));
+        padding-top: max(14px, env(safe-area-inset-top));
+        padding-right: max(14px, env(safe-area-inset-right));
+        padding-bottom: max(14px, env(safe-area-inset-bottom));
+        padding-left: max(14px, env(safe-area-inset-left));
   }
-
   .auth-card,
   .setup-card,
   .status-card {
     width: 100%;
-    border-radius: 18px;
-    padding: 24px 18px;
+        border-radius: 18px;
+        padding: 24px 18px;
   }
-
   .auth-logo {
     width: 76px;
-    height: 76px;
-    margin-bottom: 16px;
+        height: 76px;
+        margin-bottom: 16px;
   }
-
   .auth-heading {
     margin-bottom: 20px;
   }
-
   .auth-heading h1,
   .setup-card h1,
   .status-card h1,
   .page-heading h1,
-  .management-page-heading h1,
   .placeholder-card h1 {
     font-size: clamp(1.55rem, 7vw, 1.9rem);
+        overflow-wrap: anywhere;
+  }
+  .empty-state h2 {
     overflow-wrap: anywhere;
   }
-
-  .management-editor-heading h2,
-  .empty-state h2,
-  .training-group-card-heading h2 {
-    overflow-wrap: anywhere;
-  }
-
-  .form-stack,
-  .management-form {
+  .form-stack {
     gap: 18px;
   }
-
   .form-stack input,
   .form-grid input,
   .form-grid select,
@@ -104,426 +80,172 @@ textarea {
   .toolbar-select,
   .full-width-field textarea {
     min-height: 48px;
-    font-size: 16px;
+        font-size: 16px;
   }
-
   .full-width-field textarea {
     min-height: 108px;
   }
-
   .app-header {
     min-height: 64px;
-    gap: 8px;
-    padding-top: max(8px, env(safe-area-inset-top));
-    padding-right: max(12px, env(safe-area-inset-right));
-    padding-bottom: 8px;
-    padding-left: max(12px, env(safe-area-inset-left));
+        gap: 8px;
+        padding-top: max(8px, env(safe-area-inset-top));
+        padding-right: max(12px, env(safe-area-inset-right));
+        padding-bottom: 8px;
+        padding-left: max(12px, env(safe-area-inset-left));
   }
-
   .brand {
     gap: 9px;
-    max-width: calc(100% - 102px);
+        max-width: calc(100% - 102px);
   }
-
   .brand img {
     width: 42px;
-    height: 42px;
+        height: 42px;
   }
-
   .brand strong {
     font-size: 0.95rem;
   }
-
   .user-area {
     gap: 6px;
   }
-
   .app-content {
     width: 100%;
-    padding-top: 18px;
-    padding-right: max(12px, env(safe-area-inset-right));
-    padding-bottom: calc(28px + env(safe-area-inset-bottom));
-    padding-left: max(12px, env(safe-area-inset-left));
+        padding-top: 18px;
+        padding-right: max(12px, env(safe-area-inset-right));
+        padding-bottom: calc(28px + env(safe-area-inset-bottom));
+        padding-left: max(12px, env(safe-area-inset-left));
   }
-
-  .page-heading,
-  .management-page-heading,
-  .management-editor-heading,
-  .management-toolbar {
+  .page-heading {
     gap: 14px;
   }
-
-  .page-heading,
-  .management-page-heading {
+  .page-heading {
     margin-bottom: 20px;
   }
-
-  .page-heading p,
-  .management-page-heading p:not(.eyebrow),
-  .management-editor-heading p:not(.eyebrow) {
+  .page-heading p {
     margin-bottom: 0;
   }
-
   .back-link {
     width: fit-content;
-    padding: 4px 2px;
+        padding: 4px 2px;
   }
-
   .primary-button,
   .secondary-button {
     min-height: 48px;
-    padding: 12px 15px;
+        padding: 12px 15px;
   }
-
   .module-grid {
     gap: 12px;
   }
-
   .module-card {
     min-height: 108px;
-    gap: 12px;
-    padding: 16px;
-    border-radius: 16px;
+        gap: 12px;
+        padding: 16px;
+        border-radius: 16px;
   }
-
   .module-icon {
     width: 44px;
-    height: 44px;
-    border-radius: 13px;
+        height: 44px;
+        border-radius: 13px;
   }
-
   .module-copy {
     gap: 5px;
   }
-
   .module-copy strong {
     font-size: 1rem;
   }
-
   .module-copy small {
     font-size: 0.86rem;
   }
-
   .empty-state,
   .placeholder-card {
     padding: 30px 16px;
-    border-radius: 16px;
+        border-radius: 16px;
   }
-
   .button-row {
     align-items: stretch;
-    flex-direction: column;
+        flex-direction: column;
   }
-
   .button-row .primary-button,
   .button-row .secondary-button,
   .button-row .link-button {
     width: 100%;
   }
-
-  .management-editor {
-    padding: 18px 14px;
-    border-radius: 16px;
-  }
-
-  .management-editor-heading {
-    padding-right: 52px;
-  }
-
-  .management-editor-heading .icon-button {
-    top: 0;
-    right: 0;
-  }
-
-  .management-page-heading .primary-button,
-  .management-toolbar .secondary-button {
-    width: 100%;
-  }
-
   .status-filter {
     flex-wrap: nowrap;
-    overflow-x: auto;
-    padding-bottom: 4px;
-    scrollbar-width: none;
-    scroll-snap-type: x proximity;
-    -webkit-overflow-scrolling: touch;
+        overflow-x: auto;
+        padding-bottom: 4px;
+        scrollbar-width: none;
+        scroll-snap-type: x proximity;
+        -webkit-overflow-scrolling: touch;
   }
-
   .status-filter::-webkit-scrollbar {
     display: none;
   }
-
   .status-filter button {
     flex: 0 0 auto;
-    scroll-snap-align: start;
+        scroll-snap-align: start;
   }
-
   .summary-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
+        gap: 10px;
   }
-
   .summary-card {
     min-height: 82px;
-    gap: 10px;
-    padding: 12px;
-    border-radius: 15px;
+        gap: 10px;
+        padding: 12px;
+        border-radius: 15px;
   }
-
   .summary-card:last-child:nth-child(odd) {
     grid-column: 1 / -1;
   }
-
   .summary-card > svg {
     width: 38px;
-    height: 38px;
-    padding: 9px;
-    border-radius: 12px;
+        height: 38px;
+        padding: 9px;
+        border-radius: 12px;
   }
-
   .summary-card span {
     font-size: 0.8rem;
   }
-
   .summary-card strong {
     font-size: 1.28rem;
   }
-
-  .management-tabs {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 6px;
-    padding: 5px;
-  }
-
-  .management-tabs button {
-    min-width: 0;
-    min-height: 46px;
-    gap: 5px;
-    padding: 9px 6px;
-    font-size: 0.84rem;
-  }
-
-  .management-tabs button svg {
-    width: 17px;
-    height: 17px;
-  }
-
-  .management-tabs button span {
-    min-width: 21px;
-    padding: 2px 5px;
-  }
-
-  .athlete-toolbar {
-    gap: 8px;
-  }
-
-  .member-card,
-  .athlete-card,
-  .training-group-card {
-    padding: 14px;
-    border-radius: 16px;
-  }
-
-  .member-primary,
-  .athlete-identity,
-  .training-group-card-heading {
-    gap: 10px;
-  }
-
-  .member-avatar,
-  .athlete-avatar,
-  .group-icon {
-    width: 42px;
-    height: 42px;
-    border-radius: 12px;
-  }
-
-  .member-name h2,
-  .member-name a,
-  .athlete-identity h2 {
-    white-space: normal;
-    overflow-wrap: anywhere;
-  }
-
-  .member-details {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
-  }
-
-  .member-details div:last-child:nth-child(odd) {
-    grid-column: 1 / -1;
-  }
-
-  .member-details dd {
-    white-space: normal;
-    overflow-wrap: anywhere;
-  }
-
-  .athlete-groups {
-    gap: 5px;
-  }
-
-  .training-group-description {
-    min-height: 0;
-  }
-
-  .training-group-details {
-    gap: 8px;
-    padding: 11px;
-  }
-
-  .group-checkbox {
-    min-height: 58px;
-  }
-
-  .permission-groups {
-    gap: 8px;
-  }
-
-  .permission-group > summary {
-    min-height: 46px;
-    padding: 8px 10px;
-  }
-
-  .permission-group-copy strong {
-    font-size: 0.84rem;
-  }
-
-  .permission-group-copy small {
-    font-size: 0.68rem;
-  }
-
-  .permission-header {
-    display: none;
-  }
-
-  .permission-row:not(.permission-header) {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    min-height: 0;
-  }
-
-  .permission-row:not(.permission-header) + .permission-row {
-    border-top: 1px solid var(--border);
-  }
-
-  .permission-module {
-    grid-column: 1 / -1;
-    padding: 12px !important;
-  }
-
-  .permission-module small:not(.permission-note) {
-    display: block;
-  }
-
-  .check-cell {
-    position: relative;
-    min-height: 56px;
-    padding-top: 25px !important;
-    border-top: 1px solid var(--border);
-    border-left: 0;
-  }
-
-  .check-cell + .check-cell {
-    border-left: 1px solid var(--border);
-  }
-
-  .check-cell::before {
-    position: absolute;
-    top: 7px;
-    left: 50%;
-    color: var(--muted);
-    font-size: 0.68rem;
-    font-weight: 800;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    transform: translateX(-50%);
-  }
-
-  .permission-row .check-cell:nth-child(2)::before {
-    content: "Lesen";
-  }
-
-  .permission-row .check-cell:nth-child(3)::before {
-    content: "Bearbeiten";
-  }
-
-  .check-cell input,
-  .group-checkbox input {
-    width: 22px;
-    height: 22px;
-  }
-
-  .management-actions {
-    gap: 10px;
-  }
 }
-
 @media (max-width: 380px) {
   .app-content {
     padding-right: max(10px, env(safe-area-inset-right));
-    padding-left: max(10px, env(safe-area-inset-left));
+        padding-left: max(10px, env(safe-area-inset-left));
   }
-
   .brand {
     max-width: calc(100% - 50px);
   }
-
   .brand img {
     width: 38px;
-    height: 38px;
+        height: 38px;
   }
-
   .brand strong {
     font-size: 0.9rem;
   }
-
   .module-card {
     grid-template-columns: 40px minmax(0, 1fr) 18px;
-    padding: 14px;
+        padding: 14px;
   }
-
   .module-icon {
     width: 40px;
-    height: 40px;
+        height: 40px;
   }
-
   .module-copy small {
     font-size: 0.82rem;
   }
-
   .summary-card {
     gap: 8px;
-    padding: 10px;
+        padding: 10px;
   }
-
   .summary-card > svg {
     width: 34px;
-    height: 34px;
-    padding: 8px;
-  }
-
-  .management-tabs button {
-    font-size: 0.78rem;
-  }
-
-  .management-tabs button svg {
-    display: none;
-  }
-
-  .member-details {
-    grid-template-columns: 1fr;
-  }
-
-  .member-details div:last-child:nth-child(odd) {
-    grid-column: auto;
-  }
-
-  .training-group-details {
-    grid-template-columns: 1fr;
+        height: 34px;
+        padding: 8px;
   }
 }
-
 @media (max-height: 500px) and (orientation: landscape) {
   .auth-page,
   .setup-page,
@@ -531,219 +253,41 @@ textarea {
     place-items: start center;
   }
 }
-
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
     scroll-behavior: auto !important;
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
   }
 }
-
-
-/* Kompakte Modulübersicht auf Smartphones */
 @media (max-width: 760px) {
-  .dashboard-page .dashboard-heading {
-    margin-bottom: 14px;
-  }
-
-  .dashboard-page .module-sections {
-    gap: 8px;
-  }
-
-  .dashboard-page .module-section {
-    border-radius: 13px;
-  }
-
-  .dashboard-page .module-section > summary {
-    min-height: 48px;
-    padding: 7px 10px;
-  }
-
-  .dashboard-page .module-section-copy strong {
-    font-size: 0.92rem;
-  }
-
-  .dashboard-page .module-section-meta > span {
-    min-width: 22px;
-    font-size: 0.72rem;
-  }
-
-  .dashboard-page .module-section-meta svg {
-    width: 17px;
-    height: 17px;
-  }
-
-  .dashboard-page .module-section .module-grid {
-    grid-template-columns: 1fr;
-    gap: 5px;
-    padding: 6px;
-  }
-
-  .dashboard-page .module-card {
-    min-height: 52px;
-    grid-template-columns: 32px minmax(0, 1fr) 17px;
-    gap: 9px;
-    padding: 7px 9px;
-    border-radius: 10px;
-  }
-
-  .dashboard-page .module-icon {
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-  }
-
-  .dashboard-page .module-icon svg {
-    width: 17px;
-    height: 17px;
-  }
-
-  .dashboard-page .module-copy strong {
-    font-size: 0.91rem;
-  }
-}
-
-/* Stammdaten-Erweiterung */
-@media (max-width: 760px) {
-  .management-tabs.three-tabs {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .management-tabs.three-tabs button {
-    padding-inline: 4px;
-    font-size: 0.76rem;
-  }
-
-  .trainer-card {
-    padding: 12px;
-    border-radius: 15px;
-  }
-
-  .fieldset-heading {
-    align-items: stretch;
-  }
-}
-
-@media (max-width: 380px) {
-  .management-tabs.three-tabs button {
-    font-size: 0.7rem;
-  }
-
-  .management-tabs.three-tabs button span {
-    display: none;
-  }
-
-  .fieldset-heading {
-    flex-direction: column;
-  }
-}
-
-/* Stammdaten kompakt */
-@media (max-width: 760px) {
-  .athlete-management-page {
-    gap: 14px;
-  }
-
-  .athlete-management-page .compact-management-heading {
-    margin-bottom: 0;
-  }
-
-  .compact-editor {
-    padding-bottom: 0;
-  }
-
-  .compact-editor-heading {
-    min-height: 42px;
-  }
-
-  .compact-athlete-form .form-grid {
-    gap: 12px;
-  }
-
   .sticky-editor-actions {
     margin-right: -14px;
-    margin-left: -14px;
+        margin-left: -14px;
   }
 }
-
 @media (max-width: 760px) {
-  .brand { max-width: calc(100% - 96px); }
-  .brand-copy { max-width: 100%; }
-  .brand-user-line { display: flex !important; font-size: .72rem; }
-  .user-area { flex: 0 0 auto; }
-  .user-area .icon-button { width: 40px; height: 40px; }
+  .brand {
+    max-width: calc(100% - 96px);
+  }
+  .brand-copy {
+    max-width: 100%;
+  }
+  .brand-user-line {
+    display: flex !important; font-size: .72rem;
+  }
+  .user-area {
+    flex: 0 0 auto;
+  }
+  .user-area .icon-button {
+    width: 40px; height: 40px;
+  }
 }
-
-/* Mobile-First-Nachbesserungen Juli 2026 */
 @media (max-width: 760px) {
   .app-user-menu-panel {
     top: calc(100% + 7px);
-  }
-
-  .masterdata-search-row .search-field {
-    min-width: 0;
-  }
-
-  .masterdata-select-row {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .masterdata-status-filter {
-    overflow: visible;
-    padding-bottom: 0;
-    scroll-snap-type: none;
-  }
-
-  .masterdata-status-filter button {
-    min-width: 0;
-    padding-inline: 6px;
-  }
-
-  .compact-group-card .training-group-details {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .user-management-toolbar {
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 8px;
-  }
-
-  .user-management-toolbar .search-field {
-    grid-column: 1 / -1;
-  }
-
-  .user-management-toolbar .management-filter-field {
-    min-width: 0;
-  }
-
-  .user-management-toolbar .secondary-button {
-    width: auto;
-    min-width: 48px;
-    padding-inline: 12px;
-  }
-
-  .user-management-toolbar .secondary-button span {
-    display: none;
-  }
-}
-
-@media (max-width: 390px) {
-  .masterdata-filter-field,
-  .management-filter-field {
-    font-size: 0.7rem;
-  }
-
-  .masterdata-filter-field select,
-  .management-filter-field select {
-    padding-left: 8px;
-    font-size: 0.8rem;
-  }
-
-  .compact-group-card .training-group-details {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

@@ -1,0 +1,48 @@
+/* Routebezogene Mobile-Nachbesserungen: data-import. */
+
+@media screen and (max-width: 760px) {
+  .data-import-heading {
+    gap: 9px;
+        margin-bottom: 12px;
+  }
+  .data-import-heading h1 {
+    font-size: clamp(1.35rem, 6vw, 1.62rem);
+        line-height: 1.12;
+  }
+  .data-import-heading p:not(.eyebrow) {
+    margin-top: 4px;
+        font-size: 0.82rem;
+        line-height: 1.35;
+  }
+  .data-import-heading .eyebrow {
+    margin-bottom: 4px !important;
+        font-size: 0.68rem;
+  }
+  .data-export-filters input,
+  .data-export-filters select {
+    min-height: 42px;
+        padding: 8px 10px;
+        font-size: 16px;
+        border-radius: 10px;
+  }
+  .data-import-mode-tabs,
+  .data-import-tabs {
+    gap: 4px;
+        padding: 4px;
+        border-radius: 11px;
+  }
+  .data-import-mode-tabs button,
+  .data-import-tabs button {
+    min-height: 40px;
+        padding: 7px 8px;
+        font-size: 0.78rem;
+        border-radius: 8px;
+  }
+}
+@media screen and (max-width: 390px) {
+  .data-import-mode-tabs button,
+  .data-import-tabs button {
+    padding-inline: 5px;
+        font-size: 0.72rem;
+  }
+}

@@ -53,6 +53,9 @@ import {
 
 import { collaborationVersionsDiffer } from "@/features/collaboration/conflicts";
 import { diagnosticErrorMessage } from "@/lib/diagnostics";
+import "@/styles/training-documentation.css";
+import "@/styles/mobile-day-selector.css";
+import "@/styles/training-documentation-mobile.css";
 type PageMode = "document" | "team" | "statistics";
 
 function parsePageMode(value: string | null): PageMode {

@@ -37,6 +37,8 @@ import {
 } from "@/features/training-planning/types";
 
 import { diagnosticErrorMessage } from "@/lib/diagnostics";
+import "@/styles/training-planning.css";
+import "@/styles/training-planning-mobile.css";
 function localDateKey(date = new Date()): string {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");

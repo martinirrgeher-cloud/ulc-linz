@@ -4,17 +4,6 @@ import { App } from "@/app/App";
 import { AppErrorBoundary } from "@/components/errors/AppErrorBoundary";
 import "@/styles/global.css";
 import "@/styles/mobile.css";
-import "@/styles/kindertraining.css";
-import "@/styles/statistics.css";
-import "@/styles/performance-registration.css";
-import "@/styles/exercise-catalog.css";
-import "@/styles/training-blocks.css";
-import "@/styles/training-planning.css";
-import "@/styles/training-overview.css";
-import "@/styles/training-documentation.css";
-import "@/styles/dropdown-settings.css";
-import "@/styles/data-import.css";
-import "@/styles/countdown.css";
 import "@/styles/mobile-foundation.css";
 
 import { installGlobalDiagnostics } from "@/lib/diagnostics";

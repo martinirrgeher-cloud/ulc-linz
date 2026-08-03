@@ -1,0 +1,50 @@
+/* Routebezogene Mobile-Nachbesserungen: training-overview. */
+
+@media screen and (max-width: 760px) {
+  .training-overview-heading {
+    gap: 9px;
+        margin-bottom: 12px;
+  }
+  .training-overview-heading h1 {
+    font-size: clamp(1.35rem, 6vw, 1.62rem);
+        line-height: 1.12;
+  }
+  .training-overview-heading p:not(.eyebrow) {
+    margin-top: 4px;
+        font-size: 0.82rem;
+        line-height: 1.35;
+  }
+  .training-overview-heading .eyebrow {
+    margin-bottom: 4px !important;
+        font-size: 0.68rem;
+  }
+  .training-overview-page small {
+    font-size: 0.75rem;
+  }
+  .training-overview-mobile-days button {
+    min-height: 50px;
+  }
+  .training-overview-mobile-days strong {
+    font-size: 0.78rem;
+  }
+  .training-overview-mobile-days small,
+  .training-overview-mobile-days span {
+    font-size: 0.68rem;
+  }
+  .training-overview-mobile-athlete > header > strong,
+  .training-overview-mobile-plan strong,
+  .training-overview-mobile-documentation span {
+    font-size: 0.76rem;
+  }
+  .training-overview-mobile-athlete > header > span,
+  .training-overview-mobile-plan small {
+    font-size: 0.7rem;
+  }
+  .training-overview-mobile-athlete > div {
+    grid-template-columns: minmax(0, 1fr) 50px;
+  }
+  .training-overview-mobile-plan,
+  .training-overview-mobile-documentation {
+    min-height: 42px;
+  }
+}

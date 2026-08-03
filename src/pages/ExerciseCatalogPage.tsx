@@ -38,6 +38,8 @@ import type {
 } from "@/features/exercise-catalog/types";
 
 import { diagnosticErrorMessage } from "@/lib/diagnostics";
+import "@/styles/exercise-catalog.css";
+import "@/styles/exercise-catalog-mobile.css";
 type ActivityFilter = "active" | "inactive" | "all";
 type VideoFilter = "all" | "yes" | "no";
 

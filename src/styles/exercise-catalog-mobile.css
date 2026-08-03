@@ -1,0 +1,116 @@
+/* Routebezogene Mobile-Nachbesserungen: exercise-catalog. */
+
+@media screen and (max-width: 760px) {
+  .exercise-catalog-heading {
+    gap: 9px;
+        margin-bottom: 12px;
+  }
+  .exercise-catalog-heading h1 {
+    font-size: clamp(1.35rem, 6vw, 1.62rem);
+        line-height: 1.12;
+  }
+  .exercise-catalog-heading p:not(.eyebrow) {
+    margin-top: 4px;
+        font-size: 0.82rem;
+        line-height: 1.35;
+  }
+  .exercise-catalog-heading .eyebrow {
+    margin-bottom: 4px !important;
+        font-size: 0.68rem;
+  }
+  .exercise-search input,
+  .exercise-filter-grid select {
+    min-height: 42px;
+        padding: 8px 10px;
+        font-size: 16px;
+        border-radius: 10px;
+  }
+  .exercise-catalog-toolbar {
+    grid-template-columns: minmax(0, 1fr) 42px;
+        gap: 6px;
+        align-items: stretch;
+  }
+  .exercise-filter-toggle {
+    width: 42px;
+        min-width: 42px;
+        min-height: 42px;
+        padding: 0;
+  }
+  .exercise-filter-toggle > span {
+    position: absolute;
+        top: -4px;
+        right: -4px;
+        min-width: 18px;
+        height: 18px;
+        display: grid;
+        place-items: center;
+        padding: 0 4px;
+        border: 2px solid #fff;
+        border-radius: 999px;
+        font-size: 0.65rem;
+  }
+  .exercise-filter-toggle {
+    position: relative;
+  }
+  .exercise-filter-panel {
+    gap: 8px;
+        padding: 9px;
+        border-radius: 12px;
+  }
+  .exercise-filter-grid {
+    gap: 7px;
+  }
+  .exercise-filter-panel-footer {
+    gap: 7px;
+  }
+  .favorite-filter,
+  .exercise-filter-reset {
+    min-height: 38px;
+        padding: 6px 9px;
+        font-size: 0.76rem;
+  }
+  .exercise-catalog-page small {
+    font-size: 0.75rem;
+  }
+  .exercise-editor-backdrop {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+@media screen and (max-width: 760px) {
+  .exercise-favorite-button,
+  .exercise-edit-button,
+  .exercise-action-link {
+    width: 40px;
+        height: 40px;
+        min-width: 40px;
+        min-height: 40px;
+        border-radius: 9px;
+  }
+  .exercise-card-actions {
+    gap: 5px;
+  }
+  .exercise-favorite-button svg,
+  .exercise-edit-button svg,
+  .exercise-action-link > svg:first-child {
+    width: 17px;
+        height: 17px;
+  }
+}
+@media screen and (max-width: 390px) {
+  .exercise-favorite-button,
+  .exercise-edit-button,
+  .exercise-action-link {
+    width: 38px;
+        height: 38px;
+        min-width: 38px;
+        min-height: 38px;
+  }
+}
+@media screen and (pointer: coarse) and (max-width: 760px) {
+  .exercise-favorite-button,
+  .exercise-edit-button,
+  .exercise-action-link {
+    min-width: 42px;
+        min-height: 42px;
+  }
+}
