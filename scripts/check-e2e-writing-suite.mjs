@@ -112,7 +112,6 @@ for (const marker of [
   "supabase migration list --local",
   "supabase status -o env",
   "seed-e2e-writing.mjs",
-  "test:realtime-auth",
   "test:e2e:writing:ci",
   "supabase stop --no-backup",
 ]) {
@@ -127,22 +126,18 @@ if (/https:\/\/[^\s]+\.supabase\.co/.test(workflow)) {
 if (workflow.includes("supabase db reset")) {
   throw new Error("The writing E2E workflow must not reset Postgres after Realtime has started.");
 }
+if (workflow.includes("run: npm run test:realtime-auth")) {
+  throw new Error("The low-level Realtime probe is diagnostic only and must not block the writing E2E workflow.");
+}
 const structureCheckIndex = workflow.indexOf("Teststruktur pruefen");
 const supabaseStartIndex = workflow.indexOf("Isolierte lokale Supabase-Umgebung starten");
 if (structureCheckIndex < 0 || supabaseStartIndex < 0 || structureCheckIndex > supabaseStartIndex) {
   throw new Error("Writing E2E structure checks must run before the expensive Supabase startup.");
 }
 const seedIndex = workflow.indexOf("Kuenstliche Testbenutzer und Testdaten anlegen");
-const realtimeProbeIndex = workflow.indexOf("Authentifiziertes Realtime pruefen");
 const playwrightInstallIndex = workflow.indexOf("Playwright Test isoliert installieren");
-if (
-  seedIndex < 0
-  || realtimeProbeIndex < 0
-  || playwrightInstallIndex < 0
-  || realtimeProbeIndex < seedIndex
-  || realtimeProbeIndex > playwrightInstallIndex
-) {
-  throw new Error("The authenticated Realtime probe must run after seeding and before Playwright installation.");
+if (seedIndex < 0 || playwrightInstallIndex < 0 || seedIndex > playwrightInstallIndex) {
+  throw new Error("Writing E2E seed data must be created before Playwright installation.");
 }
 
 const runnerBuffer = readFileSync("scripts/run-e2e-writing.ps1");

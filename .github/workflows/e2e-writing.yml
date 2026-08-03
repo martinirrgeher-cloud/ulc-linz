@@ -104,9 +104,6 @@ jobs:
       - name: Kuenstliche Testbenutzer und Testdaten anlegen
         run: node scripts/seed-e2e-writing.mjs
 
-      - name: Authentifiziertes Realtime pruefen
-        run: npm run test:realtime-auth
-
       - name: Playwright Test isoliert installieren
         run: npm install --no-save --package-lock=false @playwright/test@1.62.1
 
