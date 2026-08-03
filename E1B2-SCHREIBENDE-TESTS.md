@@ -13,12 +13,13 @@ Die wichtigsten schreibenden App-Abläufe werden mit künstlichen Benutzern und 
 - Chromium auf 390 x 844 Pixel
 - ein einzelner Playwright-Worker; unabhängige Tests laufen auch nach einem Einzelfehler weiter
 - Browsercache in GitHub Actions, damit Chromium nicht bei jedem Lauf neu geladen werden muss
+- authentifizierter Realtime-Rohdatentest nach dem Seed und vor Playwright-Installation und App-Build
 
 ## Aktuelle Tests
 
 1. Administrator legt Gruppe, Athlet und Trainer an und prüft die Persistenz nach einem Reload.
 2. Eine zweite Trainersitzung wird bei einer bereits geöffneten Gruppe und einem bereits geöffneten Trainer sofort schreibgeschützt.
-3. Realtime aktualisiert eine zweite Sitzung und bewahrt einen lokalen Konfliktentwurf.
+3. Realtime aktualisiert eine zweite Sitzung und bewahrt einen lokalen Konfliktentwurf. Der Client synchronisiert den aktuellen Benutzer-JWT ausdrücklich mit Realtime, bevor der Kanal abonniert wird.
 4. Administrator legt eine Übung und einen Trainingsblock an.
 5. Athlet speichert die eigene Trainingsanmeldung und prüft sie nach einem Reload.
 6. Administrator speichert einen Trainingsplan; eine zweite Trainersitzung wird durch den Bearbeitungsschutz blockiert.
@@ -32,6 +33,7 @@ Die Benutzerverwaltungsprüfung umfasst dabei auch die Eltern-Mehrfachauswahl f�
 - keine produktiven Benutzer oder Daten
 - GitHub baut die frische Testdatenbank durch `supabase start` aus allen Migrationen auf
 - kein zweiter Datenbank-Reset nach dem Start von Realtime
+- der Rohdatentest prüft Publication, RLS und Benutzer-JWT getrennt vom React-/Browsertest
 - Testumgebung wird nach jedem Lauf entfernt
 - Screenshots, Videos, Traces und HTML-Bericht werden nur als GitHub-Artefakte gespeichert
 

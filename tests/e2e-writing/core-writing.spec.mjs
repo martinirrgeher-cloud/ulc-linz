@@ -192,6 +192,9 @@ test.describe("Schreibende Kernabläufe in isolierter Supabase-Umgebung", () => 
       await expect(secondEditor.getByLabel("Nachname")).toBeEnabled({ timeout: 15_000 });
       await secondEditor.getByLabel("Nachname").fill("E4 Server");
       await secondEditor.getByRole("button", { name: "Speichern", exact: true }).click();
+      await expect(
+        secondPage.getByText("Die Athletendaten wurden gespeichert.", { exact: true }),
+      ).toBeVisible({ timeout: 15_000 });
 
       await expect(page.getByRole("heading", { name: changedName, exact: true })).toBeVisible({
         timeout: 15_000,

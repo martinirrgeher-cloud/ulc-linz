@@ -4,6 +4,7 @@ import { existsSync, readFileSync } from "node:fs";
 const requiredFiles = [
   "playwright.writing.config.mjs",
   "scripts/seed-e2e-writing.mjs",
+  "scripts/check-realtime-auth.mjs",
   "scripts/run-e2e-writing.ps1",
   "tests/e2e-writing/helpers/test-data.mjs",
   "tests/e2e-writing/helpers/auth.mjs",
@@ -82,12 +83,36 @@ if (writingTestCount !== 6) {
   throw new Error(`Expected 6 writing E2E tests, found ${writingTestCount}.`);
 }
 
+const packageSource = readFileSync("package.json", "utf8");
+if (!packageSource.includes('"test:realtime-auth": "node scripts/check-realtime-auth.mjs"')) {
+  throw new Error("The authenticated Realtime probe npm script is missing.");
+}
+
+const realtimeProbe = readFileSync("scripts/check-realtime-auth.mjs", "utf8");
+for (const marker of [
+  "realtime.setAuth",
+  'table: "athletes"',
+  "organization_id=eq.",
+  "Authenticated Supabase Realtime probe passed.",
+]) {
+  if (!realtimeProbe.includes(marker)) {
+    throw new Error(`Authenticated Realtime probe marker is missing: ${marker}`);
+  }
+}
+if (/https:\/\/[^\s]+\.supabase\.co/.test(realtimeProbe)) {
+  throw new Error("The authenticated Realtime probe must not reference a hosted Supabase project.");
+}
+if (realtimeProbe.indexOf("realtime.setAuth") > realtimeProbe.indexOf(".channel(channelName)")) {
+  throw new Error("The authenticated Realtime probe must set the user token before channel creation.");
+}
+
 const workflow = readFileSync(".github/workflows/e2e-writing.yml", "utf8");
 for (const marker of [
   "supabase start",
   "supabase migration list --local",
   "supabase status -o env",
   "seed-e2e-writing.mjs",
+  "test:realtime-auth",
   "test:e2e:writing:ci",
   "supabase stop --no-backup",
 ]) {
@@ -106,6 +131,18 @@ const structureCheckIndex = workflow.indexOf("Teststruktur pruefen");
 const supabaseStartIndex = workflow.indexOf("Isolierte lokale Supabase-Umgebung starten");
 if (structureCheckIndex < 0 || supabaseStartIndex < 0 || structureCheckIndex > supabaseStartIndex) {
   throw new Error("Writing E2E structure checks must run before the expensive Supabase startup.");
+}
+const seedIndex = workflow.indexOf("Kuenstliche Testbenutzer und Testdaten anlegen");
+const realtimeProbeIndex = workflow.indexOf("Authentifiziertes Realtime pruefen");
+const playwrightInstallIndex = workflow.indexOf("Playwright Test isoliert installieren");
+if (
+  seedIndex < 0
+  || realtimeProbeIndex < 0
+  || playwrightInstallIndex < 0
+  || realtimeProbeIndex < seedIndex
+  || realtimeProbeIndex > playwrightInstallIndex
+) {
+  throw new Error("The authenticated Realtime probe must run after seeding and before Playwright installation.");
 }
 
 const runnerBuffer = readFileSync("scripts/run-e2e-writing.ps1");

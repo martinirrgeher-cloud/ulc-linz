@@ -28,6 +28,7 @@
     "test:e2e:readonly": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/run-e2e-readonly.ps1",
     "test:e2e:readonly:ci": "playwright test --config=playwright.config.mjs",
     "check:e2e-writing-suite": "node scripts/check-e2e-writing-suite.mjs",
+    "test:realtime-auth": "node scripts/check-realtime-auth.mjs",
     "test:e2e:writing": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/run-e2e-writing.ps1",
     "test:e2e:writing:ci": "playwright test --config=playwright.writing.config.mjs",
     "check:security-headers": "node scripts/check-security-headers.mjs",

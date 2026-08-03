@@ -14,7 +14,7 @@ import {
   clearSensitiveSessionData,
   purgeSensitiveSessionData,
 } from "@/lib/client-session-data";
-import { supabase } from "@/lib/supabase";
+import { supabase, synchronizeRealtimeAuth } from "@/lib/supabase";
 import type {
   AppContext,
   AppMembership,
@@ -295,6 +295,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
     let mounted = true;
     let recoveryRunning = false;
 
+    function updateRealtimeAuth(nextSession: Session | null) {
+      if (!nextSession) return;
+      void synchronizeRealtimeAuth(authClient, nextSession).catch(() => undefined);
+    }
+
     async function restoreSession(initialLoad: boolean) {
       if (recoveryRunning) return;
       recoveryRunning = true;
@@ -323,6 +328,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
             if (nextUserId) purgeSensitiveSessionData(nextUserId);
 
             sessionRef.current = data.session;
+            updateRealtimeAuth(data.session);
             setSession(data.session);
             setSessionError(null);
 
@@ -365,6 +371,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
     const { data: subscription } = authClient.auth.onAuthStateChange((_event, nextSession) => {
       if (!mounted) return;
+
+      updateRealtimeAuth(nextSession);
 
       if (nextSession) {
         const previousUserId = sessionRef.current?.user.id ?? null;

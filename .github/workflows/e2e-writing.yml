@@ -12,6 +12,7 @@ on:
       - "tests/e2e-writing/**"
       - "playwright.writing.config.mjs"
       - "scripts/seed-e2e-writing.mjs"
+      - "scripts/check-realtime-auth.mjs"
       - "scripts/check-e2e-writing-suite.mjs"
       - "scripts/run-e2e-writing.ps1"
       - "package.json"
@@ -25,6 +26,7 @@ on:
       - "tests/e2e-writing/**"
       - "playwright.writing.config.mjs"
       - "scripts/seed-e2e-writing.mjs"
+      - "scripts/check-realtime-auth.mjs"
       - "scripts/check-e2e-writing-suite.mjs"
       - "scripts/run-e2e-writing.ps1"
       - "package.json"
@@ -101,6 +103,9 @@ jobs:
 
       - name: Kuenstliche Testbenutzer und Testdaten anlegen
         run: node scripts/seed-e2e-writing.mjs
+
+      - name: Authentifiziertes Realtime pruefen
+        run: npm run test:realtime-auth
 
       - name: Playwright Test isoliert installieren
         run: npm install --no-save --package-lock=false @playwright/test@1.62.1

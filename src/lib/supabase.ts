@@ -1,4 +1,4 @@
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { createClient, type Session, type SupabaseClient } from "@supabase/supabase-js";
 import { env } from "@/lib/env";
 import type { Database } from "@/types/database.generated";
 
@@ -11,6 +11,13 @@ export const supabase: SupabaseClient<Database> | null = env.isSupabaseConfigure
       },
     })
   : null;
+
+export async function synchronizeRealtimeAuth(
+  client: SupabaseClient<Database>,
+  session: Session,
+): Promise<void> {
+  await client.realtime.setAuth(session.access_token);
+}
 
 export function requireSupabase(): SupabaseClient<Database> {
   if (!supabase) {

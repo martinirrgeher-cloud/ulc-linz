@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
-import { requireSupabase } from "@/lib/supabase";
+import { requireSupabase, synchronizeRealtimeAuth } from "@/lib/supabase";
 
 export type CollaborationRealtimeTable =
   | "athletes"
@@ -102,8 +102,8 @@ export function useOrganizationRealtime({
     subscribedOnceRef.current = false;
     const supabase = requireSupabase();
     const channelName = `collaboration:${organizationId}:${tableKey}`;
-    const channel = supabase.channel(channelName) as unknown as PostgresChangeChannel;
     let disposed = false;
+    let subscribedChannel: RealtimeChannel | null = null;
 
     function flushDatabaseChanges() {
       timerRef.current = null;
@@ -127,38 +127,52 @@ export function useOrganizationRealtime({
       timerRef.current = window.setTimeout(flushDatabaseChanges, 250);
     }
 
-    for (const table of tableKey.split(",") as CollaborationRealtimeTable[]) {
-      channel.on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table,
-          filter: `organization_id=eq.${organizationId}`,
-        },
-        (payload) => queueChange(table, payload),
-      );
-    }
+    async function connect() {
+      setStatus("connecting");
 
-    setStatus("connecting");
-    const subscribedChannel = channel.subscribe((nextStatus) => {
+      const { data, error } = await supabase.auth.getSession();
+      if (error) throw error;
+      if (!data.session) {
+        if (!disposed) setStatus("disconnected");
+        return;
+      }
+
+      await synchronizeRealtimeAuth(supabase, data.session);
       if (disposed) return;
-      if (nextStatus === "SUBSCRIBED") {
-        setStatus("subscribed");
-        if (subscribedOnceRef.current) {
-          callbackRef.current({ reason: "reconnected", changes: [] });
+
+      const channel = supabase.channel(channelName) as unknown as PostgresChangeChannel;
+      for (const table of tableKey.split(",") as CollaborationRealtimeTable[]) {
+        channel.on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table,
+            filter: `organization_id=eq.${organizationId}`,
+          },
+          (payload) => queueChange(table, payload),
+        );
+      }
+
+      subscribedChannel = channel.subscribe((nextStatus) => {
+        if (disposed) return;
+        if (nextStatus === "SUBSCRIBED") {
+          setStatus("subscribed");
+          if (subscribedOnceRef.current) {
+            callbackRef.current({ reason: "reconnected", changes: [] });
+          }
+          subscribedOnceRef.current = true;
+          return;
         }
-        subscribedOnceRef.current = true;
-        return;
-      }
-      if (nextStatus === "CHANNEL_ERROR") {
-        setStatus("error");
-        return;
-      }
-      if (nextStatus === "TIMED_OUT" || nextStatus === "CLOSED") {
-        setStatus("disconnected");
-      }
-    });
+        if (nextStatus === "CHANNEL_ERROR") {
+          setStatus("error");
+          return;
+        }
+        if (nextStatus === "TIMED_OUT" || nextStatus === "CLOSED") {
+          setStatus("disconnected");
+        }
+      });
+    }
 
     const refreshAfterInterruption = () => {
       if (disposed) return;
@@ -166,6 +180,9 @@ export function useOrganizationRealtime({
     };
 
     window.addEventListener("online", refreshAfterInterruption);
+    void connect().catch(() => {
+      if (!disposed) setStatus("error");
+    });
 
     return () => {
       disposed = true;
@@ -173,7 +190,7 @@ export function useOrganizationRealtime({
       timerRef.current = null;
       pendingRef.current = [];
       window.removeEventListener("online", refreshAfterInterruption);
-      void supabase.removeChannel(subscribedChannel);
+      if (subscribedChannel) void supabase.removeChannel(subscribedChannel);
     };
   }, [enabled, organizationId, tableKey]);
 

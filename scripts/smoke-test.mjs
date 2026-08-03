@@ -591,6 +591,14 @@ const organizationRealtimeHookSource = await readFile(
   new URL("../src/features/collaboration/useOrganizationRealtime.ts", import.meta.url),
   "utf8",
 );
+const supabaseClientSource = await readFile(
+  new URL("../src/lib/supabase.ts", import.meta.url),
+  "utf8",
+);
+const realtimeAuthProbeSource = await readFile(
+  new URL("./check-realtime-auth.mjs", import.meta.url),
+  "utf8",
+);
 const e4EditLockHookSource = await readFile(
   new URL("../src/features/collaboration/useEditLock.ts", import.meta.url),
   "utf8",
@@ -640,6 +648,15 @@ test("E4 veröffentlicht alle Kerndatensätze sicher über Supabase Realtime", (
   assert.ok(e4RealtimeMigrationSource.includes("replica identity full"));
   assert.ok(organizationRealtimeHookSource.includes('"postgres_changes"'));
   assert.ok(organizationRealtimeHookSource.includes("organization_id=eq."));
+  assert.ok(organizationRealtimeHookSource.includes("synchronizeRealtimeAuth"));
+  assert.ok(organizationRealtimeHookSource.includes("auth.getSession"));
+  assert.ok(
+    organizationRealtimeHookSource.indexOf("synchronizeRealtimeAuth")
+      < organizationRealtimeHookSource.indexOf("supabase.channel"),
+  );
+  assert.ok(supabaseClientSource.includes("realtime.setAuth"));
+  assert.ok(authContextSource.includes("synchronizeRealtimeAuth"));
+  assert.ok(realtimeAuthProbeSource.includes("Authenticated Supabase Realtime probe passed."));
   assert.ok(organizationRealtimeHookSource.includes('"reconnected"'));
   assert.ok(organizationRealtimeHookSource.includes('"online"'));
   assert.ok(!organizationRealtimeHookSource.includes('window.addEventListener("focus"'));
