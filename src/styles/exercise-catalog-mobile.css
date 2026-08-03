@@ -114,3 +114,102 @@
         min-height: 42px;
   }
 }
+
+
+/* P1b-Korrektur: Kartenaktionen bleiben innerhalb des mobilen Viewports. */
+@media screen and (max-width: 760px) {
+  section.exercise-catalog-page {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  section.exercise-catalog-page .exercise-catalog-toolbar.exercise-catalog-toolbar-compact {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  section.exercise-catalog-page .exercise-list {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  section.exercise-catalog-page .exercise-card {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: 8px;
+    row-gap: 7px;
+    overflow: hidden;
+  }
+
+  section.exercise-catalog-page .exercise-card-title-row {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    grid-column: 1;
+    grid-row: 1;
+    padding-right: 0;
+  }
+
+  section.exercise-catalog-page .exercise-card-meta {
+    width: auto;
+    min-width: 0;
+    max-width: 100%;
+    grid-column: 1 / -1;
+    overflow: hidden;
+  }
+
+  section.exercise-catalog-page .exercise-catalog-toolbar.exercise-catalog-toolbar-compact .exercise-search {
+    width: auto;
+    min-width: 0;
+  }
+
+  section.exercise-catalog-page .exercise-catalog-toolbar.exercise-catalog-toolbar-compact .exercise-filter-toggle {
+    grid-column: 2;
+    justify-self: end;
+  }
+
+  section.exercise-catalog-page .exercise-card-main {
+    display: contents;
+  }
+
+  section.exercise-catalog-page .exercise-card-actions {
+    position: static;
+    grid-column: 2;
+    grid-row: 1;
+    display: grid;
+    grid-template-columns: repeat(3, 42px);
+    align-content: start;
+    justify-content: end;
+    gap: 5px;
+    max-width: 136px;
+  }
+
+  section.exercise-catalog-page .exercise-favorite-button,
+  section.exercise-catalog-page .exercise-edit-button,
+  section.exercise-catalog-page .exercise-action-link {
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+    min-height: 42px;
+  }
+
+  section.exercise-catalog-page .exercise-goal,
+  section.exercise-catalog-page .exercise-equipment {
+    grid-column: 1 / -1;
+    width: auto;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  section.exercise-catalog-page .exercise-card-meta span {
+    min-width: 0;
+    max-width: 100%;
+    flex: 0 1 auto;
+  }
+}

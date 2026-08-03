@@ -26,6 +26,7 @@
     "archive:project": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/create-project-archive.ps1",
     "check:e2e-suite": "node scripts/check-e2e-suite.mjs",
     "test:e2e:readonly": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/run-e2e-readonly.ps1",
+    "test:local": "npm run ci:quality && npm run test:e2e:readonly",
     "test:e2e:readonly:ci": "playwright test --config=playwright.config.mjs",
     "check:e2e-writing-suite": "node scripts/check-e2e-writing-suite.mjs",
     "test:e2e:writing": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/run-e2e-writing.ps1",

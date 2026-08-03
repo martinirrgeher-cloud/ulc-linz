@@ -45,11 +45,17 @@ TypeScript- und Smoke-Prüfung:
 npm.cmd run verify
 ```
 
-Vollständige lokale Qualitätsprüfung wie in GitHub Actions:
+Lokale Qualitätsprüfung ohne Docker:
 
 ```powershell
-npm.cmd run ci:quality
+npm.cmd run test:local
 ```
+
+Dieser Befehl führt die statischen Prüfungen, den Produktions-Build und die nicht
+schreibenden Browsertests aus. Docker ist dafür nicht erforderlich.
+
+Die isolierten Datenbank- und schreibenden E2E-Tests laufen weiterhin in GitHub Actions.
+Sie werden lokal nur benötigt, wenn Docker Desktop bewusst installiert und gestartet wird.
 
 Die GitHub-Aktion `.github/workflows/quality-check.yml` führt diese Prüfung bei
 jedem Push und bei jedem Pull Request mit der festgelegten Node-Version aus.
