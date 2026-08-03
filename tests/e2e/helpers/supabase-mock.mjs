@@ -111,6 +111,14 @@ const parameter = {
   sort_order: 10,
 };
 
+const catalogParameters = [
+  parameter,
+  { ...parameter, parameter_key: "repetitions", label: "Wiederholungen", unit: "", default_value: "6", sort_order: 20 },
+  { ...parameter, parameter_key: "sets", label: "Sätze", unit: "", default_value: "3", sort_order: 30 },
+  { ...parameter, parameter_key: "intensity", label: "Intensität", unit: "%", default_value: "80", sort_order: 40 },
+  { ...parameter, parameter_key: "rest", label: "Pause", unit: "s", default_value: "45", sort_order: 50 },
+];
+
 const exercise = {
   id: E2E_IDS.exercise,
   name: longExerciseName,
@@ -122,17 +130,22 @@ const exercise = {
   coaching_cues: "Arme eng führen, Fuß aktiv unter dem Körperschwerpunkt aufsetzen.",
   common_mistakes: "Zu frühes Aufrichten und passiver Fußaufsatz.",
   equipment: ["Markierungshütchen"],
-  video_url: null,
+  video_url: "https://example.com/exercise-video",
   is_active: true,
   is_favorite: true,
   difficulty_key: "medium",
   difficulty_label: "Mittel",
   similar_exercise_ids: [],
   block_usages: [{ id: E2E_IDS.block, name: longBlockName, is_active: true }],
-  plan_usages: [],
+  plan_usages: [{
+    id: "10000000-0000-4000-8000-000000000099",
+    title: "Mobiler Testplan",
+    training_date: "2026-08-05",
+    via_block_name: null,
+  }],
   last_used_at: "2026-08-01",
   group_ids: [E2E_IDS.group],
-  parameters: [parameter],
+  parameters: catalogParameters,
   created_at: "2026-08-01T08:00:00.000Z",
   updated_at: "2026-08-02T08:00:00.000Z",
 };
@@ -193,13 +206,22 @@ const rpcPayloads = new Map([
   ["training_group_overview_v3", [group]],
   ["trainer_overview_v2", []],
   ["organization_linkable_users", []],
-  ["exercise_video_overview", []],
+  ["exercise_video_overview", [{
+    id: "10000000-0000-4000-8000-000000000098",
+    exercise_id: E2E_IDS.exercise,
+    title: "Technikvideo",
+    storage_path: "e2e/technikvideo.mp4",
+    mime_type: "video/mp4",
+    file_size: 1024,
+    is_primary: true,
+    created_at: "2026-08-01T08:00:00.000Z",
+  }]],
   ["exercise_catalog_overview_v3", {
     categories: [{ key: "sprint", title: "Sprint", sort_order: 10, is_active: true }],
     subcategories: [{ key: "beschleunigung", label: "Beschleunigung", sort_order: 10, is_active: true }],
     materials: [{ key: "markierungshuetchchen", label: "Markierungshütchen", sort_order: 10, is_active: true }],
     difficulties: [{ key: "medium", label: "Mittel", sort_order: 30, is_active: true }],
-    parameter_options: [parameter],
+    parameter_options: catalogParameters,
     groups: [group],
     exercises: [exercise],
   }],

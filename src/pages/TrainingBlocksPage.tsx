@@ -46,6 +46,8 @@ import type {
 } from "@/features/training-blocks/types";
 
 import { diagnosticErrorMessage } from "@/lib/diagnostics";
+import "@/styles/training-blocks.css";
+import "@/styles/training-blocks-mobile.css";
 type ActivityFilter = "active" | "inactive" | "all";
 type SortMode = "name" | "usage" | "updated" | "last_used";
 type UsageFilter = "all" | "unused" | "used";

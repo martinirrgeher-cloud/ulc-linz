@@ -45,6 +45,7 @@ import { useAuth } from "@/features/auth/AuthContext";
 import { deactivateAthleteFromTraining } from "@/features/athletes/api";
 
 import { diagnosticErrorMessage } from "@/lib/diagnostics";
+import "@/styles/kindertraining.css";
 const STATUS_OPTIONS: Array<{
   value: AttendanceStatus;
   label: string;

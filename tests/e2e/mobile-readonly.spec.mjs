@@ -139,6 +139,54 @@ test.describe("Authentifizierte, nicht schreibende Modulprüfungen", () => {
   }
 
 
+  test("Übungskatalog zeigt Filter, Kartenaktionen und Parameter vollständig im Viewport", async ({ page }) => {
+    const problems = monitorBrowserProblems(page);
+    const unhandled = await installSupabaseMock(page);
+
+    await page.goto("/module/exercise_catalog");
+    await expect(page.getByRole("heading", { name: "Übungskatalog", exact: true })).toBeVisible();
+
+    const filterButton = page.getByRole("button", { name: "Filtermenü öffnen" });
+    await expect(filterButton).toBeVisible();
+
+    const card = page.locator(".exercise-card").first();
+    const actionItems = card.locator(".exercise-card-actions > *");
+    await expect(actionItems).toHaveCount(5);
+
+    const layout = await page.evaluate(() => {
+      const viewportWidth = document.documentElement.clientWidth;
+      const card = document.querySelector(".exercise-card");
+      const filter = document.querySelector(".exercise-filter-toggle");
+      if (!(card instanceof HTMLElement) || !(filter instanceof HTMLElement)) {
+        throw new Error("Übungskatalog-Testelemente fehlen.");
+      }
+      const cardRect = card.getBoundingClientRect();
+      const filterRect = filter.getBoundingClientRect();
+      const actions = [...card.querySelectorAll(".exercise-card-actions > *")].map((element) => {
+        const rect = element.getBoundingClientRect();
+        return { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom };
+      });
+      const badges = [...card.querySelectorAll(".exercise-card-meta span")].map((element) => {
+        const rect = element.getBoundingClientRect();
+        return { left: rect.left, right: rect.right };
+      });
+      return { viewportWidth, cardRect: { left: cardRect.left, right: cardRect.right }, filterRect: { left: filterRect.left, right: filterRect.right }, actions, badges };
+    });
+
+    expect(layout.filterRect.right).toBeLessThanOrEqual(layout.viewportWidth + 1);
+    for (const action of layout.actions) {
+      expect(action.left).toBeGreaterThanOrEqual(layout.cardRect.left - 1);
+      expect(action.right).toBeLessThanOrEqual(layout.cardRect.right + 1);
+      expect(action.right).toBeLessThanOrEqual(layout.viewportWidth + 1);
+    }
+    for (const badge of layout.badges) {
+      expect(badge.left).toBeGreaterThanOrEqual(layout.cardRect.left - 1);
+      expect(badge.right).toBeLessThanOrEqual(layout.cardRect.right + 1);
+    }
+
+    await expectHealthyPage(page, problems, unhandled);
+  });
+
   test("Benutzerverwaltung zeigt offene Einladungen und Kontowarnungen mobil", async ({ page }) => {
     const problems = monitorBrowserProblems(page);
     const unhandled = await installSupabaseMock(page);

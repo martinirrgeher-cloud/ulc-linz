@@ -42,6 +42,9 @@ import type {
 import { useAuth } from "@/features/auth/AuthContext";
 
 import { diagnosticErrorMessage } from "@/lib/diagnostics";
+import "@/styles/performance-registration.css";
+import "@/styles/mobile-day-selector.css";
+import "@/styles/performance-registration-mobile.css";
 type PageMode = "registration" | "overview";
 type SaveState = "idle" | "pending" | "saving" | "saved" | "error";
 

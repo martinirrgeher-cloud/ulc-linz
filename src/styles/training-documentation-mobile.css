@@ -1,0 +1,302 @@
+/* Routebezogene Mobile-Nachbesserungen: training-documentation. */
+
+.training-doc-team-mobile {
+  display: none;
+}
+@media screen and (max-width: 760px) {
+  .training-documentation-heading {
+    gap: 9px;
+        margin-bottom: 12px;
+  }
+  .training-documentation-heading h1 {
+    font-size: clamp(1.35rem, 6vw, 1.62rem);
+        line-height: 1.12;
+  }
+  .training-documentation-heading p:not(.eyebrow) {
+    margin-top: 4px;
+        font-size: 0.82rem;
+        line-height: 1.35;
+  }
+  .training-documentation-heading .eyebrow {
+    margin-bottom: 4px !important;
+        font-size: 0.68rem;
+  }
+  .training-doc-tabs {
+    gap: 4px;
+        padding: 4px;
+        border-radius: 11px;
+  }
+  .training-doc-tabs button {
+    min-height: 40px;
+        padding: 7px 8px;
+        font-size: 0.78rem;
+        border-radius: 8px;
+  }
+  .training-documentation-page small {
+    font-size: 0.75rem;
+  }
+  .training-doc-save-strip,
+  .training-doc-completion-suggestion,
+  .training-doc-report-section > header small,
+  .training-doc-stat-cards span,
+  .training-doc-stat-cards small,
+  .training-doc-trend-label span,
+  .training-doc-trend-label small,
+  .training-doc-exercise-info-chips span,
+  .training-doc-exercise-info-summary,
+  .training-doc-exercise-info-parameters strong,
+  .training-doc-exercise-info-parameters small {
+    font-size: 0.72rem;
+  }
+  .training-doc-quick-status button,
+  .training-doc-segmented button {
+    min-height: 40px;
+        padding: 6px 5px;
+        font-size: 0.74rem;
+  }
+  .training-doc-item-info-button {
+    min-width: 42px;
+  }
+  .training-doc-editor-actions {
+    gap: 7px;
+        padding-bottom: max(8px, env(safe-area-inset-bottom));
+  }
+  .training-doc-modal-backdrop {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+@media (pointer: coarse) {
+  .training-doc-tabs button,
+  .training-doc-quick-status button,
+  .training-doc-segmented button {
+    min-height: var(--ui-touch-target);
+  }
+}
+@media screen and (max-width: 720px) {
+  .training-doc-team-desktop {
+    display: none;
+  }
+  .training-doc-team-mobile {
+    display: grid;
+        gap: 7px;
+        padding: 8px;
+  }
+  .training-doc-team-overview > header {
+    display: grid;
+        gap: 7px;
+  }
+  .training-doc-status-legend {
+    justify-content: flex-start;
+  }
+  .training-doc-status-legend span {
+    font-size: 0.7rem;
+  }
+  .training-doc-team-mobile-summary {
+    display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+  }
+  .training-doc-team-mobile-summary span {
+    min-height: 30px;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 5px 8px;
+        color: var(--green-800);
+        background: var(--green-50);
+        border: 1px solid #d8eadf;
+        border-radius: 999px;
+        font-size: 0.72rem;
+  }
+  .training-doc-team-mobile-list {
+    display: grid;
+        gap: 6px;
+  }
+  .training-doc-team-mobile-athlete {
+    overflow: hidden;
+        background: #fff;
+        border: 1px solid #dbe7df;
+        border-radius: 10px;
+  }
+  .training-doc-team-mobile-athlete > header {
+    min-width: 0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 7px;
+        padding: 6px 8px 4px;
+  }
+  .training-doc-team-mobile-athlete > header strong {
+    min-width: 0;
+        overflow: hidden;
+        color: var(--green-950);
+        font-size: 0.8rem;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+  }
+  .training-doc-team-mobile-athlete > header span {
+    flex: 0 0 auto;
+        padding: 3px 6px;
+        border: 1px solid transparent;
+        border-radius: 999px;
+        font-size: 0.68rem;
+        font-weight: 850;
+  }
+  .training-doc-team-mobile-athlete > header .session-completed {
+    color: #126b3b;
+        background: #e4f5ea;
+        border-color: #b9dfc7;
+  }
+  .training-doc-team-mobile-athlete > header .session-in_progress {
+    color: #185f8c;
+        background: #e7f3fb;
+        border-color: #b9d9eb;
+  }
+  .training-doc-team-mobile-athlete > header .session-partial {
+    color: #785700;
+        background: #fff4cc;
+        border-color: #eedb91;
+  }
+  .training-doc-team-mobile-athlete > header .session-aborted {
+    color: #9b2c2c;
+        background: #fde8e8;
+        border-color: #efbcbc;
+  }
+  .training-doc-team-mobile-athlete > header .session-not_started,
+  .training-doc-team-mobile-athlete > header .session-no-plan {
+    color: #52665a;
+        background: #eef3f0;
+        border-color: #d5ded8;
+  }
+  .training-doc-team-mobile-plan {
+    width: calc(100% - 10px);
+        min-height: 42px;
+        display: grid;
+        grid-template-columns: 18px minmax(0, 1fr) 16px;
+        align-items: center;
+        gap: 6px;
+        margin: 0 5px 5px;
+        padding: 6px 7px;
+        color: var(--green-800);
+        background: var(--green-50);
+        border: 1px solid #c5decf;
+        border-radius: 8px;
+        text-align: left;
+        cursor: pointer;
+  }
+  .training-doc-team-mobile-plan > svg {
+    width: 17px;
+  }
+  .training-doc-team-mobile-plan > span {
+    min-width: 0;
+        display: grid;
+  }
+  .training-doc-team-mobile-plan strong,
+  .training-doc-team-mobile-plan small {
+    overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+  }
+  .training-doc-team-mobile-plan strong {
+    font-size: 0.76rem;
+  }
+  .training-doc-team-mobile-plan small {
+    color: var(--muted);
+        font-size: 0.7rem;
+  }
+  .training-doc-team-mobile-no-plan {
+    margin: 0 5px 5px;
+        padding: 8px;
+        color: var(--muted);
+        background: #f8faf9;
+        border: 1px dashed #d5dfd8;
+        border-radius: 8px;
+        font-size: 0.74rem;
+  }
+  .training-doc-report-table-scroll {
+    overflow: visible;
+  }
+  .training-doc-report-table {
+    min-width: 0;
+        display: block;
+  }
+  .training-doc-report-table thead {
+    display: none;
+  }
+  .training-doc-report-table tbody {
+    display: grid;
+        gap: 7px;
+        padding: 7px;
+  }
+  .training-doc-report-table tr {
+    display: grid;
+        padding: 7px 8px;
+        background: #fff;
+        border: 1px solid #dce8e0;
+        border-radius: 9px;
+  }
+  .training-doc-report-table tbody th {
+    display: block;
+        padding: 0 0 5px;
+        color: var(--green-950);
+        border-bottom: 1px solid #e5ece7;
+        font-size: 0.82rem;
+        text-align: left;
+  }
+  .training-doc-report-table td {
+    display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 5px 0 0;
+        border: 0;
+        font-size: 0.75rem;
+        text-align: right;
+  }
+  .training-doc-report-table td::before {
+    content: attr(data-label);
+        color: var(--muted);
+        font-weight: 700;
+        text-align: left;
+  }
+  .training-doc-report-table .training-doc-report-empty-row {
+    display: block;
+  }
+  .training-doc-report-table .training-doc-report-empty-row td {
+    display: block;
+        padding: 8px;
+        color: var(--muted);
+        text-align: center;
+  }
+  .training-doc-report-table .training-doc-report-empty-row td::before {
+    content: none;
+  }
+}
+@media screen and (max-width: 390px) {
+  .training-doc-tabs button {
+    padding-inline: 5px;
+        font-size: 0.72rem;
+  }
+}
+@media screen and (max-width: 760px) {
+  .training-doc-item-info-button {
+    width: 40px;
+        height: 40px;
+        min-width: 40px;
+        min-height: 40px;
+        border-radius: 9px;
+  }
+}
+@media screen and (max-width: 390px) {
+  .training-doc-item-info-button {
+    width: 38px;
+        height: 38px;
+        min-width: 38px;
+        min-height: 38px;
+  }
+}
+@media screen and (pointer: coarse) and (max-width: 760px) {
+  .training-doc-item-info-button {
+    min-width: 42px;
+        min-height: 42px;
+  }
+}

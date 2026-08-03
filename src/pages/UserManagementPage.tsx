@@ -44,6 +44,7 @@ import type {
   MemberWarningCode,
 } from "@/features/user-management/types";
 import { diagnosticErrorMessage } from "@/lib/diagnostics";
+import "@/styles/management.css";
 import "@/styles/user-management-e5c.css";
 
 const USER_REALTIME_TABLES = [

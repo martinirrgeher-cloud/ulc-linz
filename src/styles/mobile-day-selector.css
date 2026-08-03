@@ -1,0 +1,74 @@
+/* Routebezogene Mobile-Nachbesserungen: mobile-day-selector. */
+
+.mobile-day-selector {
+  display: none;
+}
+@media screen and (max-width: 760px) {
+  .mobile-day-selector button {
+    min-height: 50px;
+  }
+  .mobile-day-selector strong {
+    font-size: 0.78rem;
+  }
+  .mobile-day-selector small,
+  .mobile-day-selector span {
+    font-size: 0.68rem;
+  }
+}
+@media (pointer: coarse) {
+  .mobile-day-selector button {
+    min-height: var(--ui-touch-target);
+  }
+}
+@media screen and (max-width: 720px) {
+  .mobile-day-selector {
+    display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(64px, 1fr));
+        gap: 5px;
+        padding: 6px;
+        overflow-x: auto;
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: 11px;
+        scrollbar-width: none;
+  }
+  .mobile-day-selector::-webkit-scrollbar {
+    display: none;
+  }
+  .mobile-day-selector button {
+    min-width: 62px;
+        display: grid;
+        place-items: center;
+        align-content: center;
+        gap: 1px;
+        padding: 5px 4px;
+        color: var(--green-950);
+        background: #f6faf7;
+        border: 1px solid #dbe7df;
+        border-radius: 8px;
+        cursor: pointer;
+  }
+  .mobile-day-selector button.active {
+    color: #fff;
+        background: var(--green-700);
+        border-color: var(--green-700);
+        box-shadow: 0 3px 9px rgba(20, 122, 70, 0.18);
+  }
+  .mobile-day-selector strong,
+  .mobile-day-selector small,
+  .mobile-day-selector span {
+    line-height: 1.12;
+  }
+  .mobile-day-selector span {
+    font-weight: 800;
+        opacity: 0.86;
+  }
+}
+@media screen and (max-width: 390px) {
+  .mobile-day-selector {
+    grid-template-columns: repeat(auto-fit, minmax(58px, 1fr));
+  }
+  .mobile-day-selector button {
+    min-width: 56px;
+  }
+}

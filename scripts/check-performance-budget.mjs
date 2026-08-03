@@ -12,8 +12,8 @@ const KiB = 1024;
 const limits = Object.freeze({
   initialJavaScriptRaw: 560 * KiB,
   initialJavaScriptGzip: 170 * KiB,
-  initialCssRaw: 260 * KiB,
-  initialCssGzip: 42 * KiB,
+  initialCssRaw: 100 * KiB,
+  initialCssGzip: 22 * KiB,
   largestAsyncJavaScriptRaw: 120 * KiB,
   largestAsyncJavaScriptGzip: 38 * KiB,
   largestAsyncCssRaw: 40 * KiB,

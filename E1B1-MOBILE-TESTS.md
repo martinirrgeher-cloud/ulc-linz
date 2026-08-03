@@ -17,7 +17,7 @@ Die Tests pruefen echte React-Seiten im Browser, ohne auf die produktive Supabas
 - Weiterleitung geschuetzter Routen
 - Moduluebersicht
 - Athleten, Trainer und Gruppen
-- Uebungskatalog
+- Uebungskatalog, einschliesslich vollstaendiger Kartenaktionen und Parameterchips
 - Trainingsbloecke
 - Trainingsplan-Uebersicht
 - Trainingsplanung
@@ -34,6 +34,12 @@ Die Suite verwendet keine produktiven URLs, keine GitHub-Secrets und keine schre
 
 ```powershell
 Set-Location "C:\ULC Linz App"
+npm.cmd run test:local
+```
+
+Alternativ kann nur die Readonly-Browsersuite gestartet werden:
+
+```powershell
 npm.cmd run test:e2e:readonly
 ```
 

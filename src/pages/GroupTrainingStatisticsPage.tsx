@@ -20,6 +20,8 @@ import {
 import type { KindertrainingStatistics } from "@/features/kindertraining-statistics/types";
 
 import { diagnosticErrorMessage } from "@/lib/diagnostics";
+import "@/styles/statistics.css";
+import "@/styles/statistics-mobile.css";
 type StatisticsTab = "sessions" | "athletes" | "development" | "trainers";
 
 function isoToday(): string {

@@ -38,6 +38,8 @@ import type { ExerciseCatalogData } from "@/features/exercise-catalog/types";
 import { useAuth } from "@/features/auth/AuthContext";
 
 import { diagnosticErrorMessage } from "@/lib/diagnostics";
+import "@/styles/data-import.css";
+import "@/styles/data-import-mobile.css";
 const EMPTY_CATALOG: ExerciseCatalogData = {
   categories: [],
   subcategories: [],

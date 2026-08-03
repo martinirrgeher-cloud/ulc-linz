@@ -29,6 +29,7 @@ import {
   type CountdownPhase,
   type CountdownSettings,
 } from "@/features/countdown/timer";
+import "@/styles/countdown.css";
 
 const SETTINGS_STORAGE_KEY = "ulc-countdown-settings-v1";
 
