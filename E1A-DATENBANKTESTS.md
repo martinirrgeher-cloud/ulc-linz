@@ -10,6 +10,7 @@ Dieses Paket verändert keine produktiven Daten und keine sichtbare App-Funktion
 - Bearbeitungssperren, Übernahme, Freigabe und Versionskonflikte
 - idempotente und vollständig rückrollbare Datenimporte
 - Abbruch eines Imports bei aktiver Bearbeitungssperre
+- Benutzerverwaltung inklusive Einladung, Audit und Eltern-Mehrfachverknüpfung
 - Vorhandensein der benötigten Storage-Buckets
 
 ## Lokal ausführen
@@ -33,6 +34,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-database-tests
 ## GitHub Actions
 
 Der Workflow `.github/workflows/database-tests.yml` läuft bei Änderungen an
-Migrationen, Datenbanktests oder der Datenbank-Testkonfiguration. Er verwendet
-eine isolierte lokale Supabase-Instanz im GitHub-Runner und greift nicht auf die
-Produktivdatenbank zu.
+Migrationen, Datenbanktests oder der Datenbank-Testkonfiguration. Ein frischer
+GitHub-Runner wird direkt durch `supabase start` aus allen Migrationen aufgebaut;
+ein zusätzlicher Datenbank-Reset ist dort nicht erforderlich. Die isolierte
+Instanz greift nicht auf die Produktivdatenbank zu.

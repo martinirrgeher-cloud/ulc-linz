@@ -11,6 +11,7 @@ const actionNames: Record<string, string> = {
   "member.created": "Benutzerkonto angelegt",
   "member.updated": "Rolle, Status oder Rechte geändert",
   "member.athlete_link_changed": "Athletenverknüpfung geändert",
+  "member.athlete_links_changed": "Verknüpfte Athleten geändert",
   "member.trainer_link_changed": "Trainerverknüpfung geändert",
   "member.invitation_sent": "Einladung gesendet",
   "member.invitation_resent": "Einladung erneut gesendet",
@@ -38,6 +39,11 @@ function recordValue(value: Json | null): Record<string, Json | undefined> {
 
 function stringField(data: Record<string, Json | undefined>, key: string): string | null {
   return typeof data[key] === "string" ? data[key] as string : null;
+}
+
+
+function jsonArrayLength(value: Json | undefined): number | null {
+  return Array.isArray(value) ? value.length : null;
 }
 
 function permissionsCount(value: Json | undefined): number {
@@ -77,6 +83,12 @@ function entryDetails(entry: MemberAuditEntry): string[] {
   const afterAthlete = stringField(after, "athlete_id");
   if (before.athlete_id !== undefined || after.athlete_id !== undefined) {
     details.push(afterAthlete ? "Athlet verknüpft" : beforeAthlete ? "Athletenverknüpfung entfernt" : "Athletenverknüpfung geändert");
+  }
+
+  const oldAthleteCount = jsonArrayLength(before.athlete_ids);
+  const newAthleteCount = jsonArrayLength(after.athlete_ids);
+  if (oldAthleteCount !== null || newAthleteCount !== null) {
+    details.push(`Verknüpfte Athleten: ${oldAthleteCount ?? 0} → ${newAthleteCount ?? 0}`);
   }
 
   const beforeTrainer = stringField(before, "trainer_id");

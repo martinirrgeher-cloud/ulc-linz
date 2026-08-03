@@ -3,9 +3,11 @@ import type { Json } from "@/types/database.generated";
 import type {
   InviteMemberInput,
   InvitationStatus,
+  ManagedAthleteLink,
   ManagedMember,
   ManagedModule,
   ManagedPermission,
+  MemberAthleteRelation,
   MemberAuditEntry,
   MemberLinkOption,
   MemberLinkOptions,
@@ -25,6 +27,13 @@ type RawLinkOption = {
   name?: unknown;
   is_active?: unknown;
   linked_user_id?: unknown;
+};
+
+type RawAthleteLink = {
+  id?: unknown;
+  name?: unknown;
+  is_active?: unknown;
+  relation_type?: unknown;
 };
 
 type InviteMemberResponse = {
@@ -69,6 +78,28 @@ function toDatabasePermissions(permissions: ManagedPermission[]): Json {
 
 function stringValue(value: unknown): string | null {
   return typeof value === "string" && value.length > 0 ? value : null;
+}
+
+function parseAthleteRelation(value: unknown): MemberAthleteRelation {
+  return value === "self" ? "self" : "managed";
+}
+
+function parseAthleteLinks(value: Json): ManagedAthleteLink[] {
+  if (!Array.isArray(value)) return [];
+
+  return value.flatMap((item) => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) return [];
+    const raw = item as RawAthleteLink;
+    const id = stringValue(raw.id);
+    const name = stringValue(raw.name);
+    if (!id || !name) return [];
+    return [{
+      id,
+      name,
+      isActive: raw.is_active === true,
+      relationType: parseAthleteRelation(raw.relation_type),
+    }];
+  });
 }
 
 function parseLinkOptions(value: Json): MemberLinkOptions {
@@ -116,7 +147,7 @@ function memberWarnings(member: {
   status: ManagedMember["status"];
   emailConfirmedAt: string | null;
   invitationSendCount: number;
-  linkedAthleteId: string | null;
+  linkedAthleteCount: number;
   linkedTrainerId: string | null;
 }): MemberWarningCode[] {
   const warnings: MemberWarningCode[] = [];
@@ -126,8 +157,11 @@ function memberWarnings(member: {
   if (member.status === "active" && !member.emailConfirmedAt) {
     warnings.push("email_not_confirmed");
   }
-  if (member.role === "athlete" && !member.linkedAthleteId) {
+  if (member.role === "athlete" && member.linkedAthleteCount === 0) {
     warnings.push("athlete_link_missing");
+  }
+  if (member.role === "parent" && member.linkedAthleteCount === 0) {
+    warnings.push("parent_link_missing");
   }
   if (member.role === "trainer" && !member.linkedTrainerId) {
     warnings.push("trainer_link_missing");
@@ -168,7 +202,7 @@ export async function loadUserManagement(
   const supabase = requireSupabase();
 
   const [membersResult, modulesResult, linksResult] = await Promise.all([
-    supabase.rpc("admin_member_overview_v2", {
+    supabase.rpc("admin_member_overview_v3", {
       p_organization_id: organizationId,
     }),
     supabase
@@ -187,14 +221,14 @@ export async function loadUserManagement(
 
   const members = membersResult.data.map((member) => {
     const invitationSendCount = member.invitation_send_count ?? 0;
-    const linkedAthleteId = member.linked_athlete_id;
+    const linkedAthletes = parseAthleteLinks(member.linked_athletes);
     const linkedTrainerId = member.linked_trainer_id;
     const warningInput = {
       role: member.role,
       status: member.status,
       emailConfirmedAt: member.email_confirmed_at,
       invitationSendCount,
-      linkedAthleteId,
+      linkedAthleteCount: linkedAthletes.length,
       linkedTrainerId,
     };
 
@@ -216,8 +250,7 @@ export async function loadUserManagement(
         member.email_confirmed_at,
         invitationSendCount,
       ),
-      linkedAthleteId,
-      linkedAthleteName: member.linked_athlete_name,
+      linkedAthletes,
       linkedTrainerId,
       linkedTrainerName: member.linked_trainer_name,
       warnings: memberWarnings(warningInput),
@@ -284,14 +317,14 @@ export async function resendInvitation(
 
 export async function updateMember(input: UpdateMemberInput): Promise<string> {
   const supabase = requireSupabase();
-  const { data, error } = await supabase.rpc("admin_update_organization_member_v2", {
+  const { data, error } = await supabase.rpc("admin_update_organization_member_v3", {
     p_organization_id: input.organizationId,
     p_membership_id: input.membershipId,
     p_display_name: input.displayName.trim(),
     p_role: input.role,
     p_status: input.status,
     p_permissions: toDatabasePermissions(input.permissions),
-    p_linked_athlete_id: input.linkedAthleteId,
+    p_linked_athlete_ids: input.linkedAthleteIds,
     p_linked_trainer_id: input.linkedTrainerId,
     p_lock_token: input.editLock.lockToken,
     p_expected_updated_at: input.editLock.expectedUpdatedAt,

@@ -178,6 +178,8 @@ select ok(
   ) ->> 'updated_at') is not null,
   'Benutzerdaten werden versionsgesichert gespeichert'
 );
+reset role;
+
 select is(
   (select role::text from public.organization_members where id = '62000000-0000-0000-0000-000000000002'),
   'trainer',
@@ -215,6 +217,8 @@ select ok(
   ),
   'Auditprotokoll enthält keine unnötigen personenbezogenen Felder'
 );
+set local role authenticated;
+
 select alike(
   public.e5c_capture_error(format(
     'select public.admin_update_organization_member_v2(%L::uuid,%L::uuid,%L,%L::public.app_role,%L::public.membership_status,%L::jsonb,null,null,%L::uuid,%L::timestamptz)',

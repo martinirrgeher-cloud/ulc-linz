@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - "**"
+      - main
     paths:
       - "src/**"
       - "public/**"
@@ -61,6 +61,10 @@ jobs:
       - name: Projektabhaengigkeiten installieren
         run: npm ci
 
+      # Fail fast before Docker images and the local Supabase stack are started.
+      - name: Teststruktur pruefen
+        run: npm run check:e2e-writing-suite
+
       - name: Supabase CLI einrichten
         uses: supabase/setup-cli@v1
         with:
@@ -74,8 +78,10 @@ jobs:
           supabase start
           -x studio,imgproxy,mailpit,edge-runtime,logflare,vector,supavisor
 
-      - name: Datenbank aus Migrationen neu aufbauen
-        run: supabase db reset
+      # supabase start applies all migrations before Realtime is started. A second
+      # reset would recreate Postgres underneath Realtime and make changes flaky.
+      - name: Lokalen Migrationsstand anzeigen
+        run: supabase migration list --local
 
       - name: Lokale Supabase-Zugangsdaten bereitstellen
         shell: bash
@@ -99,11 +105,15 @@ jobs:
       - name: Playwright Test isoliert installieren
         run: npm install --no-save --package-lock=false @playwright/test@1.62.1
 
+      - name: Chromium-Cache wiederherstellen
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-chromium-1.62.1
+
       - name: Chromium und Systemabhaengigkeiten installieren
         run: npx playwright install --with-deps chromium
-
-      - name: Teststruktur pruefen
-        run: npm run check:e2e-writing-suite
 
       - name: Anwendung gegen lokales Supabase bauen
         run: npm run build

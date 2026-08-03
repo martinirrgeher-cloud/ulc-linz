@@ -224,7 +224,7 @@ const rpcPayloads = new Map([
     exercises: [exercise],
     plans: [],
   }],
-  ["admin_member_overview_v2", [
+  ["admin_member_overview_v3", [
     {
       membership_id: E2E_IDS.membership,
       user_id: E2E_IDS.user,
@@ -238,8 +238,7 @@ const rpcPayloads = new Map([
       updated_at: "2026-08-02T08:00:00.000Z",
       invitation_last_sent_at: null,
       invitation_send_count: 0,
-      linked_athlete_id: null,
-      linked_athlete_name: null,
+      linked_athletes: [],
       linked_trainer_id: null,
       linked_trainer_name: null,
       permissions: moduleKeys.map((moduleKey) => ({ module_key: moduleKey, can_view: true, can_edit: true })),
@@ -257,8 +256,7 @@ const rpcPayloads = new Map([
       updated_at: "2026-08-02T07:00:00.000Z",
       invitation_last_sent_at: "2026-08-02T07:00:00.000Z",
       invitation_send_count: 1,
-      linked_athlete_id: null,
-      linked_athlete_name: null,
+      linked_athletes: [],
       linked_trainer_id: null,
       linked_trainer_name: null,
       permissions: [{ module_key: "kindertraining", can_view: true, can_edit: true }],

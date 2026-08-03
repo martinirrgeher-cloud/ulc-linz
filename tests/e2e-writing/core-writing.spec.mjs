@@ -75,13 +75,20 @@ test.describe("Schreibende Kernabläufe in isolierter Supabase-Umgebung", () => 
     const memberEditor = page.locator(".management-editor");
     await expect(memberEditor.getByLabel("Rechtevorlage")).toBeEnabled({ timeout: 15_000 });
     await memberEditor.getByLabel("Rechtevorlage").selectOption("parent");
+    await memberEditor.getByRole("checkbox", { name: "Anna E2E", exact: true }).check();
+    await memberEditor.getByRole("checkbox", { name: "Berta E2E", exact: true }).check();
+    await expect(memberEditor.getByText("2 ausgewählt", { exact: true })).toBeVisible();
     await memberEditor.getByRole("button", { name: "Änderungen speichern", exact: true }).click();
     await expect(page.getByText("Die Benutzerdaten wurden gespeichert.", { exact: true })).toBeVisible({ timeout: 15_000 });
+    await expect(parentCard.getByText(/Athleten: Anna E2E, Berta E2E/)).toBeVisible();
 
     await parentCard.getByRole("button", { name: "Bearbeiten", exact: true }).click();
+    await expect(memberEditor.getByRole("checkbox", { name: "Anna E2E", exact: true })).toBeChecked();
+    await expect(memberEditor.getByRole("checkbox", { name: "Berta E2E", exact: true })).toBeChecked();
     await expect(memberEditor.getByText("Änderungsprotokoll", { exact: true })).toBeVisible({ timeout: 15_000 });
     await memberEditor.getByText("Änderungsprotokoll", { exact: true }).click();
     await expect(memberEditor.getByText("Rolle, Status oder Rechte geändert", { exact: true })).toBeVisible();
+    await expect(memberEditor.getByText("Verknüpfte Athleten geändert", { exact: true })).toBeVisible();
     await memberEditor.getByRole("button", { name: "Abbrechen", exact: true }).click();
     await expectNoAppError(page);
   });
@@ -163,6 +170,9 @@ test.describe("Schreibende Kernabläufe in isolierter Supabase-Umgebung", () => 
     const originalName = `${UI_REALTIME_ATHLETE.firstName} ${UI_REALTIME_ATHLETE.lastName}`;
     const changedName = `${UI_REALTIME_ATHLETE.firstName} E4 Server`;
     await expect(page.getByRole("heading", { name: originalName, exact: true })).toBeVisible();
+    await expect(
+      page.locator('.athlete-management-page[data-realtime-status="subscribed"]'),
+    ).toBeVisible({ timeout: 15_000 });
 
     const secondContext = await browser.newContext({
       locale: "de-AT",

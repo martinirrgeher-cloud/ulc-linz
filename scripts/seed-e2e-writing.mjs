@@ -21,6 +21,7 @@ const PASSWORD = "E1b2-Tests-2026!";
 const ORGANIZATION_ID = "e1b20000-0000-0000-0000-000000000001";
 const GROUP_ID = "e1b20000-0000-0000-0000-000000000010";
 const ATHLETE_ID = "e1b20000-0000-0000-0000-000000000020";
+const SECOND_ATHLETE_ID = "e1b20000-0000-0000-0000-000000000021";
 const TRAINER_ID = "e1b20000-0000-0000-0000-000000000030";
 const EXERCISE_ID = "e1b20000-0000-0000-0000-000000000040";
 const BLOCK_ID = "e1b20000-0000-0000-0000-000000000050";
@@ -197,18 +198,31 @@ async function seed() {
   );
 
   assertResult(
-    await client.from("athletes").insert({
-      id: ATHLETE_ID,
-      organization_id: ORGANIZATION_ID,
-      first_name: "Anna",
-      last_name: "E2E",
-      birth_year: 2010,
-      notes: "E2E Ausgangsathletin",
-      is_active: true,
-      linked_user_id: athlete.id,
-      created_by: admin.id,
-    }),
-    "E2E athlete could not be created",
+    await client.from("athletes").insert([
+      {
+        id: ATHLETE_ID,
+        organization_id: ORGANIZATION_ID,
+        first_name: "Anna",
+        last_name: "E2E",
+        birth_year: 2010,
+        notes: "E2E Ausgangsathletin",
+        is_active: true,
+        linked_user_id: athlete.id,
+        created_by: admin.id,
+      },
+      {
+        id: SECOND_ATHLETE_ID,
+        organization_id: ORGANIZATION_ID,
+        first_name: "Berta",
+        last_name: "E2E",
+        birth_year: 2012,
+        notes: "Zweiter Athlet fuer Eltern-Mehrfachauswahl",
+        is_active: true,
+        linked_user_id: null,
+        created_by: admin.id,
+      },
+    ]),
+    "E2E athletes could not be created",
   );
   assertResult(
     await client.from("athlete_group_memberships").insert({
@@ -378,6 +392,7 @@ async function seed() {
     organizationId: ORGANIZATION_ID,
     groupId: GROUP_ID,
     athleteId: ATHLETE_ID,
+    secondAthleteId: SECOND_ATHLETE_ID,
     trainerId: TRAINER_ID,
     exerciseId: EXERCISE_ID,
     blockId: BLOCK_ID,
