@@ -1113,6 +1113,33 @@ export type Database = {
         };
         Relationships: [];
       };
+      organization_member_athlete_links: {
+        Row: {
+          organization_id: string;
+          membership_id: string;
+          athlete_id: string;
+          relation_type: string;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          organization_id: string;
+          membership_id: string;
+          athlete_id: string;
+          relation_type: string;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          organization_id?: string;
+          membership_id?: string;
+          athlete_id?: string;
+          relation_type?: string;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       organization_members: {
         Row: {
           id: string;
@@ -1962,6 +1989,29 @@ export type Database = {
           permissions: Json;
         }>;
       };
+      admin_member_overview_v3: {
+        Args: {
+          p_organization_id: string;
+        };
+        Returns: Array<{
+          membership_id: string;
+          user_id: string;
+          email: string;
+          display_name: string;
+          role: Database["public"]["Enums"]["app_role"];
+          status: Database["public"]["Enums"]["membership_status"];
+          email_confirmed_at: string | null;
+          last_sign_in_at: string | null;
+          created_at: string;
+          updated_at: string;
+          invitation_last_sent_at: string | null;
+          invitation_send_count: number;
+          linked_athletes: Json;
+          linked_trainer_id: string | null;
+          linked_trainer_name: string | null;
+          permissions: Json;
+        }>;
+      };
       admin_member_link_options: {
         Args: {
           p_organization_id: string;
@@ -2017,6 +2067,21 @@ export type Database = {
           p_status: Database["public"]["Enums"]["membership_status"];
           p_permissions: Json;
           p_linked_athlete_id: string | null;
+          p_linked_trainer_id: string | null;
+          p_lock_token: string;
+          p_expected_updated_at: string;
+        };
+        Returns: Json;
+      };
+      admin_update_organization_member_v3: {
+        Args: {
+          p_organization_id: string;
+          p_membership_id: string;
+          p_display_name: string;
+          p_role: Database["public"]["Enums"]["app_role"];
+          p_status: Database["public"]["Enums"]["membership_status"];
+          p_permissions: Json;
+          p_linked_athlete_ids: string[];
           p_linked_trainer_id: string | null;
           p_lock_token: string;
           p_expected_updated_at: string;

@@ -78,6 +78,7 @@ const warningNames: Record<MemberWarningCode, string> = {
   invitation_not_sent: "Einladung wurde noch nicht versendet",
   email_not_confirmed: "Aktives Konto ohne bestätigte E-Mail",
   athlete_link_missing: "Athletenkonto ohne Athletenverknüpfung",
+  parent_link_missing: "Elternkonto ohne verknüpften Athleten",
   trainer_link_missing: "Trainerkonto ohne Trainerverknüpfung",
 };
 
@@ -108,7 +109,7 @@ function isInvitationOpen(member: ManagedMember): boolean {
 }
 
 function isUnlinked(member: ManagedMember): boolean {
-  return !member.linkedAthleteId && !member.linkedTrainerId;
+  return member.linkedAthletes.length === 0 && !member.linkedTrainerId;
 }
 
 export function UserManagementPage() {
@@ -238,7 +239,7 @@ export function UserManagementPage() {
         member.displayName.toLowerCase().includes(search)
         || member.email.toLowerCase().includes(search)
         || roleNames[member.role].toLowerCase().includes(search)
-        || member.linkedAthleteName?.toLowerCase().includes(search)
+        || member.linkedAthletes.some((athlete) => athlete.name.toLowerCase().includes(search))
         || member.linkedTrainerName?.toLowerCase().includes(search)
       );
     });
@@ -332,7 +333,7 @@ export function UserManagementPage() {
           role: values.role,
           status: values.status,
           permissions: values.permissions,
-          linkedAthleteId: values.linkedAthleteId,
+          linkedAthleteIds: values.linkedAthleteIds,
           linkedTrainerId: values.linkedTrainerId,
           editLock,
         });
@@ -532,9 +533,13 @@ export function UserManagementPage() {
                 </dl>
 
                 <div className="e5c-links">
-                  <span className={member.linkedAthleteId ? "linked" : "unlinked"}>
-                    {member.linkedAthleteId ? <Link2 aria-hidden="true" /> : <Link2Off aria-hidden="true" />}
-                    Athlet: {member.linkedAthleteName ?? "nicht verknüpft"}
+                  <span className={member.linkedAthletes.length > 0 ? "linked" : "unlinked"}>
+                    {member.linkedAthletes.length > 0 ? <Link2 aria-hidden="true" /> : <Link2Off aria-hidden="true" />}
+                    Athleten: {member.linkedAthletes.length > 0
+                      ? member.linkedAthletes.map((athlete) => athlete.name).join(", ")
+                      : member.role === "trainer"
+                        ? "über Trainingsgruppen"
+                        : "nicht verknüpft"}
                   </span>
                   <span className={member.linkedTrainerId ? "linked" : "unlinked"}>
                     {member.linkedTrainerId ? <Link2 aria-hidden="true" /> : <Link2Off aria-hidden="true" />}

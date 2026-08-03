@@ -227,7 +227,7 @@ export function AthleteManagementPage() {
     void loadData(false);
   }, [busy, editedAthlete, editedGroup, editedTrainer, loadData, remoteSyncBusy]);
 
-  useOrganizationRealtime({
+  const realtimeStatus = useOrganizationRealtime({
     organizationId,
     tables: ATHLETE_REALTIME_TABLES,
     enabled: canView,
@@ -465,7 +465,7 @@ export function AthleteManagementPage() {
   const searchLabel = tab === "athletes" ? "Athlet suchen" : "Trainer suchen";
 
   return (
-    <section className="athlete-management-page">
+    <section className="athlete-management-page" data-realtime-status={realtimeStatus}>
       <div className="management-page-heading compact-management-heading">
         <div>
           <p className="eyebrow">Gemeinsame Stammdaten</p>

@@ -1,5 +1,5 @@
 import { useMemo, useState, type FormEvent } from "react";
-import { Save, Send, WandSparkles, X } from "lucide-react";
+import { Save, Search, Send, WandSparkles, X } from "lucide-react";
 import { useDraftDirtyState } from "@/features/collaboration/useDraftDirtyState";
 import { MemberAuditLog } from "@/features/user-management/MemberAuditLog";
 import { PermissionEditor } from "@/features/user-management/PermissionEditor";
@@ -29,7 +29,7 @@ export type MemberEditorSubmit = {
   role: AppRole;
   status: MembershipStatus;
   permissions: ManagedPermission[];
-  linkedAthleteId: string | null;
+  linkedAthleteIds: string[];
   linkedTrainerId: string | null;
 };
 
@@ -77,6 +77,10 @@ function nullableId(value: string): string | null {
   return value || null;
 }
 
+function roleSupportsAthleteLinks(role: AppRole): boolean {
+  return role === "athlete" || role === "parent";
+}
+
 export function MemberEditor({
   mode,
   modules,
@@ -91,16 +95,22 @@ export function MemberEditor({
 }: MemberEditorProps) {
   const existingMember = mode.type === "edit" ? mode.member : null;
   const defaultTemplate = PERMISSION_TEMPLATES[0]!;
+  const initialRole = existingMember?.role ?? defaultTemplate.role;
+  const initialAthleteIds = roleSupportsAthleteLinks(initialRole)
+    ? existingMember?.linkedAthletes.map((athlete) => athlete.id) ?? []
+    : [];
+
   const [email, setEmail] = useState(existingMember?.email ?? "");
   const [displayName, setDisplayName] = useState(existingMember?.displayName ?? "");
-  const [role, setRole] = useState<AppRole>(existingMember?.role ?? defaultTemplate.role);
+  const [role, setRole] = useState<AppRole>(initialRole);
   const [status, setStatus] = useState<MembershipStatus>(existingMember?.status ?? "invited");
   const [permissions, setPermissions] = useState<ManagedPermission[]>(
     existingMember
       ? completePermissions(modules, existingMember.permissions)
       : permissionTemplate(defaultTemplate, modules),
   );
-  const [linkedAthleteId, setLinkedAthleteId] = useState(existingMember?.linkedAthleteId ?? "");
+  const [linkedAthleteIds, setLinkedAthleteIds] = useState<string[]>(initialAthleteIds);
+  const [athleteSearch, setAthleteSearch] = useState("");
   const [linkedTrainerId, setLinkedTrainerId] = useState(existingMember?.linkedTrainerId ?? "");
   const [selectedTemplate, setSelectedTemplate] = useState<PermissionTemplateKey | "">(
     mode.type === "invite" ? defaultTemplate.key : "",
@@ -113,9 +123,9 @@ export function MemberEditor({
     role,
     status,
     permissions,
-    linkedAthleteId,
+    linkedAthleteIds,
     linkedTrainerId,
-  }), [displayName, email, linkedAthleteId, linkedTrainerId, permissions, role, status]);
+  }), [displayName, email, linkedAthleteIds, linkedTrainerId, permissions, role, status]);
   useDraftDirtyState(draftValue, onDirtyChange);
 
   const hasVisibleModule = useMemo(
@@ -123,12 +133,22 @@ export function MemberEditor({
     [permissions, role],
   );
 
-  const athleteOptions = useMemo(
-    () => linkOptions.athletes.filter((option) => (
-      !option.linkedUserId || option.linkedUserId === existingMember?.userId
-    )),
-    [existingMember?.userId, linkOptions.athletes],
-  );
+  const selectedAthleteIds = useMemo(() => new Set(linkedAthleteIds), [linkedAthleteIds]);
+  const athleteOptions = useMemo(() => {
+    if (!roleSupportsAthleteLinks(role)) return [];
+
+    const eligible = linkOptions.athletes.filter((option) => {
+      if (selectedAthleteIds.has(option.id)) return true;
+      if (!option.isActive) return false;
+      if (role === "parent") return true;
+      return !option.linkedUserId || option.linkedUserId === existingMember?.userId;
+    });
+    const search = athleteSearch.trim().toLowerCase();
+    return search
+      ? eligible.filter((option) => option.name.toLowerCase().includes(search))
+      : eligible;
+  }, [athleteSearch, existingMember?.userId, linkOptions.athletes, role, selectedAthleteIds]);
+
   const trainerOptions = useMemo(
     () => linkOptions.trainers.filter((option) => (
       !option.linkedUserId || option.linkedUserId === existingMember?.userId
@@ -136,12 +156,47 @@ export function MemberEditor({
     [existingMember?.userId, linkOptions.trainers],
   );
 
+  function normalizeAthleteSelection(nextRole: AppRole, currentIds: string[]): string[] {
+    if (nextRole === "parent") return currentIds;
+    if (nextRole !== "athlete") return [];
+
+    const eligibleIds = new Set(
+      linkOptions.athletes
+        .filter((option) => !option.linkedUserId || option.linkedUserId === existingMember?.userId)
+        .map((option) => option.id),
+    );
+    const firstEligible = currentIds.find((id) => eligibleIds.has(id));
+    return firstEligible ? [firstEligible] : [];
+  }
+
+  function changeRole(nextRole: AppRole) {
+    setRole(nextRole);
+    setLinkedAthleteIds((current) => normalizeAthleteSelection(nextRole, current));
+    setAthleteSearch("");
+    setSelectedTemplate("");
+  }
+
   function applyTemplate(key: PermissionTemplateKey) {
     const template = PERMISSION_TEMPLATES.find((item) => item.key === key);
     if (!template) return;
     setSelectedTemplate(key);
     setRole(template.role);
+    setLinkedAthleteIds((current) => normalizeAthleteSelection(template.role, current));
+    setAthleteSearch("");
     setPermissions(permissionTemplate(template, modules));
+  }
+
+  function toggleAthlete(athleteId: string) {
+    if (role === "athlete") {
+      setLinkedAthleteIds([athleteId]);
+      return;
+    }
+
+    setLinkedAthleteIds((current) => (
+      current.includes(athleteId)
+        ? current.filter((id) => id !== athleteId)
+        : [...current, athleteId]
+    ));
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -164,6 +219,10 @@ export function MemberEditor({
       setError("Wähle mindestens ein Modul mit Leseberechtigung aus.");
       return;
     }
+    if (role === "athlete" && linkedAthleteIds.length > 1) {
+      setError("Ein Athletenkonto kann nur mit einem Athleten verknüpft werden.");
+      return;
+    }
 
     try {
       await onSubmit({
@@ -172,7 +231,7 @@ export function MemberEditor({
         role,
         status,
         permissions,
-        linkedAthleteId: nullableId(linkedAthleteId),
+        linkedAthleteIds: roleSupportsAthleteLinks(role) ? linkedAthleteIds : [],
         linkedTrainerId: nullableId(linkedTrainerId),
       });
     } catch (submitError) {
@@ -274,10 +333,7 @@ export function MemberEditor({
               Rolle
               <select
                 value={role}
-                onChange={(event) => {
-                  setRole(event.target.value as AppRole);
-                  setSelectedTemplate("");
-                }}
+                onChange={(event) => changeRole(event.target.value as AppRole)}
                 disabled={fieldsDisabled || isCurrentUser}
               >
                 {roleOptions.map((option) => (
@@ -306,17 +362,80 @@ export function MemberEditor({
 
           {mode.type === "edit" && (
             <div className="form-grid e5c-link-grid">
-              <label>
-                Verknüpfter Athlet
-                <select value={linkedAthleteId} onChange={(event) => setLinkedAthleteId(event.target.value)}>
-                  <option value="">Keine Verknüpfung</option>
-                  {athleteOptions.map((option) => (
-                    <option value={option.id} key={option.id}>
-                      {option.name}{option.isActive ? "" : " (inaktiv)"}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              {roleSupportsAthleteLinks(role) ? (
+                <fieldset className="e5c-athlete-link-selector">
+                  <legend>Verknüpfte Athleten</legend>
+                  <p className="field-hint">
+                    {role === "parent"
+                      ? "Mehrere Kinder können gleichzeitig ausgewählt werden. Die Trainingsgruppe ersetzt diese persönliche Zuordnung nicht."
+                      : "Das Athletenkonto kann genau einem eigenen Athletenprofil zugeordnet werden."}
+                  </p>
+
+                  {linkOptions.athletes.length > 6 && (
+                    <label className="e5c-athlete-search">
+                      <span>Athleten suchen</span>
+                      <span className="search-field">
+                        <Search aria-hidden="true" />
+                        <input
+                          type="search"
+                          value={athleteSearch}
+                          onChange={(event) => setAthleteSearch(event.target.value)}
+                          placeholder="Name suchen"
+                        />
+                      </span>
+                    </label>
+                  )}
+
+                  <div className="e5c-athlete-selection-heading">
+                    <strong>{linkedAthleteIds.length} ausgewählt</strong>
+                    {linkedAthleteIds.length > 0 && (
+                      <button
+                        type="button"
+                        className="text-button"
+                        onClick={() => setLinkedAthleteIds([])}
+                      >
+                        Auswahl aufheben
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="e5c-athlete-options" role="group" aria-label="Athletenverknüpfungen">
+                    {athleteOptions.length === 0 ? (
+                      <p className="field-hint">Keine passenden Athleten verfügbar.</p>
+                    ) : athleteOptions.map((option) => {
+                      const selected = selectedAthleteIds.has(option.id);
+                      const inputType = role === "parent" ? "checkbox" : "radio";
+                      return (
+                        <label className={selected ? "selected" : ""} key={option.id}>
+                          <input
+                            type={inputType}
+                            name={role === "athlete" ? "linked-athlete" : undefined}
+                            checked={selected}
+                            onChange={() => toggleAthlete(option.id)}
+                          />
+                          <span>{option.name}</span>
+                          {!option.isActive && <small>inaktiv</small>}
+                        </label>
+                      );
+                    })}
+                  </div>
+                </fieldset>
+              ) : (
+                <div className="e5c-athlete-link-info">
+                  <strong>Athletenzuordnung</strong>
+                  <p className="field-hint">
+                    {role === "trainer"
+                      ? "Trainer erhalten Athletenbezug über ihre Trainingsgruppen. Eine direkte Athletenverknüpfung ist nicht erforderlich."
+                      : "Administratoren benötigen keine direkte Athletenverknüpfung."}
+                  </p>
+                  {(existingMember?.linkedAthletes.length ?? 0) > 0 && (
+                    <p className="field-hint warning-text">
+                      Beim Speichern werden bestehende direkte Athletenverknüpfungen dieses Kontos entfernt.
+                    </p>
+                  )}
+                </div>
+              )}
+
               <label>
                 Verknüpfter Trainer
                 <select value={linkedTrainerId} onChange={(event) => setLinkedTrainerId(event.target.value)}>

@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - "**"
+      - main
     paths:
       - "supabase/**"
       - "scripts/run-database-tests.ps1"
@@ -49,8 +49,10 @@ jobs:
           supabase start
           -x studio,imgproxy,mailpit,edge-runtime,logflare,vector,supavisor,realtime
 
-      - name: Datenbank vollstaendig aus Migrationen neu aufbauen
-        run: supabase db reset
+      # A fresh GitHub runner is already built from all repository migrations by
+      # supabase start. Avoiding a second reset saves time and avoids duplicate work.
+      - name: Lokalen Migrationsstand anzeigen
+        run: supabase migration list --local
 
       - name: pgTAP-Datenbanktests ausfuehren
         run: |
@@ -61,7 +63,8 @@ jobs:
             supabase/tests/database/30_transactional_import.test.sql \
             supabase/tests/database/40_realtime_collaboration.test.sql \
             supabase/tests/database/50_catalog_block_intelligence.test.sql \
-            supabase/tests/database/60_user_management_e5c.test.sql
+            supabase/tests/database/60_user_management_e5c.test.sql \
+            supabase/tests/database/61_parent_multi_athlete_links.test.sql
 
       - name: Lokale Testumgebung entfernen
         if: always()

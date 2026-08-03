@@ -42,6 +42,8 @@ for (const marker of [
   "athlete.e1b2@example.test",
   "parent.e1b2@example.test",
   "E2E Beschleunigungsblock",
+  "SECOND_ATHLETE_ID",
+  "Berta",
 ]) {
   if (!seed.includes(marker)) throw new Error(`Writing E2E seed marker is missing: ${marker}`);
 }
@@ -66,6 +68,9 @@ for (const marker of [
   "Neue Variante von",
   "für Vergleich auswählen",
   "Verwendung von",
+  "Verknüpfte Athleten geändert",
+  "Berta E2E",
+  'data-realtime-status="subscribed"',
 ]) {
   if (!testFile.includes(marker)) throw new Error(`Writing E2E test marker is missing: ${marker}`);
 }
@@ -80,7 +85,7 @@ if (writingTestCount !== 6) {
 const workflow = readFileSync(".github/workflows/e2e-writing.yml", "utf8");
 for (const marker of [
   "supabase start",
-  "supabase db reset",
+  "supabase migration list --local",
   "supabase status -o env",
   "seed-e2e-writing.mjs",
   "test:e2e:writing:ci",
@@ -93,6 +98,14 @@ if (/\$\{\{\s*secrets\./.test(workflow)) {
 }
 if (/https:\/\/[^\s]+\.supabase\.co/.test(workflow)) {
   throw new Error("The writing E2E workflow must not reference a hosted Supabase project.");
+}
+if (workflow.includes("supabase db reset")) {
+  throw new Error("The writing E2E workflow must not reset Postgres after Realtime has started.");
+}
+const structureCheckIndex = workflow.indexOf("Teststruktur pruefen");
+const supabaseStartIndex = workflow.indexOf("Isolierte lokale Supabase-Umgebung starten");
+if (structureCheckIndex < 0 || supabaseStartIndex < 0 || structureCheckIndex > supabaseStartIndex) {
+  throw new Error("Writing E2E structure checks must run before the expensive Supabase startup.");
 }
 
 const runnerBuffer = readFileSync("scripts/run-e2e-writing.ps1");
