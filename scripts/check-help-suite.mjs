@@ -8,6 +8,7 @@ const layoutSource = await readFile(new URL("../src/components/layout/AppLayout.
 const helpContextSource = await readFile(new URL("../src/features/help/help-context.ts", import.meta.url), "utf8");
 const publicHelpSource = await readFile(new URL("../src/features/help/PublicHelpButton.tsx", import.meta.url), "utf8");
 const helpPageSource = await readFile(new URL("../src/pages/HelpPage.tsx", import.meta.url), "utf8");
+const dashboardSource = await readFile(new URL("../src/pages/DashboardPage.tsx", import.meta.url), "utf8");
 const modulesSource = await readFile(new URL("../src/config/modules.tsx", import.meta.url), "utf8");
 const maintenanceSource = await readFile(new URL("../P2B-PWA-HILFESYSTEM.md", import.meta.url), "utf8");
 
@@ -84,11 +85,16 @@ for (const marker of [
   "buildHelpHref",
   "@/features/help/help-context",
 ]) {
-  assert.ok(layoutSource.includes(marker), `Kontextbezogene Hilfe in der App-Kopfzeile fehlt: ${marker}`);
+  assert.ok(layoutSource.includes(marker), `Kontextbezogene Hilfe im App-Inhalt fehlt: ${marker}`);
 }
 assert.ok(publicHelpSource.includes("@/features/help/help-context"), "Öffentliche Hilfe muss die schlanke Kontextlogik verwenden.");
-assert.doesNotMatch(layoutSource, /@\/features\/help\/help["']/, "Die App-Kopfzeile darf nicht das vollständige Handbuch in den Start-Chunk laden.");
+assert.doesNotMatch(layoutSource, /@\/features\/help\/help["']/, "Der App-Layoutzugang darf nicht das vollständige Handbuch in den Start-Chunk laden.");
 assert.doesNotMatch(publicHelpSource, /@\/features\/help\/help["']/, "Der öffentliche Hilfezugang darf nicht das vollständige Handbuch in den Start-Chunk laden.");
+
+for (const marker of ["dashboard-help-link", "Hilfe & Handbuch"]) {
+  assert.ok(dashboardSource.includes(marker), `Kompakter Hilfezugang auf der Startseite fehlt: ${marker}`);
+}
+assert.doesNotMatch(dashboardSource, /dashboard-help-card/, "Die dominante Hilfe-Karte darf auf der Startseite nicht mehr verwendet werden.");
 for (const marker of ["help-route-contexts.json", "buildHelpTopicHref", "safeHelpReturnPath"]) {
   assert.ok(helpContextSource.includes(marker), `Schlanke Hilfekontextlogik fehlt: ${marker}`);
 }

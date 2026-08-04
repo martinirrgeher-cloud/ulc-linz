@@ -38,12 +38,9 @@ export function DashboardPage() {
         </div>
       </div>
 
-      <Link className="dashboard-help-card" to="/hilfe?from=%2F">
+      <Link className="dashboard-help-link" to="/hilfe?from=%2F">
         <BookOpenText aria-hidden="true" />
-        <span>
-          <strong>Hilfe & Handbuch</strong>
-          <small>Kapitel, Suche und Anleitungen zu allen Modulen</small>
-        </span>
+        <span>Hilfe & Handbuch</span>
         <ChevronRight aria-hidden="true" />
       </Link>
 

@@ -15,9 +15,6 @@ const moduleKeys = [
   "kindertraining",
   "u12",
   "u14",
-  "kindertraining_statistics",
-  "u12_statistics",
-  "u14_statistics",
   "athletes",
   "performance_registration",
   "exercise_catalog",
@@ -186,8 +183,28 @@ const block = {
   updated_at: "2026-08-02T08:00:00.000Z",
 };
 
+
+const statisticsOverview = {
+  default_from_date: "2026-01-01",
+  from_date: "2026-01-01",
+  to_date: "2026-08-04",
+  summary: {
+    session_count: 0,
+    cancelled_count: 0,
+    average_present: 0,
+    max_present: 0,
+    unique_present: 0,
+  },
+  sessions: [],
+  athletes: [],
+  trainers: [],
+  monthly: [],
+};
+
 const rpcPayloads = new Map([
   ["activate_current_memberships", null],
+  ["kindertraining_statistics_overview", statisticsOverview],
+  ["training_module_statistics_overview", statisticsOverview],
   ["is_app_initialized", true],
   ["athlete_overview", []],
   ["training_group_overview_v3", [group]],

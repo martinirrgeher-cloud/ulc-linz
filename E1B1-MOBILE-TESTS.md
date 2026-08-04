@@ -44,3 +44,6 @@ npm.cmd run test:e2e:readonly
 ```
 
 Das Skript installiert Playwright 1.62.1 nur in `node_modules`, veraendert `package-lock.json` nicht, baut die App mit isolierten E2E-Werten und startet die Browserpruefungen.
+
+- Desktop-Browser-Emulation unter 320 CSS-Pixeln ohne horizontalen Seitenueberlauf
+- Kontext-Hilfe neben der Seitenueberschrift statt in der Kopfzeile

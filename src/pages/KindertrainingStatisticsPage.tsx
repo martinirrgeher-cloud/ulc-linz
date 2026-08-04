@@ -81,10 +81,8 @@ function errorMessage(error: unknown): string {
 export function KindertrainingStatisticsPage() {
   const { appContext, canViewModule, canEditModule } = useAuth();
   const organizationId = appContext?.organization?.id;
-  const canView =
-    canViewModule("kindertraining_statistics") || canViewModule("kindertraining");
-  const canEdit =
-    canEditModule("kindertraining_statistics") || canEditModule("kindertraining");
+  const canView = canViewModule("kindertraining");
+  const canEdit = canEditModule("kindertraining");
 
   const [statistics, setStatistics] = useState<KindertrainingStatistics | null>(null);
   const [fromDate, setFromDate] = useState<string>(() => isoToday());

@@ -155,6 +155,20 @@ test.describe("Authentifizierte, nicht schreibende Modulprüfungen", () => {
   }
 
 
+
+  test("Statistikseiten verwenden ausschließlich die Rechte des Trainingsmoduls", async ({ page }) => {
+    const problems = monitorBrowserProblems(page);
+    const unhandled = await installSupabaseMock(page);
+
+    await page.goto("/module/kindertraining/statistik");
+    await expect(page.getByRole("heading", { name: "Kindertraining", exact: true })).toBeVisible();
+    await expectHealthyPage(page, problems, unhandled);
+
+    await page.goto("/module/u12/statistik");
+    await expect(page.getByRole("heading", { name: "U12", exact: true })).toBeVisible();
+    await expectHealthyPage(page, problems, unhandled);
+  });
+
   test("Übungskatalog zeigt Filter, Kartenaktionen und Parameter vollständig im Viewport", async ({ page }) => {
     const problems = monitorBrowserProblems(page);
     const unhandled = await installSupabaseMock(page);
@@ -251,7 +265,13 @@ test.describe("Authentifizierte, nicht schreibende Modulprüfungen", () => {
     const unhandled = await installSupabaseMock(page);
 
     await page.goto("/module/exercise_catalog");
-    await page.getByRole("button", { name: "Hilfe für diese Seite" }).click();
+    const headerBox = await page.locator(".app-header").boundingBox();
+    const helpButton = page.getByRole("button", { name: "Hilfe für diese Seite" });
+    const helpBox = await helpButton.boundingBox();
+    expect(headerBox).not.toBeNull();
+    expect(helpBox).not.toBeNull();
+    expect(helpBox.y).toBeGreaterThanOrEqual(headerBox.y + headerBox.height - 1);
+    await helpButton.click();
     await expect(page).toHaveURL(/\/hilfe\/exercise-catalog/);
     await expect(page.getByRole("heading", { name: "Übungskatalog", exact: true })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Videos", exact: true })).toBeVisible();
@@ -260,6 +280,22 @@ test.describe("Authentifizierte, nicht schreibende Modulprüfungen", () => {
     await expect(page.getByRole("link", { name: /Benutzerverwaltung/ })).toBeVisible();
     await page.getByRole("link", { name: /Benutzerverwaltung/ }).click();
     await expect(page.getByRole("heading", { name: "Benutzerverwaltung", exact: true })).toBeVisible();
+    await expectHealthyPage(page, problems, unhandled);
+  });
+
+
+  test("Desktop-Browser-Emulation bleibt auch unter 320 CSS-Pixeln vollständig sichtbar", async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== "desktop-1280", "Nur für die Desktop-Browser-Emulation relevant.");
+    const problems = monitorBrowserProblems(page);
+    const unhandled = await installSupabaseMock(page);
+
+    await page.setViewportSize({ width: 300, height: 760 });
+    await page.goto("/");
+    await expect(page.getByRole("heading", { name: /Willkommen/ })).toBeVisible();
+    const helpLink = page.getByRole("link", { name: "Hilfe & Handbuch" });
+    await expect(helpLink).toBeVisible();
+    const helpHeight = await helpLink.evaluate((element) => element.getBoundingClientRect().height);
+    expect(helpHeight).toBeLessThanOrEqual(44);
     await expectHealthyPage(page, problems, unhandled);
   });
 

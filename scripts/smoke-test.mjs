@@ -11,7 +11,7 @@ const moduleMatches = [...moduleListSource.matchAll(/key:\s*"([a-z0-9_]+)"[\s\S]
 const modules = moduleMatches.map((match) => ({ key: match[1], route: match[2] }));
 
 test("Modulschlüssel und Routen sind eindeutig", () => {
-  assert.ok(modules.length >= 17, "Es wurden unerwartet wenige Module gefunden.");
+  assert.ok(modules.length >= 14, "Es wurden unerwartet wenige Module gefunden.");
   assert.equal(new Set(modules.map((module) => module.key)).size, modules.length);
   assert.equal(new Set(modules.map((module) => module.route)).size, modules.length);
 });
@@ -922,4 +922,39 @@ test("P2b bietet vollständiges Handbuch, Suche und kontextbezogene Hilfe", () =
   assert.ok(p2bHelpPageSource.includes("HELP_CHAPTERS"));
   assert.ok(p2bLayoutSource.includes("Hilfe für diese Seite"));
   assert.ok(p2bLayoutSource.includes("Hilfe & Handbuch"));
+});
+
+
+test("Statistik ist Bestandteil der Trainingsmodule", async () => {
+  const statisticsPageSource = await readFile(new URL("../src/pages/KindertrainingStatisticsPage.tsx", import.meta.url), "utf8");
+  const groupStatisticsPageSource = await readFile(new URL("../src/pages/GroupTrainingStatisticsPage.tsx", import.meta.url), "utf8");
+  const templatesSource = await readFile(new URL("../src/features/user-management/permission-templates.ts", import.meta.url), "utf8");
+  const migrationSource = await readFile(new URL("../supabase/migrations/202608040037_statistics_permissions_training_modules.sql", import.meta.url), "utf8");
+  const databaseRunnerSource = await readFile(new URL("./run-database-tests.ps1", import.meta.url), "utf8");
+
+  for (const obsoleteKey of ["kindertraining_statistics", "u12_statistics", "u14_statistics"]) {
+    assert.doesNotMatch(modulesSource, new RegExp(`key:\\s*[\"']${obsoleteKey}[\"']`));
+    assert.doesNotMatch(templatesSource, new RegExp(`[\"']${obsoleteKey}[\"']`));
+  }
+  assert.ok(appSource.includes('<ProtectedRoute moduleKey="kindertraining">\n                    <KindertrainingStatisticsPage'));
+  assert.ok(appSource.includes('<ProtectedRoute moduleKey="u12">\n                    <GroupTrainingStatisticsPage'));
+  assert.ok(appSource.includes('<ProtectedRoute moduleKey="u14">\n                    <GroupTrainingStatisticsPage'));
+  assert.doesNotMatch(statisticsPageSource, /kindertraining_statistics/);
+  assert.doesNotMatch(groupStatisticsPageSource, /statisticsModuleKey/);
+  for (const marker of [
+    "set is_active = false",
+    "delete from public.member_module_permissions",
+    "public.has_module_access(target_organization_id, 'kindertraining', false)",
+    "public.has_module_access(p_organization_id, p_module_key, false)",
+  ]) {
+    assert.ok(migrationSource.includes(marker), `Statistikrechte-Migrationsmarker fehlt: ${marker}`);
+  }
+  assert.ok(databaseRunnerSource.includes("71_statistics_permissions_training_modules.test.sql"));
+});
+
+test("Kontext-Hilfe liegt im Seiteninhalt statt in der Kopfzeile", async () => {
+  const layoutSource = await readFile(new URL("../src/components/layout/AppLayout.tsx", import.meta.url), "utf8");
+  const headerPart = layoutSource.split('<header className="app-header">')[1]?.split('</header>')[0] ?? "";
+  assert.doesNotMatch(headerPart, /Hilfe für diese Seite/);
+  assert.ok(layoutSource.includes('className="icon-button page-context-help-button"'));
 });

@@ -9,6 +9,7 @@ import { useAuth } from "@/features/auth/AuthContext";
 import { APP_MODULES } from "@/config/modules";
 import { env } from "@/lib/env";
 import { buildHelpHref } from "@/features/help/help-context";
+import "@/styles/app-layout.css";
 
 import { copySupportInformation, reportTechnicalError } from "@/lib/diagnostics";
 const roleNames = {
@@ -122,15 +123,6 @@ function AppLayoutContent() {
             <Home aria-hidden="true" />
           </button>
 
-          <button
-            type="button"
-            className="icon-button"
-            onClick={() => void openHelp()}
-            aria-label="Hilfe für diese Seite"
-            title="Hilfe für diese Seite"
-          >
-            <CircleHelp aria-hidden="true" />
-          </button>
 
           <div className="app-user-menu" ref={userMenuRef}>
             <button
@@ -185,6 +177,17 @@ function AppLayoutContent() {
       </header>
 
       <main className="app-content">
+        <div className="page-context-help-slot">
+          <button
+            type="button"
+            className="icon-button page-context-help-button"
+            onClick={() => void openHelp()}
+            aria-label="Hilfe für diese Seite"
+            title="Hilfe für diese Seite"
+          >
+            <CircleHelp aria-hidden="true" />
+          </button>
+        </div>
         <Outlet />
       </main>
     </div>
