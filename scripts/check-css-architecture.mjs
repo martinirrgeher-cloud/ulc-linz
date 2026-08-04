@@ -7,16 +7,16 @@ const sourceRoot = path.join(projectRoot, "src");
 const mainPath = path.join(sourceRoot, "main.tsx");
 
 const limits = Object.freeze({
-  cssFiles: 32,
-  totalBytes: 325_000,
-  totalLines: 14_300,
+  cssFiles: 33,
+  totalBytes: 340_000,
+  totalLines: 15_000,
   mainCssImports: 3,
-  mainImportedBytes: 65_000,
-  routeCssImports: 32,
+  mainImportedBytes: 68_000,
+  routeCssImports: 34,
   importantDeclarations: 38,
-  mediaQueries: 135,
+  mediaQueries: 140,
   uniqueMediaConditions: 28,
-  maxWidthMediaQueries: 125,
+  maxWidthMediaQueries: 130,
   duplicateSelectorsAcrossFiles: 255,
   largestFileBytes: 56_000,
   largestFileLines: 3_100,
@@ -24,6 +24,7 @@ const limits = Object.freeze({
 
 const expectedRouteImports = Object.freeze({
   "pages/DashboardPage.tsx": ["dashboard.css"],
+  "pages/HelpPage.tsx": ["help.css"],
   "pages/AthleteManagementPage.tsx": ["management.css"],
   "pages/UserManagementPage.tsx": ["management.css", "user-management-e5c.css"],
   "pages/KindertrainingDraftPage.tsx": ["kindertraining.css"],

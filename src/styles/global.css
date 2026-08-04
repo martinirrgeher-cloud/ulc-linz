@@ -2919,6 +2919,7 @@ input:focus-visible {
   color: var(--muted);
 }
 
+.app-user-menu-help,
 .app-user-menu-signout {
   width: 100%;
   min-height: 46px;
@@ -2926,7 +2927,6 @@ input:focus-visible {
   align-items: center;
   gap: 9px;
   padding: 11px 14px;
-  color: #a33333;
   background: #fff;
   border: 0;
   cursor: pointer;
@@ -2935,12 +2935,28 @@ input:focus-visible {
   text-align: left;
 }
 
+.app-user-menu-help {
+  color: var(--green-800);
+  border-bottom: 1px solid var(--border);
+}
+
+.app-user-menu-help:hover,
+.app-user-menu-help:focus-visible {
+  background: var(--green-50);
+  outline: none;
+}
+
+.app-user-menu-signout {
+  color: #a33333;
+}
+
 .app-user-menu-signout:hover,
 .app-user-menu-signout:focus-visible {
   background: #fff3f2;
   outline: none;
 }
 
+.app-user-menu-help svg,
 .app-user-menu-signout svg {
   width: 18px;
   height: 18px;
@@ -3048,4 +3064,33 @@ input:focus-visible {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(150px, 190px) auto;
   align-items: end;
+}
+
+/* P2b: kontextbezogene Hilfe in Kopfzeile und öffentlichen Seiten */
+.public-help-button {
+  position: fixed;
+  z-index: 50;
+  right: max(16px, env(safe-area-inset-right));
+  bottom: max(16px, env(safe-area-inset-bottom));
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--green-200);
+  border-radius: 14px;
+  color: var(--green-800);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 12px 30px rgba(8, 36, 22, 0.18);
+}
+
+.public-help-button:hover,
+.public-help-button:focus-visible {
+  color: #fff;
+  background: var(--green-700);
+  outline: none;
+}
+
+.public-help-button svg {
+  width: 22px;
+  height: 22px;
 }

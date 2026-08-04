@@ -95,7 +95,7 @@ textarea {
   }
   .brand {
     gap: 9px;
-        max-width: calc(100% - 102px);
+        max-width: calc(100% - 148px);
   }
   .brand img {
     width: 42px;
@@ -271,7 +271,7 @@ textarea {
 }
 @media (max-width: 760px) {
   .brand {
-    max-width: calc(100% - 96px);
+    max-width: calc(100% - 148px);
   }
   .brand-copy {
     max-width: 100%;

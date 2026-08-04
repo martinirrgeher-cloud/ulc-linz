@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronRight, LockKeyhole } from "lucide-react";
+import { BookOpenText, ChevronDown, ChevronRight, LockKeyhole } from "lucide-react";
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { APP_MODULE_GROUPS, APP_MODULES, type AppModuleGroupKey } from "@/config/modules";
@@ -37,6 +37,15 @@ export function DashboardPage() {
           <p>Die Bereiche lassen sich ein- und ausklappen. Angezeigt werden nur freigeschaltete Module.</p>
         </div>
       </div>
+
+      <Link className="dashboard-help-card" to="/hilfe?from=%2F">
+        <BookOpenText aria-hidden="true" />
+        <span>
+          <strong>Hilfe & Handbuch</strong>
+          <small>Kapitel, Suche und Anleitungen zu allen Modulen</small>
+        </span>
+        <ChevronRight aria-hidden="true" />
+      </Link>
 
       {groups.length > 0 ? (
         <div className="module-sections">

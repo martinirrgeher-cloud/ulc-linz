@@ -7,7 +7,10 @@ import "@/styles/mobile.css";
 import "@/styles/mobile-foundation.css";
 
 import { installGlobalDiagnostics } from "@/lib/diagnostics";
+import { registerPwaServiceWorker } from "@/lib/pwa";
+
 installGlobalDiagnostics();
+registerPwaServiceWorker();
 
 const rootElement = document.getElementById("root");
 if (!rootElement) throw new Error("Root-Element wurde nicht gefunden.");

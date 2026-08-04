@@ -1,0 +1,115 @@
+[
+  {
+    "path": "/module/kindertraining/statistik",
+    "topicId": "statistics",
+    "sectionId": "modules"
+  },
+  {
+    "path": "/module/kindertraining",
+    "topicId": "kindertraining"
+  },
+  {
+    "path": "/module/u12/statistik",
+    "topicId": "statistics",
+    "sectionId": "modules"
+  },
+  {
+    "path": "/module/u14/statistik",
+    "topicId": "statistics",
+    "sectionId": "modules"
+  },
+  {
+    "path": "/module/u12",
+    "topicId": "u12-u14"
+  },
+  {
+    "path": "/module/u14",
+    "topicId": "u12-u14"
+  },
+  {
+    "path": "/module/performance_registration",
+    "topicId": "performance-registration"
+  },
+  {
+    "path": "/module/exercise_catalog",
+    "topicId": "exercise-catalog"
+  },
+  {
+    "path": "/module/training_blocks",
+    "topicId": "training-blocks"
+  },
+  {
+    "path": "/module/training_planning",
+    "topicId": "training-planning"
+  },
+  {
+    "path": "/module/training_overview",
+    "topicId": "training-overview"
+  },
+  {
+    "path": "/module/training_documentation",
+    "topicId": "training-documentation"
+  },
+  {
+    "path": "/module/athletes",
+    "topicId": "athletes"
+  },
+  {
+    "path": "/module/dropdown_settings",
+    "topicId": "dropdown-settings"
+  },
+  {
+    "path": "/module/data_import",
+    "topicId": "data-import"
+  },
+  {
+    "path": "/module/user_management",
+    "topicId": "user-management"
+  },
+  {
+    "path": "/module/countdown",
+    "topicId": "countdown"
+  },
+  {
+    "path": "/module",
+    "topicId": "navigation"
+  },
+  {
+    "path": "/login",
+    "topicId": "login",
+    "sectionId": "sign-in"
+  },
+  {
+    "path": "/registrieren",
+    "topicId": "setup",
+    "sectionId": "admin-account"
+  },
+  {
+    "path": "/passwort-vergessen",
+    "topicId": "login",
+    "sectionId": "password-reset"
+  },
+  {
+    "path": "/passwort-neu",
+    "topicId": "login",
+    "sectionId": "password-reset"
+  },
+  {
+    "path": "/einrichtung",
+    "topicId": "setup"
+  },
+  {
+    "path": "/verbindungsfehler",
+    "topicId": "troubleshooting",
+    "sectionId": "connection"
+  },
+  {
+    "path": "/kein-zugriff",
+    "topicId": "roles",
+    "sectionId": "no-access"
+  },
+  {
+    "path": "/",
+    "topicId": "first-steps"
+  }
+]

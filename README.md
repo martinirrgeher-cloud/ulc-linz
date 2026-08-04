@@ -114,3 +114,16 @@ Paket C ergänzt:
 vollständig mit den Übersichtsseiten geladen. Details werden erst beim Öffnen
 des jeweiligen Dialogs nachgeladen. Die technische Beschreibung steht in
 `P2A-LESEMODELLE-PERFORMANCE.md`.
+
+## PWA und Hilfesystem
+
+Die App ist über `public/manifest.webmanifest` und `public/sw.js` als installierbare Progressive Web App eingerichtet. Das zentrale Handbuch liegt unter `/hilfe`; die Inhalte werden in `src/features/help/help-content.json` und die schlanken Routenzuordnungen in `src/features/help/help-route-contexts.json` gepflegt.
+
+Bei jedem Patch mit sichtbarer oder fachlicher Änderung muss das passende Hilfethema geprüft und gegebenenfalls angepasst werden. Die verbindlichen Prüfungen laufen über:
+
+```powershell
+npm run check:help-suite
+npm run check:pwa-suite
+```
+
+Details: `P2B-PWA-HILFESYSTEM.md`.

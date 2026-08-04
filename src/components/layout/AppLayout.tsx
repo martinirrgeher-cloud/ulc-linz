@@ -1,4 +1,4 @@
-import { Home, LogOut, UserRound } from "lucide-react";
+import { BookOpenText, CircleHelp, Home, LogOut, UserRound } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
@@ -8,6 +8,7 @@ import {
 import { useAuth } from "@/features/auth/AuthContext";
 import { APP_MODULES } from "@/config/modules";
 import { env } from "@/lib/env";
+import { buildHelpHref } from "@/features/help/help-context";
 
 import { copySupportInformation, reportTechnicalError } from "@/lib/diagnostics";
 const roleNames = {
@@ -71,6 +72,14 @@ function AppLayoutContent() {
     }, 150);
   }
 
+  async function openHelp(central = false) {
+    if (!(await runGuard())) return;
+
+    setUserMenuOpen(false);
+    const returnPath = `${location.pathname}${location.search}`;
+    navigate(central ? `/hilfe?from=${encodeURIComponent(returnPath)}` : buildHelpHref(returnPath));
+  }
+
   async function handleCopyDiagnostics() {
     try {
       await copySupportInformation();
@@ -113,6 +122,16 @@ function AppLayoutContent() {
             <Home aria-hidden="true" />
           </button>
 
+          <button
+            type="button"
+            className="icon-button"
+            onClick={() => void openHelp()}
+            aria-label="Hilfe für diese Seite"
+            title="Hilfe für diese Seite"
+          >
+            <CircleHelp aria-hidden="true" />
+          </button>
+
           <div className="app-user-menu" ref={userMenuRef}>
             <button
               type="button"
@@ -141,6 +160,15 @@ function AppLayoutContent() {
                     {diagnosticsCopied ? "Diagnoseinformationen kopiert" : "Diagnoseinformationen kopieren"}
                   </button>
                 </div>
+                <button
+                  type="button"
+                  className="app-user-menu-help"
+                  onClick={() => void openHelp(true)}
+                  role="menuitem"
+                >
+                  <BookOpenText aria-hidden="true" />
+                  Hilfe & Handbuch
+                </button>
                 <button
                   type="button"
                   className="app-user-menu-signout"

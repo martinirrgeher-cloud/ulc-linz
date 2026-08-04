@@ -1,0 +1,32 @@
+{
+  "id": "/",
+  "name": "ULC Linz Oberbank",
+  "short_name": "ULC Linz",
+  "description": "Vereins-App des ULC Linz Oberbank für Training, Planung, Dokumentation und Verwaltung.",
+  "lang": "de-AT",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f4f8f5",
+  "theme_color": "#147a46",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

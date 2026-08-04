@@ -1,0 +1,376 @@
+.help-page {
+  width: min(100%, 1180px);
+  margin: 0 auto;
+  padding: clamp(24px, 5vw, 48px) clamp(16px, 4vw, 36px);
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+}
+
+.help-heading {
+  margin-bottom: 0;
+}
+
+.help-heading-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.help-heading-actions .secondary-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.help-heading-actions svg {
+  width: 18px;
+  height: 18px;
+}
+
+.help-search {
+  min-height: 50px;
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.help-search:focus-within {
+  border-color: var(--green-500);
+  box-shadow: 0 0 0 3px rgba(20, 122, 70, 0.12);
+}
+
+.help-search svg {
+  color: var(--green-700);
+}
+
+.help-search input {
+  width: 100%;
+  min-width: 0;
+  padding: 12px 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font: inherit;
+}
+
+.help-page .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.help-intro-card,
+.help-availability,
+.help-callout {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.help-intro-card {
+  padding: 18px;
+  border: 1px solid var(--green-200);
+  border-radius: 16px;
+  background: var(--green-50);
+}
+
+.help-intro-card > svg,
+.help-availability > svg,
+.help-callout > svg {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  margin-top: 1px;
+}
+
+.help-intro-card h2,
+.help-intro-card p,
+.help-callout p {
+  margin: 0;
+}
+
+.help-intro-card p {
+  margin-top: 4px;
+  color: var(--muted);
+}
+
+.help-chapters {
+  display: grid;
+  gap: 12px;
+}
+
+.help-chapter {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+}
+
+.help-chapter > summary {
+  min-height: 64px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.help-chapter > summary::-webkit-details-marker {
+  display: none;
+}
+
+.help-chapter > summary span {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.help-chapter > summary small {
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.help-chapter > summary > svg {
+  flex: 0 0 auto;
+  transition: transform 0.2s ease;
+}
+
+.help-chapter[open] > summary > svg {
+  transform: rotate(90deg);
+}
+
+.help-topic-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  padding: 0 12px 12px;
+}
+
+.help-topic-card {
+  min-width: 0;
+  min-height: 76px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 20px;
+  align-items: center;
+  gap: 10px;
+  padding: 13px;
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  color: inherit;
+  text-decoration: none;
+  background: var(--surface-muted, #f8fbf9);
+}
+
+.help-topic-card:hover {
+  border-color: var(--green-300);
+  background: var(--green-50);
+}
+
+.help-topic-card span {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.help-topic-card small {
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.help-topic-card > svg {
+  width: 18px;
+  height: 18px;
+  color: var(--green-700);
+}
+
+.help-search-results {
+  display: grid;
+  gap: 12px;
+}
+
+.help-search-count {
+  margin: 0;
+  color: var(--muted);
+}
+
+.help-layout {
+  display: grid;
+  grid-template-columns: minmax(210px, 260px) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.help-topic-navigation {
+  position: sticky;
+  top: 94px;
+  display: grid;
+  gap: 4px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+}
+
+.help-topic-navigation > strong {
+  margin-bottom: 6px;
+}
+
+.help-topic-navigation a {
+  padding: 9px 10px;
+  border-radius: 9px;
+  color: var(--green-800);
+  text-decoration: none;
+}
+
+.help-topic-navigation a:hover {
+  background: var(--green-50);
+}
+
+.help-article {
+  min-width: 0;
+  display: grid;
+  gap: 14px;
+}
+
+.help-availability {
+  padding: 12px 14px;
+  border: 1px solid var(--green-200);
+  border-radius: 12px;
+  color: var(--green-900);
+  background: var(--green-50);
+}
+
+.help-section {
+  scroll-margin-top: 96px;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+}
+
+.help-section:focus {
+  outline: 3px solid rgba(20, 122, 70, 0.18);
+  outline-offset: 2px;
+}
+
+.help-section h2 {
+  margin: 0 0 12px;
+  font-size: clamp(1.08rem, 2vw, 1.28rem);
+}
+
+.help-section p {
+  margin: 0 0 10px;
+  line-height: 1.6;
+}
+
+.help-section p:last-child {
+  margin-bottom: 0;
+}
+
+.help-list {
+  display: grid;
+  gap: 7px;
+  margin: 10px 0 0;
+  padding-left: 22px;
+  line-height: 1.55;
+}
+
+.help-steps {
+  padding-left: 26px;
+}
+
+.help-callout {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 12px;
+}
+
+.help-callout strong {
+  display: block;
+  margin-bottom: 3px;
+}
+
+.help-tip {
+  border: 1px solid #c8dfd1;
+  background: #f1f8f4;
+  color: #17482f;
+}
+
+.help-warning {
+  border: 1px solid #e8c98b;
+  background: #fff8e8;
+  color: #654615;
+}
+
+@media (max-width: 760px) {
+  .help-page {
+    gap: 14px;
+  }
+
+  .help-heading-actions {
+    width: 100%;
+  }
+
+  .help-heading-actions .secondary-button {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+
+  .help-topic-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .help-layout {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .help-topic-navigation {
+    position: static;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .help-topic-navigation > strong {
+    grid-column: 1 / -1;
+  }
+
+  .help-topic-navigation a {
+    border: 1px solid var(--border);
+  }
+
+  .help-section {
+    padding: 16px;
+    border-radius: 14px;
+  }
+}
+
+@media (max-width: 430px) {
+  .help-topic-navigation {
+    grid-template-columns: 1fr;
+  }
+
+  .help-chapter > summary {
+    min-height: 58px;
+    padding: 12px;
+  }
+
+  .help-topic-card {
+    min-height: 68px;
+    padding: 11px;
+  }
+}

@@ -892,3 +892,34 @@ test("E5c3 bietet eine mobile Eltern-Mehrfachauswahl mit Audit", () => {
   assert.ok(e5c3MigrationSource.includes("jsonb_build_object('athlete_ids'"));
   assert.doesNotMatch(e5c3MigrationSource, /password|access_token|refresh_token/i);
 });
+
+const p2bManifestSource = JSON.parse(await readFile(new URL("../public/manifest.webmanifest", import.meta.url), "utf8"));
+const p2bIndexSource = await readFile(new URL("../index.html", import.meta.url), "utf8");
+const p2bServiceWorkerSource = await readFile(new URL("../public/sw.js", import.meta.url), "utf8");
+const p2bHelpContent = JSON.parse(await readFile(new URL("../src/features/help/help-content.json", import.meta.url), "utf8"));
+const p2bHelpRouteContexts = JSON.parse(await readFile(new URL("../src/features/help/help-route-contexts.json", import.meta.url), "utf8"));
+const p2bHelpPageSource = await readFile(new URL("../src/pages/HelpPage.tsx", import.meta.url), "utf8");
+const p2bLayoutSource = await readFile(new URL("../src/components/layout/AppLayout.tsx", import.meta.url), "utf8");
+
+test("P2b stellt eine installierbare Standalone-App mit Vereinslogo bereit", () => {
+  assert.equal(p2bManifestSource.name, "ULC Linz Oberbank");
+  assert.equal(p2bManifestSource.display, "standalone");
+  assert.ok(p2bManifestSource.icons.some((icon) => icon.src === "/icons/icon-512.png"));
+  assert.ok(p2bManifestSource.icons.some((icon) => icon.purpose === "maskable"));
+  assert.ok(p2bIndexSource.includes('rel="manifest"'));
+  assert.ok(p2bIndexSource.includes('rel="apple-touch-icon"'));
+  assert.ok(p2bServiceWorkerSource.includes('addEventListener("install"'));
+  assert.ok(p2bServiceWorkerSource.includes('addEventListener("activate"'));
+  assert.doesNotMatch(p2bServiceWorkerSource, /addEventListener\(["']fetch["']|caches\.open|cache\.put/i);
+  assert.doesNotMatch(p2bServiceWorkerSource, /supabase|access_token|refresh_token/i);
+});
+
+test("P2b bietet vollständiges Handbuch, Suche und kontextbezogene Hilfe", () => {
+  assert.ok(p2bHelpContent.chapters.length >= 5);
+  assert.ok(p2bHelpContent.topics.length >= 20);
+  assert.ok(p2bHelpRouteContexts.length >= 25);
+  assert.ok(p2bHelpPageSource.includes("Hilfe durchsuchen"));
+  assert.ok(p2bHelpPageSource.includes("HELP_CHAPTERS"));
+  assert.ok(p2bLayoutSource.includes("Hilfe für diese Seite"));
+  assert.ok(p2bLayoutSource.includes("Hilfe & Handbuch"));
+});
