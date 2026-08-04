@@ -51,7 +51,7 @@ Routenbezogene Hilfekontexte:
 src/features/help/help-route-contexts.json
 ```
 
-Die kleine Kontextlogik (`help-context.ts`) wird bereits mit der App-Kopfzeile geladen. Die vollständigen Handbuchinhalte (`help.ts` und `help-content.json`) bleiben im Lazy-Chunk der Hilfeseite und vergrößern deshalb nicht unnötig den Start-Download.
+Die kleine Kontextlogik (`help-context.ts`) wird bereits mit dem App-Layout geladen. Die vollständigen Handbuchinhalte (`help.ts` und `help-content.json`) bleiben im Lazy-Chunk der Hilfeseite und vergrößern deshalb nicht unnötig den Start-Download.
 
 Routen:
 
@@ -95,7 +95,7 @@ Beispiel:
 }
 ```
 
-Der Abschnitt ist optional. Das Fragezeichen in der App-Kopfzeile verwendet diese Zuordnung.
+Der Abschnitt ist optional. Das Fragezeichen neben der Seitenüberschrift verwendet diese Zuordnung.
 
 ## Manuelle PWA-Prüfung
 
@@ -110,7 +110,7 @@ Der Abschnitt ist optional. Das Fragezeichen in der App-Kopfzeile verwendet dies
 
 - Handbuch von der Modulübersicht öffnen
 - Handbuch aus dem Benutzermenü öffnen
-- Fragezeichen auf mindestens fünf unterschiedlichen Seiten prüfen
+- Fragezeichen neben der Seitenüberschrift auf mindestens fünf unterschiedlichen Seiten prüfen
 - Suche mit „Einladung“, „Sondertraining“, „Video“ und „Import“ testen
 - direkte Unterkapitel-Links und Zurück-zur-Seite-Funktion prüfen
 - Smartphonebreiten 360, 390 und 430 Pixel sowie Desktop prüfen

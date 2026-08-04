@@ -25,14 +25,19 @@
 }
 
 html {
-  min-width: 320px;
+  width: 100%;
+  min-width: 0;
   min-height: 100%;
+  overflow-x: clip;
 }
 
 body {
+  width: 100%;
+  max-width: 100%;
   margin: 0;
-  min-width: 320px;
+  min-width: 0;
   min-height: 100vh;
+  overflow-x: clip;
   background:
     radial-gradient(circle at top right, rgba(27, 145, 85, 0.12), transparent 36rem),
     #f3f7f4;
@@ -256,11 +261,22 @@ input:focus-visible {
   to { transform: rotate(360deg); }
 }
 
+#root,
+.app-shell {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
 .app-shell {
   min-height: 100vh;
+  overflow-x: clip;
 }
 
 .app-header {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   position: sticky;
   top: 0;
   z-index: 10;
@@ -349,10 +365,19 @@ input:focus-visible {
 }
 
 .app-content {
+  position: relative;
   width: min(100%, 1180px);
+  max-width: 100%;
+  min-width: 0;
   margin: 0 auto;
   padding: clamp(24px, 5vw, 48px) clamp(16px, 4vw, 36px);
 }
+
+.app-content > * {
+  max-width: 100%;
+  min-width: 0;
+}
+
 
 .page-heading {
   display: flex;
@@ -2872,96 +2897,7 @@ input:focus-visible {
   border: 0;
 }
 
-/* Mobile-First-Nachbesserungen Juli 2026: sicheres Benutzermenü und kompakte Stammdatenfilter */
-.app-user-menu {
-  position: relative;
-  flex: 0 0 auto;
-}
-
-.app-user-menu-toggle.active {
-  color: #fff;
-  background: var(--green-700);
-}
-
-.app-user-menu-panel {
-  position: absolute;
-  z-index: 40;
-  top: calc(100% + 9px);
-  right: 0;
-  width: min(280px, calc(100vw - 24px));
-  overflow: hidden;
-  background: #fff;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  box-shadow: 0 18px 45px rgba(8, 36, 22, 0.2);
-}
-
-.app-user-menu-identity {
-  min-width: 0;
-  display: grid;
-  gap: 3px;
-  padding: 13px 14px;
-  border-bottom: 1px solid var(--border);
-}
-
-.app-user-menu-identity strong,
-.app-user-menu-identity small {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.app-user-menu-identity strong {
-  color: var(--green-950);
-}
-
-.app-user-menu-identity small {
-  color: var(--muted);
-}
-
-.app-user-menu-help,
-.app-user-menu-signout {
-  width: 100%;
-  min-height: 46px;
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  padding: 11px 14px;
-  background: #fff;
-  border: 0;
-  cursor: pointer;
-  font: inherit;
-  font-weight: 800;
-  text-align: left;
-}
-
-.app-user-menu-help {
-  color: var(--green-800);
-  border-bottom: 1px solid var(--border);
-}
-
-.app-user-menu-help:hover,
-.app-user-menu-help:focus-visible {
-  background: var(--green-50);
-  outline: none;
-}
-
-.app-user-menu-signout {
-  color: #a33333;
-}
-
-.app-user-menu-signout:hover,
-.app-user-menu-signout:focus-visible {
-  background: #fff3f2;
-  outline: none;
-}
-
-.app-user-menu-help svg,
-.app-user-menu-signout svg {
-  width: 18px;
-  height: 18px;
-}
-
+/* Kompakte Stammdatenfilter */
 .masterdata-filter-area {
   display: grid;
   gap: 10px;

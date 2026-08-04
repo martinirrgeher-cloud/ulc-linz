@@ -5,7 +5,7 @@ html {
     text-size-adjust: 100%;
 }
 body {
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 button,
 input,
@@ -109,6 +109,8 @@ textarea {
   }
   .app-content {
     width: 100%;
+        max-width: 100%;
+        min-width: 0;
         padding-top: 18px;
         padding-right: max(12px, env(safe-area-inset-right));
         padding-bottom: calc(28px + env(safe-area-inset-bottom));
@@ -284,10 +286,5 @@ textarea {
   }
   .user-area .icon-button {
     width: 40px; height: 40px;
-  }
-}
-@media (max-width: 760px) {
-  .app-user-menu-panel {
-    top: calc(100% + 7px);
   }
 }

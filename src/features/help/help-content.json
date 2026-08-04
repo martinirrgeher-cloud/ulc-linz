@@ -99,7 +99,7 @@
           "id": "help",
           "title": "Hilfe aufrufen",
           "paragraphs": [
-            "Das Fragezeichen in der Kopfzeile öffnet das Hilfethema der aktuellen Seite. Das vollständige Handbuch ist zusätzlich im Benutzermenü und auf der Modulübersicht erreichbar."
+            "Das Fragezeichen neben der Seitenüberschrift öffnet das Hilfethema der aktuellen Seite. Das vollständige Handbuch ist zusätzlich im Benutzermenü und über den kompakten Link auf der Modulübersicht erreichbar."
           ],
           "tip": "Im Handbuch kann nach Begriffen wie Sondertraining, Einladung, Video oder Import gesucht werden."
         }
@@ -221,16 +221,16 @@
           "id": "header",
           "title": "Kopfzeile",
           "bullets": [
-            "Vereinslogo und Haus-Symbol: zurück zur Modulübersicht.",
-            "Fragezeichen: Hilfe für die aktuelle Seite.",
-            "Benutzersymbol: App-Stand, Hilfe, Diagnoseinformationen und Abmelden."
+            "Vereinslogo und Home-Symbol: zurück zur Modulübersicht.",
+            "Fragezeichen neben der Seitenüberschrift: Hilfe für die aktuelle Seite.",
+            "Benutzersymbol: Rolle, App-Stand, Diagnoseinformationen, Handbuch und Abmelden."
           ]
         },
         {
           "id": "dashboard",
           "title": "Modulübersicht",
           "paragraphs": [
-            "Die Module sind nach Anmeldung, Planung, Dokumentation, Übungen, Statistik, Nützliches und Stammdaten gegliedert. Nur freigeschaltete Module werden angezeigt."
+            "Die Module sind nach Anmeldung, Planung, Dokumentation, Übungen, Nützliches und Stammdaten gegliedert. Statistiken sind direkt Bestandteil von Kindertraining, U12 und U14. Nur freigeschaltete Module werden angezeigt."
           ]
         },
         {
@@ -500,9 +500,9 @@
         },
         {
           "id": "modules",
-          "title": "Getrennte Statistikseiten",
+          "title": "Statistik je Trainingsmodul",
           "paragraphs": [
-            "Kindertraining, U12 und U14 haben jeweils eine eigene Statistikseite."
+            "Kindertraining, U12 und U14 haben jeweils eine eigene Statistikseite. Der Zugriff ist Bestandteil des zugehörigen Trainingsmoduls; ein zusätzliches Statistikrecht ist nicht erforderlich."
           ]
         }
       ]

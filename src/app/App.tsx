@@ -75,7 +75,7 @@ export function App() {
               <Route
                 path="module/kindertraining/statistik"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute moduleKey="kindertraining">
                     <KindertrainingStatisticsPage />
                   </ProtectedRoute>
                 }
@@ -86,7 +86,6 @@ export function App() {
                   <ProtectedRoute moduleKey="u12">
                     <GroupTrainingPage
                       moduleKey="u12"
-                      statisticsModuleKey="u12_statistics"
                       title="U12"
                       statisticsRoute="/module/u12/statistik"
                     />
@@ -99,7 +98,6 @@ export function App() {
                   <ProtectedRoute moduleKey="u14">
                     <GroupTrainingPage
                       moduleKey="u14"
-                      statisticsModuleKey="u14_statistics"
                       title="U14"
                       statisticsRoute="/module/u14/statistik"
                     />
@@ -109,10 +107,9 @@ export function App() {
               <Route
                 path="module/u12/statistik"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute moduleKey="u12">
                     <GroupTrainingStatisticsPage
                       moduleKey="u12"
-                      statisticsModuleKey="u12_statistics"
                       title="U12"
                       trainingRoute="/module/u12"
                     />
@@ -122,10 +119,9 @@ export function App() {
               <Route
                 path="module/u14/statistik"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute moduleKey="u14">
                     <GroupTrainingStatisticsPage
                       moduleKey="u14"
-                      statisticsModuleKey="u14_statistics"
                       title="U14"
                       trainingRoute="/module/u14"
                     />

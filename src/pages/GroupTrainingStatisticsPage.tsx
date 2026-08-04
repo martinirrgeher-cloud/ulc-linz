@@ -81,23 +81,19 @@ function errorMessage(error: unknown): string {
 
 type GroupTrainingStatisticsPageProps = {
   moduleKey: GroupStatisticsModuleKey;
-  statisticsModuleKey: "u12_statistics" | "u14_statistics";
   title: "U12" | "U14";
   trainingRoute: string;
 };
 
 export function GroupTrainingStatisticsPage({
   moduleKey,
-  statisticsModuleKey,
   title,
   trainingRoute,
 }: GroupTrainingStatisticsPageProps) {
   const { appContext, canViewModule, canEditModule } = useAuth();
   const organizationId = appContext?.organization?.id;
-  const canView =
-    canViewModule(statisticsModuleKey) || canViewModule(moduleKey);
-  const canEdit =
-    canEditModule(statisticsModuleKey) || canEditModule(moduleKey);
+  const canView = canViewModule(moduleKey);
+  const canEdit = canEditModule(moduleKey);
 
   const [statistics, setStatistics] = useState<KindertrainingStatistics | null>(null);
   const [fromDate, setFromDate] = useState<string>(() => isoToday());

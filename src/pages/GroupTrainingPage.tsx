@@ -243,14 +243,12 @@ const AUTOSAVE_DELAY_MS = 700;
 
 type GroupTrainingPageProps = {
   moduleKey: GroupTrainingModuleKey;
-  statisticsModuleKey: "u12_statistics" | "u14_statistics";
   title: "U12" | "U14";
   statisticsRoute: string;
 };
 
 export function GroupTrainingPage({
   moduleKey,
-  statisticsModuleKey,
   title,
   statisticsRoute,
 }: GroupTrainingPageProps) {
@@ -889,16 +887,14 @@ export function GroupTrainingPage({
           <p className="eyebrow">Training erfassen</p>
           <div className="kindertraining-title-row">
             <h1>{title}</h1>
-            {(canViewModule(statisticsModuleKey) || canView) && (
-              <Link
-                className="icon-button statistics-link"
-                to={statisticsRoute}
-                aria-label={`${title}-Statistik öffnen`}
-                title="Statistik"
-              >
-                <BarChart3 aria-hidden="true" />
-              </Link>
-            )}
+            <Link
+              className="icon-button statistics-link"
+              to={statisticsRoute}
+              aria-label={`${title}-Statistik öffnen`}
+              title="Statistik"
+            >
+              <BarChart3 aria-hidden="true" />
+            </Link>
           </div>
           <p>Anwesenheit schnell erfassen und direkt am Handy verwalten.</p>
         </div>

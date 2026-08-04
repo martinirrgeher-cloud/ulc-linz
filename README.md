@@ -127,3 +127,5 @@ npm run check:pwa-suite
 ```
 
 Details: `P2B-PWA-HILFESYSTEM.md`.
+
+- `P2B1-LAYOUT-STATISTIKRECHTE.md`: Hilfeplatzierung, mobile Breite und integrierte Statistikrechte.

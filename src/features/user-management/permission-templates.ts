@@ -23,15 +23,12 @@ export const PERMISSION_TEMPLATES: readonly PermissionTemplate[] = [
   {
     key: "children_trainer",
     label: "Kindertrainer",
-    description: "Anmeldung und Statistik für Kindertraining, U12 und U14.",
+    description: "Anmeldung und enthaltene Statistik für Kindertraining, U12 und U14.",
     role: "trainer",
     view: [
       "kindertraining",
       "u12",
       "u14",
-      "kindertraining_statistics",
-      "u12_statistics",
-      "u14_statistics",
       "countdown",
     ],
     edit: ["kindertraining", "u12", "u14", "countdown"],
@@ -77,15 +74,12 @@ export const PERMISSION_TEMPLATES: readonly PermissionTemplate[] = [
   {
     key: "parent",
     label: "Elternteil",
-    description: "Lesender Zugriff auf Kinderanmeldung und zugehörige Statistik.",
+    description: "Lesender Zugriff auf Kindertraining, U12 und U14 einschließlich Statistik.",
     role: "parent",
     view: [
       "kindertraining",
       "u12",
       "u14",
-      "kindertraining_statistics",
-      "u12_statistics",
-      "u14_statistics",
     ],
     edit: [],
   },

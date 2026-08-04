@@ -25,6 +25,8 @@ for (const width of [360, 390, 430, 1280]) {
 const testFile = readFileSync("tests/e2e/mobile-readonly.spec.mjs", "utf8");
 for (const route of [
   "/module/athletes",
+  "/module/kindertraining/statistik",
+  "/module/u12/statistik",
   "/module/exercise_catalog",
   "/module/training_blocks",
   "/module/training_overview",
