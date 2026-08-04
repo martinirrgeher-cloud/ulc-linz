@@ -436,6 +436,7 @@ const databaseTestFiles = [
   "../supabase/tests/database/50_catalog_block_intelligence.test.sql",
   "../supabase/tests/database/60_user_management_e5c.test.sql",
   "../supabase/tests/database/61_parent_multi_athlete_links.test.sql",
+  "../supabase/tests/database/70_catalog_block_read_models.test.sql",
 ];
 
 test("E1a baut die Datenbank isoliert neu auf und führt pgTAP-Tests aus", async () => {
@@ -727,7 +728,7 @@ test("E5b ergänzt Varianten, Versionen, Favoriten und Blockvergleich", () => {
   assert.ok(e5TrainingBlockPageSource.includes("TrainingBlockCompareDialog"));
   assert.ok(e5TrainingBlockPageSource.includes("Neue Variante erstellen"));
   assert.ok(e5TrainingBlockPageSource.includes("Letzte Nutzung"));
-  assert.ok(e5TrainingBlockPageSource.includes("Versionsverlauf"));
+  assert.ok(e5TrainingBlockPageSource.includes("TrainingBlockVersionHistory"));
   assert.ok(e5TrainingBlockPageSource.includes("Tatsächlich verwendet von"));
 });
 
@@ -736,6 +737,57 @@ test("E5b warnt vor inaktiven Übungen ohne historische Verwendungen zu verände
   assert.ok(e5TrainingBlockEditorSource.includes("Bestehende Verwendungen bleiben erhalten"));
   assert.ok(e5CatalogMigrationSource.includes("exercise_is_active"));
   assert.ok(e5CatalogMigrationSource.includes("snapshot"));
+});
+
+const p2aMigrationSource = await readFile(
+  new URL("../supabase/migrations/202608030036_catalog_block_read_models.sql", import.meta.url),
+  "utf8",
+);
+const p2aExerciseApiSource = await readFile(
+  new URL("../src/features/exercise-catalog/api.ts", import.meta.url),
+  "utf8",
+);
+const p2aUsageDialogSource = await readFile(
+  new URL("../src/features/exercise-catalog/ExerciseUsageDialog.tsx", import.meta.url),
+  "utf8",
+);
+const p2aTrainingBlockApiSource = await readFile(
+  new URL("../src/features/training-blocks/api.ts", import.meta.url),
+  "utf8",
+);
+const p2aVersionHistorySource = await readFile(
+  new URL("../src/features/training-blocks/TrainingBlockVersionHistory.tsx", import.meta.url),
+  "utf8",
+);
+const p2aRefreshSource = await readFile(
+  new URL("../src/features/collaboration/useCoalescedAsyncRefresh.ts", import.meta.url),
+  "utf8",
+);
+
+ test("P2a lädt Verwendungen und Blockversionen nur bei Bedarf", () => {
+  for (const marker of [
+    "exercise_catalog_overview_v4",
+    "exercise_usage_overview",
+    "training_block_overview_v4",
+    "training_block_versions_overview",
+    "block_usage_count",
+    "plan_usage_count",
+    "version_count",
+  ]) {
+    assert.ok(p2aMigrationSource.includes(marker), `P2a-Migrationsmarker fehlt: ${marker}`);
+  }
+  assert.ok(p2aExerciseApiSource.includes('callJsonRpc("exercise_catalog_overview_v4"'));
+  assert.ok(p2aUsageDialogSource.includes("loadExerciseUsage"));
+  assert.ok(p2aTrainingBlockApiSource.includes('callJsonRpc("training_block_overview_v4"'));
+  assert.ok(p2aVersionHistorySource.includes("loadTrainingBlockVersions"));
+});
+
+ test("P2a bündelt Realtime-Neuladevorgänge und verhindert parallele Vollabfragen", () => {
+  assert.ok(p2aRefreshSource.includes("inFlightRef"));
+  assert.ok(p2aRefreshSource.includes("queuedRef"));
+  assert.ok(p2aRefreshSource.includes("scheduleRefresh"));
+  assert.ok(e5ExercisePageSource.includes("useCoalescedAsyncRefresh"));
+  assert.ok(e5TrainingBlockPageSource.includes("useCoalescedAsyncRefresh"));
 });
 
 const e5cMigrationSource = await readFile(

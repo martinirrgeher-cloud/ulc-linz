@@ -15,6 +15,7 @@ import type {
   TrainingBlockItem,
   TrainingBlockVersion,
   TrainingBlockVersionSnapshot,
+  TrainingBlockVersionSummary,
 } from "@/features/training-blocks/types";
 
 type JsonRpc = (
@@ -190,6 +191,26 @@ function parseVersions(value: unknown): TrainingBlockVersion[] {
   }).sort((left, right) => right.versionNumber - left.versionNumber);
 }
 
+function parseVersionSummary(value: unknown): TrainingBlockVersionSummary | null {
+  if (
+    !isRecord(value)
+    || typeof value.id !== "string"
+    || typeof value.version_number !== "number"
+    || typeof value.created_at !== "string"
+  ) return null;
+  const reason: TrainingBlockVersionSummary["reason"] = value.reason === "variant_created"
+    ? "variant_created"
+    : value.reason === "created"
+      ? "created"
+      : "saved";
+  return {
+    id: value.id,
+    versionNumber: value.version_number,
+    reason,
+    createdAt: value.created_at,
+  };
+}
+
 function parseBlocks(value: unknown): TrainingBlock[] {
   if (!Array.isArray(value)) return [];
   return value.flatMap((item) => {
@@ -210,7 +231,8 @@ function parseBlocks(value: unknown): TrainingBlock[] {
       variantParentName: optionalString(item.variant_parent_name),
       variantRootId: optionalString(item.variant_root_id),
       variantNumber: typeof item.variant_number === "number" ? item.variant_number : 1,
-      versions: parseVersions(item.versions),
+      versionCount: typeof item.version_count === "number" ? item.version_count : 0,
+      latestVersion: parseVersionSummary(item.latest_version),
       items: parseItems(item.items),
       usageCount: typeof item.usage_count === "number" ? item.usage_count : 0,
       createdAt: typeof item.created_at === "string" ? item.created_at : "",
@@ -280,7 +302,7 @@ export async function loadTrainingBlocks(
   organizationId: string,
   includeInactive = true,
 ): Promise<TrainingBlockData> {
-  const data = await callJsonRpc("training_block_overview_v3", {
+  const data = await callJsonRpc("training_block_overview_v4", {
     p_organization_id: organizationId,
     p_include_inactive: includeInactive,
   });
@@ -294,6 +316,17 @@ export async function loadTrainingBlocks(
     exercises: parseExercises(data.exercises),
     blocks: parseBlocks(data.blocks),
   };
+}
+
+export async function loadTrainingBlockVersions(
+  organizationId: string,
+  blockId: string,
+): Promise<TrainingBlockVersion[]> {
+  const data = await callJsonRpc("training_block_versions_overview", {
+    p_organization_id: organizationId,
+    p_block_id: blockId,
+  });
+  return parseVersions(data);
 }
 
 function itemsToJson(values: TrainingBlockInput): Json {

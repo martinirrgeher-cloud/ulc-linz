@@ -11,6 +11,7 @@ Dieses Paket verändert keine produktiven Daten und keine sichtbare App-Funktion
 - idempotente und vollständig rückrollbare Datenimporte
 - Abbruch eines Imports bei aktiver Bearbeitungssperre
 - Benutzerverwaltung inklusive Einladung, Audit und Eltern-Mehrfachverknüpfung
+- schlanke P2a-Lesemodelle für Übungsverwendungen und Trainingsblock-Versionen
 - Vorhandensein der benötigten Storage-Buckets
 
 ## Lokal ausführen

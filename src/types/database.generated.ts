@@ -1852,6 +1852,20 @@ export type Database = {
         };
         Returns: Json;
       };
+      exercise_catalog_overview_v4: {
+        Args: {
+          p_organization_id: string;
+          p_include_inactive?: boolean;
+        };
+        Returns: Json;
+      };
+      exercise_usage_overview: {
+        Args: {
+          p_organization_id: string;
+          p_exercise_id: string;
+        };
+        Returns: Json;
+      };
       exercise_duplicate_candidates: {
         Args: {
           p_organization_id: string;
@@ -1926,6 +1940,20 @@ export type Database = {
         Args: {
           p_organization_id: string;
           p_include_inactive?: boolean;
+        };
+        Returns: Json;
+      };
+      training_block_overview_v4: {
+        Args: {
+          p_organization_id: string;
+          p_include_inactive?: boolean;
+        };
+        Returns: Json;
+      };
+      training_block_versions_overview: {
+        Args: {
+          p_organization_id: string;
+          p_block_id: string;
         };
         Returns: Json;
       };

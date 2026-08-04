@@ -102,7 +102,7 @@ export function TrainingBlockCompareDialog({ left, right, groups, onClose }: Tra
                   <p><strong>Dauer:</strong> {block.estimatedMinutes ? `${block.estimatedMinutes} min` : "nicht festgelegt"}</p>
                   <p><strong>Geeignet für:</strong> {groupNames(block, groups)}</p>
                   <p><strong>Letzte Nutzung:</strong> {formatDate(block.lastUsedAt)}</p>
-                  <p><strong>Versionen:</strong> {block.versions.length}</p>
+                  <p><strong>Versionen:</strong> {block.versionCount}</p>
                   <ol>
                     {block.items.map((item) => (
                       <li key={item.id}>

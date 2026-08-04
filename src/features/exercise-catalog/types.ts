@@ -21,6 +21,12 @@ export type ExercisePlanUsage = {
   viaBlockName: string | null;
 };
 
+export type ExerciseUsageData = {
+  blockUsages: ExerciseBlockUsage[];
+  planUsages: ExercisePlanUsage[];
+  lastUsedAt: string | null;
+};
+
 export type ExerciseListOption = {
   key: string;
   label: string;
@@ -88,8 +94,8 @@ export type Exercise = {
   difficultyKey: string | null;
   difficultyLabel: string | null;
   similarExerciseIds: string[];
-  blockUsages: ExerciseBlockUsage[];
-  planUsages: ExercisePlanUsage[];
+  blockUsageCount: number;
+  planUsageCount: number;
   lastUsedAt: string | null;
   groupIds: string[];
   parameters: ExerciseParameterDefinition[];

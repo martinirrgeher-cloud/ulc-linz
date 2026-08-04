@@ -5,6 +5,9 @@ import {
   installSupabaseMock,
 } from "./helpers/supabase-mock.mjs";
 
+const longExerciseName = "Beschleunigungslauf mit aktivem Kniehub und vollständiger Streckung";
+const longBlockName = "Sprinttechnik mit koordinativem Schwerpunkt und sauberer Beschleunigungsphase";
+
 function monitorBrowserProblems(page) {
   const problems = [];
   page.on("pageerror", (error) => problems.push(`pageerror: ${error.message}`));
@@ -183,6 +186,36 @@ test.describe("Authentifizierte, nicht schreibende Modulprüfungen", () => {
       expect(badge.left).toBeGreaterThanOrEqual(layout.cardRect.left - 1);
       expect(badge.right).toBeLessThanOrEqual(layout.cardRect.right + 1);
     }
+
+    await expectHealthyPage(page, problems, unhandled);
+  });
+
+  test("Verwendungs- und Versionsdetails werden erst beim Öffnen geladen", async ({ page }) => {
+    const problems = monitorBrowserProblems(page);
+    const unhandled = await installSupabaseMock(page);
+    const rpcRequests = [];
+    page.on("request", (request) => {
+      if (request.url().includes("/rest/v1/rpc/")) rpcRequests.push(request.url());
+    });
+
+    await page.goto("/module/exercise_catalog");
+    await expect(page.getByRole("heading", { name: "Übungskatalog", exact: true })).toBeVisible();
+    expect(rpcRequests.some((url) => url.includes("exercise_usage_overview"))).toBe(false);
+
+    await page.getByRole("button", { name: /Verwendung von .* anzeigen/ }).first().click();
+    await expect(page.getByRole("dialog", { name: longExerciseName })).toBeVisible();
+    await expect(page.getByText(longBlockName, { exact: true })).toBeVisible();
+    await expect.poll(() => rpcRequests.some((url) => url.includes("exercise_usage_overview"))).toBe(true);
+    await page.getByRole("button", { name: "Dialog schließen" }).click();
+
+    await page.goto("/module/training_blocks");
+    await expect(page.getByRole("heading", { name: "Trainingsblöcke", exact: true })).toBeVisible();
+    expect(rpcRequests.some((url) => url.includes("training_block_versions_overview"))).toBe(false);
+
+    await page.getByRole("button", { name: new RegExp(longBlockName) }).first().click();
+    await page.getByText("Versionsverlauf (1)", { exact: true }).click();
+    await expect(page.getByText("Version 1", { exact: true })).toBeVisible();
+    await expect.poll(() => rpcRequests.some((url) => url.includes("training_block_versions_overview"))).toBe(true);
 
     await expectHealthyPage(page, problems, unhandled);
   });
