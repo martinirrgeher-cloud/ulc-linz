@@ -53,6 +53,8 @@ export type TrainingBlockVersion = {
   createdAt: string;
 };
 
+export type TrainingBlockVersionSummary = Omit<TrainingBlockVersion, "snapshot">;
+
 export type TrainingBlock = {
   id: string;
   name: string;
@@ -69,7 +71,8 @@ export type TrainingBlock = {
   variantParentName: string | null;
   variantRootId: string | null;
   variantNumber: number;
-  versions: TrainingBlockVersion[];
+  versionCount: number;
+  latestVersion: TrainingBlockVersionSummary | null;
   items: TrainingBlockItem[];
   usageCount: number;
   createdAt: string;

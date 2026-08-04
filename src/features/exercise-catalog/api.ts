@@ -9,6 +9,7 @@ import {
   type ExerciseDifficulty,
   type ExercisePlanUsage,
   type ExerciseInput,
+  type ExerciseUsageData,
   type ExerciseParameterDefinition,
   type ExerciseParameterInputType,
   type ExerciseTrainingGroup,
@@ -195,8 +196,8 @@ function parseExercises(value: unknown): Exercise[] {
       difficultyKey: optionalString(item.difficulty_key),
       difficultyLabel: optionalString(item.difficulty_label),
       similarExerciseIds: parseStringArray(item.similar_exercise_ids),
-      blockUsages: parseBlockUsages(item.block_usages),
-      planUsages: parsePlanUsages(item.plan_usages),
+      blockUsageCount: typeof item.block_usage_count === "number" ? item.block_usage_count : 0,
+      planUsageCount: typeof item.plan_usage_count === "number" ? item.plan_usage_count : 0,
       lastUsedAt: optionalString(item.last_used_at),
       groupIds: parseStringArray(item.group_ids),
       parameters: parseParameters(item.parameters),
@@ -281,7 +282,7 @@ export async function loadExerciseCatalog(
   includeInactive = true,
 ): Promise<ExerciseCatalogData> {
   const [data, videos] = await Promise.all([
-    callJsonRpc("exercise_catalog_overview_v3", {
+    callJsonRpc("exercise_catalog_overview_v4", {
       p_organization_id: organizationId,
       p_include_inactive: includeInactive,
     }),
@@ -318,6 +319,26 @@ export async function loadExerciseVideosForExercise(
   exerciseId: string,
 ): Promise<ExerciseVideo[]> {
   return loadExerciseVideoRows(organizationId, exerciseId, true);
+}
+
+export async function loadExerciseUsage(
+  organizationId: string,
+  exerciseId: string,
+): Promise<ExerciseUsageData> {
+  const data = await callJsonRpc("exercise_usage_overview", {
+    p_organization_id: organizationId,
+    p_exercise_id: exerciseId,
+  });
+
+  if (!isRecord(data)) {
+    throw new Error("Die Verwendung der Übung konnte nicht gelesen werden.");
+  }
+
+  return {
+    blockUsages: parseBlockUsages(data.block_usages),
+    planUsages: parsePlanUsages(data.plan_usages),
+    lastUsedAt: optionalString(data.last_used_at),
+  };
 }
 
 function parametersToJson(parameters: ExerciseParameterDefinition[]): Json {

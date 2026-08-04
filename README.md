@@ -107,3 +107,10 @@ Paket C ergänzt:
 - Pause, Fortsetzen und Beenden
 - Wake Lock, soweit vom Browser unterstützt
 - erste automatisierte Smoke-Tests ohne zusätzliche Testbibliothek
+
+## Performance-Lesemodelle P2a
+
+Übungsverwendungen und historische Trainingsblock-Versionen werden nicht mehr
+vollständig mit den Übersichtsseiten geladen. Details werden erst beim Öffnen
+des jeweiligen Dialogs nachgeladen. Die technische Beschreibung steht in
+`P2A-LESEMODELLE-PERFORMANCE.md`.

@@ -4,6 +4,10 @@ import path from "node:path";
 
 const migrationPath = path.resolve("supabase/migrations/202608020033_catalog_block_intelligence.sql");
 const migration = await readFile(migrationPath, "utf8");
+const p2aMigration = await readFile(
+  path.resolve("supabase/migrations/202608030036_catalog_block_read_models.sql"),
+  "utf8",
+);
 const packageSource = await readFile(path.resolve("package.json"), "utf8");
 const exercisePage = await readFile(path.resolve("src/pages/ExerciseCatalogPage.tsx"), "utf8");
 const exerciseEditor = await readFile(path.resolve("src/features/exercise-catalog/ExerciseEditor.tsx"), "utf8");
@@ -11,7 +15,11 @@ const exerciseApi = await readFile(path.resolve("src/features/exercise-catalog/a
 const exerciseVideoPanel = await readFile(path.resolve("src/features/exercise-catalog/ExerciseVideoPanel.tsx"), "utf8");
 const trainingBlocksPage = await readFile(path.resolve("src/pages/TrainingBlocksPage.tsx"), "utf8");
 const trainingBlockEditor = await readFile(path.resolve("src/features/training-blocks/TrainingBlockEditor.tsx"), "utf8");
+const trainingBlockApi = await readFile(path.resolve("src/features/training-blocks/api.ts"), "utf8");
+const versionHistory = await readFile(path.resolve("src/features/training-blocks/TrainingBlockVersionHistory.tsx"), "utf8");
+const coalescedRefresh = await readFile(path.resolve("src/features/collaboration/useCoalescedAsyncRefresh.ts"), "utf8");
 const databaseTest = await readFile(path.resolve("supabase/tests/database/50_catalog_block_intelligence.test.sql"), "utf8");
+const p2aDatabaseTest = await readFile(path.resolve("supabase/tests/database/70_catalog_block_read_models.test.sql"), "utf8");
 
 for (const marker of [
   "difficulty_key",
@@ -49,7 +57,7 @@ for (const marker of [
   "Versionsverlauf",
 ]) {
   assert.ok(
-    trainingBlocksPage.includes(marker) || trainingBlockEditor.includes(marker),
+    trainingBlocksPage.includes(marker) || trainingBlockEditor.includes(marker) || versionHistory.includes(marker),
     `E5-Trainingsblockmarker fehlt: ${marker}`,
   );
 }
@@ -85,4 +93,30 @@ assert.ok(
   "Das Video-Panel muss den bedarfsgesteuerten Ladevorgang absichern.",
 );
 
-console.log("E5a/E5b/P1a-Strukturprüfung erfolgreich: Katalog, Blöcke, Lazy-Video-URLs, Migration und Tests sind vollständig verknüpft.");
+
+for (const marker of [
+  "exercise_catalog_overview_v4",
+  "exercise_usage_overview",
+  "block_usage_count",
+  "plan_usage_count",
+  "training_block_overview_v4",
+  "training_block_versions_overview",
+  "version_count",
+  "latest_version",
+]) {
+  assert.ok(p2aMigration.includes(marker), `P2a-Migrationsmarker fehlt: ${marker}`);
+}
+
+assert.ok(exerciseApi.includes('callJsonRpc("exercise_catalog_overview_v4"'));
+assert.ok(exerciseApi.includes('callJsonRpc("exercise_usage_overview"'));
+assert.doesNotMatch(exerciseApi, /callJsonRpc\("exercise_catalog_overview_v3"/);
+assert.ok(trainingBlockApi.includes('callJsonRpc("training_block_overview_v4"'));
+assert.ok(trainingBlockApi.includes('callJsonRpc("training_block_versions_overview"'));
+assert.doesNotMatch(trainingBlockApi, /callJsonRpc\("training_block_overview_v3"/);
+assert.ok(versionHistory.includes("ensureLoaded"));
+assert.ok(versionHistory.includes("Versionsverlauf"));
+assert.ok(coalescedRefresh.includes("inFlightRef"));
+assert.ok(coalescedRefresh.includes("queuedRef"));
+assert.match(p2aDatabaseTest, /select\s+plan\(15\)/i);
+
+console.log("E5a/E5b/P1a/P2a-Strukturprüfung erfolgreich: schlanke Lesemodelle, bedarfsgesteuerte Details und gebündelte Reloads sind vollständig verknüpft.");

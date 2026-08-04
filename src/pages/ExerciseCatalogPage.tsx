@@ -18,6 +18,7 @@ import {
   collaborationVersionsDiffer,
   isCollaborationConflictError,
 } from "@/features/collaboration/conflicts";
+import { useCoalescedAsyncRefresh } from "@/features/collaboration/useCoalescedAsyncRefresh";
 import { useEditLock } from "@/features/collaboration/useEditLock";
 import { useOrganizationRealtime } from "@/features/collaboration/useOrganizationRealtime";
 import { useAuth } from "@/features/auth/AuthContext";
@@ -123,6 +124,11 @@ export function ExerciseCatalogPage() {
     void loadData();
   }, [loadData]);
 
+  const scheduleRealtimeReload = useCoalescedAsyncRefresh(
+    () => loadData(false),
+    400,
+  );
+
   const handleRealtimeRefresh = useCallback((refresh: {
     reason: "database" | "reconnected";
     changes: Array<{ table: string; recordId: string | null }>;
@@ -138,8 +144,8 @@ export function ExerciseCatalogPage() {
       setRemoteChangePending(true);
       return;
     }
-    void loadData(false);
-  }, [busy, editorExercise?.id, loadData, remoteSyncBusy]);
+    scheduleRealtimeReload();
+  }, [busy, editorExercise?.id, remoteSyncBusy, scheduleRealtimeReload]);
 
   useOrganizationRealtime({
     organizationId,
@@ -498,8 +504,8 @@ export function ExerciseCatalogPage() {
                 {exercise.goal && <p className="exercise-goal">{exercise.goal}</p>}
                 <div className="exercise-card-meta">
                   {exercise.difficultyLabel && <span>Schwierigkeit: {exercise.difficultyLabel}</span>}
-                  <span>{exercise.blockUsages.length} Block{exercise.blockUsages.length === 1 ? "" : "e"}</span>
-                  <span>{exercise.planUsages.length} Plan{exercise.planUsages.length === 1 ? "" : "e"}</span>
+                  <span>{exercise.blockUsageCount} Block{exercise.blockUsageCount === 1 ? "" : "e"}</span>
+                  <span>{exercise.planUsageCount} Plan{exercise.planUsageCount === 1 ? "" : "e"}</span>
                   {exercise.parameters.slice(0, 5).map((parameter) => (
                     <span key={parameter.key}>{parameter.label}{parameter.defaultValue ? `: ${parameter.defaultValue}${parameter.unit ? ` ${parameter.unit}` : ""}` : ""}</span>
                   ))}
@@ -518,7 +524,7 @@ export function ExerciseCatalogPage() {
                   title="Verwendung anzeigen"
                 >
                   <ListTree aria-hidden="true" />
-                  <span className="exercise-video-count">{exercise.blockUsages.length + exercise.planUsages.length}</span>
+                  <span className="exercise-video-count">{exercise.blockUsageCount + exercise.planUsageCount}</span>
                 </button>
                 <button type="button" className={`exercise-favorite-button ${exercise.isFavorite ? "active" : ""}`} onClick={() => void handleFavorite(exercise)} aria-label={exercise.isFavorite ? "Aus Favoriten entfernen" : "Zu Favoriten hinzufügen"} title={exercise.isFavorite ? "Aus Favoriten entfernen" : "Favorit"}>
                   <Star aria-hidden="true" fill={exercise.isFavorite ? "currentColor" : "none"} />
@@ -543,7 +549,7 @@ export function ExerciseCatalogPage() {
       )}
 
       {usageExercise && (
-        <ExerciseUsageDialog exercise={usageExercise} onClose={() => setUsageExercise(null)} />
+        <ExerciseUsageDialog organizationId={organizationId ?? ""} exercise={usageExercise} onClose={() => setUsageExercise(null)} />
       )}
 
       {editorExercise !== undefined && (

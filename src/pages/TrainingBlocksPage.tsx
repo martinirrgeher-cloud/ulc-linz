@@ -25,6 +25,7 @@ import {
   collaborationVersionsDiffer,
   isCollaborationConflictError,
 } from "@/features/collaboration/conflicts";
+import { useCoalescedAsyncRefresh } from "@/features/collaboration/useCoalescedAsyncRefresh";
 import { useEditLock } from "@/features/collaboration/useEditLock";
 import { useOrganizationRealtime } from "@/features/collaboration/useOrganizationRealtime";
 import { useAuth } from "@/features/auth/AuthContext";
@@ -38,6 +39,7 @@ import {
 import { TrainingBlockCompareDialog } from "@/features/training-blocks/TrainingBlockCompareDialog";
 import { TrainingBlockEditor } from "@/features/training-blocks/TrainingBlockEditor";
 import { TrainingBlockExerciseInfoDialog } from "@/features/training-blocks/TrainingBlockExerciseInfoDialog";
+import { TrainingBlockVersionHistory } from "@/features/training-blocks/TrainingBlockVersionHistory";
 import type {
   TrainingBlock,
   TrainingBlockData,
@@ -154,6 +156,11 @@ export function TrainingBlocksPage() {
     void loadData();
   }, [loadData]);
 
+  const scheduleRealtimeReload = useCoalescedAsyncRefresh(
+    () => loadData(false),
+    400,
+  );
+
   const handleRealtimeRefresh = useCallback((refresh: {
     reason: "database" | "reconnected";
     changes: Array<{ table: string; recordId: string | null }>;
@@ -169,8 +176,8 @@ export function TrainingBlocksPage() {
       setRemoteChangePending(true);
       return;
     }
-    void loadData(false);
-  }, [busy, busyBlockId, editorBlock?.id, loadData, remoteSyncBusy]);
+    scheduleRealtimeReload();
+  }, [busy, busyBlockId, editorBlock?.id, remoteSyncBusy, scheduleRealtimeReload]);
 
   useOrganizationRealtime({
     organizationId,
@@ -544,7 +551,7 @@ export function TrainingBlocksPage() {
                       <div className="training-block-card-meta">
                         <span><BarChart3 aria-hidden="true" /> {block.usageCount}-mal verwendet</span>
                         <span><CalendarDays aria-hidden="true" /> Letzte Nutzung: {formatUsageDate(block.lastUsedAt)}</span>
-                        <span><History aria-hidden="true" /> {block.versions.length} Version{block.versions.length === 1 ? "" : "en"}</span>
+                        <span><History aria-hidden="true" /> {block.versionCount} Version{block.versionCount === 1 ? "" : "en"}</span>
                       </div>
                       <div className="training-block-card-actions">
                         <button
@@ -585,25 +592,11 @@ export function TrainingBlocksPage() {
                           return <span key={groupId}>{group?.shortName || group?.name || "Unbekannte Gruppe"}</span>;
                         })}
                     </div>
-                    {block.versions.length > 0 && (
-                      <details>
-                        <summary>Versionsverlauf ({block.versions.length})</summary>
-                        <ol>
-                          {block.versions.map((version) => (
-                            <li key={version.id}>
-                              <strong>Version {version.versionNumber}</strong>
-                              {" · "}{version.reason === "variant_created" ? "Variante angelegt" : version.reason === "created" ? "Angelegt" : "Gespeichert"}
-                              {" · "}{new Intl.DateTimeFormat("de-AT", { dateStyle: "short", timeStyle: "short" }).format(new Date(version.createdAt))}
-                              <small>
-                                {" · "}{version.snapshot.itemCount} Übung{version.snapshot.itemCount === 1 ? "" : "en"}
-                                {version.snapshot.estimatedMinutes ? ` · ${version.snapshot.estimatedMinutes} min` : ""}
-                                {version.snapshot.inactiveExerciseCount > 0 ? ` · ${version.snapshot.inactiveExerciseCount} inaktiv` : ""}
-                              </small>
-                            </li>
-                          ))}
-                        </ol>
-                      </details>
-                    )}
+                    <TrainingBlockVersionHistory
+                      key={`${block.id}:${block.versionCount}:${block.updatedAt}`}
+                      organizationId={organizationId ?? ""}
+                      block={block}
+                    />
                     <ol className="training-block-card-exercises">
                       {block.items.map((item) => {
                         const values = formatItemValues(item);
