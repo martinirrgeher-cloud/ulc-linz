@@ -112,6 +112,18 @@ test.describe("Öffentliche und geschützte Routen", () => {
     await expect(page.getByRole("heading", { name: "Anmelden" })).toBeVisible();
     await expectHealthyPage(page, problems, unhandled);
   });
+
+  test("Anmeldeseite führt zur passenden Hilfe", async ({ page }) => {
+    const problems = monitorBrowserProblems(page);
+    const unhandled = await installSupabaseMock(page);
+
+    await page.goto("/login");
+    await page.getByRole("link", { name: "Hilfe für diese Seite" }).click();
+    await expect(page).toHaveURL(/\/hilfe\/login/);
+    await expect(page.getByRole("heading", { name: "Anmeldung und Passwort", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Anmelden", exact: true })).toBeVisible();
+    await expectHealthyPage(page, problems, unhandled);
+  });
 });
 
 test.describe("Authentifizierte, nicht schreibende Modulprüfungen", () => {
@@ -121,6 +133,7 @@ test.describe("Authentifizierte, nicht schreibende Modulprüfungen", () => {
 
   const routes = [
     ["/", "Willkommen, E2E Administrator"],
+    ["/hilfe", "Handbuch"],
     ["/module/athletes", "Athleten, Trainer & Gruppen"],
     ["/module/exercise_catalog", "Übungskatalog"],
     ["/module/training_blocks", "Trainingsblöcke"],
@@ -230,6 +243,23 @@ test.describe("Authentifizierte, nicht schreibende Modulprüfungen", () => {
     await expect(page.getByText("Letzter Versand", { exact: true })).toBeVisible();
     await expect(page.getByText("Trainerkonto ohne Trainerverknüpfung", { exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Erneut senden", exact: true })).toBeVisible();
+    await expectHealthyPage(page, problems, unhandled);
+  });
+
+  test("Kontextbezogene Hilfe und Handbuchsuche funktionieren", async ({ page }) => {
+    const problems = monitorBrowserProblems(page);
+    const unhandled = await installSupabaseMock(page);
+
+    await page.goto("/module/exercise_catalog");
+    await page.getByRole("button", { name: "Hilfe für diese Seite" }).click();
+    await expect(page).toHaveURL(/\/hilfe\/exercise-catalog/);
+    await expect(page.getByRole("heading", { name: "Übungskatalog", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Videos", exact: true })).toBeVisible();
+
+    await page.getByPlaceholder("Hilfe durchsuchen").fill("Einladung");
+    await expect(page.getByRole("link", { name: /Benutzerverwaltung/ })).toBeVisible();
+    await page.getByRole("link", { name: /Benutzerverwaltung/ }).click();
+    await expect(page.getByRole("heading", { name: "Benutzerverwaltung", exact: true })).toBeVisible();
     await expectHealthyPage(page, problems, unhandled);
   });
 

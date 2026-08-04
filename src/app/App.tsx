@@ -4,6 +4,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { LoadingScreen } from "@/components/layout/LoadingScreen";
 import { AuthProvider } from "@/features/auth/AuthContext";
 import { ProtectedRoute } from "@/features/auth/ProtectedRoute";
+import { PublicHelpButton } from "@/features/help/PublicHelpButton";
 
 const DashboardPage = lazy(async () => ({ default: (await import("@/pages/DashboardPage")).DashboardPage }));
 const AthleteManagementPage = lazy(async () => ({ default: (await import("@/pages/AthleteManagementPage")).AthleteManagementPage }));
@@ -30,17 +31,21 @@ const RegisterPage = lazy(async () => ({ default: (await import("@/pages/Registe
 const ResetPasswordPage = lazy(async () => ({ default: (await import("@/pages/ResetPasswordPage")).ResetPasswordPage }));
 const SetupPage = lazy(async () => ({ default: (await import("@/pages/SetupPage")).SetupPage }));
 const UserManagementPage = lazy(async () => ({ default: (await import("@/pages/UserManagementPage")).UserManagementPage }));
+const HelpPage = lazy(async () => ({ default: (await import("@/pages/HelpPage")).HelpPage }));
 
 export function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <PublicHelpButton />
         <Suspense fallback={<LoadingScreen />}>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/registrieren" element={<RegisterPage />} />
             <Route path="/passwort-vergessen" element={<ForgotPasswordPage />} />
             <Route path="/passwort-neu" element={<ResetPasswordPage />} />
+            <Route path="/hilfe" element={<HelpPage />} />
+            <Route path="/hilfe/:topicId" element={<HelpPage />} />
 
             <Route
               path="/einrichtung"

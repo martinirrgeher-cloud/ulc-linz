@@ -1,0 +1,1102 @@
+{
+  "chapters": [
+    {
+      "id": "start",
+      "title": "Erste Schritte",
+      "description": "Installation, Anmeldung, Navigation und Rechte.",
+      "topicIds": [
+        "first-steps",
+        "installation",
+        "login",
+        "navigation",
+        "roles",
+        "setup"
+      ]
+    },
+    {
+      "id": "attendance",
+      "title": "Anmeldung und Anwesenheit",
+      "description": "Kindertraining, U12/U14, Leistungsgruppen und Statistik.",
+      "topicIds": [
+        "kindertraining",
+        "u12-u14",
+        "performance-registration",
+        "statistics"
+      ]
+    },
+    {
+      "id": "planning",
+      "title": "Trainingsplanung und Dokumentation",
+      "description": "Übungen, Blöcke, Pläne, Wochenübersicht und Rückmeldung.",
+      "topicIds": [
+        "exercise-catalog",
+        "training-blocks",
+        "training-planning",
+        "training-overview",
+        "training-documentation"
+      ]
+    },
+    {
+      "id": "administration",
+      "title": "Stammdaten und Administration",
+      "description": "Athleten, Trainer, Gruppen, Auswahllisten, Importe und Benutzer.",
+      "topicIds": [
+        "athletes",
+        "dropdown-settings",
+        "data-import",
+        "user-management"
+      ]
+    },
+    {
+      "id": "support",
+      "title": "Werkzeuge, Sicherheit und Support",
+      "description": "Intervall-Countdown, Datenschutz und Fehlerbehebung.",
+      "topicIds": [
+        "countdown",
+        "data-security",
+        "troubleshooting"
+      ]
+    }
+  ],
+  "topics": [
+    {
+      "id": "first-steps",
+      "title": "Erste Schritte",
+      "summary": "Die wichtigsten Schritte vom ersten Öffnen bis zur täglichen Nutzung.",
+      "keywords": [
+        "start",
+        "übersicht",
+        "app",
+        "erste schritte"
+      ],
+      "sections": [
+        {
+          "id": "overview",
+          "title": "Die Vereins-App im Überblick",
+          "paragraphs": [
+            "Die App bündelt Anmeldung, Anwesenheit, Trainingsplanung, Trainingsdokumentation, Stammdaten und Benutzerrechte.",
+            "Sichtbare und bearbeitbare Module hängen von Rolle und individuellen Modulrechten ab."
+          ],
+          "bullets": [
+            "Die Modulübersicht zeigt nur freigeschaltete Bereiche.",
+            "Viele Trainingsseiten speichern Änderungen automatisch.",
+            "Sperren und Konflikthinweise schützen gemeinsam bearbeitete Datensätze.",
+            "Die App ist für Smartphones optimiert und kann installiert werden."
+          ]
+        },
+        {
+          "id": "daily-use",
+          "title": "Empfohlener Ablauf",
+          "steps": [
+            "App über das Symbol am Hauptbildschirm öffnen und anmelden.",
+            "Benötigten Bereich in der Modulübersicht öffnen.",
+            "Training, Plan oder Stammdatensatz bearbeiten.",
+            "Auf Speicher-, Sperr- und Konflikthinweise achten.",
+            "Über das Haus-Symbol zur Modulübersicht zurückkehren."
+          ]
+        },
+        {
+          "id": "help",
+          "title": "Hilfe aufrufen",
+          "paragraphs": [
+            "Das Fragezeichen in der Kopfzeile öffnet das Hilfethema der aktuellen Seite. Das vollständige Handbuch ist zusätzlich im Benutzermenü und auf der Modulübersicht erreichbar."
+          ],
+          "tip": "Im Handbuch kann nach Begriffen wie Sondertraining, Einladung, Video oder Import gesucht werden."
+        }
+      ]
+    },
+    {
+      "id": "installation",
+      "title": "App am Hauptbildschirm installieren",
+      "summary": "Vereinslogo, eigenständiger Start und Nutzung ohne normale Browser-Adresszeile.",
+      "keywords": [
+        "installieren",
+        "hauptbildschirm",
+        "pwa",
+        "adresszeile",
+        "android",
+        "iphone",
+        "symbol"
+      ],
+      "sections": [
+        {
+          "id": "android",
+          "title": "Android / Chrome",
+          "paragraphs": [
+            "Eine installierte App startet im eigenständigen App-Fenster ohne normale Browser-Adresszeile."
+          ],
+          "steps": [
+            "Die veröffentlichte App in Chrome öffnen.",
+            "Im Browsermenü „App installieren“ oder „Zum Startbildschirm hinzufügen“ wählen.",
+            "Installation bestätigen.",
+            "Die App künftig über das ULC-Logo öffnen."
+          ]
+        },
+        {
+          "id": "ios",
+          "title": "iPhone / iPad",
+          "steps": [
+            "Die App in Safari öffnen.",
+            "Auf „Teilen“ tippen.",
+            "„Zum Home-Bildschirm“ auswählen.",
+            "Name und Symbol prüfen und hinzufügen."
+          ]
+        },
+        {
+          "id": "replace",
+          "title": "Graues oder altes Symbol ersetzen",
+          "steps": [
+            "Die bisherige Verknüpfung vom Hauptbildschirm entfernen.",
+            "App einmal neu im Browser öffnen.",
+            "App erneut installieren beziehungsweise zum Hauptbildschirm hinzufügen."
+          ],
+          "warning": "Ein vorhandener alter Shortcut übernimmt das neue Vereinslogo häufig nicht automatisch."
+        },
+        {
+          "id": "updates",
+          "title": "Neue App-Versionen",
+          "paragraphs": [
+            "Der Service Worker speichert keine App-, Supabase- oder Benutzerdaten. Beim Online-Start wird die aktuelle bereitgestellte Version geladen.",
+            "Für die Nutzung der Vereinsfunktionen ist weiterhin eine Internetverbindung erforderlich."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "login",
+      "title": "Anmeldung und Passwort",
+      "summary": "Anmelden, Passwort zurücksetzen und Sitzung sicher beenden.",
+      "keywords": [
+        "anmelden",
+        "passwort",
+        "email",
+        "abmelden"
+      ],
+      "sections": [
+        {
+          "id": "sign-in",
+          "title": "Anmelden",
+          "steps": [
+            "E-Mail-Adresse und persönliches Passwort eingeben.",
+            "„Anmelden“ wählen.",
+            "Nach erfolgreicher Anmeldung öffnet sich die Modulübersicht oder die zuvor angeforderte Seite."
+          ],
+          "warning": "Zugangsdaten niemals mit anderen Personen teilen."
+        },
+        {
+          "id": "password-reset",
+          "title": "Passwort zurücksetzen",
+          "steps": [
+            "Auf „Passwort vergessen?“ tippen.",
+            "E-Mail-Adresse eingeben.",
+            "Sicheren Link aus der E-Mail öffnen und neues Passwort vergeben."
+          ]
+        },
+        {
+          "id": "sign-out",
+          "title": "Abmelden",
+          "paragraphs": [
+            "Beim Abmelden werden sensible Sitzungsdaten aus dem Browser entfernt."
+          ],
+          "steps": [
+            "Benutzermenü öffnen.",
+            "„Abmelden“ wählen."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "navigation",
+      "title": "Navigation und Bedienung",
+      "summary": "Modulübersicht, Kopfzeile, mobile Bedienung und Diagnoseinformationen.",
+      "keywords": [
+        "navigation",
+        "haus",
+        "menü",
+        "zurück",
+        "diagnose"
+      ],
+      "sections": [
+        {
+          "id": "header",
+          "title": "Kopfzeile",
+          "bullets": [
+            "Vereinslogo und Haus-Symbol: zurück zur Modulübersicht.",
+            "Fragezeichen: Hilfe für die aktuelle Seite.",
+            "Benutzersymbol: App-Stand, Hilfe, Diagnoseinformationen und Abmelden."
+          ]
+        },
+        {
+          "id": "dashboard",
+          "title": "Modulübersicht",
+          "paragraphs": [
+            "Die Module sind nach Anmeldung, Planung, Dokumentation, Übungen, Statistik, Nützliches und Stammdaten gegliedert. Nur freigeschaltete Module werden angezeigt."
+          ]
+        },
+        {
+          "id": "mobile",
+          "title": "Bedienung am Smartphone",
+          "bullets": [
+            "Gerät bevorzugt im Hochformat verwenden.",
+            "Auf Autosave-Hinweise warten, bevor die Seite verlassen wird.",
+            "Browser-Zurück kann bei ungespeicherten Änderungen durch einen Schutzdialog gestoppt werden."
+          ]
+        },
+        {
+          "id": "diagnostics",
+          "title": "Diagnoseinformationen",
+          "paragraphs": [
+            "Im Benutzermenü können technische Supportinformationen kopiert werden. Sie enthalten App-Version und technische Zustände, aber keine Passwörter oder Tokens."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "roles",
+      "title": "Rollen und Berechtigungen",
+      "summary": "Warum Module fehlen oder nur gelesen werden können.",
+      "keywords": [
+        "rolle",
+        "rechte",
+        "berechtigung",
+        "kein zugriff",
+        "admin",
+        "trainer",
+        "athlet",
+        "elternteil"
+      ],
+      "sections": [
+        {
+          "id": "roles",
+          "title": "Rollen",
+          "bullets": [
+            "Administrator: verwaltet Benutzer, Rechte und freigeschaltete Module.",
+            "Trainer: erhält die für seine Aufgaben benötigten Trainingsrechte.",
+            "Athlet: nutzt die für das eigene Training vorgesehenen Bereiche.",
+            "Elternteil: kann mit einem oder mehreren Athleten verknüpft werden."
+          ]
+        },
+        {
+          "id": "permissions",
+          "title": "Modulrechte",
+          "paragraphs": [
+            "Rechte werden pro Modul als Ansehen und Bearbeiten vergeben. Rechtevorlagen sind nur ein Ausgangspunkt und bleiben individuell anpassbar."
+          ]
+        },
+        {
+          "id": "no-access",
+          "title": "Kein Zugriff",
+          "bullets": [
+            "Aktive Vereinszuordnung prüfen.",
+            "Modulrecht „Ansehen“ prüfen.",
+            "Athleten-, Eltern- oder Trainerverknüpfung prüfen.",
+            "Administrator kontaktieren."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "setup",
+      "title": "Ersteinrichtung",
+      "summary": "Einmalige Anlage des ersten Administrators und der Vereinsumgebung.",
+      "keywords": [
+        "ersteinrichtung",
+        "verein",
+        "administrator",
+        "registrieren"
+      ],
+      "sections": [
+        {
+          "id": "admin-account",
+          "title": "Erstes Administratorkonto",
+          "paragraphs": [
+            "Die Registrierung ist für die einmalige Ersteinrichtung des ersten Administrators gedacht."
+          ],
+          "warning": "Weitere Konten danach ausschließlich über die Benutzerverwaltung einladen."
+        },
+        {
+          "id": "organization",
+          "title": "Vereinsumgebung anlegen",
+          "steps": [
+            "Vereinsnamen eingeben.",
+            "Internen Slug kontrollieren.",
+            "Anzeigenamen festlegen.",
+            "Einrichtung abschließen."
+          ]
+        },
+        {
+          "id": "after",
+          "title": "Danach",
+          "bullets": [
+            "Trainingsgruppen anlegen.",
+            "Athleten und Trainer erfassen oder importieren.",
+            "Auswahllisten vorbereiten.",
+            "Benutzer einladen und Rechte vergeben."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "kindertraining",
+      "title": "Kindertraining",
+      "summary": "Anwesenheit, Trainer, Sondertraining, Absage und automatisches Speichern.",
+      "keywords": [
+        "kindertraining",
+        "anwesenheit",
+        "da",
+        "fehlt",
+        "entschuldigt",
+        "sondertraining"
+      ],
+      "sections": [
+        {
+          "id": "date",
+          "title": "Trainingstag auswählen",
+          "paragraphs": [
+            "Regulären Trainingstag oder einen Sondertermin auswählen und Datum sowie Gruppe kontrollieren."
+          ]
+        },
+        {
+          "id": "attendance",
+          "title": "Anwesenheit erfassen",
+          "steps": [
+            "Athlet suchen.",
+            "Status Da, Fehlt, Entschuldigt oder Offen wählen.",
+            "Bei Bedarf Notiz oder Kontaktdaten öffnen.",
+            "Autosave-Status abwarten."
+          ]
+        },
+        {
+          "id": "trainers",
+          "title": "Trainer, Ort und Absage",
+          "bullets": [
+            "Anwesende Trainer auswählen.",
+            "Indoor/Outdoor beziehungsweise Trainingsort erfassen.",
+            "Bei Absage bleibt der vorhandene Teilnehmerstand erhalten, die Anwesenheitsauswahl wird aber gesperrt."
+          ]
+        },
+        {
+          "id": "athlete",
+          "title": "Athlet verwalten",
+          "paragraphs": [
+            "Athleten können direkt geöffnet oder mit zusätzlicher Bestätigung inaktiv gesetzt werden. Gruppenwechsel und umfassende Stammdatenänderungen gehören in das Stammdatenmodul."
+          ]
+        }
+      ],
+      "availability": "Benötigt das Modulrecht Kindertraining."
+    },
+    {
+      "id": "u12-u14",
+      "title": "U12 und U14",
+      "summary": "Anwesenheitserfassung für die beiden eigenständigen Trainingsmodule.",
+      "keywords": [
+        "u12",
+        "u14",
+        "anwesenheit",
+        "gruppen"
+      ],
+      "sections": [
+        {
+          "id": "principle",
+          "title": "Getrennte Module",
+          "paragraphs": [
+            "U12 und U14 verwenden dieselbe kompakte Anwesenheitslogik wie das Kindertraining, bleiben aber eigenständige fachliche Bereiche."
+          ]
+        },
+        {
+          "id": "attendance",
+          "title": "Anwesenheit und Autosave",
+          "bullets": [
+            "Trainingstag oder Sondertraining wählen.",
+            "Status pro Athlet erfassen.",
+            "Trainer und Trainingsort ergänzen.",
+            "Autosave-Hinweis abwarten."
+          ]
+        },
+        {
+          "id": "requirements",
+          "title": "Voraussetzungen",
+          "bullets": [
+            "Aktive Trainingsgruppe.",
+            "Reguläre Trainingstage oder Sondertermine.",
+            "Aktive Athleten und optional Gruppentrainer."
+          ]
+        }
+      ],
+      "availability": "Benötigt das jeweilige Modulrecht U12 oder U14."
+    },
+    {
+      "id": "performance-registration",
+      "title": "Leistungsgruppen – Trainingsanmeldung",
+      "summary": "Wochenweise Zu- und Absagen für Athleten in Leistungsgruppen.",
+      "keywords": [
+        "leistungsgruppen",
+        "anmeldung",
+        "kommt",
+        "unsicher",
+        "spät"
+      ],
+      "sections": [
+        {
+          "id": "requirements",
+          "title": "Voraussetzungen",
+          "bullets": [
+            "Aktive Leistungsgruppe mit aktivierter Trainingsanmeldung.",
+            "Reguläre Trainingstage.",
+            "Aktive Athleten in der Gruppe."
+          ]
+        },
+        {
+          "id": "status",
+          "title": "Anmeldung erfassen",
+          "paragraphs": [
+            "Für jeden Trainingstag kann kommt, kommt nicht oder unsicher gewählt und ein Hinweis ergänzt werden."
+          ]
+        },
+        {
+          "id": "others",
+          "title": "Für andere Athleten",
+          "paragraphs": [
+            "Berechtigte Benutzer können die Anmeldung einer anderen Person derselben Gruppe bearbeiten. Vor dem Speichern den ausgewählten Athleten kontrollieren."
+          ]
+        }
+      ],
+      "availability": "Benötigt das Modulrecht Leistungsgruppen."
+    },
+    {
+      "id": "statistics",
+      "title": "Statistik",
+      "summary": "Trainingstermine, Anwesenheit, Entwicklung und Trainereinsätze auswerten.",
+      "keywords": [
+        "statistik",
+        "anwesenheit",
+        "entwicklung",
+        "trainer",
+        "zeitraum"
+      ],
+      "sections": [
+        {
+          "id": "period",
+          "title": "Zeitraum",
+          "paragraphs": [
+            "Von- und Bis-Datum begrenzen die Auswertung. Zusätzlich können die letzten 10, 25 oder alle Trainings im Zeitraum angezeigt werden."
+          ]
+        },
+        {
+          "id": "sessions",
+          "title": "Trainings und Athleten",
+          "bullets": [
+            "Anwesende Athleten und Trainer je Termin.",
+            "Notizen, Durchschnitt und Maximum.",
+            "Athletenstatistik nach Häufigkeit des Status Da."
+          ]
+        },
+        {
+          "id": "development",
+          "title": "Entwicklung und Trainereinsätze",
+          "paragraphs": [
+            "Die Teilnehmerentwicklung fasst monatliche Durchschnittswerte zusammen. Die Trainerstatistik zählt betreute Trainings."
+          ]
+        },
+        {
+          "id": "modules",
+          "title": "Getrennte Statistikseiten",
+          "paragraphs": [
+            "Kindertraining, U12 und U14 haben jeweils eine eigene Statistikseite."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "exercise-catalog",
+      "title": "Übungskatalog",
+      "summary": "Übungen anlegen, filtern, mit Parametern und Videos versehen und ihre Verwendung prüfen.",
+      "keywords": [
+        "übung",
+        "katalog",
+        "video",
+        "parameter",
+        "material",
+        "dubletten",
+        "schwierigkeit"
+      ],
+      "sections": [
+        {
+          "id": "find",
+          "title": "Suchen und filtern",
+          "bullets": [
+            "Name, Kategorie, Unterkategorie und Material.",
+            "Schwierigkeitsgrad und Trainingsgruppe.",
+            "Video vorhanden und Aktivstatus.",
+            "Archiv für inaktive Übungen."
+          ]
+        },
+        {
+          "id": "edit",
+          "title": "Übung bearbeiten",
+          "bullets": [
+            "Name, Ziel, Beschreibung und Trainerhinweise.",
+            "Kategorien, Material, Gruppen und Schwierigkeit.",
+            "Planungsparameter mit Standard-, Mindest-, Höchst- und Schrittwerten.",
+            "Ähnliche Übungen und Dublettenhinweis."
+          ]
+        },
+        {
+          "id": "videos",
+          "title": "Videos",
+          "steps": [
+            "Übung öffnen.",
+            "Reiter Videos wählen.",
+            "Video aus der Galerie hochladen.",
+            "Optional als Hauptvideo setzen oder löschen."
+          ]
+        },
+        {
+          "id": "usage",
+          "title": "Verwendung",
+          "paragraphs": [
+            "Zähler für Blöcke und Pläne sind sofort sichtbar. Konkrete Verwendungen werden erst beim Öffnen des Dialogs geladen."
+          ],
+          "tip": "Vor dem Inaktivsetzen immer die Verwendung prüfen."
+        }
+      ],
+      "availability": "Benötigt das Modulrecht Übungskatalog."
+    },
+    {
+      "id": "training-blocks",
+      "title": "Trainingsblöcke",
+      "summary": "Wiederverwendbare Übungsfolgen, Varianten, Favoriten, Versionen und Vergleiche.",
+      "keywords": [
+        "trainingsblock",
+        "block",
+        "variante",
+        "version",
+        "favorit",
+        "vergleich"
+      ],
+      "sections": [
+        {
+          "id": "find",
+          "title": "Blöcke finden",
+          "bullets": [
+            "Name, Gruppe, Kategorie, Material oder Übung filtern.",
+            "Verwendung, Dauer, Favorit und Aktivstatus beachten."
+          ]
+        },
+        {
+          "id": "build",
+          "title": "Block erstellen",
+          "steps": [
+            "Name, Ziel, Beschreibung und Dauer erfassen.",
+            "Gruppen zuordnen.",
+            "Übungen hinzufügen und sortieren.",
+            "Parameterwerte und Notizen festlegen.",
+            "Speichern."
+          ]
+        },
+        {
+          "id": "versions",
+          "title": "Versionen und Varianten",
+          "paragraphs": [
+            "Die Übersicht lädt zunächst nur Versionsanzahl und letzte Version. Historische Snapshots werden erst beim Öffnen geladen.",
+            "Varianten bleiben eigenständige Blöcke mit Bezug zum Ausgangsblock."
+          ]
+        },
+        {
+          "id": "archive",
+          "title": "Löschen oder inaktiv setzen",
+          "paragraphs": [
+            "Nicht verwendete Blöcke können gelöscht werden. Historisch verwendete Blöcke besser inaktiv setzen, damit bestehende Pläne unverändert bleiben."
+          ]
+        }
+      ],
+      "availability": "Benötigt das Modulrecht Trainingsblöcke."
+    },
+    {
+      "id": "training-planning",
+      "title": "Trainingsplanung – Athletenpläne",
+      "summary": "Individuelle Pläne pro Athlet und Trainingstag erstellen oder importieren.",
+      "keywords": [
+        "trainingsplanung",
+        "athletenplan",
+        "plan",
+        "import",
+        "referenzathlet"
+      ],
+      "sections": [
+        {
+          "id": "selection",
+          "title": "Datum, Gruppe und Athlet",
+          "steps": [
+            "Trainingstag auswählen.",
+            "Trainingsgruppe wählen.",
+            "Zielathleten auswählen.",
+            "Vorhandenen oder neuen Plan öffnen."
+          ]
+        },
+        {
+          "id": "create",
+          "title": "Plan erstellen",
+          "bullets": [
+            "Blöcke oder einzelne Übungen hinzufügen.",
+            "Reihenfolge und Parameter anpassen.",
+            "Notizen ergänzen und speichern."
+          ]
+        },
+        {
+          "id": "import",
+          "title": "Plan importieren",
+          "steps": [
+            "Beim Zielathleten Import öffnen.",
+            "Quelltag und Quellathleten wählen.",
+            "Plan übernehmen und individuell anpassen.",
+            "Erst danach speichern."
+          ]
+        },
+        {
+          "id": "collaboration",
+          "title": "Gemeinsame Bearbeitung",
+          "paragraphs": [
+            "Bearbeitungssperren und Versionskonflikte verhindern, dass lokale Änderungen unbemerkt überschrieben werden."
+          ]
+        }
+      ],
+      "availability": "Benötigt das Modulrecht Trainingsplanung."
+    },
+    {
+      "id": "training-overview",
+      "title": "Trainingsplan-Übersicht",
+      "summary": "Wochenansicht mit Anmeldung, Plänen, Dauer und Dokumentationsstatus.",
+      "keywords": [
+        "trainingsübersicht",
+        "wochenübersicht",
+        "plan vorhanden",
+        "dauer"
+      ],
+      "sections": [
+        {
+          "id": "selection",
+          "title": "Gruppe und Woche",
+          "paragraphs": [
+            "Leistungsgruppe wählen und zur gewünschten Woche wechseln. Die regulären Trainingstage der Gruppe bestimmen die Spalten."
+          ]
+        },
+        {
+          "id": "grid",
+          "title": "Übersicht lesen",
+          "bullets": [
+            "Anmeldestatus je Athlet und Tag.",
+            "Vorhandener Plan und geplante Dauer.",
+            "Hinweise wie spät, unsicher oder kein Plan.",
+            "Dokumentationsstatus."
+          ]
+        },
+        {
+          "id": "missing",
+          "title": "Fehlende Inhalte",
+          "bullets": [
+            "Leistungsgruppe aktivieren.",
+            "Trainingstage hinterlegen.",
+            "Aktive Athleten zuordnen."
+          ]
+        }
+      ],
+      "availability": "Benötigt das Modulrecht Trainingsplan-Übersicht."
+    },
+    {
+      "id": "training-documentation",
+      "title": "Trainingsdokumentation",
+      "summary": "Soll-Ist-Rückmeldung, Bewertung, Kommentare, Medien und Auswertung.",
+      "keywords": [
+        "dokumentation",
+        "soll ist",
+        "bewertung",
+        "kommentar",
+        "video",
+        "bild"
+      ],
+      "sections": [
+        {
+          "id": "open",
+          "title": "Plan öffnen",
+          "steps": [
+            "Gruppe und Athlet wählen.",
+            "Woche beziehungsweise Trainingstag wählen.",
+            "Plan öffnen."
+          ]
+        },
+        {
+          "id": "feedback",
+          "title": "Durchführung dokumentieren",
+          "bullets": [
+            "Gemacht, teilweise oder nicht gemacht.",
+            "Tatsächliche Werte, Bewertung und Kommentar.",
+            "Übungsinfo und Video über das Info-Symbol."
+          ]
+        },
+        {
+          "id": "media",
+          "title": "Bilder und Videos",
+          "paragraphs": [
+            "Medien direkt beim betreffenden Training hochladen und Persönlichkeitsrechte beachten."
+          ]
+        },
+        {
+          "id": "completion",
+          "title": "Abschluss und Auswertung",
+          "paragraphs": [
+            "Bei Lücken bewusst teilweise statt vollständig wählen. Auswertungen werden für Athlet und Zeitraum geladen."
+          ]
+        }
+      ],
+      "availability": "Benötigt das Modulrecht Trainingsdokumentation."
+    },
+    {
+      "id": "athletes",
+      "title": "Athleten, Trainer und Gruppen",
+      "summary": "Gemeinsame Stammdaten anlegen, filtern, verknüpfen und inaktiv setzen.",
+      "keywords": [
+        "athlet",
+        "trainer",
+        "gruppe",
+        "stammdaten",
+        "kontakt",
+        "trainingstage"
+      ],
+      "sections": [
+        {
+          "id": "athletes",
+          "title": "Athleten",
+          "bullets": [
+            "Name, Jahrgang, Gruppen und Aktivstatus.",
+            "Kontakt- und Notfallinformationen.",
+            "Benutzerverknüpfung bei Bedarf."
+          ]
+        },
+        {
+          "id": "groups",
+          "title": "Trainingsgruppen",
+          "bullets": [
+            "Kurz- und Langname.",
+            "Reguläre Trainingstage und Sondertraining.",
+            "Leistungsgruppe, Anmeldung und Anmeldeschluss.",
+            "Athleten- und Trainerzuordnung."
+          ]
+        },
+        {
+          "id": "trainers",
+          "title": "Trainer",
+          "bullets": [
+            "Name und Kontaktdaten.",
+            "Gruppenzuordnung.",
+            "Aktivstatus und Benutzerverknüpfung."
+          ]
+        },
+        {
+          "id": "collaboration",
+          "title": "Mehrbenutzerbetrieb",
+          "paragraphs": [
+            "Sperren schützen die Bearbeitung. Realtime aktualisiert Listen; lokale Entwürfe werden bei neueren Serverständen nicht still verworfen."
+          ]
+        }
+      ],
+      "availability": "Benötigt das Modulrecht Athleten, Trainer & Gruppen."
+    },
+    {
+      "id": "dropdown-settings",
+      "title": "Auswahllisten",
+      "summary": "Zentrale Werte für Kategorien, Materialien, Schwierigkeitsgrade und Planungsparameter.",
+      "keywords": [
+        "auswahllisten",
+        "dropdown",
+        "kategorie",
+        "material",
+        "parameter"
+      ],
+      "sections": [
+        {
+          "id": "purpose",
+          "title": "Zweck",
+          "paragraphs": [
+            "Auswahllisten vereinheitlichen Eingaben und vermeiden unterschiedliche Schreibweisen."
+          ]
+        },
+        {
+          "id": "manage",
+          "title": "Einträge verwalten",
+          "steps": [
+            "Auswahlliste wählen.",
+            "Bezeichnung, Sortierung und gegebenenfalls Einheit oder Eingabetyp erfassen.",
+            "Speichern oder nicht mehr benötigte Werte inaktiv setzen."
+          ],
+          "warning": "Bereits verwendete Werte nicht unüberlegt löschen oder umdeuten."
+        },
+        {
+          "id": "parameters",
+          "title": "Planungsparameter",
+          "paragraphs": [
+            "Parameter können Zahl oder Text sein und eine Einheit sowie Standard-Schrittweite besitzen. Der Eingabetyp bleibt bei bereits verwendeten Parametern unverändert."
+          ]
+        }
+      ],
+      "availability": "Benötigt das Modulrecht Auswahllisten."
+    },
+    {
+      "id": "data-import",
+      "title": "Datenimport und -export",
+      "summary": "Athleten und Übungen per Excel exportieren, bearbeiten und kontrolliert importieren.",
+      "keywords": [
+        "import",
+        "export",
+        "excel",
+        "xlsx",
+        "aktualisieren",
+        "überspringen"
+      ],
+      "sections": [
+        {
+          "id": "export",
+          "title": "Export",
+          "paragraphs": [
+            "Der Export entspricht der Importstruktur und kann wieder eingelesen werden."
+          ],
+          "steps": [
+            "Datentyp wählen.",
+            "Filter setzen.",
+            "Exportdatei erzeugen und herunterladen."
+          ]
+        },
+        {
+          "id": "prepare",
+          "title": "Datei vorbereiten",
+          "bullets": [
+            "Vorgesehene Spalten und Auswahlwerte verwenden.",
+            "Maximal 5 MB und 1.000 Datenzeilen.",
+            "Keine zusätzlichen Tabellenblätter für Ergänzungen."
+          ]
+        },
+        {
+          "id": "preview",
+          "title": "Importvorschau",
+          "paragraphs": [
+            "Pro Zeile wird Neu anlegen, Aktualisieren oder Überspringen angezeigt. Die Vorschau vor dem Import vollständig kontrollieren."
+          ]
+        },
+        {
+          "id": "unknown",
+          "title": "Unbekannte Auswahllistenwerte",
+          "paragraphs": [
+            "Die Option zum automatischen Anlegen fehlender Werte nur bei sauber gepflegten Importdateien verwenden."
+          ]
+        }
+      ],
+      "availability": "Benötigt das Modulrecht Datenimport/-export."
+    },
+    {
+      "id": "user-management",
+      "title": "Benutzerverwaltung",
+      "summary": "Einladungen, Rollen, Rechtevorlagen, Verknüpfungen und Änderungsprotokoll.",
+      "keywords": [
+        "benutzer",
+        "einladung",
+        "rechte",
+        "rolle",
+        "eltern",
+        "verknüpfung",
+        "audit"
+      ],
+      "sections": [
+        {
+          "id": "find",
+          "title": "Benutzer finden",
+          "bullets": [
+            "Nach Name oder E-Mail suchen.",
+            "Nach Rolle, offener Einladung, fehlender Verknüpfung oder Warnung filtern."
+          ]
+        },
+        {
+          "id": "invite",
+          "title": "Einladen und erneut senden",
+          "paragraphs": [
+            "Status, letzter Versand und Versandanzahl bleiben sichtbar."
+          ],
+          "steps": [
+            "E-Mail, Anzeigename und Rolle erfassen.",
+            "Rechtevorlage anwenden und Einzelrechte prüfen.",
+            "Fachliche Verknüpfung setzen.",
+            "Einladung senden."
+          ]
+        },
+        {
+          "id": "links",
+          "title": "Verknüpfungen",
+          "bullets": [
+            "Athletenkonto: genau ein eigenes Athletenprofil.",
+            "Elternkonto: mehrere Athleten möglich.",
+            "Trainerkonto: Trainerprofil; Athletenbezug über Trainingsgruppen."
+          ]
+        },
+        {
+          "id": "audit",
+          "title": "Änderungsprotokoll",
+          "paragraphs": [
+            "Das Protokoll zeigt Akteur, Zeitpunkt, Rollen-, Rechte-, Verknüpfungs- und Einladungsänderungen, aber keine Passwörter oder Tokens."
+          ]
+        }
+      ],
+      "availability": "Benötigt Administratorrechte und das Modulrecht Benutzerverwaltung."
+    },
+    {
+      "id": "countdown",
+      "title": "Intervall-Countdown",
+      "summary": "Belastung, Pause, Durchgänge und Sprachansagen steuern.",
+      "keywords": [
+        "countdown",
+        "intervall",
+        "belastung",
+        "pause",
+        "ansage"
+      ],
+      "sections": [
+        {
+          "id": "settings",
+          "title": "Einstellungen",
+          "bullets": [
+            "Belastung und Pause in Sekunden.",
+            "Anzahl der Übungen beziehungsweise Durchgänge.",
+            "Zwischenansagen und verbleibende Übungen.",
+            "Sprachausgabe."
+          ]
+        },
+        {
+          "id": "run",
+          "title": "Countdown verwenden",
+          "paragraphs": [
+            "Die letzten fünf Sekunden jeder Phase werden immer eingezählt."
+          ],
+          "steps": [
+            "Werte eingeben.",
+            "Starten.",
+            "Bei Bedarf pausieren und fortsetzen.",
+            "Beenden oder zurücksetzen."
+          ]
+        },
+        {
+          "id": "screen",
+          "title": "Bildschirm und Ton",
+          "bullets": [
+            "Wake Lock hält den Bildschirm auf unterstützten Geräten aktiv.",
+            "Bei fehlender Ansage Medienlautstärke, Stummmodus und Bluetooth-Ausgabe prüfen."
+          ]
+        }
+      ],
+      "availability": "Benötigt das Modulrecht Intervall-Countdown."
+    },
+    {
+      "id": "data-security",
+      "title": "Datenschutz und sichere Nutzung",
+      "summary": "Sensible Daten, Medien, Sitzungen, Offline-Verhalten und Protokolle.",
+      "keywords": [
+        "sicherheit",
+        "datenschutz",
+        "personenbezogen",
+        "token",
+        "backup",
+        "offline"
+      ],
+      "sections": [
+        {
+          "id": "accounts",
+          "title": "Konten",
+          "bullets": [
+            "Nur persönliche Konten verwenden.",
+            "Passwörter nicht weitergeben.",
+            "Auf gemeinsam genutzten Geräten abmelden."
+          ]
+        },
+        {
+          "id": "data",
+          "title": "Personenbezogene Daten und Medien",
+          "paragraphs": [
+            "Nur für den Vereinsbetrieb erforderliche Daten erfassen. Für Bilder und Videos gelten die vereinsinternen Datenschutz- und Einwilligungsregeln."
+          ]
+        },
+        {
+          "id": "cache",
+          "title": "PWA-Cache",
+          "paragraphs": [
+            "Der Service Worker fängt keine App- oder Datenanfragen ab und legt keine eigenen Offline-Caches an.",
+            "Supabase-Anfragen, Authentifizierungsdaten und personenbezogene Antworten werden nicht durch die PWA gespeichert."
+          ]
+        },
+        {
+          "id": "audit",
+          "title": "Protokolle und Backups",
+          "paragraphs": [
+            "Änderungsprotokolle enthalten fachliche Änderungen, aber keine Passwörter oder Tokens. Backups werden verschlüsselt und regelmäßig wiederhergestellt getestet."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "troubleshooting",
+      "title": "Fehlerbehebung und Support",
+      "summary": "Verbindungsprobleme, veraltete Ansichten, Uploads, Darstellungsfehler und Diagnose.",
+      "keywords": [
+        "fehler",
+        "support",
+        "verbindung",
+        "upload",
+        "cache",
+        "veraltet"
+      ],
+      "sections": [
+        {
+          "id": "connection",
+          "title": "Verbindungsfehler",
+          "steps": [
+            "Internetverbindung prüfen.",
+            "App vollständig schließen und neu öffnen.",
+            "Erreichbarkeit anderer Websites prüfen.",
+            "Bei anhaltendem Fehler Diagnoseinformationen weitergeben."
+          ]
+        },
+        {
+          "id": "stale",
+          "title": "Veralteter App-Stand",
+          "bullets": [
+            "App schließen und neu öffnen.",
+            "App-Stand im Benutzermenü prüfen.",
+            "Alte Hauptbildschirm-Verknüpfung entfernen und neu installieren."
+          ]
+        },
+        {
+          "id": "upload",
+          "title": "Upload-Probleme",
+          "bullets": [
+            "Dateityp und Dateigröße prüfen.",
+            "Stabile Verbindung verwenden.",
+            "Nach Rückkehr aus der Galerie Fortschritt oder Fehlerhinweis abwarten."
+          ]
+        },
+        {
+          "id": "conflict",
+          "title": "Sperre oder Konflikt",
+          "paragraphs": [
+            "Bei aktiver Sperre warten oder die bearbeitende Person kontaktieren. Bei einem neueren Serverstand lokalen Entwurf und Serverstand bewusst vergleichen."
+          ]
+        },
+        {
+          "id": "support",
+          "title": "Supportinformationen",
+          "steps": [
+            "Benutzermenü öffnen.",
+            "Diagnoseinformationen kopieren.",
+            "Fehlerzeitpunkt, Arbeitsschritte, Gerät und Screenshot ergänzen."
+          ],
+          "warning": "Keine Passwörter, Einladungslinks oder Tokens versenden."
+        }
+      ]
+    }
+  ]
+}
