@@ -15,9 +15,6 @@ const moduleKeys = [
   "kindertraining",
   "u12",
   "u14",
-  "kindertraining_statistics",
-  "u12_statistics",
-  "u14_statistics",
   "athletes",
   "performance_registration",
   "exercise_catalog",
@@ -84,8 +81,62 @@ const group = {
   id: E2E_IDS.group,
   name: "Leistungsgruppe Sprint und Mehrkampf",
   short_name: "LG Sprint",
+  description: "Leistungsorientierte Sprintgruppe",
+  is_active: true,
+  sort_order: 10,
+  athlete_count: 1,
+  module_key: "u14",
   regular_weekdays: [1, 3, 5],
+  allow_special_training: true,
   is_performance_group: true,
+  registration_deadline_weekday: 7,
+  registration_deadline_time: "18:00:00",
+  performance_weeks_ahead: 4,
+  allow_late_registration: true,
+  created_at: "2026-08-01T08:00:00.000Z",
+  updated_at: "2026-08-02T08:00:00.000Z",
+};
+
+
+const managementAthlete = {
+  id: E2E_IDS.athlete,
+  first_name: "Anna",
+  last_name: "Testathletin",
+  birth_year: 2012,
+  notes: "Sprintgruppe",
+  is_active: true,
+  linked_user_id: null,
+  created_at: "2026-08-01T08:00:00.000Z",
+  updated_at: "2026-08-02T08:00:00.000Z",
+  groups: [{
+    id: E2E_IDS.group,
+    name: group.name,
+    short_name: group.short_name,
+    is_active: true,
+  }],
+  contacts: [{
+    id: "13000000-0000-0000-0000-00000000c001",
+    contact_name: "Maria Test",
+    relationship: "Mutter",
+    phone: "+43 660 1234567",
+    is_emergency: true,
+    priority: 1,
+    notes: "",
+  }],
+};
+
+const managementTrainer = {
+  id: "13000000-0000-0000-0000-00000000e2f1",
+  first_name: "Thomas",
+  last_name: "Testtrainer",
+  phone: "+43 660 7654321",
+  email: "trainer@example.test",
+  notes: "Sprint und Mehrkampf",
+  is_active: true,
+  linked_user_id: null,
+  group_ids: [E2E_IDS.group],
+  created_at: "2026-08-01T08:00:00.000Z",
+  updated_at: "2026-08-02T08:00:00.000Z",
 };
 
 const athlete = {
@@ -186,12 +237,46 @@ const block = {
   updated_at: "2026-08-02T08:00:00.000Z",
 };
 
+
+const statisticsOverview = {
+  default_from_date: "2026-01-01",
+  from_date: "2026-01-01",
+  to_date: "2026-08-04",
+  summary: {
+    session_count: 0,
+    cancelled_count: 0,
+    average_present: 0,
+    max_present: 0,
+    unique_present: 0,
+  },
+  sessions: [],
+  athletes: [],
+  trainers: [],
+  monthly: [],
+};
+
 const rpcPayloads = new Map([
   ["activate_current_memberships", null],
+  ["acquire_edit_lock", {
+    acquired: true,
+    lock_token: "00000000-0000-4000-8000-00000000e2e1",
+    locked_by_user_id: E2E_IDS.user,
+    locked_by_name: "E2E Administrator",
+    acquired_at: "2026-08-05T06:00:00.000Z",
+    expires_at: "2026-08-05T06:02:00.000Z",
+    is_own_other_session: false,
+    record_version: "2026-08-02T08:00:00.000Z",
+    can_force: true,
+  }],
+  ["renew_edit_lock", { renewed: true }],
+  ["release_edit_lock", null],
+  ["assert_edit_lock", null],
+  ["kindertraining_statistics_overview", statisticsOverview],
+  ["training_module_statistics_overview", statisticsOverview],
   ["is_app_initialized", true],
-  ["athlete_overview", []],
+  ["athlete_overview", [managementAthlete]],
   ["training_group_overview_v3", [group]],
-  ["trainer_overview_v2", []],
+  ["trainer_overview_v2", [managementTrainer]],
   ["organization_linkable_users", []],
   ["exercise_video_overview", [{
     id: "10000000-0000-4000-8000-000000000098",
