@@ -4,15 +4,13 @@ import {
   Mail,
   Pencil,
   Phone,
-  Plus,
-  RefreshCw,
-  Search,
   UserRound,
   UserRoundCog,
   UsersRound,
 } from "lucide-react";
 import { Navigate, useSearchParams } from "react-router-dom";
 import { EditLockNotice } from "@/components/collaboration/EditLockNotice";
+import { useNavigationGuard } from "@/components/layout/NavigationGuardContext";
 import { RemoteChangeNotice } from "@/components/collaboration/RemoteChangeNotice";
 import {
   collaborationVersionsDiffer,
@@ -42,6 +40,10 @@ import {
   TrainingGroupEditor,
   type TrainingGroupEditorMode,
 } from "@/features/athletes/TrainingGroupEditor";
+import { ManagementCreateMenu } from "@/features/athletes/ManagementCreateMenu";
+import { ManagementFilterPanel } from "@/features/athletes/ManagementFilterPanel";
+import { useMobileFieldReveal } from "@/features/athletes/useMobileFieldReveal";
+import { useSwipeTabs } from "@/features/athletes/useSwipeTabs";
 import type {
   Athlete,
   AthleteInput,
@@ -56,7 +58,13 @@ import { diagnosticErrorMessage } from "@/lib/diagnostics";
 import "@/styles/management.css";
 type ActiveFilter = "active" | "inactive" | "all";
 type AthleteSort = "lastName" | "firstName" | "birthYearAsc" | "birthYearDesc";
+type TrainerSort = "lastName" | "firstName";
+type GroupSort = "name" | "shortName";
+type GroupModuleFilter = "all" | "none" | "kindertraining" | "u12" | "u14";
+type GroupTypeFilter = "all" | "standard" | "performance";
 type ViewTab = "athletes" | "groups" | "trainers";
+
+const VIEW_TABS = ["athletes", "groups", "trainers"] as const;
 
 const ATHLETE_REALTIME_TABLES = ["athletes", "training_groups", "trainers"] as const;
 
@@ -131,9 +139,14 @@ export function AthleteManagementPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [tab, setTab] = useState<ViewTab>(() => parseInitialTab(searchParams.get("tab")));
   const [searchTerm, setSearchTerm] = useState("");
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState<ActiveFilter>("active");
   const [groupFilter, setGroupFilter] = useState<string>("all");
   const [sortMode, setSortMode] = useState<AthleteSort>("lastName");
+  const [trainerSortMode, setTrainerSortMode] = useState<TrainerSort>("lastName");
+  const [groupSortMode, setGroupSortMode] = useState<GroupSort>("name");
+  const [groupModuleFilter, setGroupModuleFilter] = useState<GroupModuleFilter>("all");
+  const [groupTypeFilter, setGroupTypeFilter] = useState<GroupTypeFilter>("all");
   const [athleteEditor, setAthleteEditor] = useState<AthleteEditorMode | null>(null);
   const [groupEditor, setGroupEditor] = useState<TrainingGroupEditorMode | null>(null);
   const [trainerEditor, setTrainerEditor] = useState<TrainerEditorMode | null>(null);
@@ -141,6 +154,7 @@ export function AthleteManagementPage() {
   const [remoteChangePending, setRemoteChangePending] = useState(false);
   const [remoteSyncBusy, setRemoteSyncBusy] = useState(false);
   const editorOpen = Boolean(athleteEditor || groupEditor || trainerEditor);
+  const revealFocusedField = useMobileFieldReveal();
 
   const editedAthlete = athleteEditor?.type === "edit" ? athleteEditor.athlete : null;
   const editedGroup = groupEditor?.type === "edit" ? groupEditor.group : null;
@@ -167,6 +181,25 @@ export function AthleteManagementPage() {
     expectedUpdatedAt: editedTrainer?.updatedAt ?? null,
     enabled: canEdit && Boolean(editedTrainer?.id),
   });
+
+  useNavigationGuard(editorOpen && editorDirty
+    ? () => window.confirm("Ungespeicherte Änderungen verwerfen?")
+    : null);
+
+  useEffect(() => {
+    document.body.classList.toggle("management-editor-active", editorOpen);
+    return () => document.body.classList.remove("management-editor-active");
+  }, [editorOpen]);
+
+  useEffect(() => {
+    if (!editorOpen || !editorDirty) return undefined;
+    const warnBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warnBeforeUnload);
+    return () => window.removeEventListener("beforeunload", warnBeforeUnload);
+  }, [editorDirty, editorOpen]);
 
   useEffect(() => {
     const versionMismatch =
@@ -266,35 +299,65 @@ export function AthleteManagementPage() {
     return sortAthletes(filtered, sortMode);
   }, [activeFilter, athletes, groupFilter, searchTerm, sortMode]);
 
-  const filteredGroups = useMemo(() => (
-    groups
+  const filteredGroups = useMemo(() => {
+    const search = searchTerm.trim().toLocaleLowerCase("de-AT");
+    return groups
       .filter((group) => {
         if (activeFilter === "active" && !group.isActive) return false;
         if (activeFilter === "inactive" && group.isActive) return false;
-        return true;
+        if (groupModuleFilter === "none" && group.moduleKey !== null) return false;
+        if (
+          groupModuleFilter !== "all"
+          && groupModuleFilter !== "none"
+          && group.moduleKey !== groupModuleFilter
+        ) return false;
+        if (groupTypeFilter === "performance" && !group.isPerformanceGroup) return false;
+        if (groupTypeFilter === "standard" && group.isPerformanceGroup) return false;
+        if (!search) return true;
+        return [
+          group.name,
+          group.shortName ?? "",
+          group.description ?? "",
+          group.moduleKey ?? "",
+          formatWeekdays(group.regularWeekdays),
+        ]
+          .join(" ")
+          .toLocaleLowerCase("de-AT")
+          .includes(search);
       })
-      .sort((left, right) => compareText(left.name, right.name))
-  ), [activeFilter, groups]);
+      .sort((left, right) => (
+        groupSortMode === "shortName"
+          ? compareText(left.shortName ?? left.name, right.shortName ?? right.name)
+          : compareText(left.name, right.name)
+      ));
+  }, [activeFilter, groupModuleFilter, groupSortMode, groupTypeFilter, groups, searchTerm]);
 
   const filteredTrainers = useMemo(() => {
     const search = searchTerm.trim().toLocaleLowerCase("de-AT");
-    return trainers.filter((trainer) => {
-      if (activeFilter === "active" && !trainer.isActive) return false;
-      if (activeFilter === "inactive" && trainer.isActive) return false;
-      if (!search) return true;
-      return [
-        trainer.firstName,
-        trainer.lastName,
-        trainer.phone ?? "",
-        trainer.email ?? "",
-        trainer.notes ?? "",
-        ...trainer.groupIds.map((groupId) => groups.find((group) => group.id === groupId)?.name ?? ""),
-      ]
-        .join(" ")
-        .toLocaleLowerCase("de-AT")
-        .includes(search);
-    });
-  }, [activeFilter, groups, searchTerm, trainers]);
+    return trainers
+      .filter((trainer) => {
+        if (activeFilter === "active" && !trainer.isActive) return false;
+        if (activeFilter === "inactive" && trainer.isActive) return false;
+        if (groupFilter !== "all" && !trainer.groupIds.includes(groupFilter)) return false;
+        if (!search) return true;
+        return [
+          trainer.firstName,
+          trainer.lastName,
+          trainer.phone ?? "",
+          trainer.email ?? "",
+          trainer.notes ?? "",
+          ...trainer.groupIds.map((groupId) => groups.find((group) => group.id === groupId)?.name ?? ""),
+        ]
+          .join(" ")
+          .toLocaleLowerCase("de-AT")
+          .includes(search);
+      })
+      .sort((left, right) => (
+        trainerSortMode === "firstName"
+          ? compareText(left.firstName, right.firstName) || compareText(left.lastName, right.lastName)
+          : compareText(left.lastName, right.lastName) || compareText(left.firstName, right.firstName)
+      ));
+  }, [activeFilter, groupFilter, groups, searchTerm, trainerSortMode, trainers]);
 
 
 
@@ -307,6 +370,11 @@ export function AthleteManagementPage() {
     setTrainerEditor(null);
     setEditorDirty(false);
     setRemoteChangePending(false);
+  }
+
+  function requestCloseEditors() {
+    if (editorDirty && !window.confirm("Ungespeicherte Änderungen verwerfen?")) return;
+    closeEditors();
   }
 
   async function applyRemoteServerState(keepDraft: boolean) {
@@ -364,10 +432,23 @@ export function AthleteManagementPage() {
     }
   }
 
+  function resetFilters(targetTab: ViewTab = tab) {
+    setActiveFilter("active");
+    setGroupFilter("all");
+    setSortMode("lastName");
+    setTrainerSortMode("lastName");
+    setGroupSortMode("name");
+    setGroupModuleFilter("all");
+    setGroupTypeFilter("all");
+    if (targetTab !== tab) setSearchTerm("");
+  }
+
   function switchTab(nextTab: ViewTab) {
+    if (nextTab === tab) return;
     setTab(nextTab);
     setSearchTerm("");
-    setGroupFilter("all");
+    setFiltersOpen(false);
+    resetFilters(nextTab);
     closeEditors();
     setSearchParams(nextTab === "athletes" ? {} : { tab: nextTab }, { replace: true });
   }
@@ -376,7 +457,8 @@ export function AthleteManagementPage() {
     setSuccess(null);
     setTab(targetTab);
     setSearchTerm("");
-    setGroupFilter("all");
+    setFiltersOpen(false);
+    resetFilters(targetTab);
     setSearchParams(targetTab === "athletes" ? {} : { tab: targetTab }, { replace: true });
     closeEditors();
     if (targetTab === "athletes") setAthleteEditor({ type: "create" });
@@ -463,33 +545,44 @@ export function AthleteManagementPage() {
     }
   }
 
-  const searchLabel = tab === "athletes" ? "Athlet suchen" : "Trainer suchen";
+  const searchLabel = tab === "athletes"
+    ? "Athlet suchen"
+    : tab === "groups"
+      ? "Gruppe suchen"
+      : "Trainer suchen";
+
+  const activeFilterCount = tab === "athletes"
+    ? Number(activeFilter !== "active") + Number(groupFilter !== "all") + Number(sortMode !== "lastName")
+    : tab === "groups"
+      ? Number(activeFilter !== "active")
+        + Number(groupModuleFilter !== "all")
+        + Number(groupTypeFilter !== "all")
+        + Number(groupSortMode !== "name")
+      : Number(activeFilter !== "active")
+        + Number(groupFilter !== "all")
+        + Number(trainerSortMode !== "lastName");
+
+  const swipeTabs = useSwipeTabs({
+    tabs: VIEW_TABS,
+    activeTab: tab,
+    onChange: switchTab,
+    enabled: !editorOpen,
+  });
 
   return (
-    <section className="athlete-management-page" data-realtime-status={realtimeStatus}>
+    <section className="athlete-management-page" data-realtime-status={realtimeStatus} onFocusCapture={revealFocusedField}>
       <div className="management-page-heading compact-management-heading">
         <div>
           <p className="eyebrow">Gemeinsame Stammdaten</p>
           <h1>Athleten, Trainer &amp; Gruppen</h1>
         </div>
+        {canEdit && !editorOpen && (
+          <ManagementCreateMenu
+            disabled={loading || busy}
+            onCreate={openCreateEditor}
+          />
+        )}
       </div>
-
-      {canEdit && !editorOpen && (
-        <div className="masterdata-create-actions" aria-label="Stammdaten anlegen">
-          <button type="button" onClick={() => openCreateEditor("athletes")} disabled={loading || busy}>
-            <UserRound aria-hidden="true" />
-            <span><Plus aria-hidden="true" /> Athlet</span>
-          </button>
-          <button type="button" onClick={() => openCreateEditor("groups")} disabled={loading || busy}>
-            <Layers3 aria-hidden="true" />
-            <span><Plus aria-hidden="true" /> Gruppe</span>
-          </button>
-          <button type="button" onClick={() => openCreateEditor("trainers")} disabled={loading || busy}>
-            <UserRoundCog aria-hidden="true" />
-            <span><Plus aria-hidden="true" /> Trainer</span>
-          </button>
-        </div>
-      )}
 
       {!canEdit && (
         <div className="read-only-notice">
@@ -516,7 +609,7 @@ export function AthleteManagementPage() {
           busy={busy}
           canEdit={athleteEditorCanEdit}
           lockNotice={editedAthlete ? <EditLockNotice lock={athleteLock} /> : null}
-          onCancel={closeEditors}
+          onCancel={requestCloseEditors}
           onSubmit={handleAthleteSubmit}
           onDirtyChange={setEditorDirty}
         />
@@ -529,7 +622,7 @@ export function AthleteManagementPage() {
           busy={busy}
           canEdit={groupEditorCanEdit}
           lockNotice={editedGroup ? <EditLockNotice lock={groupLock} /> : null}
-          onCancel={closeEditors}
+          onCancel={requestCloseEditors}
           onSubmit={handleGroupSubmit}
           onDirtyChange={setEditorDirty}
         />
@@ -544,14 +637,14 @@ export function AthleteManagementPage() {
           busy={busy}
           canEdit={trainerEditorCanEdit}
           lockNotice={editedTrainer ? <EditLockNotice lock={trainerLock} /> : null}
-          onCancel={closeEditors}
+          onCancel={requestCloseEditors}
           onSubmit={handleTrainerSubmit}
           onDirtyChange={setEditorDirty}
         />
       )}
 
       {!editorOpen && (
-        <>
+        <div className="masterdata-tab-surface" {...swipeTabs}>
           <div className="management-tabs three-tabs" role="tablist" aria-label="Stammdatenbereich">
             <button type="button" role="tab" aria-selected={tab === "athletes"} className={tab === "athletes" ? "active" : ""} onClick={() => switchTab("athletes")}>
               <UserRound aria-hidden="true" /> Athleten <span>{athletes.length}</span>
@@ -564,75 +657,99 @@ export function AthleteManagementPage() {
             </button>
           </div>
 
-          <div className={`masterdata-filter-area masterdata-filter-${tab}`}>
-            {tab !== "groups" ? (
-              <div className="masterdata-search-row">
-                <label className="search-field">
-                  <Search aria-hidden="true" />
-                  <input
-                    type="search"
-                    value={searchTerm}
-                    onChange={(event) => setSearchTerm(event.target.value)}
-                    placeholder={searchLabel}
-                    aria-label={searchLabel}
-                  />
-                </label>
-                <button
-                  type="button"
-                  className="icon-button masterdata-refresh-button"
-                  onClick={() => void loadData()}
-                  disabled={loading || busy}
-                  aria-label="Stammdaten neu laden"
-                  title="Daten neu laden"
-                >
-                  <RefreshCw aria-hidden="true" />
-                </button>
-              </div>
-            ) : (
-              <div className="masterdata-refresh-row">
-                <button
-                  type="button"
-                  className="icon-button masterdata-refresh-button"
-                  onClick={() => void loadData()}
-                  disabled={loading || busy}
-                  aria-label="Gruppen neu laden"
-                  title="Daten neu laden"
-                >
-                  <RefreshCw aria-hidden="true" />
-                </button>
-              </div>
-            )}
+          <ManagementFilterPanel
+            searchLabel={searchLabel}
+            searchTerm={searchTerm}
+            onSearchChange={setSearchTerm}
+            open={filtersOpen}
+            activeCount={activeFilterCount}
+            onToggle={() => setFiltersOpen((current) => !current)}
+            onRefresh={() => void loadData()}
+            refreshDisabled={loading || busy}
+            onReset={() => resetFilters()}
+          >
+            <div className="masterdata-filter-grid">
+              {tab === "athletes" && (
+                <>
+                  <label className="masterdata-filter-field">
+                    <span>Gruppe</span>
+                    <select value={groupFilter} onChange={(event) => setGroupFilter(event.target.value)} aria-label="Athleten nach Trainingsgruppe filtern">
+                      <option value="all">Alle Gruppen</option>
+                      {groups.map((group) => (
+                        <option value={group.id} key={group.id}>{group.name}{group.isActive ? "" : " (inaktiv)"}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="masterdata-filter-field">
+                    <span>Sortierung</span>
+                    <select value={sortMode} onChange={(event) => setSortMode(event.target.value as AthleteSort)} aria-label="Athleten sortieren">
+                      <option value="lastName">Nachname A–Z</option>
+                      <option value="firstName">Vorname A–Z</option>
+                      <option value="birthYearAsc">Jahrgang ↑</option>
+                      <option value="birthYearDesc">Jahrgang ↓</option>
+                    </select>
+                  </label>
+                </>
+              )}
 
-            {tab === "athletes" && (
-              <div className="masterdata-select-row">
-                <label className="masterdata-filter-field">
-                  <span>Gruppe</span>
-                  <select value={groupFilter} onChange={(event) => setGroupFilter(event.target.value)} aria-label="Nach Trainingsgruppe filtern">
-                    <option value="all">Alle Gruppen</option>
-                    {groups.map((group) => (
-                      <option value={group.id} key={group.id}>{group.name}{group.isActive ? "" : " (inaktiv)"}</option>
-                    ))}
-                  </select>
-                </label>
+              {tab === "groups" && (
+                <>
+                  <label className="masterdata-filter-field">
+                    <span>Trainingsmodul</span>
+                    <select value={groupModuleFilter} onChange={(event) => setGroupModuleFilter(event.target.value as GroupModuleFilter)} aria-label="Gruppen nach Trainingsmodul filtern">
+                      <option value="all">Alle Module</option>
+                      <option value="none">Ohne Modul</option>
+                      <option value="kindertraining">Kindertraining</option>
+                      <option value="u12">U12</option>
+                      <option value="u14">U14</option>
+                    </select>
+                  </label>
+                  <label className="masterdata-filter-field">
+                    <span>Gruppentyp</span>
+                    <select value={groupTypeFilter} onChange={(event) => setGroupTypeFilter(event.target.value as GroupTypeFilter)} aria-label="Gruppen nach Typ filtern">
+                      <option value="all">Alle Gruppen</option>
+                      <option value="standard">Standardgruppen</option>
+                      <option value="performance">Leistungsgruppen</option>
+                    </select>
+                  </label>
+                  <label className="masterdata-filter-field">
+                    <span>Sortierung</span>
+                    <select value={groupSortMode} onChange={(event) => setGroupSortMode(event.target.value as GroupSort)} aria-label="Gruppen sortieren">
+                      <option value="name">Name A–Z</option>
+                      <option value="shortName">Kurzname A–Z</option>
+                    </select>
+                  </label>
+                </>
+              )}
 
-                <label className="masterdata-filter-field">
-                  <span>Sortierung</span>
-                  <select value={sortMode} onChange={(event) => setSortMode(event.target.value as AthleteSort)} aria-label="Athleten sortieren">
-                    <option value="lastName">Nachname A–Z</option>
-                    <option value="firstName">Vorname A–Z</option>
-                    <option value="birthYearAsc">Jahrgang ↑</option>
-                    <option value="birthYearDesc">Jahrgang ↓</option>
-                  </select>
-                </label>
-              </div>
-            )}
+              {tab === "trainers" && (
+                <>
+                  <label className="masterdata-filter-field">
+                    <span>Gruppe</span>
+                    <select value={groupFilter} onChange={(event) => setGroupFilter(event.target.value)} aria-label="Trainer nach Trainingsgruppe filtern">
+                      <option value="all">Alle Gruppen</option>
+                      {groups.map((group) => (
+                        <option value={group.id} key={group.id}>{group.name}{group.isActive ? "" : " (inaktiv)"}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="masterdata-filter-field">
+                    <span>Sortierung</span>
+                    <select value={trainerSortMode} onChange={(event) => setTrainerSortMode(event.target.value as TrainerSort)} aria-label="Trainer sortieren">
+                      <option value="lastName">Nachname A–Z</option>
+                      <option value="firstName">Vorname A–Z</option>
+                    </select>
+                  </label>
+                </>
+              )}
+            </div>
 
             <div className="status-filter masterdata-status-filter" aria-label="Status filtern">
               {([['active', 'Aktiv'], ['inactive', 'Inaktiv'], ['all', 'Alle']] as const).map(([value, label]) => (
                 <button type="button" className={activeFilter === value ? "active" : ""} onClick={() => setActiveFilter(value)} key={value}>{label}</button>
               ))}
             </div>
-          </div>
+          </ManagementFilterPanel>
 
           {loading ? (
             <div className="management-loading"><div className="spinner" aria-hidden="true" /> Stammdaten werden geladen …</div>
@@ -760,7 +877,7 @@ export function AthleteManagementPage() {
               ))}
             </div>
           )}
-        </>
+        </div>
       )}
     </section>
   );

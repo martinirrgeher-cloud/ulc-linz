@@ -127,3 +127,9 @@ npm run check:pwa-suite
 ```
 
 Details: `P2B-PWA-HILFESYSTEM.md`.
+
+- `P2B1-LAYOUT-STATISTIKRECHTE.md`: Hilfeplatzierung, mobile Breite und integrierte Statistikrechte.
+
+## P2c – Stammdaten Mobile-UX
+
+Die Stammdatenverwaltung verwendet ein gemeinsames Anlagemenü, einklappbare Filter, wischbare Reiter und feste obere Editoraktionen. Details stehen in `P2C-STAMMDATEN-MOBILE-UX.md`.

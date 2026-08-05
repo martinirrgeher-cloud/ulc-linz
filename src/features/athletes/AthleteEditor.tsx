@@ -4,13 +4,12 @@ import {
   Layers3,
   Phone,
   Plus,
-  Save,
   ShieldAlert,
   Trash2,
   UserRound,
-  UsersRound,
-  X,
 } from "lucide-react";
+import { StickyEditorActions } from "@/features/athletes/StickyEditorActions";
+import { useSwipeTabs } from "@/features/athletes/useSwipeTabs";
 import type {
   Athlete,
   AthleteContact,
@@ -37,6 +36,9 @@ type AthleteEditorProps = {
 };
 
 type EditorSection = "master" | "groups" | "contacts";
+
+const EDITOR_SECTIONS = ["master", "groups", "contacts"] as const;
+const ATHLETE_FORM_ID = "athlete-editor-form";
 
 function emptyContact(): AthleteContact {
   return {
@@ -124,6 +126,12 @@ export function AthleteEditor({
     (values.birthYear === null ||
       (values.birthYear >= 1900 && values.birthYear <= currentYear));
 
+  const swipeSections = useSwipeTabs({
+    tabs: EDITOR_SECTIONS,
+    activeTab: section,
+    onChange: setSection,
+  });
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!canEdit || !canSave || busy) return;
@@ -173,29 +181,27 @@ export function AthleteEditor({
   }
 
   return (
-    <section className="management-editor athlete-editor compact-editor" aria-labelledby="athlete-editor-title">
-      <div className="management-editor-heading compact-editor-heading">
-        <div>
-          <p className="eyebrow">Athletenstammdaten</p>
-          <h2 id="athlete-editor-title">
-            {mode.type === "create" ? "Athlet anlegen" : "Athlet bearbeiten"}
-          </h2>
-        </div>
-        <button
-          type="button"
-          className="icon-button"
-          onClick={onCancel}
-          disabled={busy}
-          aria-label="Bearbeitung schließen"
-        >
-          <X aria-hidden="true" />
-        </button>
-      </div>
+    <section className="management-editor athlete-editor compact-editor" aria-label={mode.type === "create" ? "Athlet anlegen" : "Athlet bearbeiten"}>
+      <StickyEditorActions
+        eyebrow="Athletenstammdaten"
+        title={mode.type === "create" ? "Athlet anlegen" : "Athlet bearbeiten"}
+        description="Stammdaten, Gruppen und Kontakte einheitlich verwalten."
+        formId={ATHLETE_FORM_ID}
+        busy={busy}
+        canEdit={canEdit}
+        canSave={canSave}
+        onClose={onCancel}
+      />
 
       {lockNotice}
       {error && <div className="alert error">{error}</div>}
 
-      <form className="management-form compact-athlete-form" onSubmit={handleSubmit}>
+      <form
+        id={ATHLETE_FORM_ID}
+        className="management-form compact-athlete-form"
+        onSubmit={handleSubmit}
+        {...swipeSections}
+      >
         <div className="editor-section-tabs" role="tablist" aria-label="Athletenbereiche">
           <button
             type="button"
@@ -475,17 +481,6 @@ export function AthleteEditor({
 
         </fieldset>
 
-        <div className="management-actions sticky-editor-actions">
-          <button type="button" className="secondary-button" onClick={onCancel} disabled={busy}>
-            {canEdit ? "Abbrechen" : "Schließen"}
-          </button>
-          {canEdit && (
-            <button type="submit" className="primary-button" disabled={!canSave || busy}>
-              <Save aria-hidden="true" />
-              {busy ? "Speichert …" : "Speichern"}
-            </button>
-          )}
-        </div>
       </form>
     </section>
   );

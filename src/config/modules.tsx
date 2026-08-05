@@ -2,7 +2,6 @@ import type { ReactNode } from "react";
 import {
   BookOpen,
   CalendarCheck,
-  ChartNoAxesCombined,
   ClipboardCheck,
   Dumbbell,
   Timer,
@@ -18,9 +17,6 @@ export type AppModuleKey =
   | "kindertraining"
   | "u12"
   | "u14"
-  | "kindertraining_statistics"
-  | "u12_statistics"
-  | "u14_statistics"
   | "athletes"
   | "performance_registration"
   | "exercise_catalog"
@@ -37,7 +33,6 @@ export type AppModuleGroupKey =
   | "training"
   | "planning"
   | "exercises"
-  | "statistics"
   | "master_data"
   | "documentation"
   | "useful";
@@ -83,12 +78,6 @@ export const APP_MODULE_GROUPS: AppModuleGroupDefinition[] = [
     title: "Übungen",
     description: "Übungen strukturiert erfassen und verwenden",
     sortOrder: 30,
-  },
-  {
-    key: "statistics",
-    title: "Statistik",
-    description: "Entwicklung, Anwesenheit und Einsätze",
-    sortOrder: 40,
   },
   {
     key: "useful",
@@ -185,33 +174,6 @@ export const APP_MODULES: AppModuleDefinition[] = [
     icon: <BookOpen aria-hidden="true" />,
     groupKey: "exercises",
     sortOrder: 10,
-  },
-  {
-    key: "kindertraining_statistics",
-    title: "Kindertraining",
-    description: "Trainings-, Athleten- und Trainerstatistik",
-    route: "/module/kindertraining/statistik",
-    icon: <ChartNoAxesCombined aria-hidden="true" />,
-    groupKey: "statistics",
-    sortOrder: 10,
-  },
-  {
-    key: "u12_statistics",
-    title: "U12",
-    description: "Trainings-, Athleten- und Trainerstatistik",
-    route: "/module/u12/statistik",
-    icon: <ChartNoAxesCombined aria-hidden="true" />,
-    groupKey: "statistics",
-    sortOrder: 20,
-  },
-  {
-    key: "u14_statistics",
-    title: "U14",
-    description: "Trainings-, Athleten- und Trainerstatistik",
-    route: "/module/u14/statistik",
-    icon: <ChartNoAxesCombined aria-hidden="true" />,
-    groupKey: "statistics",
-    sortOrder: 30,
   },
   {
     key: "countdown",

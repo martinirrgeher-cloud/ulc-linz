@@ -99,7 +99,7 @@
           "id": "help",
           "title": "Hilfe aufrufen",
           "paragraphs": [
-            "Das Fragezeichen in der Kopfzeile öffnet das Hilfethema der aktuellen Seite. Das vollständige Handbuch ist zusätzlich im Benutzermenü und auf der Modulübersicht erreichbar."
+            "Das Fragezeichen neben der Seitenüberschrift öffnet das Hilfethema der aktuellen Seite. Das vollständige Handbuch ist zusätzlich im Benutzermenü und über den kompakten Link auf der Modulübersicht erreichbar."
           ],
           "tip": "Im Handbuch kann nach Begriffen wie Sondertraining, Einladung, Video oder Import gesucht werden."
         }
@@ -221,16 +221,16 @@
           "id": "header",
           "title": "Kopfzeile",
           "bullets": [
-            "Vereinslogo und Haus-Symbol: zurück zur Modulübersicht.",
-            "Fragezeichen: Hilfe für die aktuelle Seite.",
-            "Benutzersymbol: App-Stand, Hilfe, Diagnoseinformationen und Abmelden."
+            "Vereinslogo und Home-Symbol: zurück zur Modulübersicht.",
+            "Fragezeichen neben der Seitenüberschrift: Hilfe für die aktuelle Seite.",
+            "Benutzersymbol: Rolle, App-Stand, Diagnoseinformationen, Handbuch und Abmelden."
           ]
         },
         {
           "id": "dashboard",
           "title": "Modulübersicht",
           "paragraphs": [
-            "Die Module sind nach Anmeldung, Planung, Dokumentation, Übungen, Statistik, Nützliches und Stammdaten gegliedert. Nur freigeschaltete Module werden angezeigt."
+            "Die Module sind nach Anmeldung, Planung, Dokumentation, Übungen, Nützliches und Stammdaten gegliedert. Statistiken sind direkt Bestandteil von Kindertraining, U12 und U14. Nur freigeschaltete Module werden angezeigt."
           ]
         },
         {
@@ -500,9 +500,9 @@
         },
         {
           "id": "modules",
-          "title": "Getrennte Statistikseiten",
+          "title": "Statistik je Trainingsmodul",
           "paragraphs": [
-            "Kindertraining, U12 und U14 haben jeweils eine eigene Statistikseite."
+            "Kindertraining, U12 und U14 haben jeweils eine eigene Statistikseite. Der Zugriff ist Bestandteil des zugehörigen Trainingsmoduls; ein zusätzliches Statistikrecht ist nicht erforderlich."
           ]
         }
       ]
@@ -754,42 +754,69 @@
     {
       "id": "athletes",
       "title": "Athleten, Trainer und Gruppen",
-      "summary": "Gemeinsame Stammdaten anlegen, filtern, verknüpfen und inaktiv setzen.",
+      "summary": "Gemeinsame Stammdaten mobil anlegen, durchsuchen, filtern und sicher bearbeiten.",
       "keywords": [
         "athlet",
         "trainer",
         "gruppe",
         "stammdaten",
         "kontakt",
-        "trainingstage"
+        "trainingstage",
+        "wischen",
+        "filter",
+        "speichern",
+        "tastatur"
       ],
       "sections": [
         {
-          "id": "athletes",
-          "title": "Athleten",
+          "id": "navigation",
+          "title": "Zwischen Athleten, Gruppen und Trainern wechseln",
+          "paragraphs": [
+            "Die drei Stammdatenbereiche bleiben als Reiter sichtbar. Auf dem Smartphone kann zusätzlich nach links oder rechts gewischt werden."
+          ],
           "bullets": [
-            "Name, Jahrgang, Gruppen und Aktivstatus.",
-            "Kontakt- und Notfallinformationen.",
-            "Benutzerverknüpfung bei Bedarf."
+            "Horizontale Wischgesten wechseln den Bereich.",
+            "Eingabefelder, Schaltflächen und vertikales Scrollen lösen keinen Reiterwechsel aus."
+          ]
+        },
+        {
+          "id": "create-filter",
+          "title": "Anlegen, suchen und filtern",
+          "steps": [
+            "Auf „Neu“ tippen.",
+            "Athlet, Gruppe oder Trainer auswählen.",
+            "Suche verwenden oder das Filtersymbol öffnen.",
+            "Aktive Filter bei Bedarf gesammelt zurücksetzen."
+          ],
+          "tip": "Beim Fokus auf ein Such- oder Eingabefeld wird es auf kleinen Bildschirmen nach oben gerückt, damit die Bildschirmtastatur den Arbeitsbereich nicht verdeckt."
+        },
+        {
+          "id": "athletes",
+          "title": "Athleten bearbeiten",
+          "bullets": [
+            "Stammdaten, Gruppen und Kontakte sind in drei Reitern organisiert.",
+            "Reiter können angetippt oder durch Wischen gewechselt werden.",
+            "Speichern erfolgt über das Diskettensymbol in der festen oberen Aktionsleiste.",
+            "Das X schließt die Bearbeitung; bei ungespeicherten Änderungen erscheint eine Rückfrage."
           ]
         },
         {
           "id": "groups",
-          "title": "Trainingsgruppen",
+          "title": "Trainingsgruppen bearbeiten",
           "bullets": [
-            "Kurz- und Langname.",
-            "Reguläre Trainingstage und Sondertraining.",
-            "Leistungsgruppe, Anmeldung und Anmeldeschluss.",
-            "Athleten- und Trainerzuordnung."
+            "Grunddaten, Trainingsbetrieb und Leistungsgruppen-Einstellungen sind getrennt gegliedert.",
+            "Regelmäßige Trainingstage und Modulzuordnung liegen im Reiter „Training“.",
+            "Anmeldeschluss und Nachmeldungen liegen im Reiter „Leistung“.",
+            "Speichern, Hilfe und Schließen bleiben beim Scrollen sichtbar."
           ]
         },
         {
           "id": "trainers",
-          "title": "Trainer",
+          "title": "Trainer bearbeiten",
           "bullets": [
-            "Name und Kontaktdaten.",
-            "Gruppenzuordnung.",
-            "Aktivstatus und Benutzerverknüpfung."
+            "Stammdaten, Gruppenzuordnung und interne Notiz sind getrennte Reiter.",
+            "Gruppen können mehrfach ausgewählt werden.",
+            "Speichern, Hilfe und Schließen folgen demselben Muster wie bei Athleten und Gruppen."
           ]
         },
         {
