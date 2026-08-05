@@ -44,7 +44,13 @@ if (/SUPABASE_SERVICE_ROLE|BACKUP_ENCRYPTION|RCLONE_CONFIG/.test(workflow)) {
   throw new Error("The read-only E2E workflow must not use production or backup secrets.");
 }
 
-for (const marker of ["Hilfe für diese Seite", "Hilfe durchsuchen", "exercise-catalog"]) {
+for (const marker of [
+  "Hilfe für diese Seite",
+  "Hilfe durchsuchen",
+  "exercise-catalog",
+  "Stammdaten bündeln Anlage, Filter und Editoraktionen",
+  "Stammdaten und Editorreiter wechseln auf Touchgeräten per Wischgeste",
+]) {
   if (!testFile.includes(marker)) throw new Error(`Help E2E marker is missing: ${marker}`);
 }
 

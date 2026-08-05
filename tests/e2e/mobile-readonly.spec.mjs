@@ -59,6 +59,32 @@ async function expectNoHorizontalOverflow(page) {
   expect(result, JSON.stringify(result, null, 2)).toEqual({ documentOverflow: 0, offenders: [] });
 }
 
+async function swipeLeft(locator) {
+  await locator.evaluate((element) => {
+    const dispatch = (type, x, buttons) => {
+      element.dispatchEvent(new PointerEvent(type, {
+        bubbles: true,
+        cancelable: true,
+        pointerId: 1,
+        pointerType: "touch",
+        isPrimary: true,
+        clientX: x,
+        clientY: 260,
+        screenX: x,
+        screenY: 260,
+        button: 0,
+        buttons,
+      }));
+    };
+
+    dispatch("pointerdown", 300, 1);
+    dispatch("pointermove", 190, 1);
+    dispatch("pointermove", 80, 1);
+    dispatch("pointerup", 80, 0);
+  });
+}
+
+
 async function expectNamedButtons(page) {
   const unnamed = await page.locator("button:visible").evaluateAll((buttons) => buttons
     .filter((button) => {
@@ -153,6 +179,56 @@ test.describe("Authentifizierte, nicht schreibende Modulprüfungen", () => {
       await expectHealthyPage(page, problems, unhandled);
     });
   }
+
+
+  test("Stammdaten bündeln Anlage, Filter und Editoraktionen", async ({ page }) => {
+    const problems = monitorBrowserProblems(page);
+    const unhandled = await installSupabaseMock(page);
+
+    await page.goto("/module/athletes");
+    await expect(page.getByRole("heading", { name: "Athleten, Trainer & Gruppen", exact: true })).toBeVisible();
+
+    await page.getByRole("button", { name: "Neu", exact: true }).click();
+    await expect(page.getByRole("menuitem", { name: "Athlet anlegen" })).toBeVisible();
+    await expect(page.getByRole("menuitem", { name: "Gruppe anlegen" })).toBeVisible();
+    await expect(page.getByRole("menuitem", { name: "Trainer anlegen" })).toBeVisible();
+    await page.getByRole("button", { name: "Neu", exact: true }).click();
+
+    await page.getByRole("button", { name: "Filtermenü öffnen" }).click();
+    await expect(page.getByLabel("Athleten nach Trainingsgruppe filtern")).toBeVisible();
+    await expect(page.getByLabel("Athleten sortieren")).toBeVisible();
+
+    await page.getByRole("button", { name: "Anna Testathletin bearbeiten" }).click();
+    await expect(page.getByLabel("Änderungen speichern")).toBeVisible();
+    await expect(page.getByLabel("Änderungen speichern")).toBeEnabled();
+    await expect(page.getByLabel("Bearbeitung schließen")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Abbrechen", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Speichern", exact: true })).toHaveCount(0);
+
+    const stickyHeader = page.locator(".management-editor-sticky-header");
+    await expect(stickyHeader).toHaveCSS("position", "sticky");
+    await expectHealthyPage(page, problems, unhandled);
+  });
+
+  test("Stammdaten und Editorreiter wechseln auf Touchgeräten per Wischgeste", async ({ page }, testInfo) => {
+    test.skip(!testInfo.project.name.startsWith("mobile"), "Wischgesten werden nur in Touch-Projekten geprüft.");
+    const problems = monitorBrowserProblems(page);
+    const unhandled = await installSupabaseMock(page);
+
+    await page.goto("/module/athletes");
+    const surface = page.locator(".masterdata-tab-surface");
+    await swipeLeft(surface);
+    await expect(page.getByRole("tab", { name: /Gruppen/ })).toHaveAttribute("aria-selected", "true");
+
+    await page.getByRole("button", { name: "Leistungsgruppe Sprint und Mehrkampf bearbeiten" }).click();
+    const editorForm = page.locator("#training-group-editor-form");
+    await swipeLeft(editorForm);
+    await expect(page.getByRole("tab", { name: /Training/ })).toHaveAttribute("aria-selected", "true");
+    await swipeLeft(editorForm);
+    await expect(page.getByRole("tab", { name: /Leistung/ })).toHaveAttribute("aria-selected", "true");
+
+    await expectHealthyPage(page, problems, unhandled);
+  });
 
 
 
