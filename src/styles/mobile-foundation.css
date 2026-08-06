@@ -125,7 +125,7 @@
         height: var(--ui-touch-target);
   }
 }
-@media (max-width: 390px) {
+@media screen and (max-width: 390px) {
   .primary-button:not(.compact),
   .secondary-button:not(.compact) {
     padding-inline: 10px;

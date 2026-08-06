@@ -16,9 +16,14 @@ concurrency:
 
 jobs:
   quality:
-    name: TypeScript, Tests und Build
+    name: TypeScript, Tests, Build und Runtime
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
+    env:
+      VITE_SUPABASE_URL: https://e2e.supabase.co
+      VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_e2e_runtime_tests
+      VITE_ALLOW_SELF_SIGNUP: "false"
+      E2E_RUNTIME_BASE_URL: http://127.0.0.1:4175
 
     steps:
       - name: Projekt auschecken
@@ -38,5 +43,22 @@ jobs:
       - name: Abhängigkeiten reproduzierbar installieren
         run: npm ci
 
-      - name: Qualitätsprüfung ausführen
-        run: npm run ci:quality
+      - name: Playwright Test isoliert installieren
+        run: npm install --no-save --package-lock=false @playwright/test@1.62.1
+
+      - name: Chromium für echten Runtime-Test installieren
+        run: npx playwright install --with-deps chromium
+
+      - name: Vollständiges Release-Gate ausführen
+        run: npm run release:check:ci
+
+      - name: Runtime-Testbericht hochladen
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: runtime-smoke-report-${{ github.run_id }}
+          path: |
+            test-results/runtime
+            playwright-report
+          if-no-files-found: ignore
+          retention-days: 14

@@ -11,7 +11,6 @@ type StickyEditorActionsProps = {
   busy: boolean;
   canEdit: boolean;
   canSave: boolean;
-  saveDisabledReason?: string;
   onClose: () => void;
 };
 
@@ -23,16 +22,14 @@ export function StickyEditorActions({
   busy,
   canEdit,
   canSave,
-  saveDisabledReason,
   onClose,
 }: StickyEditorActionsProps) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { allowNextNavigation, runGuard } = useNavigationGuardController();
+  const { runGuard } = useNavigationGuardController();
 
   async function openHelp() {
     if (!(await runGuard())) return;
-    allowNextNavigation();
     navigate(buildHelpHref(`${location.pathname}${location.search}`));
   }
 
@@ -64,9 +61,7 @@ export function StickyEditorActions({
               ? "Speichert …"
               : !canEdit
                 ? "Speichern ist erst nach erfolgreicher Bearbeitungsreservierung möglich"
-                : !canSave
-                  ? saveDisabledReason ?? "Bitte vervollständige die Pflichtfelder"
-                  : "Speichern"
+                : "Speichern"
           }
         >
           {busy ? <LoaderCircle className="spin-icon" aria-hidden="true" /> : <Save aria-hidden="true" />}

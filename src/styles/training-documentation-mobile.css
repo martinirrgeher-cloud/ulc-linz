@@ -271,7 +271,7 @@
     content: none;
   }
 }
-@media (max-width: 390px) {
+@media screen and (max-width: 390px) {
   .training-doc-tabs button {
     padding-inline: 5px;
         font-size: 0.72rem;
@@ -286,7 +286,7 @@
         border-radius: 9px;
   }
 }
-@media (max-width: 390px) {
+@media screen and (max-width: 390px) {
   .training-doc-item-info-button {
     width: 38px;
         height: 38px;

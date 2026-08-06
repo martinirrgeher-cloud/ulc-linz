@@ -41,7 +41,7 @@
         height: 17px;
   }
 }
-@media (max-width: 390px) {
+@media screen and (max-width: 390px) {
   .training-plan-section-actions button,
   .training-plan-item-actions button {
     width: 38px;
