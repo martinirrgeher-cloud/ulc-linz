@@ -92,7 +92,7 @@
         color: var(--green-600);
   }
 }
-@media screen and (max-width: 390px) {
+@media (max-width: 390px) {
   .performance-mode-tabs button {
     padding-inline: 5px;
         font-size: 0.72rem;

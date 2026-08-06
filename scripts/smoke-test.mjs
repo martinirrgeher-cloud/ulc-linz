@@ -936,9 +936,9 @@ test("Statistik ist Bestandteil der Trainingsmodule", async () => {
     assert.doesNotMatch(modulesSource, new RegExp(`key:\\s*[\"']${obsoleteKey}[\"']`));
     assert.doesNotMatch(templatesSource, new RegExp(`[\"']${obsoleteKey}[\"']`));
   }
-  assert.ok(appSource.includes('<ProtectedRoute moduleKey="kindertraining">\n                    <KindertrainingStatisticsPage'));
-  assert.ok(appSource.includes('<ProtectedRoute moduleKey="u12">\n                    <GroupTrainingStatisticsPage'));
-  assert.ok(appSource.includes('<ProtectedRoute moduleKey="u14">\n                    <GroupTrainingStatisticsPage'));
+  assert.match(appSource, /<ProtectedRoute\s+moduleKey=["']kindertraining["']>\s*<KindertrainingStatisticsPage/);
+  assert.match(appSource, /<ProtectedRoute\s+moduleKey=["']u12["']>\s*<GroupTrainingStatisticsPage/);
+  assert.match(appSource, /<ProtectedRoute\s+moduleKey=["']u14["']>\s*<GroupTrainingStatisticsPage/);
   assert.doesNotMatch(statisticsPageSource, /kindertraining_statistics/);
   assert.doesNotMatch(groupStatisticsPageSource, /statisticsModuleKey/);
   for (const marker of [
@@ -979,6 +979,10 @@ const managementCssP2cSource = await readFile(
   new URL("../src/styles/management.css", import.meta.url),
   "utf8",
 );
+const navigationGuardP2cSource = await readFile(
+  new URL("../src/components/layout/NavigationGuardContext.tsx", import.meta.url),
+  "utf8",
+);
 
 test("P2c vereinheitlicht Stammdatenanlage, Filter und Wischreiter", () => {
   assert.ok(athleteManagementP2cSource.includes("ManagementCreateMenu"));
@@ -1001,4 +1005,12 @@ test("P2c verwendet in allen Stammdateneditoren eine feste obere Aktionsleiste",
   }
   assert.ok(managementCssP2cSource.includes(".management-editor-sticky-header"));
   assert.ok(managementCssP2cSource.includes(".masterdata-filter-panel"));
+});
+
+test("P2c schützt Browsernavigation, Safe Area und Trainer-E-Mail", () => {
+  assert.ok(navigationGuardP2cSource.includes("useBlocker"));
+  assert.ok(navigationGuardP2cSource.includes("allowNextNavigation"));
+  assert.ok(trainerEditorP2cSource.includes("emailValid"));
+  assert.ok(trainerEditorP2cSource.includes('aria-invalid={!emailValid}'));
+  assert.ok(managementCssP2cSource.includes("env(safe-area-inset-top)"));
 });

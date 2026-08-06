@@ -19,51 +19,84 @@ function trainerFullName() {
   return `${UI_TRAINER.firstName} ${UI_TRAINER.lastName}`;
 }
 
+async function openCreateEditor(page, label) {
+  await page.getByRole("button", { name: "Neu", exact: true }).click();
+  await page
+    .getByRole("menu", { name: "Stammdaten anlegen" })
+    .getByRole("menuitem", { name: label, exact: true })
+    .click();
+}
+
 test.describe("Schreibende Kernabläufe in isolierter Supabase-Umgebung", () => {
   test("Administrator legt Gruppe, Athlet und Trainer an und Änderungen bleiben erhalten", async ({ page }) => {
     await login(page, "admin");
     await page.goto("/module/athletes");
     await expect(page.getByRole("heading", { name: "Athleten, Trainer & Gruppen" })).toBeVisible();
 
-    const createActions = page.getByLabel("Stammdaten anlegen");
-    await createActions.getByRole("button", { name: /Gruppe/ }).click();
+    await openCreateEditor(page, "Gruppe anlegen");
     const groupEditor = page.locator(".management-editor");
     await expect(groupEditor.getByRole("heading", { name: "Gruppe anlegen" })).toBeVisible();
     await groupEditor.getByLabel("Gruppenname").fill(UI_GROUP);
     await groupEditor.getByLabel("Kurzbezeichnung").fill("E2E-UI");
-    await groupEditor.getByRole("button", { name: "Speichern", exact: true }).click();
+    await groupEditor.getByRole("button", { name: "Änderungen speichern", exact: true }).click();
     await expect(page.getByText("Die Trainingsgruppe wurde angelegt.", { exact: true })).toBeVisible();
     await expect(page.getByRole("heading", { name: UI_GROUP, exact: true })).toBeVisible();
 
-    await createActions.getByRole("button", { name: /Athlet/ }).click();
+    await openCreateEditor(page, "Athlet anlegen");
     const athleteEditor = page.locator(".athlete-editor");
     await athleteEditor.getByLabel("Vorname").fill(UI_ATHLETE.firstName);
     await athleteEditor.getByLabel("Nachname").fill(UI_ATHLETE.lastName);
     await athleteEditor.getByLabel("Geburtsjahr").fill("2012");
     await athleteEditor.getByRole("tab", { name: /Gruppen/ }).click();
     await athleteEditor.getByRole("checkbox", { name: UI_GROUP }).check();
-    await athleteEditor.getByRole("button", { name: "Speichern", exact: true }).click();
+    await athleteEditor.getByRole("button", { name: "Änderungen speichern", exact: true }).click();
     await expect(page.getByText("Der Athlet wurde angelegt.", { exact: true })).toBeVisible();
     await expect(page.getByRole("heading", { name: athleteFullName(), exact: true })).toBeVisible();
 
     await page.getByRole("button", { name: `${athleteFullName()} bearbeiten` }).click();
     await expect(athleteEditor.getByRole("heading", { name: "Athlet bearbeiten" })).toBeVisible();
+    await athleteEditor.getByRole("tab", { name: /Notiz/ }).click();
     await athleteEditor.getByLabel("Interne Notiz").fill("E1b.2 Persistenzprüfung");
-    await athleteEditor.getByRole("button", { name: "Speichern", exact: true }).click();
+    await athleteEditor.getByRole("button", { name: "Änderungen speichern", exact: true }).click();
     await expect(page.getByText("Die Athletendaten wurden gespeichert.", { exact: true })).toBeVisible();
 
     await page.reload();
     await page.getByRole("button", { name: `${athleteFullName()} bearbeiten` }).click();
-    await expect(athleteEditor.getByLabel("Interne Notiz")).toHaveValue("E1b.2 Persistenzprüfung");
-    await athleteEditor.getByRole("button", { name: "Abbrechen", exact: true }).click();
+    await athleteEditor.getByRole("tab", { name: /Notiz/ }).click();
+    const athleteNote = athleteEditor.getByLabel("Interne Notiz");
+    await expect(athleteNote).toHaveValue("E1b.2 Persistenzprüfung");
+    await athleteNote.fill("E1b.2 Browser-Zurück-Schutz");
 
-    await createActions.getByRole("button", { name: /Trainer/ }).click();
+    const backDialogPromise = page.waitForEvent("dialog");
+    await page.evaluate(() => window.history.back());
+    const backDialog = await backDialogPromise;
+    expect(backDialog.message()).toBe("Ungespeicherte Änderungen verwerfen?");
+    await backDialog.dismiss();
+    await expect(page).toHaveURL(/\/module\/athletes(?:\?.*)?$/);
+    await expect(athleteNote).toHaveValue("E1b.2 Browser-Zurück-Schutz");
+
+    const closeDialogPromise = page.waitForEvent("dialog");
+    await athleteEditor.getByRole("button", { name: "Bearbeitung schließen", exact: true }).click();
+    const closeDialog = await closeDialogPromise;
+    await closeDialog.accept();
+    await expect(athleteEditor).not.toBeVisible();
+
+    await openCreateEditor(page, "Trainer anlegen");
     const trainerEditor = page.locator(".trainer-editor");
     await trainerEditor.getByLabel("Vorname").fill(UI_TRAINER.firstName);
     await trainerEditor.getByLabel("Nachname").fill(UI_TRAINER.lastName);
-    await trainerEditor.getByLabel("E-Mail-Adresse").fill("tina.e1b2@example.test");
+    const trainerEmail = trainerEditor.getByLabel("E-Mail-Adresse");
+    await trainerEmail.fill("ungueltige-adresse");
+    await trainerEditor.getByRole("tab", { name: /Gruppen/ }).click();
     await trainerEditor.getByRole("checkbox", { name: UI_GROUP }).check();
-    await trainerEditor.getByRole("button", { name: "Speichern", exact: true }).click();
+    const trainerSave = trainerEditor.getByRole("button", { name: "Änderungen speichern", exact: true });
+    await expect(trainerSave).toBeDisabled();
+    await trainerEditor.getByRole("tab", { name: /Stammdaten/ }).click();
+    await expect(trainerEmail).toHaveAttribute("aria-invalid", "true");
+    await trainerEmail.fill("tina.e1b2@example.test");
+    await trainerEditor.getByRole("tab", { name: /Gruppen/ }).click();
+    await expect(trainerSave).toBeEnabled();
+    await trainerSave.click();
     await expect(page.getByText("Der Trainer wurde angelegt.", { exact: true })).toBeVisible();
 
     await page.getByRole("tab", { name: /Trainer/ }).click();
@@ -123,7 +156,7 @@ test.describe("Schreibende Kernabläufe in isolierter Supabase-Umgebung", () => 
       await groupContext.close();
     }
 
-    await groupEditor.getByRole("button", { name: "Abbrechen", exact: true }).click();
+    await groupEditor.getByRole("button", { name: "Bearbeitung schließen", exact: true }).click();
     await page.waitForTimeout(600);
     await page.getByRole("tab", { name: /Trainer/ }).click();
     await page.getByRole("button", { name: "Tom E2E bearbeiten", exact: true }).click();
@@ -165,12 +198,11 @@ test.describe("Schreibende Kernabläufe in isolierter Supabase-Umgebung", () => 
     await page.goto("/module/athletes");
     await expect(page.getByRole("heading", { name: "Athleten, Trainer & Gruppen" })).toBeVisible();
 
-    const createActions = page.getByLabel("Stammdaten anlegen");
-    await createActions.getByRole("button", { name: /Athlet/ }).click();
+    await openCreateEditor(page, "Athlet anlegen");
     const firstEditor = page.locator(".athlete-editor");
     await firstEditor.getByLabel("Vorname").fill(UI_REALTIME_ATHLETE.firstName);
     await firstEditor.getByLabel("Nachname").fill(UI_REALTIME_ATHLETE.lastName);
-    await firstEditor.getByRole("button", { name: "Speichern", exact: true }).click();
+    await firstEditor.getByRole("button", { name: "Änderungen speichern", exact: true }).click();
 
     const originalName = `${UI_REALTIME_ATHLETE.firstName} ${UI_REALTIME_ATHLETE.lastName}`;
     const changedName = `${UI_REALTIME_ATHLETE.firstName} E4 Server`;
@@ -196,13 +228,14 @@ test.describe("Schreibende Kernabläufe in isolierter Supabase-Umgebung", () => 
       const secondEditor = secondPage.locator(".athlete-editor");
       await expect(secondEditor.getByLabel("Nachname")).toBeEnabled({ timeout: 15_000 });
       await secondEditor.getByLabel("Nachname").fill("E4 Server");
-      await secondEditor.getByRole("button", { name: "Speichern", exact: true }).click();
+      await secondEditor.getByRole("button", { name: "Änderungen speichern", exact: true }).click();
 
       await expect(page.getByRole("heading", { name: changedName, exact: true })).toBeVisible({
         timeout: 15_000,
       });
 
       await page.getByRole("button", { name: `${changedName} bearbeiten`, exact: true }).click();
+      await firstEditor.getByRole("tab", { name: /Notiz/ }).click();
       await firstEditor.getByLabel("Interne Notiz").fill("Lokaler E4 Konfliktentwurf");
 
       await secondPage.getByRole("button", { name: `${changedName} bearbeiten`, exact: true }).click();
@@ -212,7 +245,7 @@ test.describe("Schreibende Kernabläufe in isolierter Supabase-Umgebung", () => 
       await secondPage.getByRole("button", { name: "Bearbeitung übernehmen", exact: true }).click();
       await expect(secondEditor.getByLabel("Nachname")).toBeEnabled({ timeout: 15_000 });
       await secondEditor.getByLabel("Nachname").fill("E4 Fremdstand");
-      await secondEditor.getByRole("button", { name: "Speichern", exact: true }).click();
+      await secondEditor.getByRole("button", { name: "Änderungen speichern", exact: true }).click();
 
       const conflictNotice = page
         .getByRole("alert")
@@ -223,7 +256,7 @@ test.describe("Schreibende Kernabläufe in isolierter Supabase-Umgebung", () => 
       await conflictNotice.getByRole("button", { name: "Eigene Eingaben behalten", exact: true }).click();
       await expect(firstEditor.getByLabel("Interne Notiz")).toHaveValue("Lokaler E4 Konfliktentwurf");
       await expect(firstEditor.getByLabel("Vorname")).toBeEnabled({ timeout: 15_000 });
-      await firstEditor.getByRole("button", { name: "Speichern", exact: true }).click();
+      await firstEditor.getByRole("button", { name: "Änderungen speichern", exact: true }).click();
       await expect(page.getByText("Die Athletendaten wurden gespeichert.", { exact: true })).toBeVisible({
         timeout: 15_000,
       });
