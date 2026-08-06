@@ -99,7 +99,7 @@
         height: 17px;
   }
 }
-@media (max-width: 390px) {
+@media screen and (max-width: 390px) {
   .training-block-card-actions button,
   .training-block-item-actions button,
   .training-block-item-info-button {

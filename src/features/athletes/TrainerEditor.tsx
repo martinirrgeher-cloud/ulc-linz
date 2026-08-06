@@ -69,15 +69,7 @@ export function TrainerEditor({
   const [error, setError] = useState<string | null>(null);
   useDraftDirtyState(values, onDirtyChange);
 
-  const hasRequiredName = values.firstName.trim().length > 0 && values.lastName.trim().length > 0;
-  const emailValid = values.email.trim().length === 0
-    || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim());
-  const canSave = hasRequiredName && emailValid;
-  const saveDisabledReason = !hasRequiredName
-    ? "Vor- und Nachname sind erforderlich"
-    : !emailValid
-      ? "Bitte gib eine gültige E-Mail-Adresse ein"
-      : undefined;
+  const canSave = values.firstName.trim().length > 0 && values.lastName.trim().length > 0;
 
   const availableUsers = useMemo(() => linkableUsers.filter((user) => (
     !user.trainerId
@@ -129,7 +121,6 @@ export function TrainerEditor({
         busy={busy}
         canEdit={canEdit}
         canSave={canSave}
-        saveDisabledReason={saveDisabledReason}
         onClose={onCancel}
       />
 
@@ -198,14 +189,7 @@ export function TrainerEditor({
                     maxLength={254}
                     autoComplete="email"
                     placeholder="Optional"
-                    aria-invalid={!emailValid}
-                    aria-describedby={!emailValid ? "trainer-email-error" : undefined}
                   />
-                  {!emailValid && (
-                    <small id="trainer-email-error" className="management-field-error" role="alert">
-                      Bitte gib eine gültige E-Mail-Adresse ein.
-                    </small>
-                  )}
                 </label>
                 <label>
                   App-Benutzerkonto

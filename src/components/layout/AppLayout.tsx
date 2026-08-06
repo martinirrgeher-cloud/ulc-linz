@@ -21,7 +21,7 @@ const roleNames = {
 
 function AppLayoutContent() {
   const { appContext, signOut } = useAuth();
-  const { allowNextNavigation, runGuard } = useNavigationGuardController();
+  const { runGuard } = useNavigationGuardController();
   const navigate = useNavigate();
   const location = useLocation();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -54,7 +54,6 @@ function AppLayoutContent() {
   async function goHome() {
     if (!(await runGuard())) return;
 
-    allowNextNavigation();
     setUserMenuOpen(false);
     const currentModule = APP_MODULES
       .filter((module) =>
@@ -77,7 +76,6 @@ function AppLayoutContent() {
   async function openHelp(central = false) {
     if (!(await runGuard())) return;
 
-    allowNextNavigation();
     setUserMenuOpen(false);
     const returnPath = `${location.pathname}${location.search}`;
     navigate(central ? `/hilfe?from=${encodeURIComponent(returnPath)}` : buildHelpHref(returnPath));
@@ -95,9 +93,7 @@ function AppLayoutContent() {
 
   async function handleSignOut() {
     setUserMenuOpen(false);
-    if (!(await runGuard())) return;
-    allowNextNavigation();
-    await signOut();
+    if (await runGuard()) await signOut();
   }
 
   return (

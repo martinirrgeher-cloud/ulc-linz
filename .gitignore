@@ -23,3 +23,5 @@ playwright-report-writing/
 test-results/
 supabase-local.env
 
+# Isolierter Build fuer Browser-Runtime-Tests
+.ulc-runtime-dist/

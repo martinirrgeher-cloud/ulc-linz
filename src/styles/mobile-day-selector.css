@@ -64,7 +64,7 @@
         opacity: 0.86;
   }
 }
-@media (max-width: 390px) {
+@media screen and (max-width: 390px) {
   .mobile-day-selector {
     grid-template-columns: repeat(auto-fit, minmax(58px, 1fr));
   }

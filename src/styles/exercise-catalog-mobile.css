@@ -96,7 +96,7 @@
         height: 17px;
   }
 }
-@media (max-width: 390px) {
+@media screen and (max-width: 390px) {
   .exercise-favorite-button,
   .exercise-edit-button,
   .exercise-action-link {

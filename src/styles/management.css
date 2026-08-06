@@ -141,7 +141,7 @@
   }
   .permission-module {
     grid-column: 1 / -1;
-        padding: 12px;
+        padding: 12px !important;
   }
   .permission-module small:not(.permission-note) {
     display: block;
@@ -149,7 +149,7 @@
   .check-cell {
     position: relative;
         min-height: 56px;
-        padding-top: 25px;
+        padding-top: 25px !important;
         border-top: 1px solid var(--border);
         border-left: 0;
   }
@@ -181,7 +181,25 @@
   .management-actions {
     gap: 10px;
   }
-
+}
+@media (max-width: 380px) {
+  .management-tabs button {
+    font-size: 0.78rem;
+  }
+  .management-tabs button svg {
+    display: none;
+  }
+  .member-details {
+    grid-template-columns: 1fr;
+  }
+  .member-details div:last-child:nth-child(odd) {
+    grid-column: auto;
+  }
+  .training-group-details {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 760px) {
   .management-tabs.three-tabs {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
@@ -196,7 +214,19 @@
   .fieldset-heading {
     align-items: stretch;
   }
-
+}
+@media (max-width: 380px) {
+  .management-tabs.three-tabs button {
+    font-size: 0.7rem;
+  }
+  .management-tabs.three-tabs button span {
+    display: none;
+  }
+  .fieldset-heading {
+    flex-direction: column;
+  }
+}
+@media (max-width: 760px) {
   .athlete-management-page {
     gap: 14px;
   }
@@ -212,7 +242,8 @@
   .compact-athlete-form .form-grid {
     gap: 12px;
   }
-
+}
+@media (max-width: 760px) {
   .masterdata-search-row .search-field {
     min-width: 0;
   }
@@ -249,7 +280,22 @@
   .user-management-toolbar .secondary-button span {
     display: none;
   }
-
+}
+@media (max-width: 390px) {
+  .masterdata-filter-field,
+  .management-filter-field {
+    font-size: 0.7rem;
+  }
+  .masterdata-filter-field select,
+  .management-filter-field select {
+    padding-left: 8px;
+        font-size: 0.8rem;
+  }
+  .compact-group-card .training-group-details {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media screen and (max-width: 760px) {
   .management-page-heading {
     gap: 9px;
         margin-bottom: 12px;
@@ -283,57 +329,15 @@
         border-radius: 8px;
   }
 }
-
-@media (max-width: 380px) {
-  .management-tabs button {
-    font-size: 0.78rem;
-  }
-  .management-tabs button svg {
-    display: none;
-  }
-  .member-details {
-    grid-template-columns: 1fr;
-  }
-  .member-details div:last-child:nth-child(odd) {
-    grid-column: auto;
-  }
-  .training-group-details {
-    grid-template-columns: 1fr;
-  }
-  .management-tabs.three-tabs button {
-    font-size: 0.7rem;
-  }
-  .management-tabs.three-tabs button span {
-    display: none;
-  }
-  .fieldset-heading {
-    flex-direction: column;
-  }
-}
-
-
-@media (max-width: 390px) {
-  .masterdata-filter-field,
-  .management-filter-field {
-    font-size: 0.7rem;
-  }
-  .masterdata-filter-field select,
-  .management-filter-field select {
-    padding-left: 8px;
-        font-size: 0.8rem;
-  }
-  .compact-group-card .training-group-details {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .management-tabs button {
-    padding-inline: 5px;
-        font-size: 0.72rem;
-  }
-}
-
 @media (pointer: coarse) {
   .management-tabs button {
     min-height: var(--ui-touch-target);
+  }
+}
+@media screen and (max-width: 390px) {
+  .management-tabs button {
+    padding-inline: 5px;
+        font-size: 0.72rem;
   }
 }
 
@@ -492,16 +496,6 @@
   overflow: visible;
 }
 
-.management-form input[aria-invalid="true"] {
-  border-color: #b43b3b;
-  box-shadow: 0 0 0 3px rgba(180, 59, 59, 0.12);
-}
-
-.management-field-error {
-  color: #a33333;
-  font-weight: 700;
-}
-
 .management-editor-sticky-header {
   position: sticky;
   z-index: 8;
@@ -606,7 +600,7 @@
 
 @media (max-width: 760px) {
   .management-editor-sticky-header {
-    top: max(66px, calc(51px + env(safe-area-inset-top)));
+    top: 66px;
     margin: -18px -14px 14px;
     padding: 9px 10px;
     border-radius: 16px 16px 0 0;
