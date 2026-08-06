@@ -39,7 +39,7 @@
         border-radius: 8px;
   }
 }
-@media screen and (max-width: 390px) {
+@media (max-width: 390px) {
   .data-import-mode-tabs button,
   .data-import-tabs button {
     padding-inline: 5px;
