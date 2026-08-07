@@ -329,7 +329,9 @@ const trainerGroupLockMigrationSource = await readFile(
   "utf8",
 );
 const userManagementSource = await readFile(new URL("../src/pages/UserManagementPage.tsx", import.meta.url), "utf8");
+const exerciseCatalogPageSource = await readFile(new URL("../src/pages/ExerciseCatalogPage.tsx", import.meta.url), "utf8");
 const exerciseCatalogCssSource = await readFile(new URL("../src/styles/exercise-catalog.css", import.meta.url), "utf8");
+const uiDesignSystemSource = await readFile(new URL("../src/styles/ui-design-system.css", import.meta.url), "utf8");
 const trainingBlocksPageSource = await readFile(new URL("../src/pages/TrainingBlocksPage.tsx", import.meta.url), "utf8");
 const trainingBlockEditorSource = await readFile(new URL("../src/features/training-blocks/TrainingBlockEditor.tsx", import.meta.url), "utf8");
 const trainingBlockInfoSource = await readFile(new URL("../src/features/training-blocks/TrainingBlockExerciseInfoDialog.tsx", import.meta.url), "utf8");
@@ -369,9 +371,17 @@ test("E2 schützt Trainer und Gruppen atomar vor paralleler Bearbeitung", () => 
   assert.ok(trainerGroupLockMigrationSource.includes("from authenticated, anon, public"));
 });
 
-test("Übungs- und Trainingsblockinformationen nutzen die mobile Breite einheitlich", () => {
-  assert.ok(exerciseCatalogCssSource.includes("Kartenbreite unter den Aktionssymbolen vollständig nutzen"));
-  assert.ok(exerciseCatalogCssSource.includes("position: absolute"));
+test("D2 macht den Übungskatalog kompakt, aufklappbar und mobile-first", () => {
+  assert.ok(exerciseCatalogPageSource.includes("exercise-list-compact"));
+  assert.ok(exerciseCatalogPageSource.includes("exercise-quick-info"));
+  assert.ok(exerciseCatalogPageSource.includes("exercise-quick-parameters"));
+  assert.ok(exerciseCatalogPageSource.includes("exercise-usage-summary"));
+  assert.ok(exerciseCatalogPageSource.includes("ui-chip-row"));
+  assert.ok(exerciseCatalogPageSource.includes("ui-segmented"));
+  assert.ok(exerciseCatalogCssSource.includes("position: sticky"));
+  assert.ok(exerciseCatalogCssSource.includes("var(--app-bottom-sticky-offset)"));
+  assert.ok(uiDesignSystemSource.includes("--ui-radius-lg"));
+  assert.ok(uiDesignSystemSource.includes(".ui-command-surface"));
   assert.ok(trainingBlocksPageSource.includes("training-block-overview-info-button"));
   assert.ok(trainingBlockEditorSource.includes("TrainingBlockExerciseInfoDialog"));
   assert.ok(trainingBlockInfoSource.includes("Trainerhinweise"));

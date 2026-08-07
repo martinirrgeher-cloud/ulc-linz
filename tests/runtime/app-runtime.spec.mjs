@@ -107,6 +107,29 @@ test("zentrales Stammdatenmodul rendert ohne React-Laufzeitfehler", async ({ pag
   await expectRuntimeHealthy(page, problems, unhandled);
 });
 
+test("D2 Übungskatalog zeigt kompakte Liste, Schnellinfos und Filter-Sheet", async ({ page }) => {
+  const problems = collectRuntimeProblems(page);
+  await installAuthenticatedSession(page);
+  const unhandled = await installSupabaseMock(page);
+
+  await expectAuthenticatedHeading(page, "/module/exercise_catalog", "Übungskatalog");
+  const firstExercise = page.locator(".exercise-list-item").first();
+  await expect(firstExercise).toBeVisible();
+  await expect(firstExercise.locator(".exercise-quick-info")).toHaveCount(0);
+  await firstExercise.locator(".exercise-list-primary").click();
+  await expect(firstExercise.locator(".exercise-quick-info")).toBeVisible();
+  await expect(firstExercise.locator(".exercise-usage-summary")).toBeVisible();
+
+  await page.getByRole("button", { name: "Filtermenü öffnen", exact: true }).click();
+  await expect(page.getByRole("region", { name: "Übungskatalog filtern" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Liste", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Raster", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Anwenden", exact: true }).click();
+  await expect(page.getByRole("region", { name: "Übungskatalog filtern" })).toHaveCount(0);
+
+  await expectRuntimeHealthy(page, problems, unhandled);
+});
+
 
 test("Übungsvorlage enthält Beispielzeile und befüllte Excel-Dropdownquellen", async ({ page }) => {
   const problems = collectRuntimeProblems(page);
