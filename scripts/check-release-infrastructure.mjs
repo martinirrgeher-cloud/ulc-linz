@@ -9,6 +9,7 @@ const requiredFiles = [
   "scripts/release/run-runtime-smoke.mjs",
   "scripts/release/serve-runtime-build.mjs",
   "scripts/release/approve-change.mjs",
+  "scripts/test-release-approval.mjs",
   "ULC-AENDERUNG-STARTEN.cmd",
   "ULC-PRUEFEN.cmd",
   "ULC-FREIGEBEN.cmd",
@@ -17,9 +18,10 @@ const requiredFiles = [
 for (const file of requiredFiles) assert.ok(existsSync(file), `Release-Infrastruktur fehlt: ${file}`);
 
 const pkg = JSON.parse(readFileSync("package.json", "utf8"));
-for (const script of ["test:runtime", "test:runtime:ci", "release:check", "release:check:ci"]) {
+for (const script of ["test:runtime", "test:runtime:ci", "release:check", "release:check:ci", "test:release-approval"]) {
   assert.ok(pkg.scripts?.[script], `package.json Script fehlt: ${script}`);
 }
+assert.match(pkg.scripts["ci:quality"], /test:release-approval/, "CI-Qualitaetspruefung muss die Freigaberoutine selbst testen.");
 assert.equal(
   pkg.scripts["release:check"],
   pkg.scripts["release:check:ci"],
@@ -74,4 +76,4 @@ if (/\bBrowserRouter\b/.test(appSource)) {
   assert.deepEqual(blockerUsers, [], `BrowserRouter ist mit useBlocker nicht kompatibel: ${blockerUsers.join(", ")}`);
 }
 
-console.log("Release-Infrastruktur: isolierter Runtime-Build, identischer Local/CI-Flow, Router-Kompatibilitaet und Browser-Gate sind vollstaendig.");
+console.log("Release-Infrastruktur: Runtime-Build, Local/CI-Flow, Router-Kompatibilitaet, Browser-Gate und Freigaberoutine sind vollstaendig abgesichert.");
