@@ -4,6 +4,7 @@ import type { ExerciseParameterInputType } from "@/features/exercise-catalog/typ
 export type ImportKind = "exercises" | "athletes";
 export type ImportAction = "create" | "update" | "skip";
 export type ImportSeverity = "ready" | "warning" | "error";
+export type ImportReviewStatus = "pending" | "approved" | "skipped";
 
 export type ExerciseParameterImport = {
   key: string;
@@ -28,6 +29,8 @@ export type ExerciseImportDraft = {
   commonMistakes: string;
   equipment: string[];
   groupNames: string[];
+  difficulty: string;
+  similarExerciseNames: string[];
   videoUrl: string;
   isActive: boolean | null;
   parameters: ExerciseParameterImport[];
@@ -54,6 +57,7 @@ export type ImportPreviewRow<T> = {
   severity: ImportSeverity;
   warnings: string[];
   errors: string[];
+  reviewStatus?: ImportReviewStatus;
 };
 
 export type ImportResultRow = {

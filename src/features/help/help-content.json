@@ -887,7 +887,7 @@
           "id": "export",
           "title": "Export",
           "paragraphs": [
-            "Der Export entspricht der Importstruktur und kann wieder eingelesen werden."
+            "Der Export entspricht der Importstruktur und kann wieder eingelesen werden. Bei Übungen werden auch Schwierigkeitsgrad, ähnliche Übungen und Planungsparameter mitgeführt."
           ],
           "steps": [
             "Datentyp wählen.",
@@ -899,7 +899,9 @@
           "id": "prepare",
           "title": "Datei vorbereiten",
           "bullets": [
-            "Vorgesehene Spalten und Auswahlwerte verwenden.",
+            "Für feste Stammdatenwerte die eingebauten Excel-Dropdowns verwenden.",
+            "Bei Übungen stehen Dropdowns für Kategorie, Unterkategorie, Schwierigkeitsgrad, Material, Trainingsgruppe, ähnliche Übungen und Planungsparameter bereit. Zu jedem Planungsparameter können Standardwert, Minimum und Maximum bereits direkt in Excel gepflegt werden. Technische Felder wie Übungs-ID oder Parameter-Schlüssel sind in der Vorlage nicht sichtbar.",
+            "Die erste Zeile ist als Beispiel vorausgefüllt. Solange die Bezeichnung „BEISPIEL – bitte überschreiben“ unverändert bleibt, wird diese Zeile beim Import ignoriert.",
             "Maximal 5 MB und 1.000 Datenzeilen.",
             "Keine zusätzlichen Tabellenblätter für Ergänzungen."
           ]
@@ -908,7 +910,9 @@
           "id": "preview",
           "title": "Importvorschau",
           "paragraphs": [
-            "Pro Zeile wird Neu anlegen, Aktualisieren oder Überspringen angezeigt. Die Vorschau vor dem Import vollständig kontrollieren."
+            "Übungen werden nach dem Hochladen noch nicht gespeichert. Jede Zeile öffnet sich im gleichen Übungseditor wie im Übungskatalog. Dort können Basisdaten, Anleitung, ähnliche Übungen und Planungsparameter inklusive Standardwert, Minimum, Maximum, Schrittweite und Pflichtfeld ergänzt oder korrigiert werden.",
+            "Datei-Video-Uploads sind während der Importprüfung deaktiviert, weil dabei bereits Serverdaten entstehen würden. Ein Video- oder Weblink kann normal gepflegt werden.",
+            "Jede Übung muss ausdrücklich mit „Freigeben & nächste“ bestätigt oder übersprungen werden. Erst nach Abschluss dieser Prüfung können die freigegebenen Übungen gemeinsam in den Katalog übernommen werden."
           ]
         },
         {

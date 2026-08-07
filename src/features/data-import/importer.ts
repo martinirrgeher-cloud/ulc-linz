@@ -34,7 +34,11 @@ const PARAMETER_SHEET = "Planungsparameter";
 const ATHLETE_SHEET = "Athleten";
 const CONTACT_SHEET = "Kontakte";
 const MIN_EXERCISE_PARAMETER_SLOTS = 4;
+const MIN_EXERCISE_MATERIAL_SLOTS = 6;
+const MIN_EXERCISE_GROUP_SLOTS = 4;
+const MIN_SIMILAR_EXERCISE_SLOTS = 6;
 const MIN_ATHLETE_CONTACT_SLOTS = 3;
+export const EXERCISE_TEMPLATE_EXAMPLE_NAME = "BEISPIEL – bitte überschreiben";
 
 function normalized(value: string): string {
   return value.trim().toLocaleLowerCase("de-AT").replace(/\s+/g, " ");
@@ -76,6 +80,14 @@ function text(values: Record<string, string>, ...headers: string[]): string {
     if (header in values) return values[header] ?? "";
   }
   return "";
+}
+
+function hasHeader(values: Record<string, string>, ...headers: string[]): boolean {
+  return headers.some((header) => header in values);
+}
+
+function hasNumberedPrefix(values: Record<string, string>, ...prefixes: string[]): boolean {
+  return Object.keys(values).some((header) => prefixes.some((prefix) => normalized(header).startsWith(normalized(prefix))));
 }
 
 function uniqueMap<T>(items: T[], label: (item: T) => string): Map<string, T> {
@@ -147,7 +159,11 @@ function numberedSlots(values: Record<string, string>, prefix: string): number[]
 }
 
 function inlineExerciseParameters(values: Record<string, string>): ExerciseParameterImport[] {
-  return numberedSlots(values, "Parameter").flatMap((slot) => {
+  const slots = [...new Set([
+    ...numberedSlots(values, "Parameter"),
+    ...numberedSlots(values, "Planungsparameter"),
+  ])].sort((left, right) => left - right);
+  return slots.flatMap((slot) => {
     const label = text(values, `Parameter ${slot}`, `Planungsparameter ${slot}`);
     const key = text(values, `Parameter ${slot} Schlüssel`, `Parameter ${slot} Schluessel`, `Parameter ${slot} Key`);
     if (!label && !key) return [];
@@ -158,9 +174,9 @@ function inlineExerciseParameters(values: Record<string, string>): ExerciseParam
       label,
       unit: text(values, `Parameter ${slot} Einheit`),
       inputType,
-      defaultValue: text(values, `Parameter ${slot} Standardwert`),
-      minValue: parseNumber(text(values, `Parameter ${slot} Minimum`)),
-      maxValue: parseNumber(text(values, `Parameter ${slot} Maximum`)),
+      defaultValue: text(values, `Parameter ${slot} Standardwert`, `Planungsparameter ${slot} Standardwert`),
+      minValue: parseNumber(text(values, `Parameter ${slot} Minimum`, `Planungsparameter ${slot} Minimum`)),
+      maxValue: parseNumber(text(values, `Parameter ${slot} Maximum`, `Planungsparameter ${slot} Maximum`)),
       stepValue: parseNumber(text(values, `Parameter ${slot} Schrittweite`)),
       isRequired: parseBoolean(text(values, `Parameter ${slot} Pflichtfeld`)) === true,
       sortOrder: slot,
@@ -173,6 +189,10 @@ function exerciseDraftFromExisting(exercise: Exercise, catalog: ExerciseCatalogD
     const group = catalog.groups.find((candidate) => candidate.id === groupId);
     return group ? [group.name] : [];
   });
+  const similarExerciseNames = exercise.similarExerciseIds.flatMap((exerciseId) => {
+    const candidate = catalog.exercises.find((item) => item.id === exerciseId);
+    return candidate ? [candidate.name] : [];
+  });
   return {
     name: exercise.name,
     category: exercise.categoryTitle,
@@ -183,6 +203,8 @@ function exerciseDraftFromExisting(exercise: Exercise, catalog: ExerciseCatalogD
     commonMistakes: exercise.commonMistakes ?? "",
     equipment: [...exercise.equipment],
     groupNames,
+    difficulty: exercise.difficultyLabel ?? "",
+    similarExerciseNames,
     videoUrl: exercise.videoUrl ?? "",
     isActive: exercise.isActive,
     parameters: [],
@@ -199,6 +221,7 @@ export function createExercisePreview(
   const categories = uniqueMap(catalog.categories, (item) => item.title);
   const subcategories = uniqueMap(catalog.subcategories, (item) => item.label);
   const materials = uniqueMap(catalog.materials, (item) => item.label);
+  const difficulties = uniqueMap(catalog.difficulties, (item) => item.label);
   const parameterOptions = uniqueMap(catalog.parameterOptions, (item) => item.label);
   const groups = uniqueMap(catalog.groups, (item) => item.name);
   catalog.groups.forEach((group) => {
@@ -206,6 +229,21 @@ export function createExercisePreview(
   });
   const existingByName = uniqueMap(catalog.exercises, (item) => item.name);
   const existingById = new Map(catalog.exercises.map((item) => [item.id, item]));
+  const exerciseRecords = workbookSheetRecords(sheets, EXERCISE_SHEET).filter(({ values }) => {
+    const importedName = text(values, "Bezeichnung", "Name");
+    const exerciseId = text(values, "Übungs-ID", "Uebungs-ID", "Exercise-ID");
+    if (normalized(importedName) === normalized(EXERCISE_TEMPLATE_EXAMPLE_NAME)) return false;
+    return Boolean(importedName.trim() || exerciseId.trim());
+  });
+  const fileExerciseNames = new Set(
+    exerciseRecords
+      .map(({ values }) => normalized(text(values, "Bezeichnung", "Name")))
+      .filter(Boolean),
+  );
+  const availableSimilarNames = new Set([
+    ...catalog.exercises.map((item) => normalized(item.name)),
+    ...fileExerciseNames,
+  ]);
   const fileKeys = new Set<string>();
   const consumedParameterReferences = new Set<string>();
 
@@ -224,6 +262,14 @@ export function createExercisePreview(
     if (parameterGroup) consumedParameterReferences.add(parameterGroup.reference);
     const importedEquipment = listFromColumns(values, ["Material"], ["Material "]);
     const importedGroups = listFromColumns(values, ["Trainingsgruppen", "Gruppen"], ["Trainingsgruppe ", "Gruppe "]);
+    const hasDifficultyColumn = hasHeader(values, "Schwierigkeitsgrad", "Schwierigkeit");
+    const hasSimilarColumns = hasHeader(values, "Ähnliche Übungen", "Aehnliche Uebungen")
+      || hasNumberedPrefix(values, "Ähnliche Übung ", "Aehnliche Uebung ");
+    const importedSimilarExercises = listFromColumns(
+      values,
+      ["Ähnliche Übungen", "Aehnliche Uebungen"],
+      ["Ähnliche Übung ", "Aehnliche Uebung "],
+    );
     const draft: ExerciseImportDraft = {
       name: importedName || base?.name || "",
       category: text(values, "Kategorie") || base?.category || "",
@@ -234,6 +280,8 @@ export function createExercisePreview(
       commonMistakes: text(values, "Häufige Fehler", "Haeufige Fehler") || base?.commonMistakes || "",
       equipment: importedEquipment,
       groupNames: importedGroups,
+      difficulty: hasDifficultyColumn ? text(values, "Schwierigkeitsgrad", "Schwierigkeit") : base?.difficulty ?? "",
+      similarExerciseNames: hasSimilarColumns ? importedSimilarExercises : base?.similarExerciseNames ?? [],
       videoUrl: text(values, "Video-URL", "Video URL") || base?.videoUrl || "",
       isActive: parseBoolean(text(values, "Aktiv")) ?? base?.isActive ?? null,
       parameters: inlineParameters.length > 0 ? inlineParameters : parameterGroup?.parameters ?? [],
@@ -252,11 +300,22 @@ export function createExercisePreview(
     if (draft.subcategory && !subcategories.has(normalized(draft.subcategory))) {
       (canCreateOptions ? warnings : errors).push(`Unterkategorie „${draft.subcategory}“ ist nicht vorhanden.`);
     }
+    if (draft.difficulty && !difficulties.has(normalized(draft.difficulty))) {
+      (canCreateOptions ? warnings : errors).push(`Schwierigkeitsgrad „${draft.difficulty}“ ist nicht vorhanden.`);
+    }
     draft.equipment.forEach((item) => {
       if (!materials.has(normalized(item))) (canCreateOptions ? warnings : errors).push(`Material „${item}“ ist nicht vorhanden.`);
     });
     draft.groupNames.forEach((item) => {
       if (!groups.has(normalized(item))) errors.push(`Trainingsgruppe „${item}“ ist nicht vorhanden.`);
+    });
+    draft.similarExerciseNames.forEach((item) => {
+      const relatedExisting = existingByName.get(normalized(item));
+      if (normalized(item) === normalized(draft.name) || (existing && relatedExisting?.id === existing.id)) {
+        errors.push(`Die Übung „${draft.name}“ kann nicht mit sich selbst als ähnlich verknüpft werden.`);
+      } else if (!availableSimilarNames.has(normalized(item))) {
+        errors.push(`Ähnliche Übung „${item}“ wurde weder im Katalog noch in dieser Importdatei gefunden.`);
+      }
     });
     draft.parameters.forEach((parameter) => {
       if (!parameterOptions.has(normalized(parameter.label))) {
@@ -280,10 +339,11 @@ export function createExercisePreview(
       severity: severity(errors, warnings),
       warnings,
       errors,
+      reviewStatus: "pending",
     };
   }
 
-  const rows: ImportPreviewRow<ExerciseImportDraft>[] = workbookSheetRecords(sheets, EXERCISE_SHEET).map(({ rowNumber, values }) => buildRow(rowNumber, values));
+  const rows: ImportPreviewRow<ExerciseImportDraft>[] = exerciseRecords.map(({ rowNumber, values }) => buildRow(rowNumber, values));
   groupedParameters.filter((group) => !consumedParameterReferences.has(group.reference)).forEach((group) => {
     const existing = (group.exerciseId ? existingById.get(group.exerciseId) : null) ?? existingByName.get(exerciseKey(group.exerciseName)) ?? null;
     const errors: string[] = [];
@@ -307,6 +367,8 @@ export function createExercisePreview(
       commonMistakes: "",
       equipment: [],
       groupNames: [],
+      difficulty: "",
+      similarExerciseNames: [],
       videoUrl: "",
       isActive: null,
       parameters: [],
@@ -322,6 +384,7 @@ export function createExercisePreview(
       severity: severity(errors, warnings),
       warnings,
       errors,
+      reviewStatus: "pending",
     });
   });
   return rows;
@@ -526,10 +589,11 @@ function collectMissingOptions(
   };
   const queue: Array<{ listKey: DropdownListKey; label: string; parameter?: ExerciseParameterImport }> = [];
 
-  rows.filter((row) => row.action !== "skip" && row.errors.length === 0).forEach((row) => {
+  rows.filter((row) => row.reviewStatus === "approved" && row.action !== "skip" && row.errors.length === 0).forEach((row) => {
     const values: Array<{ listKey: DropdownListKey; label: string; parameter?: ExerciseParameterImport }> = [
       { listKey: "category", label: row.value.category },
       ...(row.value.subcategory ? [{ listKey: "subcategory" as const, label: row.value.subcategory }] : []),
+      ...(row.value.difficulty ? [{ listKey: "difficulty" as const, label: row.value.difficulty }] : []),
       ...row.value.equipment.map((label) => ({ listKey: "material" as const, label })),
       ...row.value.parameters.map((parameter) => ({
         listKey: "planning_parameter" as const,
@@ -622,6 +686,55 @@ function preparedParameters(parameters: ExerciseParameterDefinition[]): Array<Re
     }));
 }
 
+type SimilarExerciseReference = {
+  id: string | null;
+  name: string | null;
+};
+
+function similarExerciseReferences(
+  names: string[],
+  rows: ImportPreviewRow<ExerciseImportDraft>[],
+  catalog: ExerciseCatalogData,
+): SimilarExerciseReference[] {
+  const existingByName = uniqueMap(catalog.exercises, (exercise) => exercise.name);
+  const importedByName = new Map(
+    rows
+      .filter((row) => row.errors.length === 0)
+      .map((row) => [normalized(row.value.name), row] as const),
+  );
+
+  return names.map((name) => {
+    const imported = importedByName.get(normalized(name));
+    if (imported?.existingId) return { id: imported.existingId, name: imported.value.name };
+    if (imported?.reviewStatus === "approved" && imported.action !== "skip") return { id: null, name: imported.value.name };
+    const existing = existingByName.get(normalized(name));
+    if (existing) return { id: existing.id, name: existing.name };
+    throw new Error(`Ähnliche Übung „${name}“ wird in diesem Import nicht angelegt und ist im Katalog nicht vorhanden.`);
+  });
+}
+
+export function exerciseReviewIssues(
+  rows: ImportPreviewRow<ExerciseImportDraft>[],
+  catalog: ExerciseCatalogData,
+): string[] {
+  const existingNames = new Set(catalog.exercises.map((exercise) => normalized(exercise.name)));
+  const importedByName = new Map(rows.map((row) => [normalized(row.value.name), row] as const));
+  const issues = new Set<string>();
+
+  rows.filter((row) => row.reviewStatus === "approved" && row.errors.length === 0).forEach((row) => {
+    row.value.similarExerciseNames.forEach((name) => {
+      const normalizedName = normalized(name);
+      if (existingNames.has(normalizedName)) return;
+      const imported = importedByName.get(normalizedName);
+      if (!imported || imported.reviewStatus !== "approved") {
+        issues.add(`„${row.value.name}“ verweist auf „${name}“, diese neue ähnliche Übung wurde aber nicht freigegeben.`);
+      }
+    });
+  });
+
+  return [...issues];
+}
+
 export async function runExerciseImport(
   organizationId: string,
   importId: string,
@@ -635,7 +748,7 @@ export async function runExerciseImport(
   const exerciseMap = new Map(catalog.exercises.map((item) => [item.id, item]));
 
   const preparedRows: PreparedImportRow[] = rows.map((row) => {
-    if (row.action === "skip" || row.errors.length > 0) {
+    if (row.reviewStatus !== "approved" || row.action === "skip" || row.errors.length > 0) {
       return {
         row_number: row.rowNumber,
         label: row.label,
@@ -669,6 +782,8 @@ export async function runExerciseImport(
       common_mistakes: row.value.commonMistakes || base.commonMistakes || null,
       equipment: row.value.equipment.length > 0 ? row.value.equipment : base.equipment,
       group_ids: row.value.groupNames.length > 0 ? mapGroups(row.value.groupNames, catalog.groups) : base.groupIds,
+      difficulty_label: row.value.difficulty || null,
+      similar_exercise_refs: similarExerciseReferences(row.value.similarExerciseNames, rows, catalog),
       video_url: row.value.videoUrl || base.videoUrl || null,
       is_active: row.value.isActive ?? base.isActive,
       parameters: preparedParameters(importedParameters),
@@ -782,108 +897,202 @@ function workbookColumn(index: number): string {
   return result;
 }
 
-function exerciseWorkbookDefinition(catalog: ExerciseCatalogData, exercises: Exercise[]): DownloadWorkbookDefinition {
-  const categoryValues = catalog.categories.filter((item) => item.isActive !== false).map((item) => item.title);
-  const subcategoryValues = catalog.subcategories.filter((item) => item.isActive).map((item) => item.label);
-  const materialValues = catalog.materials.filter((item) => item.isActive).map((item) => item.label);
-  const groupValues = catalog.groups.map((item) => item.name);
-  const parameterValues = catalog.parameterOptions.filter((item) => item.isActive).map((item) => item.label);
-  const yesNo = ["Ja", "Nein"];
-  const inputTypes = ["Zahl", "Text"];
+function exerciseWorkbookDefinition(
+  catalog: ExerciseCatalogData,
+  exercises: Exercise[],
+  includeExampleRow: boolean,
+): DownloadWorkbookDefinition {
+  const sortedUnique = (values: string[]) => [...new Set(values.map((value) => value.trim()).filter(Boolean))]
+    .sort((left, right) => left.localeCompare(right, "de-AT"));
+  const categoryValues = sortedUnique([
+    ...catalog.categories.filter((item) => item.isActive !== false).map((item) => item.title),
+    ...exercises.map((exercise) => exercise.categoryTitle),
+  ]);
+  const subcategoryValues = sortedUnique([
+    ...catalog.subcategories.filter((item) => item.isActive).map((item) => item.label),
+    ...exercises.flatMap((exercise) => exercise.subcategory ? [exercise.subcategory] : []),
+  ]);
+  const difficultyValues = sortedUnique([
+    ...catalog.difficulties.filter((item) => item.isActive).map((item) => item.label),
+    ...exercises.flatMap((exercise) => exercise.difficultyLabel ? [exercise.difficultyLabel] : []),
+  ]);
+  const materialValues = sortedUnique([
+    ...catalog.materials.filter((item) => item.isActive).map((item) => item.label),
+    ...exercises.flatMap((exercise) => exercise.equipment),
+  ]);
+  const groupValues = sortedUnique(catalog.groups.map((item) => item.name));
+  const similarExerciseValues = sortedUnique(catalog.exercises.map((item) => item.name));
+  const parameterValues = sortedUnique([
+    ...catalog.parameterOptions.filter((item) => item.isActive).map((item) => item.label),
+    ...exercises.flatMap((exercise) => exercise.parameters.map((parameter) => parameter.label)),
+  ]);
+
+  const materialSlotCount = Math.max(MIN_EXERCISE_MATERIAL_SLOTS, ...exercises.map((exercise) => exercise.equipment.length));
+  const groupSlotCount = Math.max(MIN_EXERCISE_GROUP_SLOTS, ...exercises.map((exercise) => exercise.groupIds.length));
+  const similarSlotCount = Math.max(MIN_SIMILAR_EXERCISE_SLOTS, ...exercises.map((exercise) => exercise.similarExerciseIds.length));
   const parameterSlotCount = Math.max(MIN_EXERCISE_PARAMETER_SLOTS, ...exercises.map((exercise) => exercise.parameters.length));
-  const baseHeaders = [
-    "Übungs-ID", "Bezeichnung", "Kategorie", "Unterkategorie", "Trainingsziel", "Beschreibung",
-    "Ausführungshinweise", "Häufige Fehler", "Material 1", "Material 2", "Material 3", "Material 4",
-    "Material 5", "Material 6", "Trainingsgruppe 1", "Trainingsgruppe 2", "Trainingsgruppe 3",
-    "Trainingsgruppe 4", "Video-URL", "Aktiv",
-  ];
+  const materialHeaders = Array.from({ length: materialSlotCount }, (_, index) => `Material ${index + 1}`);
+  const groupHeaders = Array.from({ length: groupSlotCount }, (_, index) => `Trainingsgruppe ${index + 1}`);
+  const similarHeaders = Array.from({ length: similarSlotCount }, (_, index) => `Ähnliche Übung ${index + 1}`);
   const parameterHeaders = Array.from({ length: parameterSlotCount }, (_, index) => {
     const slot = index + 1;
     return [
-      `Parameter ${slot} Schlüssel`, `Parameter ${slot}`, `Parameter ${slot} Einheit`,
-      `Parameter ${slot} Eingabetyp`, `Parameter ${slot} Standardwert`, `Parameter ${slot} Minimum`,
-      `Parameter ${slot} Maximum`, `Parameter ${slot} Schrittweite`, `Parameter ${slot} Pflichtfeld`,
+      `Planungsparameter ${slot}`,
+      `Planungsparameter ${slot} Standardwert`,
+      `Planungsparameter ${slot} Minimum`,
+      `Planungsparameter ${slot} Maximum`,
     ];
   }).flat();
+  const headers = [
+    "Bezeichnung", "Kategorie", "Unterkategorie", "Schwierigkeitsgrad", "Trainingsziel", "Beschreibung",
+    "Ausführungshinweise", "Häufige Fehler", ...materialHeaders, ...groupHeaders, ...similarHeaders,
+    "Video-URL", ...parameterHeaders,
+  ];
+
   const exerciseRows = exercises.map((exercise) => {
     const groupNames = exercise.groupIds.flatMap((id) => {
       const group = catalog.groups.find((candidate) => candidate.id === id);
       return group ? [group.name] : [];
     });
-    const parameterCells = Array.from({ length: parameterSlotCount }, (_, index) => {
-      const parameter = exercise.parameters[index];
-      if (!parameter) return Array.from({ length: 9 }, () => "");
-      return [
-        parameter.key,
-        parameter.label,
-        parameter.unit,
-        parameter.inputType === "text" ? "Text" : "Zahl",
-        parameter.defaultValue,
-        parameter.minValue === null ? "" : String(parameter.minValue).replace(".", ","),
-        parameter.maxValue === null ? "" : String(parameter.maxValue).replace(".", ","),
-        parameter.stepValue === null ? "" : String(parameter.stepValue).replace(".", ","),
-        parameter.isRequired ? "Ja" : "Nein",
-      ];
-    }).flat();
+    const similarNames = exercise.similarExerciseIds.flatMap((id) => {
+      const candidate = catalog.exercises.find((item) => item.id === id);
+      return candidate ? [candidate.name] : [];
+    });
     return [
-      exercise.id, exercise.name, exercise.categoryTitle, exercise.subcategory ?? "", exercise.goal ?? "",
-      exercise.description ?? "", exercise.coachingCues ?? "", exercise.commonMistakes ?? "",
-      ...Array.from({ length: 6 }, (_, index) => exercise.equipment[index] ?? ""),
-      ...Array.from({ length: 4 }, (_, index) => groupNames[index] ?? ""),
-      exercise.videoUrl ?? "", exercise.isActive ? "Ja" : "Nein", ...parameterCells,
+      exercise.name,
+      exercise.categoryTitle,
+      exercise.subcategory ?? "",
+      exercise.difficultyLabel ?? "",
+      exercise.goal ?? "",
+      exercise.description ?? "",
+      exercise.coachingCues ?? "",
+      exercise.commonMistakes ?? "",
+      ...Array.from({ length: materialSlotCount }, (_, index) => exercise.equipment[index] ?? ""),
+      ...Array.from({ length: groupSlotCount }, (_, index) => groupNames[index] ?? ""),
+      ...Array.from({ length: similarSlotCount }, (_, index) => similarNames[index] ?? ""),
+      exercise.videoUrl ?? "",
+      ...Array.from({ length: parameterSlotCount }, (_, index) => {
+        const parameter = exercise.parameters[index];
+        return [
+          parameter?.label ?? "",
+          parameter?.defaultValue ?? "",
+          parameter?.minValue === null || parameter?.minValue === undefined ? "" : String(parameter.minValue),
+          parameter?.maxValue === null || parameter?.maxValue === undefined ? "" : String(parameter.maxValue),
+        ];
+      }).flat(),
     ];
   });
-  const parameterStart = baseHeaders.length;
-  const parameterValidations = Array.from({ length: parameterSlotCount }, (_, index) => {
-    const start = parameterStart + index * 9;
-    return [
-      { range: `${workbookColumn(start + 1)}2:${workbookColumn(start + 1)}1000`, definedName: "ParameterListe" },
-      { range: `${workbookColumn(start + 3)}2:${workbookColumn(start + 3)}1000`, definedName: "EingabetypListe" },
-      { range: `${workbookColumn(start + 8)}2:${workbookColumn(start + 8)}1000`, definedName: "JaNeinListe" },
-    ];
-  }).flat();
+
+  const exampleRow = includeExampleRow ? [[
+    EXERCISE_TEMPLATE_EXAMPLE_NAME,
+    categoryValues[0] ?? "",
+    subcategoryValues[0] ?? "",
+    difficultyValues[0] ?? "",
+    "z. B. Beschleunigung und saubere Technik",
+    "Kurze Beschreibung der Übung",
+    "z. B. aufrechte Haltung, aktiver Fußaufsatz",
+    "z. B. zu große Schritte",
+    ...Array.from({ length: materialSlotCount }, (_, index) => index === 0 ? materialValues[0] ?? "" : ""),
+    ...Array.from({ length: groupSlotCount }, (_, index) => index === 0 ? groupValues[0] ?? "" : ""),
+    ...Array.from({ length: similarSlotCount }, (_, index) => index === 0 ? similarExerciseValues[0] ?? "" : ""),
+    "",
+    ...Array.from({ length: parameterSlotCount }, (_, index) => index === 0
+      ? [parameterValues[0] ?? "", "30", "1", "100"]
+      : ["", "", "", ""]).flat(),
+  ]] : [];
+
+  const categoryColumn = workbookColumn(headers.indexOf("Kategorie"));
+  const subcategoryColumn = workbookColumn(headers.indexOf("Unterkategorie"));
+  const difficultyColumn = workbookColumn(headers.indexOf("Schwierigkeitsgrad"));
+  const materialStart = headers.indexOf("Material 1");
+  const groupStart = headers.indexOf("Trainingsgruppe 1");
+  const similarStart = headers.indexOf("Ähnliche Übung 1");
+  const parameterColumns = Array.from({ length: parameterSlotCount }, (_, index) => (
+    headers.indexOf(`Planungsparameter ${index + 1}`)
+  ));
   const listSheetName = "Auswahllisten";
+  const dropdownFormula = (column: string, values: string[]) => (
+    `INDIRECT("${listSheetName}!${definedRange(column, values)}")`
+  );
+  const validation = (
+    range: string,
+    listColumn: string,
+    values: string[],
+    allowCustomValue = false,
+  ) => values.length > 0 ? [{
+    range,
+    formula1: dropdownFormula(listColumn, values),
+    sourceValueCount: values.length,
+    allowCustomValue,
+  }] : [];
+
   return {
     sheets: [
       {
         name: EXERCISE_SHEET,
-        rows: [[...baseHeaders, ...parameterHeaders], ...exerciseRows],
-        widths: [38, 24, 18, 20, 24, 36, 36, 32, 18, 18, 18, 18, 18, 18, 22, 22, 22, 22, 34, 10,
-          ...Array.from({ length: parameterSlotCount }, () => [22, 22, 12, 14, 16, 12, 12, 14, 12]).flat()],
+        rows: [headers, ...exampleRow, ...exerciseRows],
+        widths: [
+          26, 20, 20, 20, 24, 36, 36, 32,
+          ...Array.from({ length: materialSlotCount }, () => 18),
+          ...Array.from({ length: groupSlotCount }, () => 22),
+          ...Array.from({ length: similarSlotCount }, () => 24),
+          34,
+          ...Array.from({ length: parameterSlotCount }, () => [24, 16, 14, 14]).flat(),
+        ],
         validations: [
-          { range: "C2:C1000", definedName: "KategorienListe" },
-          { range: "D2:D1000", definedName: "UnterkategorienListe" },
-          ...["I", "J", "K", "L", "M", "N"].map((column) => ({ range: `${column}2:${column}1000`, definedName: "MaterialListe" })),
-          ...["O", "P", "Q", "R"].map((column) => ({ range: `${column}2:${column}1000`, definedName: "GruppenListe" })),
-          { range: "T2:T1000", definedName: "JaNeinListe" },
-          ...parameterValidations,
+          ...validation(`${categoryColumn}2:${categoryColumn}1000`, "A", categoryValues),
+          ...validation(`${subcategoryColumn}2:${subcategoryColumn}1000`, "B", subcategoryValues),
+          ...validation(`${difficultyColumn}2:${difficultyColumn}1000`, "C", difficultyValues),
+          ...Array.from({ length: materialSlotCount }, (_, index) => validation(
+            `${workbookColumn(materialStart + index)}2:${workbookColumn(materialStart + index)}1000`,
+            "D",
+            materialValues,
+          )).flat(),
+          ...Array.from({ length: groupSlotCount }, (_, index) => validation(
+            `${workbookColumn(groupStart + index)}2:${workbookColumn(groupStart + index)}1000`,
+            "E",
+            groupValues,
+          )).flat(),
+          ...Array.from({ length: similarSlotCount }, (_, index) => validation(
+            `${workbookColumn(similarStart + index)}2:${workbookColumn(similarStart + index)}1000`,
+            "F",
+            similarExerciseValues,
+            true,
+          )).flat(),
+          ...parameterColumns.map((columnIndex) => validation(
+            `${workbookColumn(columnIndex)}2:${workbookColumn(columnIndex)}1000`,
+            "G",
+            parameterValues,
+          )).flat(),
         ],
       },
       {
         name: listSheetName,
         hidden: true,
-        rows: [["Kategorien", "Unterkategorien", "Material", "Trainingsgruppen", "Planungsparameter", "Ja/Nein", "Eingabetyp"], ...listRows([categoryValues, subcategoryValues, materialValues, groupValues, parameterValues, yesNo, inputTypes])],
-        widths: [24, 24, 24, 28, 26, 12, 14],
+        rows: [[
+          "Kategorien", "Unterkategorien", "Schwierigkeitsgrade", "Material", "Trainingsgruppen",
+          "Ähnliche Übungen", "Planungsparameter",
+        ], ...listRows([
+          categoryValues,
+          subcategoryValues,
+          difficultyValues,
+          materialValues,
+          groupValues,
+          similarExerciseValues,
+          parameterValues,
+        ])],
+        widths: [24, 24, 24, 24, 28, 32, 26],
       },
-    ],
-    definedNames: [
-      { name: "KategorienListe", sheetName: listSheetName, range: definedRange("A", categoryValues) },
-      { name: "UnterkategorienListe", sheetName: listSheetName, range: definedRange("B", subcategoryValues) },
-      { name: "MaterialListe", sheetName: listSheetName, range: definedRange("C", materialValues) },
-      { name: "GruppenListe", sheetName: listSheetName, range: definedRange("D", groupValues) },
-      { name: "ParameterListe", sheetName: listSheetName, range: definedRange("E", parameterValues) },
-      { name: "JaNeinListe", sheetName: listSheetName, range: definedRange("F", yesNo) },
-      { name: "EingabetypListe", sheetName: listSheetName, range: definedRange("G", inputTypes) },
     ],
   };
 }
 
 export function exerciseTemplateWorkbook(catalog: ExerciseCatalogData): DownloadWorkbookDefinition {
-  return exerciseWorkbookDefinition(catalog, []);
+  return exerciseWorkbookDefinition(catalog, [], true);
 }
 
 export function exerciseExportWorkbook(catalog: ExerciseCatalogData, exercises: Exercise[]): DownloadWorkbookDefinition {
-  return exerciseWorkbookDefinition(catalog, exercises);
+  return exerciseWorkbookDefinition(catalog, exercises, false);
 }
 
 function athleteWorkbookDefinition(athletes: Athlete[], groups: TrainingGroup[], linkableUsers: LinkableUser[]): DownloadWorkbookDefinition {

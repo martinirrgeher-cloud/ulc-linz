@@ -41,12 +41,22 @@ export type ExerciseEditorProps = {
   groups: ExerciseTrainingGroup[];
   organizationId: string;
   initialSection?: EditorSection;
+  initialValues?: ExerciseInput;
   canEdit: boolean;
   busy: boolean;
   lockNotice?: ReactNode;
+  headerEyebrow?: string;
+  headerTitle?: string;
+  headerMeta?: ReactNode;
+  submitLabel?: string;
+  cancelLabel?: string;
+  footerExtra?: ReactNode;
+  showVideos?: boolean;
+  videoEditEnabled?: boolean;
+  validateValues?: (values: ExerciseInput) => string | null;
   onCancel: () => void;
   onSubmit: (values: ExerciseInput) => Promise<void>;
-  onVideosChanged: (videos: Exercise["videos"]) => void;
+  onVideosChanged?: (videos: Exercise["videos"]) => void;
   onDirtyChange?: (dirty: boolean) => void;
 };
 
@@ -71,9 +81,19 @@ export function ExerciseEditor({
   groups,
   organizationId,
   initialSection = "basis",
+  initialValues,
   canEdit,
   busy,
   lockNotice,
+  headerEyebrow = "Übungskatalog",
+  headerTitle,
+  headerMeta,
+  submitLabel = "Speichern",
+  cancelLabel,
+  footerExtra,
+  showVideos = true,
+  videoEditEnabled = true,
+  validateValues,
   onCancel,
   onSubmit,
   onVideosChanged,
@@ -83,9 +103,16 @@ export function ExerciseEditor({
     ?? categories[0]?.key
     ?? "warmup";
   const [section, setSection] = useState<EditorSection>(initialSection);
-  const [values, setValues] = useState<ExerciseInput>(() =>
-    exercise ? exerciseToInput(exercise) : createEmptyExerciseInput(defaultCategoryKey),
-  );
+  const [values, setValues] = useState<ExerciseInput>(() => {
+    const source = initialValues ?? (exercise ? exerciseToInput(exercise) : createEmptyExerciseInput(defaultCategoryKey));
+    return {
+      ...source,
+      equipment: [...source.equipment],
+      similarExerciseIds: [...source.similarExerciseIds],
+      groupIds: [...source.groupIds],
+      parameters: source.parameters.map((parameter) => ({ ...parameter })),
+    };
+  });
   const [validationError, setValidationError] = useState<string | null>(null);
   const [videoBusy, setVideoBusy] = useState(false);
   const [videos, setVideos] = useState<Exercise["videos"]>(exercise?.videos ?? []);
@@ -218,6 +245,21 @@ export function ExerciseEditor({
       setSection("anleitung");
       return;
     }
+    const invalidParameter = values.parameters.find((parameter) => (
+      parameter.minValue !== null
+      && parameter.maxValue !== null
+      && parameter.minValue > parameter.maxValue
+    ));
+    if (invalidParameter) {
+      setValidationError(`Beim Parameter „${invalidParameter.label}“ darf das Minimum nicht größer als das Maximum sein.`);
+      setSection("parameter");
+      return;
+    }
+    const externalValidationError = validateValues?.(values) ?? null;
+    if (externalValidationError) {
+      setValidationError(externalValidationError);
+      return;
+    }
 
     setValidationError(null);
     await onSubmit(values);
@@ -233,8 +275,9 @@ export function ExerciseEditor({
       >
         <header className="exercise-editor-header">
           <div>
-            <p className="eyebrow">Übungskatalog</p>
-            <h2 id="exercise-editor-title">{exercise ? exercise.name : "Übung anlegen"}</h2>
+            <p className="eyebrow">{headerEyebrow}</p>
+            <h2 id="exercise-editor-title">{headerTitle ?? (exercise ? exercise.name : "Übung anlegen")}</h2>
+            {headerMeta}
             {!canEdit && <small>Nur-Lese-Ansicht</small>}
           </div>
           <button
@@ -262,9 +305,11 @@ export function ExerciseEditor({
           <button type="button" className={section === "parameter" ? "active" : ""} onClick={() => setSection("parameter")}>
             <Settings2 aria-hidden="true" />Parameter<span>{values.parameters.length}</span>
           </button>
-          <button type="button" className={section === "videos" ? "active" : ""} onClick={() => setSection("videos")}>
-            <Video aria-hidden="true" />Videos<span>{videoCount}</span>
-          </button>
+          {showVideos && (
+            <button type="button" className={section === "videos" ? "active" : ""} onClick={() => setSection("videos")}>
+              <Video aria-hidden="true" />Videos<span>{videoCount}</span>
+            </button>
+          )}
         </nav>
 
         <div className="exercise-editor-form">
@@ -437,18 +482,18 @@ export function ExerciseEditor({
               </div>
             )}
 
-            {section === "videos" && (
+            {showVideos && section === "videos" && (
               <div className="exercise-editor-panel exercise-video-editor-panel">
                 <ExerciseVideoPanel
                   organizationId={organizationId}
                   exerciseId={exercise?.id ?? null}
                   initialVideos={videos}
-                  canEdit={canEdit}
+                  canEdit={canEdit && videoEditEnabled}
                   disabled={busy}
                   onBusyChange={setVideoBusy}
                   onVideosChanged={(nextVideos) => {
                     setVideos(nextVideos);
-                    onVideosChanged(nextVideos);
+                    onVideosChanged?.(nextVideos);
                   }}
                   onVideoCountChange={setVideoCount}
                 />
@@ -502,10 +547,11 @@ export function ExerciseEditor({
           </fieldset>
 
           <footer className="exercise-editor-actions">
-            <button type="button" className="secondary-button" onClick={onCancel} disabled={busy || videoBusy}>{canEdit ? "Abbrechen" : "Schließen"}</button>
+            <button type="button" className="secondary-button" onClick={onCancel} disabled={busy || videoBusy}>{cancelLabel ?? (canEdit ? "Abbrechen" : "Schließen")}</button>
+            {footerExtra}
             {canEdit && (
               <button type="button" className="primary-button" onClick={() => void handleSave()} disabled={busy || videoBusy || Boolean(exactDuplicate)}>
-                <Save aria-hidden="true" />{busy ? "Wird gespeichert …" : "Speichern"}
+                <Save aria-hidden="true" />{busy ? "Wird verarbeitet …" : submitLabel}
               </button>
             )}
           </footer>

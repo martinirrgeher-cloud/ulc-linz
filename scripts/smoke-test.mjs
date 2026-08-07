@@ -235,9 +235,13 @@ const dataImportApiSource = await readFile(new URL("../src/features/data-import/
 const dataImportPageSource = await readFile(new URL("../src/pages/DataImportPage.tsx", import.meta.url), "utf8");
 const workbookSource = await readFile(new URL("../src/features/data-import/workbook.ts", import.meta.url), "utf8");
 const transactionalImportMigrationSource = await readFile(new URL("../supabase/migrations/202607290029_transactional_data_import.sql", import.meta.url), "utf8");
+const exerciseImportV2MigrationSource = await readFile(new URL("../supabase/migrations/202608070038_exercise_import_v2.sql", import.meta.url), "utf8");
+const dataImporterSource = await readFile(new URL("../src/features/data-import/importer.ts", import.meta.url), "utf8");
+const exerciseImportReviewSource = await readFile(new URL("../src/features/data-import/ExerciseImportReview.tsx", import.meta.url), "utf8");
+const supabaseMockSource = await readFile(new URL("../tests/e2e/helpers/supabase-mock.mjs", import.meta.url), "utf8");
 
 test("Datenimport ist begrenzt, idempotent und transaktional", () => {
-  assert.ok(dataImportApiSource.includes('apply_exercise_import_v1'));
+  assert.ok(dataImportApiSource.includes('apply_exercise_import_v2'));
   assert.ok(dataImportApiSource.includes('apply_athlete_import_v1'));
   assert.ok(dataImportPageSource.includes("importRunId"), "Idempotente Import-ID fehlt.");
   assert.doesNotMatch(dataImportPageSource, /\.xls,/);
@@ -250,6 +254,47 @@ test("Datenimport ist begrenzt, idempotent und transaktional", () => {
   assert.ok(transactionalImportMigrationSource.includes("apply_exercise_import_v1"));
   assert.ok(transactionalImportMigrationSource.includes("apply_athlete_import_v1"));
   assert.ok(transactionalImportMigrationSource.includes("Der gesamte Import wurde abgebrochen"));
+  assert.ok(exerciseImportV2MigrationSource.includes("apply_exercise_import_v2"));
+  assert.ok(exerciseImportV2MigrationSource.includes("difficulty"));
+  assert.ok(exerciseImportV2MigrationSource.includes("similar_exercise_refs"));
+  assert.ok(exerciseImportV2MigrationSource.includes("exercise_similarities"));
+  assert.ok(dataImporterSource.includes('"Schwierigkeitsgrad"'));
+  assert.ok(dataImporterSource.includes('"Ähnliche Übung 1"'));
+  for (const dropdownColumn of [
+    '"Kategorie"',
+    '"Unterkategorie"',
+    '"Schwierigkeitsgrad"',
+    '"Material 1"',
+    '"Trainingsgruppe 1"',
+    '"Ähnliche Übung 1"',
+    '`Planungsparameter ${slot}`',
+  ]) {
+    assert.ok(dataImporterSource.includes(dropdownColumn), `Excel-Dropdownspalte fehlt: ${dropdownColumn}`);
+  }
+  assert.ok(exerciseImportV2MigrationSource.includes("Vereinigungsmenge aller in der Datei gewünschten Beziehungen"));
+  assert.ok(dataImporterSource.includes('EXERCISE_TEMPLATE_EXAMPLE_NAME = "BEISPIEL – bitte überschreiben"'), "Beispielzeile der Übungsvorlage fehlt.");
+  assert.ok(dataImporterSource.includes('`Planungsparameter ${slot}`'), "Planungsparameter-Spalten fehlen.");
+  for (const valueColumn of ["Standardwert", "Minimum", "Maximum"]) {
+    assert.ok(
+      dataImporterSource.includes('`Planungsparameter ${slot} ' + valueColumn + '`'),
+      `Excel-Wertespalte fuer Planungsparameter fehlt: ${valueColumn}`,
+    );
+  }
+  assert.ok(dataImporterSource.includes('`Planungsparameter ${slot} Standardwert`'), "Import liest Planungsparameter-Standardwerte nicht ein.");
+  assert.ok(dataImporterSource.includes('`Planungsparameter ${slot} Minimum`'), "Import liest Planungsparameter-Minimum nicht ein.");
+  assert.ok(dataImporterSource.includes('`Planungsparameter ${slot} Maximum`'), "Import liest Planungsparameter-Maximum nicht ein.");
+  assert.ok(workbookSource.includes('INDIRECT(') || dataImporterSource.includes('INDIRECT("'), "Robuste Excel-Dropdownquelle fehlt.");
+  assert.ok(workbookSource.includes("sourceValueCount === 0"), "Leere Dropdownquellen werden nicht abgefangen.");
+  assert.ok(dataImportPageSource.includes("ExerciseImportReview"), "Einzelfreigabe für Übungsimporte fehlt.");
+  assert.ok(dataImportPageSource.includes("freigegebene Übungen übernehmen"), "Finale Freigabeaktion für Übungsimporte fehlt.");
+  assert.ok(exerciseImportReviewSource.includes("ExerciseEditor"), "Importprüfung verwendet nicht denselben Übungseditor wie der Katalog.");
+  assert.ok(exerciseImportReviewSource.includes('videoEditEnabled={false}'), "Datei-Video-Uploads sind in der Importprüfung nicht schreibgeschützt.");
+  assert.ok(exerciseImportReviewSource.includes("Freigeben & nächste"));
+  assert.ok(exerciseImportReviewSource.includes("Überspringen & nächste"));
+  assert.ok(exerciseImportReviewSource.includes("Standardwert") === false, "Importprüfung baut Parameterfelder separat statt über ExerciseEditor nach.");
+  assert.ok(dataImporterSource.includes('row.reviewStatus !== "approved"'), "Nicht freigegebene Übungen werden nicht serverseitig ausgefiltert.");
+  assert.ok(supabaseMockSource.includes("parameter_options: catalogParameterOptions"), "Runtime-Mock liefert Planungsparameter nicht im Katalog-RPC-Format.");
+  assert.ok(supabaseMockSource.includes("key: item.parameter_key"), "Runtime-Mock mappt parameter_key nicht auf key.");
 });
 
 
@@ -402,13 +447,14 @@ test("E0 konsolidiert alte ungeschützte Schreibfunktionen im Migrationsstand", 
 test("E0 hält Import-Schema, Supabase-Typen und API konsistent", () => {
   assert.ok(generatedDatabaseTypesSource.includes("data_import_runs: {"));
   assert.ok(generatedDatabaseTypesSource.includes("apply_exercise_import_v1: {"));
+  assert.ok(generatedDatabaseTypesSource.includes("apply_exercise_import_v2: {"));
   assert.ok(generatedDatabaseTypesSource.includes("apply_athlete_import_v1: {"));
   assert.ok(generatedDatabaseTypesSource.includes("assert_import_entity_available: {"));
   assert.ok(generatedDatabaseTypesSource.includes("update_training_group_v4: {"));
   assert.ok(generatedDatabaseTypesSource.includes("update_trainer_v4: {"));
   assert.doesNotMatch(dataImportApiTypedSource, /supabase\.rpc\.bind/);
   assert.doesNotMatch(dataImportApiTypedSource, /name:\s*string,/);
-  assert.ok(dataImportApiTypedSource.includes('rpc("apply_exercise_import_v1"'));
+  assert.ok(dataImportApiTypedSource.includes('rpc("apply_exercise_import_v2"'));
   assert.ok(dataImportApiTypedSource.includes('rpc("apply_athlete_import_v1"'));
 });
 
