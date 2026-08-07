@@ -1,90 +1,71 @@
-import { BookOpenText, ChevronDown, ChevronRight, LockKeyhole } from "lucide-react";
-import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
-import { APP_MODULE_GROUPS, APP_MODULES, type AppModuleGroupKey } from "@/config/modules";
+import { CalendarDays, CheckCircle2, Info, ShieldCheck } from "lucide-react";
+import { APP_MODULES } from "@/config/modules";
 import { useAuth } from "@/features/auth/AuthContext";
 import "@/styles/dashboard.css";
 
-type DashboardLocationState = {
-  openGroupKey?: AppModuleGroupKey | null;
-};
+const roleNames = {
+  admin: "Administrator",
+  trainer: "Trainer",
+  athlete: "Athlet",
+  parent: "Elternteil",
+} as const;
 
 export function DashboardPage() {
   const { appContext, canViewModule } = useAuth();
-  const location = useLocation();
-  const requestedGroupKey = (location.state as DashboardLocationState | null)?.openGroupKey ?? null;
-  const [openGroupKey, setOpenGroupKey] = useState<AppModuleGroupKey | null>(requestedGroupKey);
-  const modules = APP_MODULES.filter((module) => canViewModule(module.key));
-  const groups = APP_MODULE_GROUPS
-    .map((group) => ({
-      ...group,
-      modules: modules
-        .filter((module) => module.groupKey === group.key)
-        .sort((left, right) => left.sortOrder - right.sortOrder),
-    }))
-    .filter((group) => group.modules.length > 0)
-    .sort((left, right) => left.sortOrder - right.sortOrder);
+  const visibleModuleCount = APP_MODULES.filter((module) => canViewModule(module.key)).length;
+  const role = appContext?.membership?.role;
+  const today = new Intl.DateTimeFormat("de-AT", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+  }).format(new Date());
 
   return (
     <section className="dashboard-page">
       <div className="page-heading dashboard-heading">
         <div>
-          <p className="eyebrow">Modulübersicht</p>
+          <p className="eyebrow">Dashboard</p>
           <h1>
             Willkommen
             {appContext?.profile?.displayName ? `, ${appContext.profile.displayName}` : ""}
           </h1>
-          <p>Die Bereiche lassen sich ein- und ausklappen. Angezeigt werden nur freigeschaltete Module.</p>
+          <p>Offene Aufgaben und wichtige Informationen werden hier zentral gebündelt.</p>
         </div>
       </div>
 
-      <Link className="dashboard-help-link" to="/hilfe?from=%2F">
-        <BookOpenText aria-hidden="true" />
-        <span>Hilfe & Handbuch</span>
-        <ChevronRight aria-hidden="true" />
-      </Link>
+      <div className="dashboard-overview-grid">
+        <article className="dashboard-overview-card dashboard-overview-card-primary">
+          <div className="dashboard-overview-icon"><CheckCircle2 aria-hidden="true" /></div>
+          <div>
+            <span className="dashboard-overview-kicker">Offene Aufgaben</span>
+            <h2>Noch keine Aufgabenquellen verknüpft</h2>
+            <p>Offene Punkte aus Anmeldung, Planung und Dokumentation können hier zentral zusammengeführt werden.</p>
+          </div>
+        </article>
 
-      {groups.length > 0 ? (
-        <div className="module-sections">
-          {groups.map((group) => (
-            <details className="module-section" open={openGroupKey === group.key} key={group.key}>
-              <summary
-                onClick={(event) => {
-                  event.preventDefault();
-                  setOpenGroupKey((current) => current === group.key ? null : group.key);
-                }}
-              >
-                <span className="module-section-copy">
-                  <strong>{group.title}</strong>
-                  <small>{group.description}</small>
-                </span>
-                <span className="module-section-meta">
-                  <span>{group.modules.length}</span>
-                  <ChevronDown aria-hidden="true" />
-                </span>
-              </summary>
+        <article className="dashboard-overview-card">
+          <div className="dashboard-overview-icon"><CalendarDays aria-hidden="true" /></div>
+          <div>
+            <span className="dashboard-overview-kicker">Heute</span>
+            <h2>{today}</h2>
+            <p>Dieser Bereich ist für heutige Trainings, Anmeldungen und kurzfristige Hinweise vorbereitet.</p>
+          </div>
+        </article>
 
-              <div className="module-grid">
-                {group.modules.map((module) => (
-                  <Link className="module-card" to={module.route} key={module.key}>
-                    <span className="module-icon">{module.icon}</span>
-                    <span className="module-copy">
-                      <strong>{module.title}</strong>
-                    </span>
-                    <ChevronRight className="module-arrow" aria-hidden="true" />
-                  </Link>
-                ))}
-              </div>
-            </details>
-          ))}
-        </div>
-      ) : (
-        <div className="empty-state">
-          <LockKeyhole aria-hidden="true" />
-          <h2>Keine Module freigeschaltet</h2>
-          <p>Ein Administrator muss deinem Konto mindestens ein Modul zuweisen.</p>
-        </div>
-      )}
+        <article className="dashboard-overview-card">
+          <div className="dashboard-overview-icon"><ShieldCheck aria-hidden="true" /></div>
+          <div>
+            <span className="dashboard-overview-kicker">Dein Zugriff</span>
+            <h2>{role ? roleNames[role] : "Benutzer"}</h2>
+            <p>{visibleModuleCount} freigeschaltete {visibleModuleCount === 1 ? "Funktion" : "Funktionen"} in der Navigation.</p>
+          </div>
+        </article>
+      </div>
+
+      <div className="dashboard-info-strip">
+        <Info aria-hidden="true" />
+        <p>Die wichtigsten Bereiche erreichst du jetzt dauerhaft über die Navigationsleiste am unteren Bildschirmrand.</p>
+      </div>
     </section>
   );
 }

@@ -1,95 +1,36 @@
-/* Routebezogene Mobile-Regeln fuer die Moduluebersicht. */
-
+/* N1: Dashboard statt statischer Moduluebersicht. */
+.dashboard-page { display: grid; gap: 18px; }
+.dashboard-heading { margin-bottom: 2px; }
+.dashboard-heading p:not(.eyebrow) { max-width: 720px; }
+.dashboard-overview-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.dashboard-overview-card {
+  min-width: 0; display: grid; grid-template-columns: 42px minmax(0, 1fr); gap: 13px; padding: 18px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 18px; box-shadow: 0 8px 24px rgba(15, 62, 38, 0.06);
+}
+.dashboard-overview-card-primary { border-color: #acd3b9; background: linear-gradient(145deg, #ffffff 0%, var(--green-50) 100%); }
+.dashboard-overview-icon { width: 42px; height: 42px; display: grid; place-items: center; color: #fff; background: var(--green-700); border-radius: 12px; }
+.dashboard-overview-icon svg { width: 21px; height: 21px; }
+.dashboard-overview-kicker {
+  display: block; margin-bottom: 5px; color: var(--green-700); font-size: 0.76rem; font-weight: 900;
+  letter-spacing: 0.03em; text-transform: uppercase;
+}
+.dashboard-overview-card h2 { margin: 0; color: var(--green-950); font-size: 1.02rem; line-height: 1.25; }
+.dashboard-overview-card p { margin: 7px 0 0; color: var(--muted); font-size: 0.9rem; line-height: 1.45; }
+.dashboard-info-strip {
+  display: flex; align-items: flex-start; gap: 10px; padding: 13px 15px; color: var(--green-900);
+  background: var(--green-50); border: 1px solid #cbe3d2; border-radius: 14px;
+}
+.dashboard-info-strip svg { width: 19px; height: 19px; flex: 0 0 auto; margin-top: 1px; }
+.dashboard-info-strip p { margin: 0; font-size: 0.9rem; line-height: 1.4; }
 @media (max-width: 760px) {
-  .dashboard-page .dashboard-heading {
-    margin-bottom: 14px;
-  }
-  .dashboard-page .module-sections {
-    gap: 8px;
-  }
-  .dashboard-page .module-section {
-    border-radius: 13px;
-  }
-  .dashboard-page .module-section > summary {
-    min-height: 48px;
-        padding: 7px 10px;
-  }
-  .dashboard-page .module-section-copy strong {
-    font-size: 0.92rem;
-  }
-  .dashboard-page .module-section-meta > span {
-    min-width: 22px;
-        font-size: 0.72rem;
-  }
-  .dashboard-page .module-section-meta svg {
-    width: 17px;
-        height: 17px;
-  }
-  .dashboard-page .module-section .module-grid {
-    grid-template-columns: 1fr;
-        gap: 5px;
-        padding: 6px;
-  }
-  .dashboard-page .module-card {
-    min-height: 52px;
-        grid-template-columns: 32px minmax(0, 1fr) 17px;
-        gap: 9px;
-        padding: 7px 9px;
-        border-radius: 10px;
-  }
-  .dashboard-page .module-icon {
-    width: 32px;
-        height: 32px;
-        border-radius: 8px;
-  }
-  .dashboard-page .module-icon svg {
-    width: 17px;
-        height: 17px;
-  }
-  .dashboard-page .module-copy strong {
-    font-size: 0.91rem;
-  }
-}
-
-.dashboard-help-link {
-  width: fit-content;
-  max-width: 100%;
-  min-height: 38px;
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  margin: -4px 0 10px;
-  padding: 7px 10px;
-  color: var(--green-800);
-  background: transparent;
-  border-radius: 10px;
-  font-size: 0.88rem;
-  font-weight: 800;
-  text-decoration: none;
-}
-
-.dashboard-help-link:hover,
-.dashboard-help-link:focus-visible {
-  background: var(--green-50);
-}
-
-.dashboard-help-link svg {
-  width: 17px;
-  height: 17px;
-  flex: 0 0 auto;
-}
-
-.dashboard-help-link svg:last-child {
-  width: 15px;
-  height: 15px;
-}
-
-@media (max-width: 760px) {
-  .dashboard-help-link {
-    min-height: 34px;
-    margin-top: -8px;
-    margin-bottom: 7px;
-    padding: 5px 8px;
-    font-size: 0.82rem;
-  }
+  .dashboard-page { gap: 12px; }
+  .dashboard-heading { margin-bottom: 0; }
+  .dashboard-heading p:not(.eyebrow) { font-size: 0.9rem; }
+  .dashboard-overview-grid { grid-template-columns: 1fr; gap: 9px; }
+  .dashboard-overview-card { grid-template-columns: 36px minmax(0, 1fr); gap: 11px; padding: 13px; border-radius: 14px; }
+  .dashboard-overview-icon { width: 36px; height: 36px; border-radius: 10px; }
+  .dashboard-overview-icon svg { width: 18px; height: 18px; }
+  .dashboard-overview-card h2 { font-size: 0.96rem; }
+  .dashboard-overview-card p, .dashboard-info-strip p { font-size: 0.84rem; }
+  .dashboard-info-strip { padding: 11px 12px; }
 }

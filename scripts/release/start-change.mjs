@@ -1,3 +1,4 @@
+import { resolve } from "node:path";
 import {
   currentBranch,
   ensureClean,
@@ -32,6 +33,26 @@ try {
   console.log("\nERFOLG: Neuer sauberer Feature-Branch erstellt.");
   console.log(`Branch: ${currentBranch(root)}`);
   console.log(`Basis:  ${gitText(["rev-parse", "--short", "HEAD"], { cwd: root })}`);
+
+  if (process.platform === "win32") {
+    console.log("\nErzeuge automatisch eine Projekt-ZIP auf dem Desktop...");
+    run(
+      "powershell.exe",
+      [
+        "-NoLogo",
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        resolve(root, "scripts/create-project-archive.ps1"),
+        "-ProjectRoot",
+        root,
+      ],
+      { cwd: root },
+    );
+  } else {
+    console.log("\nHinweis: Die automatische Projekt-ZIP wird nur unter Windows erzeugt.");
+  }
 } catch (error) {
   console.error(`\nFEHLER: ${error.message}`);
   process.exitCode = 1;

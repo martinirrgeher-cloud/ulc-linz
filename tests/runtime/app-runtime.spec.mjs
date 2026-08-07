@@ -61,3 +61,24 @@ test("zentrales Stammdatenmodul rendert ohne React-Laufzeitfehler", async ({ pag
   await expectAuthenticatedHeading(page, "/module/athletes", "Athleten, Trainer & Gruppen");
   await expectRuntimeHealthy(page, problems, unhandled);
 });
+
+test("untere Hauptnavigation und Untermenues funktionieren ohne Laufzeitfehler", async ({ page }) => {
+  const problems = collectRuntimeProblems(page);
+  await installAuthenticatedSession(page);
+  const unhandled = await installSupabaseMock(page);
+
+  await page.goto("/");
+  await expect(page.getByRole("navigation", { name: "Hauptnavigation" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Anmeldung", exact: true }).click();
+  await expect(page.getByRole("navigation", { name: "Anmeldung Untermenü" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Kindertraining", exact: true })).toBeVisible();
+
+  await page.getByRole("button", { name: "Weitere Bereiche", exact: true }).click();
+  await expect(page.getByRole("menu", { name: "Weitere Bereiche" })).toBeVisible();
+  await page.getByRole("menuitem", { name: /Stammdaten/ }).click();
+  await expect(page.getByRole("navigation", { name: "Stammdaten Untermenü" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Benutzer", exact: true })).toBeVisible();
+
+  await expectRuntimeHealthy(page, problems, unhandled);
+});
