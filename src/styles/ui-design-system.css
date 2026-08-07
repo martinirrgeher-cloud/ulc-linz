@@ -1,0 +1,122 @@
+/* D2: wiederverwendbare UI-Basis fuer kompakte, mobile-first Fachmodule. */
+.ui-page-shell {
+  --ui-radius-sm: 10px;
+  --ui-radius-md: 14px;
+  --ui-radius-lg: 18px;
+  --ui-surface-soft: #f7faf8;
+  --ui-border-soft: #dce9e0;
+  --ui-shadow-soft: 0 8px 24px rgba(8, 36, 22, 0.07);
+  --ui-shadow-float: 0 18px 42px rgba(8, 36, 22, 0.16);
+}
+
+.ui-page-heading {
+  min-width: 0;
+}
+
+.ui-command-surface {
+  min-width: 0;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid var(--ui-border-soft);
+  border-radius: var(--ui-radius-lg);
+  box-shadow: var(--ui-shadow-soft);
+  backdrop-filter: blur(14px);
+}
+
+.ui-search-field {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  background: #f8faf9;
+  border: 1px solid #d9e5dd;
+  border-radius: 12px;
+}
+
+.ui-search-field:focus-within {
+  border-color: var(--green-700);
+  box-shadow: 0 0 0 3px rgba(20, 122, 70, 0.11);
+}
+
+.ui-icon-action {
+  flex: 0 0 auto;
+  border: 1px solid #d8e5dc;
+}
+
+.ui-chip-row {
+  min-width: 0;
+  display: flex;
+  gap: 7px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+
+.ui-chip-row::-webkit-scrollbar { display: none; }
+
+.ui-chip,
+.ui-meta-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  border-radius: 999px;
+}
+
+.ui-chip {
+  min-height: 34px;
+  flex: 0 0 auto;
+  padding: 6px 10px;
+  color: #4f6257;
+  background: #f5f8f6;
+  border: 1px solid #dce7e0;
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.ui-chip svg { width: 15px; height: 15px; }
+.ui-chip:hover,
+.ui-chip:focus-visible { color: var(--green-800); border-color: #bdd8c8; outline: none; }
+.ui-chip.active { color: #fff; background: var(--green-700); border-color: var(--green-700); }
+
+.ui-meta-chip {
+  min-height: 24px;
+  padding: 3px 7px;
+  color: #4f6658;
+  background: #f4f8f5;
+  border: 1px solid #e0eae3;
+  font-size: 0.68rem;
+  font-weight: 750;
+}
+
+.ui-meta-chip svg { width: 13px; height: 13px; }
+.ui-meta-chip.muted { color: #6e7c74; background: #f1f3f2; }
+
+.ui-segmented {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px;
+  padding: 3px;
+  background: #eef3ef;
+  border-radius: 11px;
+}
+
+.ui-segmented button {
+  min-height: 38px;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  color: #52645a;
+  background: transparent;
+  border: 0;
+  border-radius: 9px;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.ui-segmented button.active { color: var(--green-800); background: #fff; box-shadow: 0 2px 8px rgba(8, 36, 22, 0.08); }
+.ui-segmented svg { width: 17px; height: 17px; }

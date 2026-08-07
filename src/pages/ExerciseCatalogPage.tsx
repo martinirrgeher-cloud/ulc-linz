@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Archive,
   BookOpen,
+  ChevronDown,
+  ChevronUp,
   ExternalLink,
   Filter,
+  Grid2X2,
+  LayoutList,
   Pencil,
   ListTree,
   Plus,
@@ -43,6 +46,7 @@ import "@/styles/exercise-catalog.css";
 import "@/styles/exercise-catalog-mobile.css";
 type ActivityFilter = "active" | "inactive" | "all";
 type VideoFilter = "all" | "yes" | "no";
+type ViewMode = "list" | "grid";
 
 const EXERCISE_REALTIME_TABLES = ["exercises"] as const;
 
@@ -52,6 +56,17 @@ function errorMessage(error: unknown): string {
 
 function hasVideo(exercise: Exercise): boolean {
   return exercise.videos.length > 0 || Boolean(exercise.videoUrl);
+}
+
+function parameterSummaryValue(parameter: Exercise["parameters"][number]): string {
+  const standard = parameter.defaultValue.trim();
+  if (standard) return `${standard}${parameter.unit ? ` ${parameter.unit}` : ""}`;
+  if (parameter.minValue !== null || parameter.maxValue !== null) {
+    const min = parameter.minValue ?? "…";
+    const max = parameter.maxValue ?? "…";
+    return `${min}–${max}${parameter.unit ? ` ${parameter.unit}` : ""}`;
+  }
+  return "–";
 }
 
 export function ExerciseCatalogPage() {
@@ -82,6 +97,8 @@ export function ExerciseCatalogPage() {
   const [difficultyFilter, setDifficultyFilter] = useState("all");
   const [groupFilter, setGroupFilter] = useState("all");
   const [videoFilter, setVideoFilter] = useState<VideoFilter>("all");
+  const [viewMode, setViewMode] = useState<ViewMode>("list");
+  const [expandedExerciseId, setExpandedExerciseId] = useState<string | null>(null);
   const [usageExercise, setUsageExercise] = useState<Exercise | null>(null);
   const [editorExercise, setEditorExercise] = useState<Exercise | null | undefined>(undefined);
   const [editorInitialSection, setEditorInitialSection] = useState<EditorSection>("basis");
@@ -173,6 +190,11 @@ export function ExerciseCatalogPage() {
       ...data.exercises.flatMap((exercise) => exercise.subcategory ? [exercise.subcategory] : []),
     ])].sort((left, right) => left.localeCompare(right, "de", { sensitivity: "base" })),
     [data.exercises, data.subcategories],
+  );
+
+  const quickCategories = useMemo(
+    () => data.categories.filter((category) => category.isActive !== false).slice(0, 3),
+    [data.categories],
   );
 
   const activeFilterCount = [
@@ -344,22 +366,22 @@ export function ExerciseCatalogPage() {
   }
 
   return (
-    <section className="exercise-catalog-page">
-      <div className="exercise-catalog-heading">
+    <section className="exercise-catalog-page ui-page-shell">
+      <div className="exercise-catalog-heading ui-page-heading">
         <div>
           <p className="eyebrow">Trainingsplanung</p>
           <h1>Übungskatalog</h1>
-          <p>Übungen strukturiert erfassen und für Trainingspläne vorbereiten.</p>
+          <p>Übungen schnell finden, vergleichen und für die Planung vorbereiten.</p>
         </div>
         {canEdit && (
           <button
             type="button"
-            className="primary-button"
+            className="primary-button exercise-create-button"
             onClick={() => openEditor(null)}
             disabled={loading || busy || !data.categories.some((category) => category.isActive !== false)}
           >
             <Plus aria-hidden="true" />
-            Übung
+            <span>Übung</span>
           </button>
         )}
       </div>
@@ -374,107 +396,92 @@ export function ExerciseCatalogPage() {
         onKeepDraft={() => applyRemoteServerState(true)}
       />
 
-      <div className="exercise-catalog-toolbar exercise-catalog-toolbar-compact">
-        <label className="exercise-search">
-          <Search aria-hidden="true" />
-          <input
-            type="search"
-            value={searchTerm}
-            onChange={(event) => setSearchTerm(event.target.value)}
-            placeholder="Übung suchen"
-            aria-label="Übung suchen"
-          />
-        </label>
-        <button
-          type="button"
-          className={`secondary-button exercise-filter-toggle ${filtersOpen ? "active" : ""}`}
-          onClick={() => setFiltersOpen((current) => !current)}
-          aria-expanded={filtersOpen}
-          aria-label={filtersOpen ? "Filtermenü schließen" : "Filtermenü öffnen"}
-          title={filtersOpen ? "Filtermenü schließen" : "Filtermenü öffnen"}
-        >
-          <Filter aria-hidden="true" />
-          {activeFilterCount > 0 && <span>{activeFilterCount}</span>}
-        </button>
+      <div className="exercise-catalog-commandbar ui-command-surface">
+        <div className="exercise-catalog-toolbar exercise-catalog-toolbar-compact">
+          <label className="exercise-search ui-search-field">
+            <Search aria-hidden="true" />
+            <input
+              type="search"
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              placeholder="Übung suchen"
+              aria-label="Übung suchen"
+            />
+          </label>
+          <button
+            type="button"
+            className={`secondary-button exercise-filter-toggle ui-icon-action ${filtersOpen ? "active" : ""}`}
+            onClick={() => setFiltersOpen((current) => !current)}
+            aria-expanded={filtersOpen}
+            aria-label={filtersOpen ? "Filtermenü schließen" : "Filtermenü öffnen"}
+            title={filtersOpen ? "Filtermenü schließen" : "Filtermenü öffnen"}
+          >
+            <Filter aria-hidden="true" />
+            {activeFilterCount > 0 && <span>{activeFilterCount}</span>}
+          </button>
+        </div>
+
+        <div className="exercise-quick-filters ui-chip-row" aria-label="Schnellfilter">
+          {quickCategories.map((category) => (
+            <button
+              type="button"
+              className={`ui-chip ${categoryFilter === category.key ? "active" : ""}`}
+              onClick={() => setCategoryFilter((current) => current === category.key ? "all" : category.key)}
+              key={category.key}
+            >
+              {category.title}
+            </button>
+          ))}
+          <button type="button" className={`ui-chip ${favoritesOnly ? "active" : ""}`} onClick={() => setFavoritesOnly((current) => !current)}>
+            <Star aria-hidden="true" fill={favoritesOnly ? "currentColor" : "none"} />Favoriten
+          </button>
+          <button type="button" className={`ui-chip ${videoFilter === "yes" ? "active" : ""}`} onClick={() => setVideoFilter((current) => current === "yes" ? "all" : "yes")}>
+            <Video aria-hidden="true" />Video
+          </button>
+          <button type="button" className={`ui-chip ${activityFilter === "active" ? "active" : ""}`} onClick={() => setActivityFilter((current) => current === "active" ? "all" : "active")}>
+            Aktiv
+          </button>
+        </div>
       </div>
 
       {filtersOpen && (
-        <section className="exercise-filter-panel" aria-label="Übungskatalog filtern">
-          <div className="exercise-filter-grid">
-            <label>
-              <span>Kategorie</span>
-              <select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}>
-                <option value="all">Alle Kategorien</option>
-                {data.categories.map((category) => (
-                  <option value={category.key} key={category.key}>{category.title}</option>
-                ))}
-              </select>
-            </label>
-            <label>
-              <span>Unterkategorie</span>
-              <select value={subcategoryFilter} onChange={(event) => setSubcategoryFilter(event.target.value)}>
-                <option value="all">Alle Unterkategorien</option>
-                {subcategoryOptions.map((subcategory) => (
-                  <option value={subcategory} key={subcategory}>{subcategory}</option>
-                ))}
-              </select>
-            </label>
-            <label>
-              <span>Material</span>
-              <select value={equipmentFilter} onChange={(event) => setEquipmentFilter(event.target.value)}>
-                <option value="all">Alle Materialien</option>
-                {equipmentOptions.map((equipment) => (
-                  <option value={equipment} key={equipment}>{equipment}</option>
-                ))}
-              </select>
-            </label>
-            <label>
-              <span>Schwierigkeitsgrad</span>
-              <select value={difficultyFilter} onChange={(event) => setDifficultyFilter(event.target.value)}>
-                <option value="all">Alle Schwierigkeitsgrade</option>
-                {data.difficulties.map((difficulty) => (
-                  <option value={difficulty.key} key={difficulty.key}>{difficulty.label}</option>
-                ))}
-              </select>
-            </label>
-            <label>
-              <span>Trainingsgruppe</span>
-              <select value={groupFilter} onChange={(event) => setGroupFilter(event.target.value)}>
-                <option value="all">Alle Trainingsgruppen</option>
-                <option value="club">Vereinsweit / alle Gruppen</option>
-                {data.groups.map((group) => (
-                  <option value={group.id} key={group.id}>{group.shortName || group.name}</option>
-                ))}
-              </select>
-            </label>
-            <label>
-              <span>Video vorhanden</span>
-              <select value={videoFilter} onChange={(event) => setVideoFilter(event.target.value as VideoFilter)}>
-                <option value="all">Alle</option>
-                <option value="yes">Ja</option>
-                <option value="no">Nein</option>
-              </select>
-            </label>
-          </div>
+        <>
+          <button type="button" className="exercise-filter-scrim" aria-label="Filtermenü schließen" onClick={() => setFiltersOpen(false)} />
+          <section className="exercise-filter-panel ui-filter-sheet" aria-label="Übungskatalog filtern">
+            <header className="exercise-filter-heading">
+              <div><strong>Filtern & Sortieren</strong><small>{filteredExercises.length} Übungen sichtbar</small></div>
+              <button type="button" className="text-button" onClick={resetFilters}>Zurücksetzen</button>
+            </header>
 
-          <div className="exercise-filter-panel-footer">
-            <div className="status-filter" aria-label="Übungsstatus filtern">
-              <button type="button" className={activityFilter === "active" ? "active" : ""} onClick={() => setActivityFilter("active")}>Aktiv <span>{counts.active}</span></button>
-              <button type="button" className={activityFilter === "inactive" ? "active" : ""} onClick={() => setActivityFilter("inactive")}><Archive aria-hidden="true" /> Archiv <span>{counts.inactive}</span></button>
-              <button type="button" className={activityFilter === "all" ? "active" : ""} onClick={() => setActivityFilter("all")}>Alle <span>{data.exercises.length}</span></button>
+            <div className="ui-segmented" aria-label="Darstellung wählen">
+              <button type="button" className={viewMode === "list" ? "active" : ""} onClick={() => setViewMode("list")}><LayoutList aria-hidden="true" />Liste</button>
+              <button type="button" className={viewMode === "grid" ? "active" : ""} onClick={() => setViewMode("grid")}><Grid2X2 aria-hidden="true" />Raster</button>
             </div>
-            <button type="button" className={`favorite-filter ${favoritesOnly ? "active" : ""}`} onClick={() => setFavoritesOnly((current) => !current)}>
-              <Star aria-hidden="true" fill={favoritesOnly ? "currentColor" : "none"} />
-              Favoriten <span>{counts.favorites}</span>
-            </button>
-            {activeFilterCount > 0 && (
-              <button type="button" className="text-button exercise-filter-reset" onClick={resetFilters}>
-                <X aria-hidden="true" /> Zurücksetzen
+
+            <div className="exercise-filter-grid">
+              <label><span>Kategorie</span><select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}><option value="all">Alle Kategorien</option>{data.categories.map((category) => <option value={category.key} key={category.key}>{category.title}</option>)}</select></label>
+              <label><span>Unterkategorie</span><select value={subcategoryFilter} onChange={(event) => setSubcategoryFilter(event.target.value)}><option value="all">Alle Unterkategorien</option>{subcategoryOptions.map((subcategory) => <option value={subcategory} key={subcategory}>{subcategory}</option>)}</select></label>
+              <label><span>Schwierigkeitsgrad</span><select value={difficultyFilter} onChange={(event) => setDifficultyFilter(event.target.value)}><option value="all">Alle Schwierigkeitsgrade</option>{data.difficulties.map((difficulty) => <option value={difficulty.key} key={difficulty.key}>{difficulty.label}</option>)}</select></label>
+              <label><span>Material</span><select value={equipmentFilter} onChange={(event) => setEquipmentFilter(event.target.value)}><option value="all">Alle Materialien</option>{equipmentOptions.map((equipment) => <option value={equipment} key={equipment}>{equipment}</option>)}</select></label>
+              <label><span>Trainingsgruppe</span><select value={groupFilter} onChange={(event) => setGroupFilter(event.target.value)}><option value="all">Alle Trainingsgruppen</option><option value="club">Vereinsweit / alle Gruppen</option>{data.groups.map((group) => <option value={group.id} key={group.id}>{group.shortName || group.name}</option>)}</select></label>
+              <label><span>Video</span><select value={videoFilter} onChange={(event) => setVideoFilter(event.target.value as VideoFilter)}><option value="all">Alle</option><option value="yes">Vorhanden</option><option value="no">Ohne Video</option></select></label>
+              <label><span>Status</span><select value={activityFilter} onChange={(event) => setActivityFilter(event.target.value as ActivityFilter)}><option value="active">Aktiv</option><option value="inactive">Archiv</option><option value="all">Alle</option></select></label>
+            </div>
+
+            <div className="exercise-filter-panel-footer">
+              <button type="button" className={`favorite-filter ${favoritesOnly ? "active" : ""}`} onClick={() => setFavoritesOnly((current) => !current)}>
+                <Star aria-hidden="true" fill={favoritesOnly ? "currentColor" : "none"} />Favoriten <span>{counts.favorites}</span>
               </button>
-            )}
-          </div>
-        </section>
+              <button type="button" className="primary-button exercise-filter-apply" onClick={() => setFiltersOpen(false)}>Anwenden</button>
+            </div>
+          </section>
+        </>
       )}
+
+      <div className="exercise-result-summary">
+        <span><strong>{filteredExercises.length}</strong> von {data.exercises.length} Übungen</span>
+        {activeFilterCount > 0 && <button type="button" className="text-button" onClick={resetFilters}><X aria-hidden="true" />Filter löschen</button>}
+      </div>
 
       {loading ? (
         <div className="management-loading"><div className="spinner" aria-hidden="true" />Übungen werden geladen …</div>
@@ -485,72 +492,72 @@ export function ExerciseCatalogPage() {
           <BookOpen aria-hidden="true" />
           <h2>Keine Übungen gefunden</h2>
           <p>{data.exercises.length === 0 ? "Lege die erste Übung für den Trainingskatalog an." : "Passe Suche oder Filter an."}</p>
-          {canEdit && data.exercises.length === 0 && (
-            <button type="button" className="primary-button" onClick={() => openEditor(null)}><Plus aria-hidden="true" />Erste Übung anlegen</button>
-          )}
+          {canEdit && data.exercises.length === 0 && <button type="button" className="primary-button" onClick={() => openEditor(null)}><Plus aria-hidden="true" />Erste Übung anlegen</button>}
         </div>
       ) : (
-        <div className="exercise-list">
-          {filteredExercises.map((exercise) => (
-            <article className={`exercise-card ${exercise.isActive ? "" : "inactive"}`} key={exercise.id}>
-              <div className="exercise-card-main">
-                <div className="exercise-card-title-row">
-                  <span className="exercise-status-dot" title={exercise.isActive ? "Aktiv" : "Inaktiv"} />
-                  <div>
-                    <h2>{exercise.name}</h2>
-                    <p>{exercise.categoryTitle}{exercise.subcategory ? ` · ${exercise.subcategory}` : ""}</p>
+        <div className={`exercise-list ${viewMode === "grid" ? "exercise-list-grid" : "exercise-list-compact"}`}>
+          {filteredExercises.map((exercise) => {
+            const expanded = expandedExerciseId === exercise.id;
+            const visibleParameters = [...exercise.parameters].sort((left, right) => left.sortOrder - right.sortOrder).slice(0, 4);
+            const videoCount = exercise.videos.length + (exercise.videoUrl ? 1 : 0);
+            return (
+              <article className={`exercise-card exercise-list-item ${exercise.isActive ? "" : "inactive"} ${expanded ? "expanded" : ""}`} key={exercise.id}>
+                <div className="exercise-list-summary">
+                  <button type="button" className="exercise-list-primary" onClick={() => setExpandedExerciseId(expanded ? null : exercise.id)} aria-expanded={expanded}>
+                    <span className="exercise-category-mark"><BookOpen aria-hidden="true" /></span>
+                    <span className="exercise-list-title">
+                      <strong>{exercise.name}</strong>
+                      <small>{exercise.categoryTitle}{exercise.subcategory ? ` · ${exercise.subcategory}` : ""}{exercise.difficultyLabel ? ` · ${exercise.difficultyLabel}` : ""}</small>
+                    </span>
+                  </button>
+
+                  <div className="exercise-card-actions">
+                    <button type="button" className={`exercise-favorite-button ${exercise.isFavorite ? "active" : ""}`} onClick={() => void handleFavorite(exercise)} aria-label={exercise.isFavorite ? `${exercise.name} aus Favoriten entfernen` : `${exercise.name} zu Favoriten hinzufügen`} title={exercise.isFavorite ? "Aus Favoriten entfernen" : "Favorit"}>
+                      <Star aria-hidden="true" fill={exercise.isFavorite ? "currentColor" : "none"} />
+                    </button>
+                    {exercise.videos.length > 0 ? (
+                      <button type="button" className="exercise-action-link" onClick={() => openEditor(exercise, "videos")} aria-label={`Videos zu ${exercise.name} öffnen`} title={`${exercise.videos.length} Video${exercise.videos.length === 1 ? "" : "s"}`}><Video aria-hidden="true" /><span className="exercise-video-count">{exercise.videos.length}</span></button>
+                    ) : exercise.videoUrl ? (
+                      <a className="exercise-action-link" href={exercise.videoUrl} target="_blank" rel="noreferrer" aria-label={`Video oder Link zu ${exercise.name} öffnen`} title="Video oder Link öffnen"><Video aria-hidden="true" /><ExternalLink aria-hidden="true" /></a>
+                    ) : null}
+                    <button type="button" className="exercise-edit-button" onClick={() => openEditor(exercise)} aria-label={`${exercise.name} ${canEdit ? "bearbeiten" : "anzeigen"}`} title={canEdit ? "Bearbeiten" : "Anzeigen"}>{canEdit ? <Pencil aria-hidden="true" /> : <BookOpen aria-hidden="true" />}</button>
+                    <button type="button" className="exercise-expand-button" onClick={() => setExpandedExerciseId(expanded ? null : exercise.id)} aria-label={expanded ? `${exercise.name} einklappen` : `${exercise.name} Schnellinfos anzeigen`} title={expanded ? "Einklappen" : "Schnellinfos"}>{expanded ? <ChevronUp aria-hidden="true" /> : <ChevronDown aria-hidden="true" />}</button>
                   </div>
                 </div>
-                {exercise.goal && <p className="exercise-goal">{exercise.goal}</p>}
-                <div className="exercise-card-meta">
-                  {exercise.difficultyLabel && <span>Schwierigkeit: {exercise.difficultyLabel}</span>}
-                  <span>{exercise.blockUsageCount} Block{exercise.blockUsageCount === 1 ? "" : "e"}</span>
-                  <span>{exercise.planUsageCount} Plan{exercise.planUsageCount === 1 ? "" : "e"}</span>
-                  {exercise.parameters.slice(0, 5).map((parameter) => (
-                    <span key={parameter.key}>{parameter.label}{parameter.defaultValue ? `: ${parameter.defaultValue}${parameter.unit ? ` ${parameter.unit}` : ""}` : ""}</span>
-                  ))}
-                  {exercise.parameters.length > 5 && <span>+{exercise.parameters.length - 5}</span>}
-                  {exercise.parameters.length === 0 && <span>Keine Parameter</span>}
-                </div>
-                {exercise.equipment.length > 0 && <small className="exercise-equipment">Material: {exercise.equipment.join(", ")}</small>}
-              </div>
 
-              <div className="exercise-card-actions">
-                <button
-                  type="button"
-                  className="exercise-action-link"
-                  onClick={() => setUsageExercise(exercise)}
-                  aria-label={`Verwendung von ${exercise.name} anzeigen`}
-                  title="Verwendung anzeigen"
-                >
-                  <ListTree aria-hidden="true" />
-                  <span className="exercise-video-count">{exercise.blockUsageCount + exercise.planUsageCount}</span>
-                </button>
-                <button type="button" className={`exercise-favorite-button ${exercise.isFavorite ? "active" : ""}`} onClick={() => void handleFavorite(exercise)} aria-label={exercise.isFavorite ? "Aus Favoriten entfernen" : "Zu Favoriten hinzufügen"} title={exercise.isFavorite ? "Aus Favoriten entfernen" : "Favorit"}>
-                  <Star aria-hidden="true" fill={exercise.isFavorite ? "currentColor" : "none"} />
-                </button>
-                {exercise.videos.length > 0 && (
-                  <button type="button" className="exercise-action-link" onClick={() => openEditor(exercise, "videos")} aria-label={`Videos zu ${exercise.name} öffnen`} title={`${exercise.videos.length} Video${exercise.videos.length === 1 ? "" : "s"}`}>
-                    <Video aria-hidden="true" /><span className="exercise-video-count">{exercise.videos.length}</span>
-                  </button>
+                <div className="exercise-list-tags">
+                  {exercise.equipment.slice(0, 2).map((item) => <span className="ui-meta-chip" key={item}>{item}</span>)}
+                  {exercise.equipment.length > 2 && <span className="ui-meta-chip">+{exercise.equipment.length - 2} Material</span>}
+                  {videoCount > 0 && <span className="ui-meta-chip"><Video aria-hidden="true" />{videoCount}</span>}
+                  {!exercise.isActive && <span className="ui-meta-chip muted">Archiv</span>}
+                </div>
+
+                {expanded && (
+                  <div className="exercise-quick-info">
+                    {exercise.goal && <p className="exercise-quick-goal">{exercise.goal}</p>}
+                    <div className="exercise-quick-parameters">
+                      {visibleParameters.length > 0 ? visibleParameters.map((parameter) => (
+                        <div className="exercise-quick-parameter" key={parameter.key}>
+                          <small>{parameter.label}</small>
+                          <strong>{parameterSummaryValue(parameter)}</strong>
+                        </div>
+                      )) : <span className="exercise-quick-empty">Keine Planungsparameter hinterlegt.</span>}
+                      {exercise.parameters.length > 4 && <span className="exercise-quick-more">+{exercise.parameters.length - 4} weitere</span>}
+                    </div>
+                    <button type="button" className="exercise-usage-summary" onClick={() => setUsageExercise(exercise)}>
+                      <ListTree aria-hidden="true" />
+                      <span><strong>Verwendung</strong><small>{exercise.blockUsageCount} Block{exercise.blockUsageCount === 1 ? "" : "e"} · {exercise.planUsageCount} Plan{exercise.planUsageCount === 1 ? "" : "e"}</small></span>
+                      <ChevronDown aria-hidden="true" />
+                    </button>
+                  </div>
                 )}
-                {exercise.videoUrl && (
-                  <a className="exercise-action-link" href={exercise.videoUrl} target="_blank" rel="noreferrer" aria-label={`Video oder Link zu ${exercise.name} öffnen`} title="Video oder Link öffnen">
-                    <Video aria-hidden="true" /><ExternalLink aria-hidden="true" />
-                  </a>
-                )}
-                <button type="button" className="exercise-edit-button" onClick={() => openEditor(exercise)} aria-label={`${exercise.name} ${canEdit ? "bearbeiten" : "anzeigen"}`} title={canEdit ? "Bearbeiten" : "Anzeigen"}>
-                  {canEdit ? <Pencil aria-hidden="true" /> : <BookOpen aria-hidden="true" />}
-                </button>
-              </div>
-            </article>
-          ))}
+              </article>
+            );
+          })}
         </div>
       )}
 
-      {usageExercise && (
-        <ExerciseUsageDialog organizationId={organizationId ?? ""} exercise={usageExercise} onClose={() => setUsageExercise(null)} />
-      )}
+      {usageExercise && <ExerciseUsageDialog organizationId={organizationId ?? ""} exercise={usageExercise} onClose={() => setUsageExercise(null)} />}
 
       {editorExercise !== undefined && (
         <ExerciseEditor
