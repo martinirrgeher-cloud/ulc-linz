@@ -363,6 +363,16 @@ const rpcPayloads = new Map([
     exercises: [exercise],
     plans: [],
   }],
+  ["training_documentation_overview", {
+    week_start: "2026-08-03",
+    week_end: "2026-08-09",
+    current_role: "admin",
+    own_athlete_id: null,
+    can_review: true,
+    groups: [group],
+    athletes: [athlete],
+    plans: [],
+  }],
   ["admin_member_overview_v3", [
     {
       membership_id: E2E_IDS.membership,

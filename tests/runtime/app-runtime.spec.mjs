@@ -113,6 +113,14 @@ test("D2 Übungskatalog zeigt kompakte Liste, Schnellinfos und Filter-Sheet", as
   const unhandled = await installSupabaseMock(page);
 
   await expectAuthenticatedHeading(page, "/module/exercise_catalog", "Übungskatalog");
+  await expect(page.locator(".exercise-quick-filters")).toHaveCount(0);
+  const searchBox = await page.getByRole("searchbox", { name: "Übung suchen" }).boundingBox();
+  const filterBox = await page.getByRole("button", { name: "Filtermenü öffnen", exact: true }).boundingBox();
+  expect(searchBox).not.toBeNull();
+  expect(filterBox).not.toBeNull();
+  expect(Math.abs(searchBox.y - filterBox.y)).toBeLessThan(8);
+  const titleFontSize = await page.locator(".exercise-list-title strong").first().evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize));
+  expect(titleFontSize).toBeGreaterThanOrEqual(15);
   const firstExercise = page.locator(".exercise-list-item").first();
   await expect(firstExercise).toBeVisible();
   await expect(firstExercise.locator(".exercise-quick-info")).toHaveCount(0);
@@ -127,6 +135,26 @@ test("D2 Übungskatalog zeigt kompakte Liste, Schnellinfos und Filter-Sheet", as
   await page.getByRole("button", { name: "Anwenden", exact: true }).click();
   await expect(page.getByRole("region", { name: "Übungskatalog filtern" })).toHaveCount(0);
 
+  await expectRuntimeHealthy(page, problems, unhandled);
+});
+
+test("D3 Kernmodule nutzen das gemeinsame, lesbarere Designsystem", async ({ page }) => {
+  const problems = collectRuntimeProblems(page);
+  await installAuthenticatedSession(page);
+  const unhandled = await installSupabaseMock(page);
+
+  await expectAuthenticatedHeading(page, "/module/training_blocks", "Trainingsblöcke");
+  await expect(page.locator(".training-blocks-toolbar.ui-command-surface")).toBeVisible();
+  await expect(page.locator(".training-block-card").first()).toBeVisible();
+
+  await expectAuthenticatedHeading(page, "/module/training_planning", "Athletenpläne");
+  await expect(page.locator(".training-planning-selection.ui-command-surface")).toBeVisible();
+
+  await expectAuthenticatedHeading(page, "/module/training_documentation", "Trainingsdokumentation");
+  await expect(page.locator(".training-doc-controls.ui-command-surface")).toBeVisible();
+
+  const rootFontSize = await page.locator("html").evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize));
+  expect(rootFontSize).toBeGreaterThanOrEqual(17);
   await expectRuntimeHealthy(page, problems, unhandled);
 });
 
@@ -223,8 +251,20 @@ test("untere Hauptnavigation und Untermenues funktionieren ohne Laufzeitfehler",
   await expect(page.getByRole("navigation", { name: "Hauptnavigation" })).toBeVisible();
 
   await page.getByRole("button", { name: "Anmeldung", exact: true }).click();
-  await expect(page.getByRole("navigation", { name: "Anmeldung Untermenü" })).toBeVisible();
+  const registrationMenu = page.getByRole("navigation", { name: "Anmeldung Untermenü" });
+  await expect(registrationMenu).toBeVisible();
   await expect(page.getByRole("button", { name: "Kindertraining", exact: true })).toBeVisible();
+  const navBox = await page.getByRole("navigation", { name: "Hauptnavigation" }).boundingBox();
+  const submenuBox = await registrationMenu.boundingBox();
+  expect(navBox).not.toBeNull();
+  expect(submenuBox).not.toBeNull();
+  expect(submenuBox.width).toBeLessThan(navBox.width * 0.72);
+  const submenuButtons = registrationMenu.getByRole("button");
+  const firstSubmenuBox = await submenuButtons.nth(0).boundingBox();
+  const secondSubmenuBox = await submenuButtons.nth(1).boundingBox();
+  expect(firstSubmenuBox).not.toBeNull();
+  expect(secondSubmenuBox).not.toBeNull();
+  expect(secondSubmenuBox.y).toBeGreaterThan(firstSubmenuBox.y);
 
   await page.getByRole("button", { name: "Weitere Bereiche", exact: true }).click();
   await expect(page.getByRole("menu", { name: "Weitere Bereiche" })).toBeVisible();

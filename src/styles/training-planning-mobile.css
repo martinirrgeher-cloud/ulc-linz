@@ -1,59 +1,12 @@
-/* Routebezogene Mobile-Nachbesserungen: training-planning. */
-
+/* D3: konsolidierte Mobile-Regeln fuer Trainingsplanung. */
 @media screen and (max-width: 760px) {
-  .training-planning-heading {
-    gap: 9px;
-        margin-bottom: 12px;
-  }
-  .training-planning-heading h1 {
-    font-size: clamp(1.35rem, 6vw, 1.62rem);
-        line-height: 1.12;
-  }
-  .training-planning-heading p:not(.eyebrow) {
-    margin-top: 4px;
-        font-size: 0.82rem;
-        line-height: 1.35;
-  }
-  .training-planning-heading .eyebrow {
-    margin-bottom: 4px !important;
-        font-size: 0.68rem;
-  }
-  .training-planning-page small {
-    font-size: 0.75rem;
-  }
-}
-@media screen and (max-width: 760px) {
-  .training-plan-section-actions button,
-  .training-plan-item-actions button {
-    width: 40px;
-        height: 40px;
-        min-width: 40px;
-        min-height: 40px;
-        border-radius: 9px;
-  }
-  .training-plan-section-actions,
-  .training-plan-item-actions {
-    gap: 5px;
-  }
-  .training-plan-section-actions svg,
-  .training-plan-item-actions svg {
-    width: 17px;
-        height: 17px;
-  }
-}
-@media screen and (max-width: 390px) {
-  .training-plan-section-actions button,
-  .training-plan-item-actions button {
-    width: 38px;
-        height: 38px;
-        min-width: 38px;
-        min-height: 38px;
-  }
-}
-@media screen and (pointer: coarse) and (max-width: 760px) {
-  .training-plan-section-actions button,
-  .training-plan-item-actions button {
-    min-width: 42px;
-        min-height: 42px;
-  }
+  .training-planning-heading { gap: 9px; margin-bottom: 4px; }
+  .training-planning-heading h1 { font-size: clamp(1.45rem, 6vw, 1.72rem); line-height: 1.12; }
+  .training-planning-heading p:not(.eyebrow) { display: none; }
+  .training-planning-heading .eyebrow { margin-bottom: 4px !important; font-size: .72rem; }
+  .training-planning-selection { gap: 7px; padding: 9px; }
+  .training-planning-page small { font-size: .8rem; }
+  .training-plan-section-actions button, .training-plan-item-actions button { min-width: 42px; min-height: 42px; }
+  .training-plan-section-actions, .training-plan-item-actions { gap: 4px; }
+  .training-plan-section-actions svg, .training-plan-item-actions svg { width: 17px; height: 17px; }
 }

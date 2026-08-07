@@ -192,11 +192,6 @@ export function ExerciseCatalogPage() {
     [data.exercises, data.subcategories],
   );
 
-  const quickCategories = useMemo(
-    () => data.categories.filter((category) => category.isActive !== false).slice(0, 3),
-    [data.categories],
-  );
-
   const activeFilterCount = [
     categoryFilter !== "all",
     subcategoryFilter !== "all",
@@ -421,27 +416,6 @@ export function ExerciseCatalogPage() {
           </button>
         </div>
 
-        <div className="exercise-quick-filters ui-chip-row" aria-label="Schnellfilter">
-          {quickCategories.map((category) => (
-            <button
-              type="button"
-              className={`ui-chip ${categoryFilter === category.key ? "active" : ""}`}
-              onClick={() => setCategoryFilter((current) => current === category.key ? "all" : category.key)}
-              key={category.key}
-            >
-              {category.title}
-            </button>
-          ))}
-          <button type="button" className={`ui-chip ${favoritesOnly ? "active" : ""}`} onClick={() => setFavoritesOnly((current) => !current)}>
-            <Star aria-hidden="true" fill={favoritesOnly ? "currentColor" : "none"} />Favoriten
-          </button>
-          <button type="button" className={`ui-chip ${videoFilter === "yes" ? "active" : ""}`} onClick={() => setVideoFilter((current) => current === "yes" ? "all" : "yes")}>
-            <Video aria-hidden="true" />Video
-          </button>
-          <button type="button" className={`ui-chip ${activityFilter === "active" ? "active" : ""}`} onClick={() => setActivityFilter((current) => current === "active" ? "all" : "active")}>
-            Aktiv
-          </button>
-        </div>
       </div>
 
       {filtersOpen && (

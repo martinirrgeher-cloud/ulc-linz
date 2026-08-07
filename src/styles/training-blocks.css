@@ -1,12 +1,14 @@
-.training-blocks-page { display: grid; gap: 18px; }
+@import "./ui-design-system.css";
+
+.training-blocks-page { display: grid; gap: 14px; }
 .training-blocks-heading { display: flex; justify-content: space-between; align-items: flex-end; gap: 18px; }
 .training-blocks-heading h1 { margin: 0; color: var(--green-950); }
-.training-blocks-heading p:not(.eyebrow) { margin: 7px 0 0; color: var(--muted); }
+.training-blocks-heading p:not(.eyebrow) { margin: 5px 0 0; color: var(--muted); }
 .training-blocks-toolbar { display: grid; grid-template-columns: minmax(220px, 1fr) minmax(210px, .55fr) auto; gap: 10px; }
 .training-block-search, .training-block-group-filter { min-width: 0; min-height: 46px; display: flex; align-items: center; gap: 9px; padding: 0 12px; background: #fff; border: 1px solid var(--border); border-radius: 12px; }
 .training-block-search > svg, .training-block-group-filter > svg { width: 19px; flex: 0 0 auto; color: var(--green-700); }
 .training-block-search input, .training-block-group-filter select { width: 100%; min-width: 0; height: 44px; color: var(--green-950); background: transparent; border: 0; outline: 0; }
-.training-block-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.training-block-list { display: grid; grid-template-columns: 1fr; gap: 8px; }
 .training-block-card { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; padding: 16px; background: #fff; border: 1px solid var(--border); border-radius: 16px; box-shadow: 0 6px 20px rgba(15, 62, 38, .05); }
 .training-block-card.inactive { background: #f7f9f8; opacity: .78; }
 .training-block-card-main { min-width: 0; display: grid; align-content: start; gap: 10px; }
@@ -19,7 +21,7 @@
 .training-block-card-meta, .training-block-card-groups { display: flex; flex-wrap: wrap; gap: 6px; }
 .training-block-card-meta span, .training-block-card-groups span { min-height: 25px; display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; color: var(--green-800); background: var(--green-50); border: 1px solid #d9ebe0; border-radius: 999px; font-size: .72rem; font-weight: 800; }
 .training-block-card-meta svg { width: 14px; }
-.training-block-card-exercises { display: grid; gap: 3px; margin: 0; padding-left: 22px; color: #294638; font-size: .82rem; }
+.training-block-card-exercises { display: grid; gap: 3px; margin: 0; padding-left: 22px; color: #294638; font-size: .86rem; }
 .training-block-card-main > small { color: var(--muted); font-weight: 700; }
 .training-block-card-actions { display: flex; flex-direction: column; gap: 6px; }
 .training-block-card-actions button { width: 36px; height: 36px; display: grid; place-items: center; padding: 0; color: var(--green-800); background: var(--green-50); border: 0; border-radius: 10px; cursor: pointer; }
@@ -124,14 +126,14 @@
 /* Kompakte, standardmäßig eingeklappte Blockkarten */
 .training-blocks-toolbar { grid-template-columns: minmax(220px, 1fr) repeat(2, minmax(190px, .55fr)) auto; }
 .training-block-card { display: block; padding: 0; overflow: hidden; }
-.training-block-card-summary { width: 100%; min-height: 54px; display: grid; grid-template-columns: auto minmax(0,1fr) auto auto; align-items: center; gap: 9px; padding: 12px 14px; color: var(--green-950); background: #fff; border: 0; text-align: left; cursor: pointer; }
-.training-block-card-summary strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.training-block-card-summary > span:nth-of-type(2) { color: var(--muted); font-size: .82rem; white-space: nowrap; }
+.training-block-card-summary { width: 100%; min-height: 58px; display: grid; grid-template-columns: auto minmax(0,1fr) auto auto; align-items: center; gap: 9px; padding: 11px 13px; color: var(--green-950); background: #fff; border: 0; text-align: left; cursor: pointer; }
+.training-block-card-summary strong { overflow: hidden; font-size: .98rem; text-overflow: ellipsis; white-space: nowrap; }
+.training-block-card-summary > span:nth-of-type(2) { color: var(--muted); font-size: .84rem; white-space: nowrap; }
 .training-block-card-summary svg { width: 18px; }
-.training-block-card-details { display: grid; gap: 10px; padding: 0 14px 14px; border-top: 1px solid var(--border); }
+.training-block-card-details { display: grid; gap: 11px; padding: 0 13px 13px; background: #f8fbf9; border-top: 1px solid var(--border); }
 .training-block-card-goal { margin: 10px 0 0; color: var(--muted); }
 .training-block-card-exercises li { display: grid; gap: 2px; }
-.training-block-card-exercises li small { color: var(--muted); font-size: .74rem; }
+.training-block-card-exercises li small { color: var(--muted); font-size: .8rem; }
 .training-block-card-actions { position: static; justify-content: flex-end; }
 .training-block-card-actions button.danger { color: var(--danger); background: #fff3f2; }
 .training-block-slider-row { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 8px; margin-top: 5px; }
@@ -232,7 +234,12 @@
 
 /* Aufklappbares Blockfiltermenü und Dauer in der kompakten Übersicht */
 .training-blocks-toolbar.training-blocks-toolbar-compact {
-  grid-template-columns: minmax(220px, 1fr) auto;
+  position: sticky;
+  z-index: 8;
+  top: 76px;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 7px;
+  padding: 9px;
 }
 .training-block-filter-toggle {
   min-height: 46px;
@@ -271,7 +278,7 @@
   display: grid;
   gap: 5px;
   color: var(--green-950);
-  font-size: .78rem;
+  font-size: .84rem;
   font-weight: 800;
 }
 .training-block-filter-grid select {
@@ -306,9 +313,11 @@
   .training-block-filter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 560px) {
-  .training-blocks-toolbar.training-blocks-toolbar-compact { grid-template-columns: minmax(0, 1fr) auto; }
+  .training-blocks-toolbar.training-blocks-toolbar-compact { top: 66px; grid-template-columns: minmax(0, 1fr) 42px 42px; padding: 7px; }
   .training-block-filter-grid { grid-template-columns: 1fr; }
-  .training-block-filter-toggle { min-width: 48px; padding-inline: 11px; }
+  .training-block-filter-toggle { min-width: 42px; padding-inline: 0; }
+  .training-block-compare-button { width: 42px; min-width: 42px; padding: 0; font-size: 0; }
+  .training-block-compare-button svg { width: 18px; height: 18px; }
   .training-block-card-summary { grid-template-columns: auto minmax(0, 1fr) auto auto auto; }
   .training-block-summary-duration { display: inline-flex !important; }
 }

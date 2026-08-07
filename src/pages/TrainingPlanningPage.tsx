@@ -381,8 +381,8 @@ export function TrainingPlanningPage() {
   }
 
   return (
-    <section className="training-planning-page">
-      <div className="training-planning-heading">
+    <section className="training-planning-page ui-page-shell">
+      <div className="training-planning-heading ui-page-heading">
         <div>
           <p className="eyebrow">Trainingsplanung</p>
           <h1>Athletenpläne</h1>
@@ -400,7 +400,7 @@ export function TrainingPlanningPage() {
         onKeepDraft={() => applyRemoteServerState(true)}
       />
 
-      <section className="training-planning-selection" aria-label="Trainingstag und Athlet auswählen">
+      <section className="training-planning-selection ui-command-surface" aria-label="Trainingstag und Athlet auswählen">
         <label>
           <span><CalendarDays aria-hidden="true" />Datum</span>
           <input
