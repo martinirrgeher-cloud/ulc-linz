@@ -92,81 +92,107 @@ export function BottomNavigation() {
 
   return (
     <nav className="app-bottom-navigation" aria-label="Hauptnavigation">
-      {submenuGroup && submenuEntries.length > 0 && (
-        <div className="app-bottom-submenu" role="navigation" aria-label={`${submenuGroup.label} Untermenü`}>
-          <div className="app-bottom-submenu-scroll">
-            {submenuEntries.map((entry) => (
-              <button
-                key={entry.key}
-                type="button"
-                className={`app-bottom-submenu-link ${routeIsActive(location.pathname, entry.route) ? "active" : ""}`}
-                onClick={() => void goTo(entry.route)}
-                aria-current={routeIsActive(location.pathname, entry.route) ? "page" : undefined}
-              >
-                {entry.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {panel === "more" && (
-        <div className="app-bottom-more-menu" role="menu" aria-label="Weitere Bereiche">
-          {MORE_NAVIGATION_KEYS.map((key) => {
-            const group = getNavigationGroup(key);
-            const entries = visibleGroups.get(key) ?? [];
-            if (entries.length === 0) return null;
-            return (
-              <button
-                type="button"
-                role="menuitem"
-                className="app-bottom-more-item"
-                key={key}
-                onClick={() => setPanel(key)}
-              >
-                <span className="app-bottom-more-icon">{primaryIcons[key]}</span>
-                <span>{group.label}</span>
-                <small>{entries.length}</small>
-              </button>
-            );
-          })}
-          <button type="button" role="menuitem" className="app-bottom-more-item" onClick={() => void openCentralHelp()}>
-            <span className="app-bottom-more-icon"><BookOpenText aria-hidden="true" /></span>
-            <span>Hilfe</span>
-          </button>
-        </div>
-      )}
-
       <div className="app-bottom-navigation-bar">
-        {visiblePrimaryKeys.map((key) => {
+        {visiblePrimaryKeys.map((key, index) => {
           const group = getNavigationGroup(key);
+          const entries = visibleGroups.get(key) ?? [];
           const active = activeGroup === key;
           const expanded = panel === key;
+          const edgeClass = index === 0
+            ? "edge-start"
+            : index === visiblePrimaryKeys.length - 1
+              ? "edge-end"
+              : "";
           return (
-            <button
-              key={key}
-              type="button"
-              className={`app-bottom-navigation-button ${active || expanded ? "active" : ""}`}
-              onClick={() => togglePanel(key)}
-              aria-expanded={expanded}
-              aria-label={group.label}
-            >
-              {primaryIcons[key]}
-              <span>{group.label}</span>
-            </button>
+            <div className={`app-bottom-navigation-slot ${edgeClass}`} key={key}>
+              {expanded && entries.length > 0 && (
+                <div className="app-bottom-submenu" role="navigation" aria-label={`${group.label} Untermenü`}>
+                  <div className="app-bottom-submenu-scroll">
+                    {entries.map((entry) => (
+                      <button
+                        key={entry.key}
+                        type="button"
+                        className={`app-bottom-submenu-link ${routeIsActive(location.pathname, entry.route) ? "active" : ""}`}
+                        onClick={() => void goTo(entry.route)}
+                        aria-current={routeIsActive(location.pathname, entry.route) ? "page" : undefined}
+                      >
+                        {entry.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <button
+                type="button"
+                className={`app-bottom-navigation-button ${active || expanded ? "active" : ""}`}
+                onClick={() => togglePanel(key)}
+                aria-expanded={expanded}
+                aria-label={group.label}
+              >
+                {primaryIcons[key]}
+                <span>{group.label}</span>
+              </button>
+            </div>
           );
         })}
 
-        <button
-          type="button"
-          className={`app-bottom-navigation-button ${moreIsActive || morePanelOpen ? "active" : ""}`}
-          onClick={() => togglePanel("more")}
-          aria-expanded={morePanelOpen}
-          aria-label="Weitere Bereiche"
-        >
-          <span className="app-bottom-more-dots" aria-hidden="true">•••</span>
-          <span>Mehr</span>
-        </button>
+        <div className="app-bottom-navigation-slot app-bottom-navigation-slot-more edge-end">
+          {panel === "more" && (
+            <div className="app-bottom-more-menu" role="menu" aria-label="Weitere Bereiche">
+              {MORE_NAVIGATION_KEYS.map((key) => {
+                const group = getNavigationGroup(key);
+                const entries = visibleGroups.get(key) ?? [];
+                if (entries.length === 0) return null;
+                return (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="app-bottom-more-item"
+                    key={key}
+                    onClick={() => setPanel(key)}
+                  >
+                    <span className="app-bottom-more-icon">{primaryIcons[key]}</span>
+                    <span>{group.label}</span>
+                    <small>{entries.length}</small>
+                  </button>
+                );
+              })}
+              <button type="button" role="menuitem" className="app-bottom-more-item" onClick={() => void openCentralHelp()}>
+                <span className="app-bottom-more-icon"><BookOpenText aria-hidden="true" /></span>
+                <span>Hilfe</span>
+              </button>
+            </div>
+          )}
+
+          {submenuGroup && MORE_NAVIGATION_KEYS.includes(submenuGroup.key) && submenuEntries.length > 0 && (
+            <div className="app-bottom-submenu app-bottom-submenu-more" role="navigation" aria-label={`${submenuGroup.label} Untermenü`}>
+              <div className="app-bottom-submenu-scroll">
+                {submenuEntries.map((entry) => (
+                  <button
+                    key={entry.key}
+                    type="button"
+                    className={`app-bottom-submenu-link ${routeIsActive(location.pathname, entry.route) ? "active" : ""}`}
+                    onClick={() => void goTo(entry.route)}
+                    aria-current={routeIsActive(location.pathname, entry.route) ? "page" : undefined}
+                  >
+                    {entry.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <button
+            type="button"
+            className={`app-bottom-navigation-button ${moreIsActive || morePanelOpen ? "active" : ""}`}
+            onClick={() => togglePanel("more")}
+            aria-expanded={morePanelOpen}
+            aria-label="Weitere Bereiche"
+          >
+            <span className="app-bottom-more-dots" aria-hidden="true">•••</span>
+            <span>Mehr</span>
+          </button>
+        </div>
       </div>
     </nav>
   );

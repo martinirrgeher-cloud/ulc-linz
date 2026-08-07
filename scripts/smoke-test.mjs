@@ -335,6 +335,11 @@ const uiDesignSystemSource = await readFile(new URL("../src/styles/ui-design-sys
 const trainingBlocksPageSource = await readFile(new URL("../src/pages/TrainingBlocksPage.tsx", import.meta.url), "utf8");
 const trainingBlockEditorSource = await readFile(new URL("../src/features/training-blocks/TrainingBlockEditor.tsx", import.meta.url), "utf8");
 const trainingBlockInfoSource = await readFile(new URL("../src/features/training-blocks/TrainingBlockExerciseInfoDialog.tsx", import.meta.url), "utf8");
+const trainingPlanningPageSource = await readFile(new URL("../src/pages/TrainingPlanningPage.tsx", import.meta.url), "utf8");
+const trainingPlanningCssSource = await readFile(new URL("../src/styles/training-planning.css", import.meta.url), "utf8");
+const trainingDocumentationCssSource = await readFile(new URL("../src/styles/training-documentation.css", import.meta.url), "utf8");
+const trainingBlocksCssSource = await readFile(new URL("../src/styles/training-blocks.css", import.meta.url), "utf8");
+const globalCssSource = await readFile(new URL("../src/styles/global.css", import.meta.url), "utf8");
 
 test("Mobile Stammdaten und Kopfzeile sind gegen Fehlbedienung optimiert", () => {
   assert.ok(appLayoutSource.includes("app-user-menu-panel"), "Sicheres Benutzermenü fehlt.");
@@ -376,7 +381,7 @@ test("D2 macht den Übungskatalog kompakt, aufklappbar und mobile-first", () => 
   assert.ok(exerciseCatalogPageSource.includes("exercise-quick-info"));
   assert.ok(exerciseCatalogPageSource.includes("exercise-quick-parameters"));
   assert.ok(exerciseCatalogPageSource.includes("exercise-usage-summary"));
-  assert.ok(exerciseCatalogPageSource.includes("ui-chip-row"));
+  assert.doesNotMatch(exerciseCatalogPageSource, /exercise-quick-filters|Schnellfilter/);
   assert.ok(exerciseCatalogPageSource.includes("ui-segmented"));
   assert.ok(exerciseCatalogCssSource.includes("position: sticky"));
   assert.ok(exerciseCatalogCssSource.includes("var(--app-bottom-sticky-offset)"));
@@ -388,6 +393,22 @@ test("D2 macht den Übungskatalog kompakt, aufklappbar und mobile-first", () => 
   assert.ok(trainingBlockInfoSource.includes("Häufige Fehler"));
   assert.ok(trainingBlockInfoSource.includes("Planungsparameter"));
   assert.ok(trainingBlockInfoSource.includes("loadTrainingBlockExerciseVideos"));
+});
+
+
+test("D3 rollt das Designsystem auf Bloecke, Planung und Dokumentation aus", () => {
+  assert.match(globalCssSource, /html\s*\{[^}]*font-size:\s*17px/s);
+  assert.ok(trainingBlocksPageSource.includes("training-blocks-page ui-page-shell"));
+  assert.ok(trainingBlocksPageSource.includes("training-blocks-toolbar-compact ui-command-surface"));
+  assert.ok(trainingPlanningPageSource.includes("training-planning-page ui-page-shell"));
+  assert.ok(trainingPlanningPageSource.includes("training-planning-selection ui-command-surface"));
+  assert.ok(trainingDocumentationPageSource.includes("training-documentation-page ui-page-shell"));
+  assert.ok(trainingDocumentationPageSource.includes("training-doc-controls ui-command-surface"));
+  assert.ok(supabaseMockSource.includes('["training_documentation_overview"'), "Runtime-Mock für Trainingsdokumentation fehlt.");
+  assert.ok(trainingBlocksCssSource.startsWith('@import "./ui-design-system.css";'));
+  assert.ok(trainingPlanningCssSource.startsWith('@import "./ui-design-system.css";'));
+  assert.ok(trainingDocumentationCssSource.startsWith('@import "./ui-design-system.css";'));
+  assert.match(exerciseCatalogCssSource, /\.exercise-search\s*\{\s*grid-column:\s*1;/);
 });
 
 const trainingOverviewSource = await readFile(new URL("../src/pages/TrainingOverviewPage.tsx", import.meta.url), "utf8");
@@ -1147,6 +1168,9 @@ const u1SupabaseSource = await readFile(
 test("N1 Untermenue schliesst nach Auswahl und verzichtet auf redundante Ueberschrift", () => {
   assert.ok(n1BottomNavigationSource.includes("setPanel(null);"));
   assert.doesNotMatch(n1BottomNavigationSource, /app-bottom-submenu-title/);
+  assert.ok(n1BottomNavigationSource.includes("app-bottom-navigation-slot"));
+  assert.ok(n11AppLayoutCssSource.includes("width: max-content"));
+  assert.match(n11AppLayoutCssSource, /\.app-bottom-submenu-scroll\s*\{[^}]*display:\s*grid/s);
 });
 
 test("U1 simuliert Benutzerrechte und blockiert Schreibzugriffe global", () => {

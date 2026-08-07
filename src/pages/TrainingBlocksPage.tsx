@@ -427,8 +427,8 @@ export function TrainingBlocksPage() {
 
 
   return (
-    <section className="training-blocks-page">
-      <div className="training-blocks-heading">
+    <section className="training-blocks-page ui-page-shell">
+      <div className="training-blocks-heading ui-page-heading">
         <div>
           <p className="eyebrow">Übungen</p>
           <h1>Trainingsblöcke</h1>
@@ -451,14 +451,14 @@ export function TrainingBlocksPage() {
         onKeepDraft={() => applyRemoteServerState(true)}
       />
 
-      <div className="training-blocks-toolbar training-blocks-toolbar-compact">
-        <label className="training-block-search">
+      <div className="training-blocks-toolbar training-blocks-toolbar-compact ui-command-surface">
+        <label className="training-block-search ui-search-field">
           <Search aria-hidden="true" />
           <input type="search" value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} placeholder="Block oder Übung suchen" aria-label="Trainingsblock suchen" />
         </label>
         <button
           type="button"
-          className={`secondary-button training-block-filter-toggle ${filtersOpen ? "active" : ""}`}
+          className={`secondary-button training-block-filter-toggle ui-icon-action ${filtersOpen ? "active" : ""}`}
           onClick={() => setFiltersOpen((current) => !current)}
           aria-expanded={filtersOpen}
           aria-label={filtersOpen ? "Filtermenü schließen" : "Filtermenü öffnen"}
@@ -471,7 +471,7 @@ export function TrainingBlocksPage() {
         </button>
         <button
           type="button"
-          className={`secondary-button ${compareBlockIds.length > 0 ? "active" : ""}`}
+          className={`secondary-button training-block-compare-button ${compareBlockIds.length > 0 ? "active" : ""}`}
           onClick={() => {
             if (compareBlocks.length === 2) setCompareOpen(true);
             else setSuccess("Wähle bei zwei Blöcken das Vergleichssymbol aus.");
@@ -485,7 +485,7 @@ export function TrainingBlocksPage() {
       </div>
 
       {filtersOpen && (
-        <section className="training-block-filter-panel" aria-label="Trainingsblöcke filtern">
+        <section className="training-block-filter-panel ui-filter-sheet" aria-label="Trainingsblöcke filtern">
           <div className="training-block-filter-grid">
             <label><span>Leistungsgruppe</span><select value={groupFilter} onChange={(event) => setGroupFilter(event.target.value)}><option value="all">Alle Gruppen</option><option value="club">Vereinsweit</option>{data.groups.map((group) => <option value={group.id} key={group.id}>{group.shortName || group.name}</option>)}</select></label>
             <label><span>Kategorie</span><select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}><option value="all">Alle Kategorien</option>{categories.map(([key, title]) => <option value={key} key={key}>{title}</option>)}</select></label>

@@ -1,6 +1,8 @@
+@import "./ui-design-system.css";
+
 .training-planning-page {
   display: grid;
-  gap: 18px;
+  gap: 14px;
 }
 
 .training-planning-heading h1,
@@ -21,11 +23,11 @@
   display: grid;
   grid-template-columns: minmax(170px, .7fr) minmax(220px, 1fr) minmax(240px, 1.15fr);
   gap: 10px;
-  padding: 14px;
-  background: #fff;
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  box-shadow: 0 6px 20px rgba(15, 62, 38, .05);
+  padding: 12px;
+  background: rgba(255,255,255,.97);
+  border: 1px solid var(--ui-border-soft);
+  border-radius: var(--ui-radius-lg);
+  box-shadow: var(--ui-shadow-soft);
 }
 
 .training-planning-selection label,
@@ -41,7 +43,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: .8rem;
+  font-size: .86rem;
 }
 
 .training-planning-selection label > span svg {
@@ -79,9 +81,9 @@
   display: grid;
   gap: 11px;
   padding: 14px;
-  background: #f8fbf9;
-  border: 1px solid var(--border);
-  border-radius: 16px;
+  background: #fff;
+  border: 1px solid var(--ui-border-soft);
+  border-radius: var(--ui-radius-md);
 }
 
 .training-planning-day-overview > header {
@@ -99,7 +101,7 @@
 .training-planning-day-overview > header > span,
 .training-planning-no-plans {
   color: var(--muted);
-  font-size: .78rem;
+  font-size: .84rem;
   font-weight: 700;
 }
 
@@ -144,7 +146,7 @@
 
 .training-plan-summary-list small {
   color: var(--muted);
-  font-size: .72rem;
+  font-size: .79rem;
 }
 
 .training-plan-summary-list em {
@@ -152,7 +154,7 @@
   align-items: center;
   gap: 4px;
   color: var(--green-700);
-  font-size: .68rem;
+  font-size: .94rem;
   font-style: normal;
   font-weight: 800;
 }
@@ -211,7 +213,7 @@
   color: var(--green-800);
   background: var(--green-50);
   border-radius: 999px;
-  font-size: .72rem;
+  font-size: .79rem;
   font-weight: 800;
 }
 
@@ -260,7 +262,7 @@
 }
 
 .training-plan-field > span:first-child {
-  font-size: .8rem;
+  font-size: .86rem;
 }
 
 .training-plan-field textarea {
@@ -344,7 +346,7 @@
   color: #fff;
   background: var(--green-700);
   border-radius: 50%;
-  font-size: .78rem;
+  font-size: .84rem;
   font-weight: 900;
 }
 
@@ -369,7 +371,7 @@
 .training-plan-section-duration,
 .training-plan-no-parameters {
   color: var(--muted);
-  font-size: .72rem;
+  font-size: .79rem;
 }
 
 .training-plan-section-duration {
@@ -447,7 +449,7 @@
 .training-plan-section-goal {
   margin: 0;
   color: var(--muted);
-  font-size: .82rem;
+  font-size: .94rem;
 }
 
 .training-plan-item-list {
@@ -700,7 +702,7 @@
   background: #fff8df;
   border: 1px solid #ead9a5;
   border-radius: 11px;
-  font-size: .78rem;
+  font-size: .84rem;
   font-weight: 800;
 }
 
@@ -775,7 +777,7 @@
   .training-plan-add-actions button {
     min-width: 0;
     padding-inline: 8px;
-    font-size: .78rem;
+    font-size: .84rem;
   }
 
   .training-plan-section-header {
@@ -894,7 +896,7 @@
 .training-planning-selection label > span,
 .training-plan-field > span:first-child {
   gap: 4px;
-  font-size: .72rem;
+  font-size: .79rem;
 }
 
 .training-planning-selection input,
@@ -951,7 +953,7 @@
 .training-planning-day-toggle small,
 .training-planning-day-toggle > span:nth-child(2) {
   color: var(--muted);
-  font-size: .7rem;
+  font-size: .77rem;
   font-weight: 800;
 }
 
@@ -991,7 +993,7 @@
 .training-plan-copy-origin {
   margin-top: 4px;
   padding: 3px 6px;
-  font-size: .66rem;
+  font-size: .86rem;
 }
 
 .training-plan-summary-chips {
@@ -1002,7 +1004,7 @@
   min-height: 25px;
   gap: 3px;
   padding: 3px 7px;
-  font-size: .68rem;
+  font-size: .94rem;
 }
 
 .training-plan-summary-chips svg {
@@ -1061,7 +1063,7 @@
 .training-plan-item-number {
   width: 25px;
   height: 25px;
-  font-size: .7rem;
+  font-size: .77rem;
 }
 
 .training-plan-section-title,
@@ -1073,7 +1075,7 @@
 .training-plan-item-title small,
 .training-plan-section-duration,
 .training-plan-no-parameters {
-  font-size: .68rem;
+  font-size: .94rem;
 }
 
 .training-plan-section-chevron {
@@ -1113,7 +1115,7 @@
 }
 
 .training-plan-section-goal {
-  font-size: .76rem;
+  font-size: .83rem;
 }
 
 .training-plan-item-list {
@@ -1240,7 +1242,7 @@
   gap: 7px;
   padding: 10px;
   color: var(--muted);
-  font-size: .78rem;
+  font-size: .84rem;
   font-weight: 800;
 }
 
@@ -1447,7 +1449,7 @@
   height: 25px;
   padding: 0 7px;
   border-radius: 7px;
-  font-size: .68rem;
+  font-size: .94rem;
   letter-spacing: .02em;
 }
 
@@ -1462,7 +1464,7 @@
   gap: 5px;
   margin: 1px 0 -1px;
   color: var(--green-800);
-  font-size: .7rem;
+  font-size: .77rem;
   font-weight: 900;
 }
 
@@ -1726,7 +1728,7 @@
   text-overflow: clip;
   white-space: normal;
   overflow-wrap: anywhere;
-  font-size: .95rem;
+  font-size: 1rem;
   line-height: 1.25;
 }
 
@@ -1734,7 +1736,7 @@
   overflow: visible;
   text-overflow: clip;
   white-space: normal;
-  font-size: .72rem;
+  font-size: .79rem;
   line-height: 1.2;
 }
 
@@ -1828,7 +1830,7 @@
   text-overflow: clip;
   white-space: nowrap;
   color: var(--green-950);
-  font-size: .9rem;
+  font-size: .96rem;
   line-height: 1.25;
 }
 
@@ -1841,7 +1843,7 @@
   text-overflow: clip;
   white-space: nowrap;
   color: var(--muted);
-  font-size: .75rem;
+  font-size: .94rem;
   line-height: 1.2;
 }
 
@@ -1880,10 +1882,10 @@
   }
 
   .training-plan-item-title-row strong {
-    font-size: .88rem;
+    font-size: .94rem;
   }
 
   .training-plan-item-content > small {
-    font-size: .73rem;
+    font-size: .86rem;
   }
 }

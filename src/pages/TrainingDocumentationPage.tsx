@@ -817,8 +817,8 @@ export function TrainingDocumentationPage() {
   );
 
   return (
-    <section className="training-documentation-page">
-      <header className="training-documentation-heading">
+    <section className="training-documentation-page ui-page-shell">
+      <header className="training-documentation-heading ui-page-heading">
         <div>
           <p className="eyebrow">Training durchführen</p>
           <h1>Trainingsdokumentation</h1>
@@ -859,7 +859,7 @@ export function TrainingDocumentationPage() {
         </button>
       </nav>
 
-      <section className="training-doc-controls">
+      <section className="training-doc-controls ui-command-surface">
         <label>
           <span><Users aria-hidden="true" />Gruppe</span>
           <select value={groupId} onChange={(event) => changeGroup(event.target.value)} disabled={loading}>
