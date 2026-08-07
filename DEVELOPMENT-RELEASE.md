@@ -127,3 +127,13 @@ Bestehende große Bereiche werden nicht in einem riskanten Komplettumbau zerlegt
 ## Isolierter Runtime-Build
 
 Der echte Browser-Test baut die App mit einer deterministischen E2E-Supabase-Konfiguration in `.ulc-runtime-dist`. Der normale Produktions-Build in `dist` wird nicht wiederverwendet und nicht ueberschrieben. Dadurch koennen lokale `.env`-Werte die Authentifizierungs-Mocks nicht beeinflussen. Ein bereits laufender Testserver wird bewusst nicht wiederverwendet.
+
+## S0.1 – robuste Freigabe bereits committeter Stände
+
+`ULC-FREIGEBEN.cmd` unterstützt drei geprüfte Zustände:
+
+1. **Uncommittierte Änderungen vorhanden:** Der exakt geprüfte Arbeitsstand wird nach Bestätigung committed und gepusht.
+2. **Arbeitsbaum sauber, Commit noch nicht gepusht:** Nach einer erneuten `ULC-PRUEFEN.cmd`-Prüfung wird der bereits vorhandene Commit nach Bestätigung gepusht.
+3. **Arbeitsbaum sauber, Commit bereits gepusht:** Der Zustand wird als erfolgreich freigegeben erkannt; es wird nichts erneut committed oder gepusht.
+
+Ein Commit, der nach der letzten Prüfung erzeugt wurde, muss immer nochmals mit `ULC-PRUEFEN.cmd` geprüft werden. Der Fingerabdruck enthält den aktuellen HEAD-Commit und verhindert dadurch die Freigabe eines nachträglich veränderten Stands.

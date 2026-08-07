@@ -20,7 +20,7 @@
     "test:smoke": "node --test scripts/smoke-test.mjs",
     "verify": "npm run typecheck && npm run test:smoke",
     "check:migrations": "node scripts/check-migrations.mjs",
-    "ci:quality": "npm run typecheck && npm run test:smoke && npm run check:migrations && npm run check:database-types && npm run check:e2e-suite && npm run check:e2e-writing-suite && npm run check:security-headers && npm run check:backup-restore-suite && npm run check:catalog-block-suite && npm run check:help-suite && npm run check:pwa-suite && npm run check:css-architecture && npm run check:release-infrastructure && npm run test:overlay-installer && npm run build && npm run check:performance-budget",
+    "ci:quality": "npm run typecheck && npm run test:smoke && npm run check:migrations && npm run check:database-types && npm run check:e2e-suite && npm run check:e2e-writing-suite && npm run check:security-headers && npm run check:backup-restore-suite && npm run check:catalog-block-suite && npm run check:help-suite && npm run check:pwa-suite && npm run check:css-architecture && npm run check:release-infrastructure && npm run test:overlay-installer && npm run test:release-approval && npm run build && npm run check:performance-budget",
     "backup:verify": "node scripts/verify-backup-archive.mjs",
     "check:database-types": "node scripts/check-generated-types.mjs",
     "archive:project": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/create-project-archive.ps1",
@@ -46,7 +46,8 @@
     "change:start": "node scripts/release/start-change.mjs",
     "change:approve": "node scripts/release/approve-change.mjs",
     "production:mark": "node scripts/release/mark-production.mjs",
-    "test:overlay-installer": "node --test scripts/test-overlay-installer.mjs"
+    "test:overlay-installer": "node --test scripts/test-overlay-installer.mjs",
+    "test:release-approval": "node --test scripts/test-release-approval.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.6",
