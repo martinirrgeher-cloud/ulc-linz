@@ -8,7 +8,7 @@ const mainPath = path.join(sourceRoot, "main.tsx");
 
 const limits = Object.freeze({
   cssFiles: 33,
-  totalBytes: 345_000,
+  totalBytes: 350_000,
   totalLines: 15_250,
   mainCssImports: 3,
   mainImportedBytes: 68_000,

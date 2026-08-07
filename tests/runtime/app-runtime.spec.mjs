@@ -50,6 +50,8 @@ test("authentifiziertes App-Layout rendert ohne React-Laufzeitfehler", async ({ 
   const unhandled = await installSupabaseMock(page);
 
   await expectAuthenticatedHeading(page, "/", "Willkommen, E2E Administrator");
+  await expect(page.getByRole("heading", { name: "Was noch zu tun ist", exact: true })).toBeVisible();
+  await expect(page.getByText("Benutzereinladungen offen", { exact: true })).toBeVisible();
   await expectRuntimeHealthy(page, problems, unhandled);
 });
 
@@ -82,6 +84,21 @@ test("untere Hauptnavigation und Untermenues funktionieren ohne Laufzeitfehler",
   await expect(page.getByRole("heading", { name: "Benutzerverwaltung", exact: true })).toBeVisible();
   await expect(page.getByRole("navigation", { name: "Stammdaten Untermenü" })).toHaveCount(0);
 
+  await expectRuntimeHealthy(page, problems, unhandled);
+});
+
+test("untere Navigation verdeckt den letzten Seiteninhalt nicht", async ({ page }) => {
+  const problems = collectRuntimeProblems(page);
+  await installAuthenticatedSession(page);
+  const unhandled = await installSupabaseMock(page);
+  await expectAuthenticatedHeading(page, "/module/user_management", "Benutzerverwaltung");
+  await expect(page.locator(".member-card").last()).toBeVisible();
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  await page.waitForTimeout(100);
+  const contentBox = await page.locator(".user-management-page").boundingBox();
+  const navigationBox = await page.getByRole("navigation", { name: "Hauptnavigation" }).boundingBox();
+  expect(contentBox).not.toBeNull(); expect(navigationBox).not.toBeNull();
+  expect(contentBox.y + contentBox.height).toBeLessThan(navigationBox.y);
   await expectRuntimeHealthy(page, problems, unhandled);
 });
 

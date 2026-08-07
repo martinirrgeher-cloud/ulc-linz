@@ -1019,6 +1019,14 @@ const n1StartChangeSource = await readFile(
   new URL("./release/start-change.mjs", import.meta.url),
   "utf8",
 );
+const d1DashboardApiSource = await readFile(
+  new URL("../src/features/dashboard/api.ts", import.meta.url),
+  "utf8",
+);
+const n11AppLayoutCssSource = await readFile(
+  new URL("../src/styles/app-layout.css", import.meta.url),
+  "utf8",
+);
 
 test("N1 verwendet Dashboard und berechtigungsabhaengige Bottom-Navigation", () => {
   for (const label of ["Anmeldung", "Planung", "Doku", "Übungen"]) {
@@ -1030,8 +1038,26 @@ test("N1 verwendet Dashboard und berechtigungsabhaengige Bottom-Navigation", () 
   }
   assert.ok(n1BottomNavigationSource.includes("canViewModule"), "Navigation muss Modulrechte beruecksichtigen.");
   assert.ok(n1BottomNavigationSource.includes("runGuard"), "Navigation muss ungespeicherte Aenderungen schuetzen.");
-  assert.ok(n1DashboardSource.includes('className="dashboard-overview-grid"'));
+  assert.ok(n1DashboardSource.includes('className="dashboard-section"'));
+  assert.ok(n1DashboardSource.includes("loadDashboardSnapshot"));
   assert.doesNotMatch(n1DashboardSource, /module-sections|module-card/);
+});
+
+test("N1.1 reserviert zentral Platz fuer Bottom-Navigation und Sticky-Aktionen", () => {
+  assert.ok(n11AppLayoutCssSource.includes("--app-bottom-nav-clearance"));
+  assert.ok(n11AppLayoutCssSource.includes("--app-bottom-sticky-offset"));
+  assert.match(
+    n11AppLayoutCssSource,
+    /\.app-shell\s+\.app-content\s*\{[^}]*padding-bottom:\s*var\(--app-bottom-nav-clearance\)/s,
+    "Der Bottom-Navigationsabstand muss spezifischer als die globalen/mobile .app-content-Regeln sein.",
+  );
+  for (const selector of ["training-save-bar", "training-plan-editor-actions", "training-doc-editor-actions", "data-import-footer"]) assert.ok(n11AppLayoutCssSource.includes(selector), `Sticky-Aktionsleiste fehlt in N1.1: ${selector}`);
+});
+
+test("D1 Dashboard nutzt vorhandene Lesemodelle fuer Aufgaben und Heute-Infos", () => {
+  for (const loader of ["loadKindertrainingConfiguration", "loadGroupTrainingConfiguration", "loadTrainingWeekOverview", "loadUserManagement"]) assert.ok(d1DashboardApiSource.includes(loader), `Dashboard-Lesequelle fehlt: ${loader}`);
+  assert.ok(n1DashboardSource.includes("isSimulationActive"), "Simulation darf keine Admin-Dashboarddaten laden.");
+  assert.ok(d1DashboardApiSource.includes("Benutzereinladungen offen"));
 });
 
 test("Aenderung starten erzeugt unter Windows automatisch das Projektarchiv", () => {

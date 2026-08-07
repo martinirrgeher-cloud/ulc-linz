@@ -130,10 +130,11 @@
 .app-simulation-exit svg { width: 15px; height: 15px; }
 
 
-/* N1: feste Hauptnavigation am unteren Bildschirmrand. */
-.app-content { padding-bottom: calc(clamp(104px, 11vw, 132px) + env(safe-area-inset-bottom)); }
+/* N1.1: gemeinsamer Freiraum fuer Bottom-Navigation und Sticky-Aktionen. */
+.app-shell { --app-bottom-nav-height: 70px; --app-bottom-nav-edge: max(10px, env(safe-area-inset-bottom)); --app-bottom-nav-clearance: calc(var(--app-bottom-nav-height) + var(--app-bottom-nav-edge) + 28px); --app-bottom-sticky-offset: calc(var(--app-bottom-nav-height) + var(--app-bottom-nav-edge) + 10px); }
+.app-shell .app-content { padding-bottom: var(--app-bottom-nav-clearance); }
 .app-bottom-navigation {
-  position: fixed; z-index: 32; left: 50%; bottom: max(10px, env(safe-area-inset-bottom));
+  position: fixed; z-index: 32; left: 50%; bottom: var(--app-bottom-nav-edge);
   width: min(720px, calc(100vw - 24px)); transform: translateX(-50%);
 }
 .app-bottom-navigation-bar {
@@ -179,6 +180,11 @@
 .app-bottom-more-icon svg { width: 17px; height: 17px; }
 .app-bottom-more-item small { min-width: 24px; padding: 2px 6px; color: var(--muted); background: #f4f7f5; border-radius: 999px; font-size: 0.72rem; text-align: center; }
 
+.app-shell .training-save-bar,
+.app-shell .training-plan-editor-actions,
+.app-shell .training-doc-editor-actions,
+.app-shell .data-import-footer { bottom: var(--app-bottom-sticky-offset); }
+
 @media (max-width: 760px) {
   .app-simulation-banner { top: 66px; margin: 0 6px 6px; padding: 7px 8px; }
   .app-simulation-exit span { display: none; }
@@ -186,8 +192,8 @@
   .page-context-help-button { width: 40px; height: 40px; }
   .app-content > section > :first-child:is(.page-heading, [class$="-heading"], [class*="-heading "]) { padding-right: 50px; }
   .app-user-menu-panel { top: calc(100% + 7px); }
-  .app-content { padding-bottom: calc(116px + env(safe-area-inset-bottom)); }
-  .app-bottom-navigation { bottom: max(6px, env(safe-area-inset-bottom)); width: calc(100vw - 12px); }
+  .app-shell { --app-bottom-nav-height: 64px; --app-bottom-nav-edge: max(6px, env(safe-area-inset-bottom)); --app-bottom-nav-clearance: calc(var(--app-bottom-nav-height) + var(--app-bottom-nav-edge) + 24px); --app-bottom-sticky-offset: calc(var(--app-bottom-nav-height) + var(--app-bottom-nav-edge) + 8px); }
+  .app-bottom-navigation { width: calc(100vw - 12px); }
   .app-bottom-navigation-bar { gap: 1px; padding: 4px; border-radius: 16px; }
   .app-bottom-navigation-button { min-height: 54px; gap: 3px; padding: 4px 2px; border-radius: 11px; font-size: 0.66rem; }
   .app-bottom-navigation-button svg { width: 20px; height: 20px; }
