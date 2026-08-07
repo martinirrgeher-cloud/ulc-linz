@@ -78,7 +78,8 @@
             "Sichtbare und bearbeitbare Module hängen von Rolle und individuellen Modulrechten ab."
           ],
           "bullets": [
-            "Die Modulübersicht zeigt nur freigeschaltete Bereiche.",
+            "Das Dashboard bündelt offene Aufgaben und wichtige Informationen.",
+            "Die untere Navigation zeigt nur Bereiche, für die Zugriff besteht.",
             "Viele Trainingsseiten speichern Änderungen automatisch.",
             "Sperren und Konflikthinweise schützen gemeinsam bearbeitete Datensätze.",
             "Die App ist für Smartphones optimiert und kann installiert werden."
@@ -89,17 +90,17 @@
           "title": "Empfohlener Ablauf",
           "steps": [
             "App über das Symbol am Hauptbildschirm öffnen und anmelden.",
-            "Benötigten Bereich in der Modulübersicht öffnen.",
+            "Benötigten Bereich über die untere Navigation öffnen.",
             "Training, Plan oder Stammdatensatz bearbeiten.",
             "Auf Speicher-, Sperr- und Konflikthinweise achten.",
-            "Über das Haus-Symbol zur Modulübersicht zurückkehren."
+            "Über das Haus-Symbol zum Dashboard zurückkehren."
           ]
         },
         {
           "id": "help",
           "title": "Hilfe aufrufen",
           "paragraphs": [
-            "Das Fragezeichen neben der Seitenüberschrift öffnet das Hilfethema der aktuellen Seite. Das vollständige Handbuch ist zusätzlich im Benutzermenü und über den kompakten Link auf der Modulübersicht erreichbar."
+            "Das Fragezeichen neben der Seitenüberschrift öffnet das Hilfethema der aktuellen Seite. Das vollständige Handbuch ist zusätzlich im Benutzermenü und unter Mehr > Hilfe erreichbar."
           ],
           "tip": "Im Handbuch kann nach Begriffen wie Sondertraining, Einladung, Video oder Import gesucht werden."
         }
@@ -179,7 +180,7 @@
           "steps": [
             "E-Mail-Adresse und persönliches Passwort eingeben.",
             "„Anmelden“ wählen.",
-            "Nach erfolgreicher Anmeldung öffnet sich die Modulübersicht oder die zuvor angeforderte Seite."
+            "Nach erfolgreicher Anmeldung öffnet sich das Dashboard oder die zuvor angeforderte Seite."
           ],
           "warning": "Zugangsdaten niemals mit anderen Personen teilen."
         },
@@ -208,7 +209,7 @@
     {
       "id": "navigation",
       "title": "Navigation und Bedienung",
-      "summary": "Modulübersicht, Kopfzeile, mobile Bedienung und Diagnoseinformationen.",
+      "summary": "Dashboard, untere Hauptnavigation, Kopfzeile, mobile Bedienung und Diagnoseinformationen.",
       "keywords": [
         "navigation",
         "haus",
@@ -221,16 +222,17 @@
           "id": "header",
           "title": "Kopfzeile",
           "bullets": [
-            "Vereinslogo und Home-Symbol: zurück zur Modulübersicht.",
+            "Vereinslogo und Home-Symbol: zurück zum Dashboard.",
             "Fragezeichen neben der Seitenüberschrift: Hilfe für die aktuelle Seite.",
             "Benutzersymbol: Rolle, App-Stand, Diagnoseinformationen, Handbuch und Abmelden."
           ]
         },
         {
           "id": "dashboard",
-          "title": "Modulübersicht",
+          "title": "Dashboard und Navigation",
           "paragraphs": [
-            "Die Module sind nach Anmeldung, Planung, Dokumentation, Übungen, Nützliches und Stammdaten gegliedert. Statistiken sind direkt Bestandteil von Kindertraining, U12 und U14. Nur freigeschaltete Module werden angezeigt."
+            "Die Startseite ist ein Dashboard für offene Aufgaben und wichtige Informationen. Die wichtigsten Bereiche Anmeldung, Planung, Dokumentation und Übungen liegen dauerhaft in der unteren Navigationsleiste. Ein Antippen öffnet die zugehörigen Unterpunkte oberhalb der Leiste.",
+            "Stammdaten, Statistik, Hilfe und Nützliches befinden sich unter Mehr. Angezeigt werden nur Bereiche, für die der angemeldete Benutzer Zugriff besitzt."
           ]
         },
         {

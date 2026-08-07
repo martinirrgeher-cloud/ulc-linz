@@ -9,6 +9,7 @@ const helpContextSource = await readFile(new URL("../src/features/help/help-cont
 const publicHelpSource = await readFile(new URL("../src/features/help/PublicHelpButton.tsx", import.meta.url), "utf8");
 const helpPageSource = await readFile(new URL("../src/pages/HelpPage.tsx", import.meta.url), "utf8");
 const dashboardSource = await readFile(new URL("../src/pages/DashboardPage.tsx", import.meta.url), "utf8");
+const bottomNavigationSource = await readFile(new URL("../src/components/layout/BottomNavigation.tsx", import.meta.url), "utf8");
 const modulesSource = await readFile(new URL("../src/config/modules.tsx", import.meta.url), "utf8");
 const maintenanceSource = await readFile(new URL("../P2B-PWA-HILFESYSTEM.md", import.meta.url), "utf8");
 
@@ -91,10 +92,10 @@ assert.ok(publicHelpSource.includes("@/features/help/help-context"), "Öffentlic
 assert.doesNotMatch(layoutSource, /@\/features\/help\/help["']/, "Der App-Layoutzugang darf nicht das vollständige Handbuch in den Start-Chunk laden.");
 assert.doesNotMatch(publicHelpSource, /@\/features\/help\/help["']/, "Der öffentliche Hilfezugang darf nicht das vollständige Handbuch in den Start-Chunk laden.");
 
-for (const marker of ["dashboard-help-link", "Hilfe & Handbuch"]) {
-  assert.ok(dashboardSource.includes(marker), `Kompakter Hilfezugang auf der Startseite fehlt: ${marker}`);
+for (const marker of ["Weitere Bereiche", "Hilfe", "openCentralHelp"]) {
+  assert.ok(bottomNavigationSource.includes(marker), `Hilfezugang in der unteren Navigation fehlt: ${marker}`);
 }
-assert.doesNotMatch(dashboardSource, /dashboard-help-card/, "Die dominante Hilfe-Karte darf auf der Startseite nicht mehr verwendet werden.");
+assert.doesNotMatch(dashboardSource, /dashboard-help-card|dashboard-help-link/, "Das Dashboard darf keinen separaten Hilfezugang mehr duplizieren.");
 for (const marker of ["help-route-contexts.json", "buildHelpTopicHref", "safeHelpReturnPath"]) {
   assert.ok(helpContextSource.includes(marker), `Schlanke Hilfekontextlogik fehlt: ${marker}`);
 }

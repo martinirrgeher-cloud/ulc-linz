@@ -113,17 +113,69 @@
   height: 18px;
 }
 
+
+
+/* N1: feste Hauptnavigation am unteren Bildschirmrand. */
+.app-content { padding-bottom: calc(clamp(104px, 11vw, 132px) + env(safe-area-inset-bottom)); }
+.app-bottom-navigation {
+  position: fixed; z-index: 32; left: 50%; bottom: max(10px, env(safe-area-inset-bottom));
+  width: min(720px, calc(100vw - 24px)); transform: translateX(-50%);
+}
+.app-bottom-navigation-bar {
+  display: flex; align-items: stretch; gap: 3px; padding: 5px;
+  background: rgba(255, 255, 255, 0.97); border: 1px solid rgba(164, 194, 176, 0.82);
+  border-radius: 18px; box-shadow: 0 14px 34px rgba(8, 36, 22, 0.18); backdrop-filter: blur(16px);
+}
+.app-bottom-navigation-button {
+  min-width: 0; min-height: 58px; flex: 1 1 0; display: grid; place-items: center; align-content: center;
+  gap: 4px; padding: 5px 4px; color: #4d6256; background: transparent; border: 0; border-radius: 13px;
+  font: inherit; font-size: 0.72rem; font-weight: 850; cursor: pointer;
+}
+.app-bottom-navigation-button svg { width: 21px; height: 21px; }
+.app-bottom-more-dots { font-size: 1.1rem; line-height: 1; letter-spacing: 0.06em; }
+.app-bottom-navigation-button:hover,
+.app-bottom-navigation-button:focus-visible,
+.app-bottom-navigation-button.active { color: var(--green-800); background: var(--green-50); outline: none; }
+.app-bottom-navigation-button.active { box-shadow: inset 0 0 0 1px #c8e2d0; }
+.app-bottom-submenu,
+.app-bottom-more-menu {
+  position: absolute; right: 0; bottom: calc(100% + 8px); left: 0; background: rgba(255, 255, 255, 0.98);
+  border: 1px solid var(--border); border-radius: 15px; box-shadow: 0 14px 32px rgba(8, 36, 22, 0.16); backdrop-filter: blur(16px);
+}
+.app-bottom-submenu { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 8px; padding: 6px 7px 6px 10px; }
+.app-bottom-submenu-title { color: var(--green-900); font-size: 0.78rem; font-weight: 900; white-space: nowrap; }
+.app-bottom-submenu-scroll { min-width: 0; display: flex; gap: 5px; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; }
+.app-bottom-submenu-scroll::-webkit-scrollbar { display: none; }
+.app-bottom-submenu-link {
+  min-height: 36px; flex: 0 0 auto; padding: 6px 10px; color: var(--green-800); background: #fff;
+  border: 1px solid #d7e6dc; border-radius: 10px; font: inherit; font-size: 0.8rem; font-weight: 850; white-space: nowrap; cursor: pointer;
+}
+.app-bottom-submenu-link:hover,
+.app-bottom-submenu-link:focus-visible,
+.app-bottom-submenu-link.active { color: #fff; background: var(--green-700); border-color: var(--green-700); outline: none; }
+.app-bottom-more-menu { left: auto; width: min(330px, 100%); display: grid; gap: 2px; padding: 6px; }
+.app-bottom-more-item {
+  width: 100%; min-height: 44px; display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; align-items: center;
+  gap: 9px; padding: 7px 10px; color: var(--green-900); background: transparent; border: 0; border-radius: 10px;
+  font: inherit; font-size: 0.88rem; font-weight: 850; text-align: left; cursor: pointer;
+}
+.app-bottom-more-item:hover,
+.app-bottom-more-item:focus-visible { background: var(--green-50); outline: none; }
+.app-bottom-more-icon { width: 30px; height: 30px; display: grid; place-items: center; color: var(--green-700); background: var(--green-50); border-radius: 9px; }
+.app-bottom-more-icon svg { width: 17px; height: 17px; }
+.app-bottom-more-item small { min-width: 24px; padding: 2px 6px; color: var(--muted); background: #f4f7f5; border-radius: 999px; font-size: 0.72rem; text-align: center; }
+
 @media (max-width: 760px) {
-  .page-context-help-button {
-    width: 40px;
-    height: 40px;
-  }
-
-  .app-content > section > :first-child:is(.page-heading, [class$="-heading"], [class*="-heading "]) {
-    padding-right: 50px;
-  }
-
-  .app-user-menu-panel {
-    top: calc(100% + 7px);
-  }
+  .page-context-help-button { width: 40px; height: 40px; }
+  .app-content > section > :first-child:is(.page-heading, [class$="-heading"], [class*="-heading "]) { padding-right: 50px; }
+  .app-user-menu-panel { top: calc(100% + 7px); }
+  .app-content { padding-bottom: calc(116px + env(safe-area-inset-bottom)); }
+  .app-bottom-navigation { bottom: max(6px, env(safe-area-inset-bottom)); width: calc(100vw - 12px); }
+  .app-bottom-navigation-bar { gap: 1px; padding: 4px; border-radius: 16px; }
+  .app-bottom-navigation-button { min-height: 54px; gap: 3px; padding: 4px 2px; border-radius: 11px; font-size: 0.66rem; }
+  .app-bottom-navigation-button svg { width: 20px; height: 20px; }
+  .app-bottom-submenu, .app-bottom-more-menu { bottom: calc(100% + 6px); border-radius: 13px; }
+  .app-bottom-submenu { grid-template-columns: 1fr; gap: 4px; padding: 6px; }
+  .app-bottom-submenu-title { padding: 0 4px; font-size: 0.7rem; }
+  .app-bottom-submenu-link { min-height: 34px; padding: 5px 9px; font-size: 0.76rem; }
 }

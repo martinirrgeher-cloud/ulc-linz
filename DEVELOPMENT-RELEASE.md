@@ -14,6 +14,8 @@ Neue Änderungen dürfen nur von einem bekannten stabilen Produktionsstand ausge
 
 Das Skript verlangt ein sauberes Arbeitsverzeichnis, aktualisiert `origin/main` und erstellt einen neuen `feature/...`-Branch direkt von `origin/main`. `main` selbst wird nicht bearbeitet.
 
+Unter Windows wird danach automatisch eine aktuelle Projekt-ZIP auf dem Desktop erzeugt. Damit ist der neue Arbeitsstand ohne zusätzlichen PowerShell-Befehl direkt zum Hochladen bereit.
+
 Bei normalen Overlay-Paketen übernimmt der Paketstarter diesen Schritt automatisch.
 
 ### 2. Änderung prüfen

@@ -368,10 +368,15 @@ test.describe("Authentifizierte, nicht schreibende Modulprüfungen", () => {
     await page.setViewportSize({ width: 300, height: 760 });
     await page.goto("/");
     await expect(page.getByRole("heading", { name: /Willkommen/ })).toBeVisible();
-    const helpLink = page.getByRole("link", { name: "Hilfe & Handbuch" });
-    await expect(helpLink).toBeVisible();
-    const helpHeight = await helpLink.evaluate((element) => element.getBoundingClientRect().height);
-    expect(helpHeight).toBeLessThanOrEqual(44);
+    const bottomNavigation = page.getByRole("navigation", { name: "Hauptnavigation" });
+    await expect(bottomNavigation).toBeVisible();
+    const navigationBox = await bottomNavigation.boundingBox();
+    expect(navigationBox).not.toBeNull();
+    expect(navigationBox.x).toBeGreaterThanOrEqual(0);
+    expect(navigationBox.x + navigationBox.width).toBeLessThanOrEqual(300);
+
+    await page.getByRole("button", { name: "Weitere Bereiche", exact: true }).click();
+    await expect(page.getByRole("menuitem", { name: "Hilfe", exact: true })).toBeVisible();
     await expectHealthyPage(page, problems, unhandled);
   });
 
@@ -380,7 +385,7 @@ test.describe("Authentifizierte, nicht schreibende Modulprüfungen", () => {
     const unhandled = await installSupabaseMock(page);
 
     await page.goto("/");
-    const home = page.getByRole("button", { name: "Zur Modulübersicht" }).last();
+    const home = page.getByRole("button", { name: "Zum Dashboard" }).last();
     const userMenu = page.getByRole("button", { name: "Benutzermenü öffnen" });
     const homeBox = await home.boundingBox();
     const userBox = await userMenu.boundingBox();

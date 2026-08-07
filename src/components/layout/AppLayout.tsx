@@ -1,12 +1,12 @@
 import { BookOpenText, CircleHelp, Home, LogOut, UserRound } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
+import { BottomNavigation } from "@/components/layout/BottomNavigation";
 import {
   NavigationGuardProvider,
   useNavigationGuardController,
 } from "@/components/layout/NavigationGuardContext";
 import { useAuth } from "@/features/auth/AuthContext";
-import { APP_MODULES } from "@/config/modules";
 import { env } from "@/lib/env";
 import { buildHelpHref } from "@/features/help/help-context";
 import "@/styles/app-layout.css";
@@ -55,16 +55,9 @@ function AppLayoutContent() {
     if (!(await runGuard())) return;
 
     setUserMenuOpen(false);
-    const currentModule = APP_MODULES
-      .filter((module) =>
-        location.pathname === module.route || location.pathname.startsWith(`${module.route}/`),
-      )
-      .sort((left, right) => right.route.length - left.route.length)[0];
-
     navigate("/", {
       replace: true,
       flushSync: true,
-      state: { openGroupKey: currentModule?.groupKey ?? null },
     });
 
     // Sicherheitsnetz für mobile Browser nach einem asynchronen Autosave.
@@ -103,8 +96,8 @@ function AppLayoutContent() {
           type="button"
           className="brand brand-button"
           onClick={() => void goHome()}
-          aria-label="Zur Modulübersicht"
-          title="Zur Modulübersicht"
+          aria-label="Zum Dashboard"
+          title="Zum Dashboard"
         >
           <img src="/logo.png" alt="ULC Linz Oberbank" />
           <span className="brand-copy">
@@ -117,8 +110,8 @@ function AppLayoutContent() {
             type="button"
             className="icon-button"
             onClick={() => void goHome()}
-            aria-label="Zur Modulübersicht"
-            title="Zur Modulübersicht"
+            aria-label="Zum Dashboard"
+            title="Zum Dashboard"
           >
             <Home aria-hidden="true" />
           </button>
@@ -190,6 +183,7 @@ function AppLayoutContent() {
         </div>
         <Outlet />
       </main>
+      <BottomNavigation />
     </div>
   );
 }

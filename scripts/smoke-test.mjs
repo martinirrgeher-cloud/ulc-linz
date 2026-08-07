@@ -1002,3 +1002,41 @@ test("P2c verwendet in allen Stammdateneditoren eine feste obere Aktionsleiste",
   assert.ok(managementCssP2cSource.includes(".management-editor-sticky-header"));
   assert.ok(managementCssP2cSource.includes(".masterdata-filter-panel"));
 });
+
+const n1BottomNavigationSource = await readFile(
+  new URL("../src/components/layout/BottomNavigation.tsx", import.meta.url),
+  "utf8",
+);
+const n1NavigationConfigSource = await readFile(
+  new URL("../src/config/navigation.ts", import.meta.url),
+  "utf8",
+);
+const n1DashboardSource = await readFile(
+  new URL("../src/pages/DashboardPage.tsx", import.meta.url),
+  "utf8",
+);
+const n1StartChangeSource = await readFile(
+  new URL("./release/start-change.mjs", import.meta.url),
+  "utf8",
+);
+
+test("N1 verwendet Dashboard und berechtigungsabhaengige Bottom-Navigation", () => {
+  for (const label of ["Anmeldung", "Planung", "Doku", "Übungen"]) {
+    assert.ok(n1NavigationConfigSource.includes(`label: "${label}"`), `Navigationsgruppe fehlt: ${label}`);
+  }
+  assert.ok(n1BottomNavigationSource.includes('aria-label="Weitere Bereiche"'));
+  for (const group of ["masterData", "statistics", "useful"]) {
+    assert.ok(n1NavigationConfigSource.includes(`key: "${group}"`), `Mehr-Gruppe fehlt: ${group}`);
+  }
+  assert.ok(n1BottomNavigationSource.includes("canViewModule"), "Navigation muss Modulrechte beruecksichtigen.");
+  assert.ok(n1BottomNavigationSource.includes("runGuard"), "Navigation muss ungespeicherte Aenderungen schuetzen.");
+  assert.ok(n1DashboardSource.includes('className="dashboard-overview-grid"'));
+  assert.doesNotMatch(n1DashboardSource, /module-sections|module-card/);
+});
+
+test("Aenderung starten erzeugt unter Windows automatisch das Projektarchiv", () => {
+  assert.ok(n1StartChangeSource.includes('"powershell.exe"'));
+  assert.ok(n1StartChangeSource.includes('"-ExecutionPolicy"'));
+  assert.ok(n1StartChangeSource.includes('"Bypass"'));
+  assert.ok(n1StartChangeSource.includes('create-project-archive.ps1'));
+});
