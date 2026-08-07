@@ -4,6 +4,7 @@ import {
   Clock3,
   Link2,
   Link2Off,
+  Eye,
   MailPlus,
   Pencil,
   RefreshCw,
@@ -14,7 +15,7 @@ import {
   UserRoundX,
   UsersRound,
 } from "lucide-react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { EditLockNotice } from "@/components/collaboration/EditLockNotice";
 import { RemoteChangeNotice } from "@/components/collaboration/RemoteChangeNotice";
 import {
@@ -114,7 +115,8 @@ function isUnlinked(member: ManagedMember): boolean {
 }
 
 export function UserManagementPage() {
-  const { appContext } = useAuth();
+  const { appContext, startSimulation } = useAuth();
+  const navigate = useNavigate();
   const organizationId = appContext?.organization?.id;
   const currentUserId = appContext?.authUser.id;
   const isAdmin = appContext?.membership?.role === "admin";
@@ -278,6 +280,33 @@ export function UserManagementPage() {
     setAuditEntries([]);
   }
 
+  function simulateMember(member: ManagedMember) {
+    if (member.status !== "active") {
+      setError("Nur aktive Benutzerkonten können realistisch simuliert werden.");
+      return;
+    }
+    if (member.userId === currentUserId) {
+      setError("Das eigene Administratorkonto muss nicht simuliert werden.");
+      return;
+    }
+
+    setError(null);
+    setSuccess(null);
+    closeEditor();
+    startSimulation({
+      membershipId: member.membershipId,
+      organizationId: activeOrganizationId,
+      userId: member.userId,
+      email: member.email,
+      displayName: member.displayName,
+      role: member.role,
+      permissions: member.permissions.map((permission) => ({ ...permission })),
+      linkedAthleteIds: member.linkedAthletes.map((athlete) => athlete.id),
+      linkedTrainerId: member.linkedTrainerId,
+    });
+    navigate("/", { replace: true });
+  }
+
   async function applyRemoteServerState(keepDraft: boolean) {
     if (!editedMember) return;
     setRemoteSyncBusy(true);
@@ -380,6 +409,7 @@ export function UserManagementPage() {
           <p className="eyebrow">Administration</p>
           <h1>Benutzerverwaltung</h1>
           <p>Benutzer einladen, Konten prüfen, Verknüpfungen und individuelle Rechte verwalten.</p>
+          <p className="e5c-simulation-hint">Mit „Ansicht simulieren“ prüfst du Navigation und Berechtigungen des Benutzers. Schreibzugriffe werden global blockiert; die serverseitige Datensicht bleibt aus Sicherheitsgründen die des Administrators.</p>
         </div>
         <button
           type="button"
@@ -560,6 +590,15 @@ export function UserManagementPage() {
                       {resendBusyId === member.membershipId ? "Wird gesendet …" : "Erneut senden"}
                     </button>
                   )}
+                  <button
+                    type="button"
+                    className="secondary-button e5c-simulate-button"
+                    onClick={() => simulateMember(member)}
+                    disabled={isCurrentUser || member.status !== "active"}
+                    title={member.status !== "active" ? "Nur aktive Konten können simuliert werden" : isCurrentUser ? "Eigenes Konto" : "Berechtigungsansicht ohne Speicherung öffnen"}
+                  >
+                    <Eye aria-hidden="true" /> Ansicht simulieren
+                  </button>
                   <button type="button" className="secondary-button member-edit-button" onClick={() => openEditor(member)}>
                     <Pencil aria-hidden="true" /> Bearbeiten
                   </button>

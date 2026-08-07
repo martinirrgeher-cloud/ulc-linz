@@ -1,4 +1,4 @@
-import { BookOpenText, CircleHelp, Home, LogOut, UserRound } from "lucide-react";
+import { BookOpenText, CircleHelp, Eye, Home, LogOut, X, UserRound } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { BottomNavigation } from "@/components/layout/BottomNavigation";
@@ -20,7 +20,7 @@ const roleNames = {
 } as const;
 
 function AppLayoutContent() {
-  const { appContext, signOut } = useAuth();
+  const { appContext, signOut, simulation, stopSimulation } = useAuth();
   const { runGuard } = useNavigationGuardController();
   const navigate = useNavigate();
   const location = useLocation();
@@ -82,6 +82,14 @@ function AppLayoutContent() {
     } catch (error) {
       reportTechnicalError(error, "app_menu.copy_diagnostics");
     }
+  }
+
+
+  async function handleStopSimulation() {
+    if (!(await runGuard())) return;
+    setUserMenuOpen(false);
+    stopSimulation();
+    navigate("/", { replace: true });
   }
 
   async function handleSignOut() {
@@ -168,6 +176,26 @@ function AppLayoutContent() {
           </div>
         </div>
       </header>
+
+      {simulation && (
+        <aside className="app-simulation-banner" role="status" aria-label="Benutzeransicht Simulation">
+          <Eye aria-hidden="true" />
+          <div>
+            <strong>Simulation: {simulation.displayName}</strong>
+            <span>{roleNames[simulation.role]} · Änderungen werden nicht gespeichert.</span>
+          </div>
+          <button
+            type="button"
+            className="app-simulation-exit"
+            onClick={() => void handleStopSimulation()}
+            aria-label="Simulation beenden"
+            title="Simulation beenden"
+          >
+            <X aria-hidden="true" />
+            <span>Beenden</span>
+          </button>
+        </aside>
+      )}
 
       <main className="app-content">
         <div className="page-context-help-slot">

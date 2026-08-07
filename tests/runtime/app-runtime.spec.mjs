@@ -78,7 +78,61 @@ test("untere Hauptnavigation und Untermenues funktionieren ohne Laufzeitfehler",
   await expect(page.getByRole("menu", { name: "Weitere Bereiche" })).toBeVisible();
   await page.getByRole("menuitem", { name: /Stammdaten/ }).click();
   await expect(page.getByRole("navigation", { name: "Stammdaten Untermenü" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Benutzer", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Benutzer", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Benutzerverwaltung", exact: true })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Stammdaten Untermenü" })).toHaveCount(0);
+
+  await expectRuntimeHealthy(page, problems, unhandled);
+});
+
+test("Benutzeransicht simuliert Rechte und bleibt sichtbar als schreibgeschuetzter Modus", async ({ page }) => {
+  const problems = collectRuntimeProblems(page);
+  await installAuthenticatedSession(page);
+  const unhandled = await installSupabaseMock(page);
+
+  await expectAuthenticatedHeading(page, "/module/user_management", "Benutzerverwaltung");
+  const trainerCard = page.locator(".member-card").filter({ hasText: "E2E Trainer" });
+  await trainerCard.getByRole("button", { name: "Ansicht simulieren", exact: true }).click();
+
+  await expect(page.getByRole("heading", { name: "Willkommen, E2E Trainer", exact: true })).toBeVisible();
+  await expect(page.getByRole("status", { name: "Benutzeransicht Simulation" })).toContainText("Änderungen werden nicht gespeichert");
+  await expect(page.getByRole("button", { name: "Anmeldung", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Planung", exact: true })).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Simulation beenden", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Willkommen, E2E Administrator", exact: true })).toBeVisible();
+  await expect(page.getByRole("status", { name: "Benutzeransicht Simulation" })).toHaveCount(0);
+
+  await expectRuntimeHealthy(page, problems, unhandled);
+});
+
+test("Simulationsmodus blockiert schreibende Serveraktionen vor dem Netzwerk", async ({ page }) => {
+  const problems = collectRuntimeProblems(page);
+  await installAuthenticatedSession(page);
+  const unhandled = await installSupabaseMock(page);
+
+  await expectAuthenticatedHeading(page, "/module/user_management", "Benutzerverwaltung");
+  const adminCard = page.locator(".member-card").filter({ hasText: "E2E Zweitadmin" });
+  await adminCard.getByRole("button", { name: "Ansicht simulieren", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Willkommen, E2E Zweitadmin", exact: true })).toBeVisible();
+
+  await expect(page.getByRole("status", { name: "Benutzeransicht Simulation" })).toContainText("Änderungen werden nicht gespeichert");
+
+  // Die Simulation lebt absichtlich nur im laufenden App-Kontext. Deshalb navigieren wir
+  // wie ein echter Benutzer per SPA-Navigation zurück zur Benutzerverwaltung und lösen
+  // keinen vollständigen Seiten-Reload mit page.goto() aus.
+  await page.getByRole("button", { name: "Weitere Bereiche", exact: true }).click();
+  await expect(page.getByRole("menu", { name: "Weitere Bereiche" })).toBeVisible();
+  await page.getByRole("menuitem", { name: /Stammdaten/ }).click();
+  await expect(page.getByRole("navigation", { name: "Stammdaten Untermenü" })).toBeVisible();
+  await page.getByRole("button", { name: "Benutzer", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Benutzerverwaltung", exact: true })).toBeVisible();
+  await expect(page.getByRole("status", { name: "Benutzeransicht Simulation" })).toContainText("Änderungen werden nicht gespeichert");
+
+  const invitationCard = page.locator(".member-card").filter({ hasText: "Offene Einladung" });
+  await invitationCard.getByRole("button", { name: "Erneut senden", exact: true }).click();
+  await expect(page.locator(".alert.error")).toContainText("Simulation aktiv");
+  await expect(page.locator(".alert.error")).toContainText("nicht gespeichert");
 
   await expectRuntimeHealthy(page, problems, unhandled);
 });

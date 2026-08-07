@@ -1040,3 +1040,42 @@ test("Aenderung starten erzeugt unter Windows automatisch das Projektarchiv", ()
   assert.ok(n1StartChangeSource.includes('"Bypass"'));
   assert.ok(n1StartChangeSource.includes('create-project-archive.ps1'));
 });
+
+const u1AuthContextSource = await readFile(
+  new URL("../src/features/auth/AuthContext.tsx", import.meta.url),
+  "utf8",
+);
+const u1SimulationGuardSource = await readFile(
+  new URL("../src/features/simulation/simulation-guard.ts", import.meta.url),
+  "utf8",
+);
+const u1UserManagementSource = await readFile(
+  new URL("../src/pages/UserManagementPage.tsx", import.meta.url),
+  "utf8",
+);
+const u1AppLayoutSource = await readFile(
+  new URL("../src/components/layout/AppLayout.tsx", import.meta.url),
+  "utf8",
+);
+const u1SupabaseSource = await readFile(
+  new URL("../src/lib/supabase.ts", import.meta.url),
+  "utf8",
+);
+
+test("N1 Untermenue schliesst nach Auswahl und verzichtet auf redundante Ueberschrift", () => {
+  assert.ok(n1BottomNavigationSource.includes("setPanel(null);"));
+  assert.doesNotMatch(n1BottomNavigationSource, /app-bottom-submenu-title/);
+});
+
+test("U1 simuliert Benutzerrechte und blockiert Schreibzugriffe global", () => {
+  assert.ok(u1UserManagementSource.includes("Ansicht simulieren"));
+  assert.ok(u1UserManagementSource.includes("startSimulation"));
+  assert.ok(u1AuthContextSource.includes("setSimulationWriteGuard(true"));
+  assert.ok(u1AuthContextSource.includes("if (simulationRef.current) return;"));
+  assert.ok(u1SimulationGuardSource.includes("SimulationWriteBlockedError"));
+  assert.ok(u1SupabaseSource.includes("WRITE_BUILDER_METHODS"));
+  assert.ok(u1SupabaseSource.includes("WRITE_STORAGE_METHODS"));
+  assert.ok(u1SupabaseSource.includes("!READ_ONLY_RPC_NAMES.has(functionName)"));
+  assert.ok(u1AppLayoutSource.includes("simulation-banner"));
+  assert.ok(u1AppLayoutSource.includes("Simulation beenden"));
+});

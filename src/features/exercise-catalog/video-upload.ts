@@ -14,6 +14,7 @@ import {
   withResumableUploadAuthRefresh,
   type ResumableUploadAuth,
 } from "@/lib/resumable-upload";
+import { assertSimulationWriteAllowed } from "@/features/simulation/simulation-guard";
 
 export const EXERCISE_VIDEO_BUCKET = "exercise-videos";
 export const EXERCISE_VIDEO_MAX_BYTES = 50 * 1024 * 1024;
@@ -346,6 +347,7 @@ export async function uploadExerciseVideoFile({
   onProgress,
   signal,
 }: UploadOptions): Promise<string> {
+  assertSimulationWriteAllowed("Der Medienupload");
   validateExerciseVideoFile(file);
   throwIfResumableUploadPaused(signal);
 

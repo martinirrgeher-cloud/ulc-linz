@@ -367,3 +367,18 @@
   color: #8a4b08;
   font-weight: 650;
 }
+
+.user-management-page .e5c-simulation-hint {
+  max-width: 54rem;
+  color: #53675b;
+  font-size: 0.82rem;
+}
+
+.user-management-page .e5c-simulate-button {
+  color: #315c45;
+}
+
+.user-management-page .e5c-simulate-button:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+}

@@ -27,6 +27,22 @@ export type ModulePermission = {
   canEdit: boolean;
 };
 
+export type UserSimulationTarget = {
+  membershipId: string;
+  organizationId: string;
+  userId: string;
+  email: string;
+  displayName: string;
+  role: AppRole;
+  permissions: ModulePermission[];
+  linkedAthleteIds: string[];
+  linkedTrainerId: string | null;
+};
+
+export type UserSimulationState = UserSimulationTarget & {
+  startedByDisplayName: string;
+};
+
 export type AppContext = {
   session: Session;
   authUser: User;

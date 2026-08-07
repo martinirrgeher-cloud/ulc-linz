@@ -10,6 +10,7 @@ import {
 } from "@/features/collaboration/edit-locks";
 
 import { diagnosticErrorMessage } from "@/lib/diagnostics";
+import { useAuth } from "@/features/auth/AuthContext";
 export type EditLockStatus =
   | "idle"
   | "acquiring"
@@ -58,6 +59,7 @@ export function useEditLock({
   expectedUpdatedAt = null,
   enabled,
 }: UseEditLockOptions): EditLockState {
+  const { isSimulationActive } = useAuth();
   const tokenRef = useRef(createLockToken());
   const activeKeyRef = useRef<string | null>(null);
   const mountedRef = useRef(true);
@@ -73,6 +75,14 @@ export function useEditLock({
 
   const acquire = useCallback(async (force: boolean) => {
     if (!enabled || !organizationId || !entityId || !key) return;
+    if (isSimulationActive) {
+      setOwner(null);
+      setCanForce(false);
+      setRecordVersion(expectedUpdatedAt);
+      setStatus("acquired");
+      setError(null);
+      return;
+    }
 
     const requestToken = tokenRef.current;
     setStatus("acquiring");
@@ -104,7 +114,7 @@ export function useEditLock({
       setStatus("error");
       setError(errorMessage(acquireError));
     }
-  }, [enabled, entityId, entityType, key, organizationId]);
+  }, [enabled, entityId, entityType, expectedUpdatedAt, isSimulationActive, key, organizationId]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -122,6 +132,14 @@ export function useEditLock({
       };
     }
 
+    if (isSimulationActive) {
+      setRecordVersion(expectedUpdatedAt);
+      setStatus("acquired");
+      return () => {
+        activeKeyRef.current = null;
+      };
+    }
+
     void acquire(false);
 
     return () => {
@@ -129,14 +147,14 @@ export function useEditLock({
       activeKeyRef.current = null;
       void releaseEditLock(organizationId, entityType, entityId, token).catch(() => undefined);
     };
-  }, [acquire, enabled, entityId, entityType, key, organizationId]);
+  }, [acquire, enabled, entityId, entityType, expectedUpdatedAt, isSimulationActive, key, organizationId]);
 
   useEffect(() => () => {
     mountedRef.current = false;
   }, []);
 
   useEffect(() => {
-    if (!enabled || !organizationId || !entityId || !key) return;
+    if (!enabled || !organizationId || !entityId || !key || isSimulationActive) return;
 
     if (status === "acquired") {
       const heartbeat = window.setInterval(() => {
@@ -165,10 +183,10 @@ export function useEditLock({
       const retryTimer = window.setInterval(() => void acquire(false), 15_000);
       return () => window.clearInterval(retryTimer);
     }
-  }, [acquire, enabled, entityId, entityType, key, organizationId, status]);
+  }, [acquire, enabled, entityId, entityType, isSimulationActive, key, organizationId, status]);
 
   useEffect(() => {
-    if (status !== "acquired" || !organizationId || !entityId || !key) return;
+    if (isSimulationActive || status !== "acquired" || !organizationId || !entityId || !key) return;
 
     const renewWhenVisible = () => {
       if (document.visibilityState !== "visible") return;
@@ -196,7 +214,7 @@ export function useEditLock({
       document.removeEventListener("visibilitychange", renewWhenVisible);
       window.removeEventListener("focus", renewWhenVisible);
     };
-  }, [entityId, entityType, key, organizationId, status]);
+  }, [entityId, entityType, isSimulationActive, key, organizationId, status]);
 
   const retry = useCallback(async () => acquire(false), [acquire]);
   const forceAcquire = useCallback(async () => acquire(true), [acquire]);
@@ -206,6 +224,10 @@ export function useEditLock({
 
   const getWriteGuard = useCallback((): EditLockWriteGuard | null => {
     if (!enabled || !organizationId || !entityId) return null;
+    if (isSimulationActive) {
+      if (!expectedUpdatedAt) return null;
+      return { lockToken: "simulation-no-write", expectedUpdatedAt };
+    }
     if (status !== "acquired") {
       throw new Error("Dieser Datensatz ist derzeit nicht für dich zur Bearbeitung reserviert.");
     }
@@ -216,10 +238,10 @@ export function useEditLock({
       lockToken: tokenRef.current,
       expectedUpdatedAt,
     };
-  }, [enabled, entityId, expectedUpdatedAt, organizationId, status]);
+  }, [enabled, entityId, expectedUpdatedAt, isSimulationActive, organizationId, status]);
 
   const validateBeforeSave = useCallback(async () => {
-    if (!enabled || !organizationId || !entityId) return;
+    if (!enabled || !organizationId || !entityId || isSimulationActive) return;
     if (status !== "acquired") {
       throw new Error("Dieser Datensatz ist derzeit nicht für dich zur Bearbeitung reserviert.");
     }
@@ -230,7 +252,7 @@ export function useEditLock({
       tokenRef.current,
       expectedUpdatedAt,
     );
-  }, [enabled, entityId, entityType, expectedUpdatedAt, organizationId, status]);
+  }, [enabled, entityId, entityType, expectedUpdatedAt, isSimulationActive, organizationId, status]);
 
   return useMemo(() => ({
     status,

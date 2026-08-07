@@ -115,6 +115,21 @@
 
 
 
+.app-simulation-banner {
+  position: sticky; z-index: 9; top: 76px; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 9px; align-items: center;
+  margin: 0 12px 8px; padding: 8px 10px; color: #5d3b00; background: #fff4cf; border: 1px solid #e8c76f; border-radius: 11px; box-shadow: 0 5px 16px rgba(77, 52, 0, 0.12);
+}
+.app-simulation-banner > svg { width: 19px; height: 19px; }
+.app-simulation-banner div { min-width: 0; display: grid; gap: 1px; }
+.app-simulation-banner strong, .app-simulation-banner span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.app-simulation-banner strong { font-size: 0.85rem; }
+.app-simulation-banner span { font-size: 0.72rem; }
+.app-simulation-exit {
+  min-height: 34px; display: inline-flex; gap: 5px; align-items: center; padding: 5px 8px; color: #5d3b00; background: #fff; border: 1px solid #d9b657; border-radius: 8px; font: inherit; font-size: 0.75rem; font-weight: 850; cursor: pointer;
+}
+.app-simulation-exit svg { width: 15px; height: 15px; }
+
+
 /* N1: feste Hauptnavigation am unteren Bildschirmrand. */
 .app-content { padding-bottom: calc(clamp(104px, 11vw, 132px) + env(safe-area-inset-bottom)); }
 .app-bottom-navigation {
@@ -142,12 +157,11 @@
   position: absolute; right: 0; bottom: calc(100% + 8px); left: 0; background: rgba(255, 255, 255, 0.98);
   border: 1px solid var(--border); border-radius: 15px; box-shadow: 0 14px 32px rgba(8, 36, 22, 0.16); backdrop-filter: blur(16px);
 }
-.app-bottom-submenu { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 8px; padding: 6px 7px 6px 10px; }
-.app-bottom-submenu-title { color: var(--green-900); font-size: 0.78rem; font-weight: 900; white-space: nowrap; }
-.app-bottom-submenu-scroll { min-width: 0; display: flex; gap: 5px; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; }
+.app-bottom-submenu { padding: 9px; }
+.app-bottom-submenu-scroll { min-width: 0; display: flex; gap: 7px; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; }
 .app-bottom-submenu-scroll::-webkit-scrollbar { display: none; }
 .app-bottom-submenu-link {
-  min-height: 36px; flex: 0 0 auto; padding: 6px 10px; color: var(--green-800); background: #fff;
+  min-height: 44px; flex: 0 0 auto; padding: 8px 13px; color: var(--green-800); background: #fff;
   border: 1px solid #d7e6dc; border-radius: 10px; font: inherit; font-size: 0.8rem; font-weight: 850; white-space: nowrap; cursor: pointer;
 }
 .app-bottom-submenu-link:hover,
@@ -166,6 +180,9 @@
 .app-bottom-more-item small { min-width: 24px; padding: 2px 6px; color: var(--muted); background: #f4f7f5; border-radius: 999px; font-size: 0.72rem; text-align: center; }
 
 @media (max-width: 760px) {
+  .app-simulation-banner { top: 66px; margin: 0 6px 6px; padding: 7px 8px; }
+  .app-simulation-exit span { display: none; }
+  .app-simulation-exit { width: 34px; padding: 5px; justify-content: center; }
   .page-context-help-button { width: 40px; height: 40px; }
   .app-content > section > :first-child:is(.page-heading, [class$="-heading"], [class*="-heading "]) { padding-right: 50px; }
   .app-user-menu-panel { top: calc(100% + 7px); }
@@ -175,7 +192,7 @@
   .app-bottom-navigation-button { min-height: 54px; gap: 3px; padding: 4px 2px; border-radius: 11px; font-size: 0.66rem; }
   .app-bottom-navigation-button svg { width: 20px; height: 20px; }
   .app-bottom-submenu, .app-bottom-more-menu { bottom: calc(100% + 6px); border-radius: 13px; }
-  .app-bottom-submenu { grid-template-columns: 1fr; gap: 4px; padding: 6px; }
-  .app-bottom-submenu-title { padding: 0 4px; font-size: 0.7rem; }
-  .app-bottom-submenu-link { min-height: 34px; padding: 5px 9px; font-size: 0.76rem; }
+  .app-bottom-submenu { padding: 8px; }
+  .app-bottom-submenu-scroll { gap: 6px; }
+  .app-bottom-submenu-link { min-height: 42px; padding: 7px 11px; font-size: 0.78rem; }
 }
