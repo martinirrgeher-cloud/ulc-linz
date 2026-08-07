@@ -1,4 +1,5 @@
 import { env } from "@/lib/env";
+import { isSimulationWriteBlockedError } from "@/features/simulation/simulation-guard";
 
 type DiagnosticCategory =
   | "network"
@@ -263,6 +264,7 @@ export function diagnosticErrorMessage(
   fallback: string,
   context: string,
 ): string {
+  if (isSimulationWriteBlockedError(error)) return error.message;
   const record = reportTechnicalError(error, context);
   const message = friendlyMessage(record.category, rawErrorMessage(error), fallback);
   return `${message} Fehler-ID: ${record.reference}`;

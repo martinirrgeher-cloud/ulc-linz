@@ -23,6 +23,7 @@ export function ProtectedRoute({
     needsBootstrap,
     appContext,
     canViewModule,
+    isSimulationActive,
   } = useAuth();
 
   const waitingForInitialContext =
@@ -72,7 +73,7 @@ export function ProtectedRoute({
   }
 
   if (moduleKey && !canViewModule(moduleKey)) {
-    return <Navigate to="/kein-zugriff" replace />;
+    return <Navigate to={isSimulationActive ? "/" : "/kein-zugriff"} replace />;
   }
 
   return children;

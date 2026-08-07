@@ -13,6 +13,8 @@ const requiredFiles = [
   "ULC-AENDERUNG-STARTEN.cmd",
   "ULC-PRUEFEN.cmd",
   "ULC-FREIGEBEN.cmd",
+  "ULC-LOKAL-ANSEHEN.cmd",
+  "scripts/check-simulation-safety.mjs",
 ];
 
 for (const file of requiredFiles) assert.ok(existsSync(file), `Release-Infrastruktur fehlt: ${file}`);
@@ -22,6 +24,7 @@ for (const script of ["test:runtime", "test:runtime:ci", "release:check", "relea
   assert.ok(pkg.scripts?.[script], `package.json Script fehlt: ${script}`);
 }
 assert.match(pkg.scripts["ci:quality"], /test:release-approval/, "CI-Qualitaetspruefung muss die Freigaberoutine selbst testen.");
+assert.match(pkg.scripts["ci:quality"], /check:simulation-safety/, "CI-Qualitaetspruefung muss den Simulations-Schreibschutz pruefen.");
 assert.equal(
   pkg.scripts["release:check"],
   pkg.scripts["release:check:ci"],

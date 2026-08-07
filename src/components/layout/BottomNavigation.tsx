@@ -42,7 +42,7 @@ export function BottomNavigation() {
   const navigate = useNavigate();
   const location = useLocation();
   const activeGroup = getNavigationGroupForPath(location.pathname);
-  const [panel, setPanel] = useState<PanelKey>(activeGroup);
+  const [panel, setPanel] = useState<PanelKey>(null);
 
   const visibleGroups = useMemo(() => {
     return new Map(
@@ -56,8 +56,8 @@ export function BottomNavigation() {
   const visiblePrimaryKeys = PRIMARY_NAVIGATION_KEYS.filter((key) => (visibleGroups.get(key)?.length ?? 0) > 0);
 
   useEffect(() => {
-    setPanel(activeGroup);
-  }, [activeGroup, location.pathname]);
+    setPanel(null);
+  }, [location.pathname]);
 
   useEffect(() => {
     function closeOnEscape(event: KeyboardEvent) {
@@ -69,6 +69,7 @@ export function BottomNavigation() {
 
   async function goTo(route: string) {
     if (!(await runGuard())) return;
+    setPanel(null);
     navigate(route);
   }
 
@@ -93,7 +94,6 @@ export function BottomNavigation() {
     <nav className="app-bottom-navigation" aria-label="Hauptnavigation">
       {submenuGroup && submenuEntries.length > 0 && (
         <div className="app-bottom-submenu" role="navigation" aria-label={`${submenuGroup.label} Untermenü`}>
-          <span className="app-bottom-submenu-title">{submenuGroup.label}</span>
           <div className="app-bottom-submenu-scroll">
             {submenuEntries.map((entry) => (
               <button

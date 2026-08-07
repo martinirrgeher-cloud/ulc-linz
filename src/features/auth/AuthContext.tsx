@@ -21,9 +21,12 @@ import type {
   AppOrganization,
   AppProfile,
   ModulePermission,
+  UserSimulationState,
+  UserSimulationTarget,
 } from "@/types/auth";
 
 import { diagnosticErrorMessage } from "@/lib/diagnostics";
+import { setSimulationWriteGuard } from "@/features/simulation/simulation-guard";
 export type ContextStatus =
   | "idle"
   | "loading"
@@ -45,6 +48,10 @@ export type AuthState = {
   needsBootstrap: boolean;
   canViewModule: (moduleKey: string) => boolean;
   canEditModule: (moduleKey: string) => boolean;
+  simulation: UserSimulationState | null;
+  isSimulationActive: boolean;
+  startSimulation: (target: UserSimulationTarget) => void;
+  stopSimulation: () => void;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, displayName: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -122,6 +129,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const [membership, setMembership] = useState<AppMembership | null>(null);
   const [permissions, setPermissions] = useState<ModulePermission[]>([]);
   const [isInitialized, setIsInitialized] = useState<boolean | null>(null);
+  const [simulation, setSimulation] = useState<UserSimulationState | null>(null);
+  const simulationRef = useRef<UserSimulationState | null>(null);
 
   const configurationError = env.isSupabaseConfigured
     ? null
@@ -137,10 +146,18 @@ export function AuthProvider({ children }: PropsWithChildren) {
     setContextLoading(false);
     setContextStatus("idle");
     setContextError(null);
+    simulationRef.current = null;
+    setSimulation(null);
+    setSimulationWriteGuard(false);
   }, []);
 
   const loadContext = useCallback(
     async (activeSession: Session | null) => {
+      // Während der Benutzer-Simulation bleibt der bereits geladene echte Admin-Kontext
+      // unverändert. Dadurch werden auch Hintergrund-RPCs mit möglichen Seiteneffekten
+      // (z. B. activate_current_memberships) nicht ausgeführt.
+      if (simulationRef.current) return;
+
       if (!supabase || !activeSession) {
         clearAppData();
         return;
@@ -522,30 +539,88 @@ export function AuthProvider({ children }: PropsWithChildren) {
     [configurationError, loadContext],
   );
 
+  const startSimulation = useCallback((target: UserSimulationTarget) => {
+    if (!membership || membership.role !== "admin") {
+      throw new Error("Nur Administratoren können eine Benutzeransicht simulieren.");
+    }
+    if (!organization || target.organizationId !== organization.id) {
+      throw new Error("Der Benutzer gehört nicht zum aktuell geöffneten Verein.");
+    }
+
+    const nextSimulation: UserSimulationState = {
+      ...target,
+      startedByDisplayName: profile?.displayName || sessionRef.current?.user.email || "Administrator",
+    };
+    simulationRef.current = nextSimulation;
+    setSimulation(nextSimulation);
+    setSimulationWriteGuard(true, target.displayName);
+  }, [membership, organization, profile?.displayName]);
+
+  const stopSimulation = useCallback(() => {
+    simulationRef.current = null;
+    setSimulation(null);
+    setSimulationWriteGuard(false);
+  }, []);
+
+  const effectiveMembership = useMemo<AppMembership | null>(() => {
+    if (!simulation) return membership;
+    return {
+      id: simulation.membershipId,
+      organizationId: simulation.organizationId,
+      role: simulation.role,
+    };
+  }, [membership, simulation]);
+
+  const effectivePermissions = simulation?.permissions ?? permissions;
+
   const canViewModule = useCallback(
     (moduleKey: string) => {
-      if (!membership) return false;
-      if (membership.role === "admin") return true;
-      return permissions.some(
+      if (!effectiveMembership) return false;
+      if (effectiveMembership.role === "admin") return true;
+      return effectivePermissions.some(
         (permission) => permission.moduleKey === moduleKey && permission.canView,
       );
     },
-    [membership, permissions],
+    [effectiveMembership, effectivePermissions],
   );
 
   const canEditModule = useCallback(
     (moduleKey: string) => {
-      if (!membership) return false;
-      if (membership.role === "admin") return true;
-      return permissions.some(
+      if (!effectiveMembership) return false;
+      if (effectiveMembership.role === "admin") return true;
+      return effectivePermissions.some(
         (permission) => permission.moduleKey === moduleKey && permission.canEdit,
       );
     },
-    [membership, permissions],
+    [effectiveMembership, effectivePermissions],
   );
 
   const appContext = useMemo<AppContext | null>(() => {
     if (!session) return null;
+
+    if (simulation) {
+      return {
+        session,
+        authUser: {
+          ...session.user,
+          id: simulation.userId,
+          email: simulation.email,
+          user_metadata: {
+            ...session.user.user_metadata,
+            display_name: simulation.displayName,
+          },
+        },
+        profile: {
+          id: simulation.userId,
+          displayName: simulation.displayName,
+          avatarUrl: null,
+        },
+        organization,
+        membership: effectiveMembership,
+        permissions: effectivePermissions,
+      };
+    }
+
     return {
       session,
       authUser: session.user,
@@ -554,7 +629,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       membership,
       permissions,
     };
-  }, [session, profile, organization, membership, permissions]);
+  }, [effectiveMembership, effectivePermissions, membership, organization, permissions, profile, session, simulation]);
 
   const value = useMemo<AuthState>(
     () => ({
@@ -570,6 +645,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
       needsBootstrap: Boolean(session && isInitialized === false && !membership),
       canViewModule,
       canEditModule,
+      simulation,
+      isSimulationActive: Boolean(simulation),
+      startSimulation,
+      stopSimulation,
       signIn,
       signUp,
       signOut,
@@ -591,6 +670,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
       membership,
       canViewModule,
       canEditModule,
+      simulation,
+      startSimulation,
+      stopSimulation,
       signIn,
       signUp,
       signOut,
