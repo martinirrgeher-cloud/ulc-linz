@@ -19,11 +19,13 @@ import {
   createAthletePreview,
   createExercisePreview,
   downloadImportReport,
+  exerciseReviewIssues,
   exerciseExportWorkbook,
   exerciseTemplateWorkbook,
   runAthleteImport,
   runExerciseImport,
 } from "@/features/data-import/importer";
+import { ExerciseImportReview, type ExerciseImportReviewMessages } from "@/features/data-import/ExerciseImportReview";
 import type {
   AthleteImportDraft,
   ExerciseImportDraft,
@@ -40,6 +42,8 @@ import { useAuth } from "@/features/auth/AuthContext";
 import { diagnosticErrorMessage } from "@/lib/diagnostics";
 import "@/styles/data-import.css";
 import "@/styles/data-import-mobile.css";
+import "@/styles/exercise-catalog.css";
+import "@/styles/exercise-catalog-mobile.css";
 const EMPTY_CATALOG: ExerciseCatalogData = {
   categories: [],
   subcategories: [],
@@ -57,6 +61,7 @@ type ExerciseExportFilters = {
   category: string;
   subcategory: string;
   material: string;
+  difficulty: string;
   groupId: string;
   video: "all" | "yes" | "no";
   active: "all" | "yes" | "no";
@@ -73,6 +78,7 @@ const EMPTY_EXERCISE_FILTERS: ExerciseExportFilters = {
   category: "",
   subcategory: "",
   material: "",
+  difficulty: "",
   groupId: "",
   video: "all",
   active: "all",
@@ -112,6 +118,8 @@ export function DataImportPage() {
   const [groups, setGroups] = useState<TrainingGroup[]>([]);
   const [linkableUsers, setLinkableUsers] = useState<LinkableUser[]>([]);
   const [exerciseRows, setExerciseRows] = useState<ImportPreviewRow<ExerciseImportDraft>[]>([]);
+  const [exerciseReviewIndex, setExerciseReviewIndex] = useState(0);
+  const [exerciseReviewOpen, setExerciseReviewOpen] = useState(false);
   const [athleteRows, setAthleteRows] = useState<ImportPreviewRow<AthleteImportDraft>[]>([]);
   const [exerciseFilters, setExerciseFilters] = useState<ExerciseExportFilters>(EMPTY_EXERCISE_FILTERS);
   const [athleteFilters, setAthleteFilters] = useState<AthleteExportFilters>(EMPTY_ATHLETE_FILTERS);
@@ -156,18 +164,30 @@ export function DataImportPage() {
   }, [activeKind, canImportAthletes, canImportExercises]);
 
   const activeRows = activeKind === "exercises" ? exerciseRows : athleteRows;
-  const totals = useMemo(() => ({
-    ready: activeRows.filter((row) => row.errors.length === 0 && row.action !== "skip").length,
-    errors: activeRows.filter((row) => row.errors.length > 0).length,
-    warnings: activeRows.filter((row) => row.warnings.length > 0).length,
-    skipped: activeRows.filter((row) => row.action === "skip").length,
-  }), [activeRows]);
+  const totals = useMemo(() => {
+    if (activeKind === "exercises") {
+      return {
+        ready: exerciseRows.filter((row) => row.reviewStatus === "approved" && row.errors.length === 0).length,
+        errors: exerciseRows.filter((row) => row.errors.length > 0).length,
+        warnings: exerciseRows.filter((row) => row.warnings.length > 0).length,
+        skipped: exerciseRows.filter((row) => row.reviewStatus === "skipped").length,
+      };
+    }
+    return {
+      ready: athleteRows.filter((row) => row.errors.length === 0 && row.action !== "skip").length,
+      errors: athleteRows.filter((row) => row.errors.length > 0).length,
+      warnings: athleteRows.filter((row) => row.warnings.length > 0).length,
+      skipped: athleteRows.filter((row) => row.action === "skip").length,
+    };
+  }, [activeKind, athleteRows, exerciseRows]);
 
+  const pendingExerciseReviews = exerciseRows.filter((row) => row.reviewStatus === "pending").length;
+  const exerciseDependencyIssues = useMemo(() => exerciseReviewIssues(exerciseRows, catalog), [catalog, exerciseRows]);
   const unresolvedExerciseOptions = activeKind === "exercises"
     && !createMissingOptions
-    && exerciseRows.some((row) => row.action !== "skip" && row.warnings.some((warning) => warning.includes("ist nicht vorhanden")));
+    && exerciseRows.some((row) => row.reviewStatus === "approved" && row.warnings.some((warning) => warning.includes("ist nicht vorhanden")));
 
-  const actionableExistingRows = activeRows.filter((row) => row.existingId && row.errors.length === 0);
+  const actionableExistingRows = athleteRows.filter((row) => row.existingId && row.errors.length === 0);
   const updateAllExisting = actionableExistingRows.length > 0
     && actionableExistingRows.every((row) => row.action === "update");
 
@@ -177,6 +197,7 @@ export function DataImportPage() {
     if (exerciseFilters.category && exercise.categoryKey !== exerciseFilters.category) return false;
     if (exerciseFilters.subcategory && exercise.subcategory !== exerciseFilters.subcategory) return false;
     if (exerciseFilters.material && !exercise.equipment.includes(exerciseFilters.material)) return false;
+    if (exerciseFilters.difficulty && exercise.difficultyKey !== exerciseFilters.difficulty) return false;
     if (exerciseFilters.groupId && !exercise.groupIds.includes(exerciseFilters.groupId)) return false;
     if (exerciseFilters.video === "yes" && !exercise.videoUrl && exercise.videos.length === 0) return false;
     if (exerciseFilters.video === "no" && (Boolean(exercise.videoUrl) || exercise.videos.length > 0)) return false;
@@ -200,6 +221,8 @@ export function DataImportPage() {
 
   function resetPreview() {
     setExerciseRows([]);
+    setExerciseReviewIndex(0);
+    setExerciseReviewOpen(false);
     setAthleteRows([]);
     setFileName("");
     setResult(null);
@@ -219,6 +242,8 @@ export function DataImportPage() {
         const preview = createExercisePreview(workbook, catalog, canCreateOptions);
         if (preview.length === 0) throw new Error("Im Tabellenblatt „Übungen“ wurden keine importierbaren Daten gefunden.");
         setExerciseRows(preview);
+        setExerciseReviewIndex(0);
+        setExerciseReviewOpen(true);
       } else {
         const preview = createAthletePreview(workbook, athletes, groups, linkableUsers);
         if (preview.length === 0) throw new Error("Im Tabellenblatt „Athleten“ wurden keine importierbaren Daten gefunden.");
@@ -231,6 +256,63 @@ export function DataImportPage() {
     } finally {
       setBusy(false);
     }
+  }
+
+  function nextExerciseReviewIndex(rows: ImportPreviewRow<ExerciseImportDraft>[], currentIndex: number): number {
+    const nextPending = rows.findIndex((row, index) => index > currentIndex && row.reviewStatus === "pending");
+    if (nextPending >= 0) return nextPending;
+    const firstPending = rows.findIndex((row) => row.reviewStatus === "pending");
+    if (firstPending >= 0) return firstPending;
+    return Math.min(currentIndex + 1, Math.max(0, rows.length - 1));
+  }
+
+  function moveAfterExerciseReview(rows: ImportPreviewRow<ExerciseImportDraft>[], index: number) {
+    const pendingIndex = rows.findIndex((row) => row.reviewStatus === "pending");
+    if (pendingIndex >= 0) {
+      setExerciseReviewIndex(nextExerciseReviewIndex(rows, index));
+      return;
+    }
+    const firstApproved = rows.findIndex((row) => row.reviewStatus === "approved");
+    setExerciseReviewIndex(firstApproved >= 0 ? firstApproved : Math.min(index, Math.max(0, rows.length - 1)));
+    setExerciseReviewOpen(false);
+  }
+
+  async function approveExerciseReview(
+    index: number,
+    draft: ExerciseImportDraft,
+    messages: ExerciseImportReviewMessages,
+  ) {
+    setImportRunId(createImportRunId());
+    setExerciseRows((current) => {
+      const updated = current.map((row, rowIndex) => {
+        if (rowIndex !== index) return row;
+        const action: ImportAction = row.existingId ? "update" : "create";
+        return {
+          ...row,
+          key: row.existingId ? `id:${row.existingId}` : normalized(draft.name),
+          label: draft.name || `Zeile ${row.rowNumber}`,
+          value: draft,
+          reviewStatus: "approved" as const,
+          action,
+          warnings: messages.warnings,
+          errors: messages.errors,
+          severity: messages.errors.length > 0 ? "error" as const : messages.warnings.length > 0 ? "warning" as const : "ready" as const,
+        };
+      });
+      moveAfterExerciseReview(updated, index);
+      return updated;
+    });
+  }
+
+  function skipExerciseReview(index: number) {
+    setImportRunId(createImportRunId());
+    setExerciseRows((current) => {
+      const updated = current.map((row, rowIndex) => rowIndex === index
+        ? { ...row, reviewStatus: "skipped" as const, action: "skip" as const }
+        : row);
+      moveAfterExerciseReview(updated, index);
+      return updated;
+    });
   }
 
   function setRowAction(index: number, action: ImportAction) {
@@ -280,6 +362,7 @@ export function DataImportPage() {
 
   async function runImport() {
     if (!organizationId || totals.ready === 0 || unresolvedExerciseOptions) return;
+    if (activeKind === "exercises" && (pendingExerciseReviews > 0 || exerciseDependencyIssues.length > 0)) return;
     setBusy(true);
     setError(null);
     setResult(null);
@@ -289,6 +372,8 @@ export function DataImportPage() {
         : await runAthleteImport(organizationId, importRunId, athleteRows);
       setResult(importResult);
       setExerciseRows([]);
+      setExerciseReviewIndex(0);
+      setExerciseReviewOpen(false);
       setAthleteRows([]);
       setFileName("");
       setCreateMissingOptions(false);
@@ -344,12 +429,14 @@ export function DataImportPage() {
             <div>
               <h2>{activeKind === "exercises" ? "Übungskatalog importieren" : "Athleten importieren"}</h2>
               <p>
-                Die Vorlage enthält alle Daten in einem sichtbaren Tabellenblatt. Bestehende Exporte können ergänzt und anschließend wieder eingelesen werden.
+                {activeKind === "exercises"
+                  ? "Die Übungsvorlage zeigt nur Felder, die du tatsächlich befüllst. Nach dem Hochladen wird jede Übung einzeln geprüft und freigegeben, bevor etwas gespeichert wird."
+                  : "Die Vorlage enthält alle Daten in einem sichtbaren Tabellenblatt. Bestehende Exporte können ergänzt und anschließend wieder eingelesen werden."}
               </p>
             </div>
             <div className="data-import-start-actions">
               <button type="button" className="secondary-button" onClick={downloadTemplate} disabled={loading || busy}>
-                <Download aria-hidden="true" />Leere Vorlage
+                <Download aria-hidden="true" />{activeKind === "exercises" ? "Vorlage mit Beispiel" : "Leere Vorlage"}
               </button>
               <label className={`primary-button data-import-file-button ${busy ? "disabled" : ""}`}>
                 <Upload aria-hidden="true" />Datei auswählen
@@ -384,13 +471,95 @@ export function DataImportPage() {
             </label>
           )}
 
-          {activeRows.length > 0 && (
+          {activeKind === "exercises" && exerciseRows.length > 0 && (
             <>
               {unresolvedExerciseOptions && (
                 <div className="alert error">
-                  Für ausgewählte Übungen fehlen Auswahllistenwerte. Aktiviere „Unbekannte Auswahllistenwerte automatisch anlegen“ oder überspringe diese Zeilen.
+                  Mindestens eine freigegebene Übung enthält noch unbekannte Auswahllistenwerte. Aktiviere „Unbekannte Auswahllistenwerte automatisch anlegen“ oder überspringe die betroffene Übung.
                 </div>
               )}
+              {exerciseDependencyIssues.length > 0 && (
+                <div className="alert error">
+                  <strong>Ähnliche Übungen noch nicht vollständig freigegeben.</strong>
+                  {exerciseDependencyIssues.map((issue) => <div key={issue}>{issue}</div>)}
+                </div>
+              )}
+
+              <div className="data-import-summary">
+                <span className="ready"><CheckCircle2 aria-hidden="true" />{totals.ready} freigegeben</span>
+                <span>{pendingExerciseReviews} noch zu prüfen</span>
+                <span className="warning"><AlertTriangle aria-hidden="true" />{totals.warnings} mit Hinweis</span>
+                <span className="error"><XCircle aria-hidden="true" />{totals.errors} fehlerhaft</span>
+                <span>{totals.skipped} übersprungen</span>
+              </div>
+
+              <div className="data-import-review-launch">
+                <div className="data-import-review-index" aria-label="Importierte Übungen auswählen">
+                  {exerciseRows.map((row, index) => (
+                    <button
+                      key={`${row.rowNumber}-${row.key}-${index}`}
+                      type="button"
+                      className={`${index === exerciseReviewIndex ? "active" : ""} ${row.reviewStatus ?? "pending"} ${row.errors.length > 0 ? "with-error" : ""}`}
+                      onClick={() => { setExerciseReviewIndex(index); setExerciseReviewOpen(true); }}
+                      disabled={busy}
+                      aria-label={`Übung ${index + 1}: ${row.label}`}
+                      title={`${row.label} · ${row.reviewStatus === "approved" ? "Freigegeben" : row.reviewStatus === "skipped" ? "Übersprungen" : "Noch zu prüfen"}`}
+                    >
+                      {row.reviewStatus === "approved" ? <CheckCircle2 aria-hidden="true" /> : row.errors.length > 0 ? <AlertTriangle aria-hidden="true" /> : <span>{index + 1}</span>}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  className="secondary-button"
+                  onClick={() => setExerciseReviewOpen(true)}
+                  disabled={busy}
+                >
+                  {pendingExerciseReviews > 0 ? "Importprüfung fortsetzen" : "Freigegebene Übungen erneut prüfen"}
+                </button>
+              </div>
+
+              {exerciseReviewOpen && (
+                <ExerciseImportReview
+                  rows={exerciseRows}
+                  currentIndex={Math.min(exerciseReviewIndex, Math.max(0, exerciseRows.length - 1))}
+                  catalog={catalog}
+                  organizationId={organizationId}
+                  canCreateOptions={createMissingOptions}
+                  busy={busy}
+                  onApprove={approveExerciseReview}
+                  onSkip={skipExerciseReview}
+                  onClose={() => setExerciseReviewOpen(false)}
+                />
+              )}
+
+              <div className="data-import-footer">
+                <button type="button" className="secondary-button" onClick={resetPreview} disabled={busy}>Abbrechen</button>
+                <div className="data-import-footer-status">
+                  {pendingExerciseReviews > 0 && <small>Erst alle Übungen prüfen oder überspringen.</small>}
+                  {pendingExerciseReviews === 0 && totals.ready > 0 && <small>{totals.ready} ausdrücklich freigegebene Übungen sind bereit.</small>}
+                </div>
+                <button
+                  type="button"
+                  className="primary-button"
+                  onClick={() => void runImport()}
+                  disabled={busy || totals.ready === 0 || unresolvedExerciseOptions || pendingExerciseReviews > 0 || exerciseDependencyIssues.length > 0}
+                  title={pendingExerciseReviews > 0
+                    ? "Jede Übung muss zuerst freigegeben oder übersprungen werden."
+                    : unresolvedExerciseOptions
+                      ? "Fehlende Auswahllistenwerte zuerst anlegen oder betroffene Übungen überspringen."
+                      : exerciseDependencyIssues.length > 0
+                        ? "Ähnliche neue Übungen müssen ebenfalls freigegeben werden."
+                        : undefined}
+                >
+                  <Upload aria-hidden="true" />{busy ? "Import läuft …" : `${totals.ready} freigegebene Übungen übernehmen`}
+                </button>
+              </div>
+            </>
+          )}
+
+          {activeKind === "athletes" && athleteRows.length > 0 && (
+            <>
               <div className="data-import-summary">
                 <span className="ready"><CheckCircle2 aria-hidden="true" />{totals.ready} bereit</span>
                 <span className="warning"><AlertTriangle aria-hidden="true" />{totals.warnings} mit Hinweis</span>
@@ -417,7 +586,7 @@ export function DataImportPage() {
               )}
 
               <div className="data-import-preview-list">
-                {activeRows.map((row, index) => (
+                {athleteRows.map((row, index) => (
                   <article className={`data-import-preview-row ${row.severity}`} key={`${row.rowNumber}-${row.key}`}>
                     <div className="data-import-preview-main">
                       <span className="data-import-row-number">{row.rowNumber}</span>
@@ -425,8 +594,7 @@ export function DataImportPage() {
                         <strong>{row.label}</strong>
                         <small>
                           {row.existingId ? "Bestehender Datensatz erkannt" : "Neuer Datensatz"}
-                          {activeKind === "exercises" && (row.value as ExerciseImportDraft).category ? ` · ${(row.value as ExerciseImportDraft).category}` : ""}
-                          {activeKind === "athletes" && (row.value as AthleteImportDraft).birthYear ? ` · ${(row.value as AthleteImportDraft).birthYear}` : ""}
+                          {(row.value as AthleteImportDraft).birthYear ? ` · ${(row.value as AthleteImportDraft).birthYear}` : ""}
                         </small>
                       </div>
                     </div>
@@ -456,8 +624,7 @@ export function DataImportPage() {
                   type="button"
                   className="primary-button"
                   onClick={() => void runImport()}
-                  disabled={busy || totals.ready === 0 || unresolvedExerciseOptions}
-                  title={unresolvedExerciseOptions ? "Fehlende Auswahllistenwerte zuerst anlegen oder betroffene Zeilen überspringen." : undefined}
+                  disabled={busy || totals.ready === 0}
                 >
                   <Upload aria-hidden="true" />{busy ? "Import läuft …" : `${totals.ready} Datensätze importieren`}
                 </button>
@@ -503,6 +670,7 @@ export function DataImportPage() {
               <label><span>Kategorie</span><select value={exerciseFilters.category} onChange={(event) => setExerciseFilters((current) => ({ ...current, category: event.target.value }))}><option value="">Alle</option>{catalog.categories.map((item) => <option key={item.key} value={item.key}>{item.title}</option>)}</select></label>
               <label><span>Unterkategorie</span><select value={exerciseFilters.subcategory} onChange={(event) => setExerciseFilters((current) => ({ ...current, subcategory: event.target.value }))}><option value="">Alle</option>{catalog.subcategories.map((item) => <option key={item.key} value={item.label}>{item.label}</option>)}</select></label>
               <label><span>Material</span><select value={exerciseFilters.material} onChange={(event) => setExerciseFilters((current) => ({ ...current, material: event.target.value }))}><option value="">Alle</option>{catalog.materials.map((item) => <option key={item.key} value={item.label}>{item.label}</option>)}</select></label>
+              <label><span>Schwierigkeitsgrad</span><select value={exerciseFilters.difficulty} onChange={(event) => setExerciseFilters((current) => ({ ...current, difficulty: event.target.value }))}><option value="">Alle</option>{catalog.difficulties.map((item) => <option key={item.key} value={item.key}>{item.label}</option>)}</select></label>
               <label><span>Trainingsgruppe</span><select value={exerciseFilters.groupId} onChange={(event) => setExerciseFilters((current) => ({ ...current, groupId: event.target.value }))}><option value="">Alle</option>{catalog.groups.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
               <label><span>Video</span><select value={exerciseFilters.video} onChange={(event) => setExerciseFilters((current) => ({ ...current, video: event.target.value as ExerciseExportFilters["video"] }))}><option value="all">Alle</option><option value="yes">Vorhanden</option><option value="no">Nicht vorhanden</option></select></label>
               <label><span>Status</span><select value={exerciseFilters.active} onChange={(event) => setExerciseFilters((current) => ({ ...current, active: event.target.value as ExerciseExportFilters["active"] }))}><option value="all">Alle</option><option value="yes">Aktiv</option><option value="no">Inaktiv</option></select></label>

@@ -264,8 +264,11 @@ export function workbookSheetRecords(
 
 export type WorkbookListValidation = {
   range: string;
-  definedName: string;
+  definedName?: string;
+  formula1?: string;
   errorMessage?: string;
+  allowCustomValue?: boolean;
+  sourceValueCount?: number;
 };
 
 export type DownloadWorkbookSheet = {
@@ -392,9 +395,17 @@ function sheetXml(sheet: DownloadWorkbookSheet): string {
   const columns = (sheet.widths ?? []).map((width, index) => (
     `<col min="${index + 1}" max="${index + 1}" width="${Math.max(6, width)}" customWidth="1"/>`
   )).join("");
-  const validations = (sheet.validations ?? []).map((validation) => (
-    `<dataValidation type="list" allowBlank="1" showErrorMessage="1" errorStyle="stop" errorTitle="Ungültige Auswahl" error="${escapeXml(validation.errorMessage ?? "Bitte einen Wert aus der Auswahlliste wählen.")}" sqref="${validation.range}"><formula1>${escapeXml(validation.definedName)}</formula1></dataValidation>`
-  )).join("");
+  const validations = (sheet.validations ?? []).map((validation) => {
+    const formula = validation.formula1 ?? validation.definedName ?? "";
+    if (!formula) throw new Error(`Excel-Dropdown ohne Quelle: ${sheet.name} ${validation.range}`);
+    if (validation.sourceValueCount === 0) {
+      throw new Error(`Excel-Dropdown hat keine Werte: ${sheet.name} ${validation.range}`);
+    }
+    const errorAttributes = validation.allowCustomValue
+      ? 'showErrorMessage="0"'
+      : `showErrorMessage="1" errorStyle="stop" errorTitle="Ungültige Auswahl" error="${escapeXml(validation.errorMessage ?? "Bitte einen Wert aus der Auswahlliste wählen.")}"`;
+    return `<dataValidation type="list" allowBlank="1" ${errorAttributes} sqref="${validation.range}"><formula1>${escapeXml(formula)}</formula1></dataValidation>`;
+  }).join("");
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><dimension ref="A1:${excelColumn(maxColumns - 1)}${maxRows}"/><sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><sheetFormatPr defaultRowHeight="15"/><cols>${columns}</cols><sheetData>${rowXml}</sheetData>${validations ? `<dataValidations count="${sheet.validations?.length ?? 0}">${validations}</dataValidations>` : ""}</worksheet>`;
 }
 

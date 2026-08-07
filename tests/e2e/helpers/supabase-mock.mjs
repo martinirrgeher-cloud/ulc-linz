@@ -174,6 +174,16 @@ const catalogParameters = [
   { ...parameter, parameter_key: "rest", label: "Pause", unit: "s", default_value: "45", sort_order: 50 },
 ];
 
+const catalogParameterOptions = catalogParameters.map((item) => ({
+  key: item.parameter_key,
+  label: item.label,
+  unit: item.unit,
+  input_type: item.input_type,
+  step_value: item.step_value,
+  sort_order: item.sort_order,
+  is_active: true,
+}));
+
 const exercise = {
   id: E2E_IDS.exercise,
   name: longExerciseName,
@@ -303,7 +313,7 @@ const rpcPayloads = new Map([
     subcategories: [{ key: "beschleunigung", label: "Beschleunigung", sort_order: 10, is_active: true }],
     materials: [{ key: "markierungshuetchchen", label: "Markierungshütchen", sort_order: 10, is_active: true }],
     difficulties: [{ key: "medium", label: "Mittel", sort_order: 30, is_active: true }],
-    parameter_options: catalogParameters,
+    parameter_options: catalogParameterOptions,
     groups: [group],
     exercises: [exercise],
   }],
@@ -430,11 +440,11 @@ const rpcPayloads = new Map([
   ["admin_member_link_options", { athletes: [], trainers: [] }],
   ["admin_member_audit_overview", []],
   ["dropdown_settings_overview", {
-    category: [{ id: null, key: "sprint", label: "Sprint", sort_order: 10, is_active: true, usage_count: 1 }],
-    subcategory: [],
-    material: [],
+    category: [{ id: null, key: "sprint", label: "Sprint", unit: "", input_type: "text", step_value: null, sort_order: 10, is_active: true, usage_count: 1 }],
+    subcategory: [{ id: null, key: "beschleunigung", label: "Beschleunigung", unit: "", input_type: "text", step_value: null, sort_order: 10, is_active: true, usage_count: 1 }],
+    material: [{ id: null, key: "markierungshuetchchen", label: "Markierungshütchen", unit: "", input_type: "text", step_value: null, sort_order: 10, is_active: true, usage_count: 1 }],
     difficulty: [{ id: "10000000-0000-4000-8000-000000000008", key: "medium", label: "Mittel", unit: "", input_type: "text", step_value: null, sort_order: 30, is_active: true, usage_count: 1 }],
-    planning_parameter: [],
+    planning_parameter: catalogParameterOptions.map((item) => ({ ...item, id: null, usage_count: 1 })),
   }],
 ]);
 

@@ -2133,6 +2133,15 @@ export type Database = {
         };
         Returns: Json;
       };
+      apply_exercise_import_v2: {
+        Args: {
+          p_organization_id: string;
+          p_import_id: string;
+          p_rows: Json;
+          p_missing_options?: Json;
+        };
+        Returns: Json;
+      };
       apply_performance_athlete_defaults: {
         Args: {
           p_organization_id: string;
