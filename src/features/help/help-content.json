@@ -887,7 +887,7 @@
           "id": "export",
           "title": "Export",
           "paragraphs": [
-            "Der Export entspricht der Importstruktur und kann wieder eingelesen werden."
+            "Der Export entspricht der Importstruktur und kann wieder eingelesen werden. Bei Übungen werden auch Schwierigkeitsgrad, ähnliche Übungen und Planungsparameter mitgeführt."
           ],
           "steps": [
             "Datentyp wählen.",
@@ -899,7 +899,8 @@
           "id": "prepare",
           "title": "Datei vorbereiten",
           "bullets": [
-            "Vorgesehene Spalten und Auswahlwerte verwenden.",
+            "Für feste Stammdatenwerte die eingebauten Excel-Dropdowns verwenden.",
+            "Bei Übungen stehen Dropdowns unter anderem für Kategorie, Unterkategorie, Schwierigkeitsgrad, Material, Trainingsgruppe, ähnliche Übungen, Planungsparameter, Eingabetyp sowie Ja/Nein-Felder bereit.",
             "Maximal 5 MB und 1.000 Datenzeilen.",
             "Keine zusätzlichen Tabellenblätter für Ergänzungen."
           ]

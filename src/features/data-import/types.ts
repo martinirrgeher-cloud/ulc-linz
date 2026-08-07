@@ -28,6 +28,8 @@ export type ExerciseImportDraft = {
   commonMistakes: string;
   equipment: string[];
   groupNames: string[];
+  difficulty: string;
+  similarExerciseNames: string[];
   videoUrl: string;
   isActive: boolean | null;
   parameters: ExerciseParameterImport[];

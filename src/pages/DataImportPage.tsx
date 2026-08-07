@@ -57,6 +57,7 @@ type ExerciseExportFilters = {
   category: string;
   subcategory: string;
   material: string;
+  difficulty: string;
   groupId: string;
   video: "all" | "yes" | "no";
   active: "all" | "yes" | "no";
@@ -73,6 +74,7 @@ const EMPTY_EXERCISE_FILTERS: ExerciseExportFilters = {
   category: "",
   subcategory: "",
   material: "",
+  difficulty: "",
   groupId: "",
   video: "all",
   active: "all",
@@ -177,6 +179,7 @@ export function DataImportPage() {
     if (exerciseFilters.category && exercise.categoryKey !== exerciseFilters.category) return false;
     if (exerciseFilters.subcategory && exercise.subcategory !== exerciseFilters.subcategory) return false;
     if (exerciseFilters.material && !exercise.equipment.includes(exerciseFilters.material)) return false;
+    if (exerciseFilters.difficulty && exercise.difficultyKey !== exerciseFilters.difficulty) return false;
     if (exerciseFilters.groupId && !exercise.groupIds.includes(exerciseFilters.groupId)) return false;
     if (exerciseFilters.video === "yes" && !exercise.videoUrl && exercise.videos.length === 0) return false;
     if (exerciseFilters.video === "no" && (Boolean(exercise.videoUrl) || exercise.videos.length > 0)) return false;
@@ -503,6 +506,7 @@ export function DataImportPage() {
               <label><span>Kategorie</span><select value={exerciseFilters.category} onChange={(event) => setExerciseFilters((current) => ({ ...current, category: event.target.value }))}><option value="">Alle</option>{catalog.categories.map((item) => <option key={item.key} value={item.key}>{item.title}</option>)}</select></label>
               <label><span>Unterkategorie</span><select value={exerciseFilters.subcategory} onChange={(event) => setExerciseFilters((current) => ({ ...current, subcategory: event.target.value }))}><option value="">Alle</option>{catalog.subcategories.map((item) => <option key={item.key} value={item.label}>{item.label}</option>)}</select></label>
               <label><span>Material</span><select value={exerciseFilters.material} onChange={(event) => setExerciseFilters((current) => ({ ...current, material: event.target.value }))}><option value="">Alle</option>{catalog.materials.map((item) => <option key={item.key} value={item.label}>{item.label}</option>)}</select></label>
+              <label><span>Schwierigkeitsgrad</span><select value={exerciseFilters.difficulty} onChange={(event) => setExerciseFilters((current) => ({ ...current, difficulty: event.target.value }))}><option value="">Alle</option>{catalog.difficulties.map((item) => <option key={item.key} value={item.key}>{item.label}</option>)}</select></label>
               <label><span>Trainingsgruppe</span><select value={exerciseFilters.groupId} onChange={(event) => setExerciseFilters((current) => ({ ...current, groupId: event.target.value }))}><option value="">Alle</option>{catalog.groups.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
               <label><span>Video</span><select value={exerciseFilters.video} onChange={(event) => setExerciseFilters((current) => ({ ...current, video: event.target.value as ExerciseExportFilters["video"] }))}><option value="all">Alle</option><option value="yes">Vorhanden</option><option value="no">Nicht vorhanden</option></select></label>
               <label><span>Status</span><select value={exerciseFilters.active} onChange={(event) => setExerciseFilters((current) => ({ ...current, active: event.target.value as ExerciseExportFilters["active"] }))}><option value="all">Alle</option><option value="yes">Aktiv</option><option value="no">Inaktiv</option></select></label>

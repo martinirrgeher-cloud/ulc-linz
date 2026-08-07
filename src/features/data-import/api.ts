@@ -53,7 +53,7 @@ export async function applyExerciseImport(
   rows: PreparedImportRow[],
   missingOptions: PreparedMissingOption[],
 ): Promise<ImportRunResult> {
-  const { data, error } = await requireSupabase().rpc("apply_exercise_import_v1", {
+  const { data, error } = await requireSupabase().rpc("apply_exercise_import_v2", {
     p_organization_id: organizationId,
     p_import_id: importId,
     p_rows: rows as unknown as Json,
