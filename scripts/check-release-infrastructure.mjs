@@ -25,6 +25,10 @@ const requiredFiles = [
   "ULC-PRODUKTION-MARKIEREN.cmd",
   "scripts/check-simulation-safety.mjs",
   "scripts/check-test-interaction-architecture.mjs",
+  "scripts/check-writing-test-isolation.mjs",
+  "scripts/test-writing-test-isolation.mjs",
+  "scripts/lib/writing-test-isolation.mjs",
+  "scripts/check-test-layering.mjs",
   ".github/workflows/mobile-patch.yml",
   ".devcontainer/devcontainer.json",
   "MOBILE-ENTWICKLUNG.md",
@@ -43,6 +47,9 @@ for (const script of [
   "test:e2e:readonly:pr",
   "test:e2e:writing:pr",
   "check:test-interactions",
+  "check:writing-test-isolation",
+  "test:writing-test-isolation",
+  "check:test-layering",
   "ci:preview",
 ]) assert.ok(pkg.scripts?.[script], `package.json Script fehlt: ${script}`);
 assert.equal(pkg.devDependencies?.["@playwright/test"], "1.62.1", "Playwright Test muss exakt im Projekt gepinnt sein.");
@@ -51,6 +58,11 @@ assert.match(pkg.scripts["ci:quality"], /test:release-verification/, "CI muss di
 assert.match(pkg.scripts["ci:quality"], /test:start-change/, "CI muss den Start eines Entwicklungszyklus testen.");
 assert.match(pkg.scripts["ci:quality"], /check:simulation-safety/, "CI muss den Simulations-Schreibschutz pruefen.");
 assert.match(pkg.scripts["ci:quality"], /check:test-interactions/, "CI muss die stabilen Test-Interaktionsanker pruefen.");
+assert.match(pkg.scripts["ci:quality"], /check:writing-test-isolation/, "CI muss die isolierten Writing-Testdomaenen pruefen.");
+assert.match(pkg.scripts["ci:quality"], /test:writing-test-isolation/, "CI muss die Writing-Isolationslogik mit echten Unit-Tests pruefen.");
+assert.match(pkg.scripts["ci:preview"], /check:writing-test-isolation/, "Preview-Gate muss die Writing-Testisolation statisch pruefen.");
+assert.match(pkg.scripts["ci:quality"], /check:test-layering/, "CI muss die Testschichten absichern.");
+assert.match(pkg.scripts["ci:preview"], /check:test-layering/, "Preview-Gate muss die Testschichten absichern.");
 assert.match(pkg.scripts["ci:preview"], /check:test-interactions/, "Preview-Gate muss die stabilen Test-Interaktionsanker pruefen.");
 assert.equal(pkg.scripts["release:check"], pkg.scripts["release:check:ci"], "Lokale und CI-Release-Pruefung muessen denselben Einstieg verwenden.");
 
@@ -85,6 +97,12 @@ assert.match(writingPreparation, /supabase start[\s\S]*&/, "Writing-Vorbereitung
 assert.match(writingPreparation, /playwright install --with-deps chromium/, "Writing-Vorbereitung muss parallel Chromium samt Systemabhaengigkeiten installieren.");
 assert.match(writingPreparation, /wait "\$SUPABASE_PID"/, "Writing-Vorbereitung muss den Supabase-Prozess verbindlich abwarten.");
 assert.match(writingPreparation, /supabase status/, "Writing-Vorbereitung muss nach dem Parallelstart den Supabase-Status pruefen.");
+
+const writingConfig = readFileSync("playwright.writing.config.mjs", "utf8");
+assert.match(writingConfig, /fullyParallel:\s*false/, "Writing-E2E darf Tests innerhalb einer Domaenendatei nicht automatisch parallelisieren.");
+assert.match(writingConfig, /workers:\s*process\.env\.CI\s*\?\s*2\s*:\s*1/, "Writing-E2E muss in CI genau zwei Datei-Worker und lokal einen Worker nutzen.");
+assert.doesNotMatch(writingConfig, /fullyParallel:\s*true/, "Globale Writing-Parallelisierung ist ohne Domaenenisolation verboten.");
+
 
 
 const mobileWorkflow = readFileSync(".github/workflows/mobile-patch.yml", "utf8");

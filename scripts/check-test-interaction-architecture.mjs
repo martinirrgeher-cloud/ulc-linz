@@ -6,7 +6,11 @@ const requiredFiles = [
   "tests/helpers/user-management.mjs",
   "tests/runtime/app-runtime.spec.mjs",
   "tests/e2e/mobile-readonly.spec.mjs",
-  "tests/e2e-writing/core-writing.spec.mjs",
+  "tests/e2e-writing/masterdata-writing.spec.mjs",
+  "tests/e2e-writing/collaboration-writing.spec.mjs",
+  "tests/e2e-writing/catalog-writing.spec.mjs",
+  "tests/e2e-writing/registration-writing.spec.mjs",
+  "tests/e2e-writing/planning-writing.spec.mjs",
   "src/pages/AthleteManagementPage.tsx",
   "src/features/athletes/AthleteEditor.tsx",
   "src/features/athletes/TrainerEditor.tsx",
@@ -99,7 +103,11 @@ for (const marker of [
 const coreTests = [
   "tests/runtime/app-runtime.spec.mjs",
   "tests/e2e/mobile-readonly.spec.mjs",
-  "tests/e2e-writing/core-writing.spec.mjs",
+  "tests/e2e-writing/masterdata-writing.spec.mjs",
+  "tests/e2e-writing/collaboration-writing.spec.mjs",
+  "tests/e2e-writing/catalog-writing.spec.mjs",
+  "tests/e2e-writing/registration-writing.spec.mjs",
+  "tests/e2e-writing/planning-writing.spec.mjs",
 ];
 
 for (const file of coreTests) {
@@ -134,13 +142,20 @@ for (const marker of [
   if (!readonly.includes(marker)) throw new Error(`Read-only shared interaction is missing: ${marker}`);
 }
 
-const writing = readFileSync("tests/e2e-writing/core-writing.spec.mjs", "utf8");
+const writing = [
+  "tests/e2e-writing/masterdata-writing.spec.mjs",
+  "tests/e2e-writing/collaboration-writing.spec.mjs",
+  "tests/e2e-writing/catalog-writing.spec.mjs",
+  "tests/e2e-writing/registration-writing.spec.mjs",
+  "tests/e2e-writing/planning-writing.spec.mjs",
+].map((file) => readFileSync(file, "utf8")).join("\n");
+
 for (const marker of [
-  'editMember(page, "E2E Elternteil")',
-  'openMemberInfo(page, "E2E Elternteil")',
-  'editGroup(page, "E2E Leistungsgruppe")',
-  'editTrainer(page, "Tom E2E")',
-  "editAthlete(page, athleteFullName())",
+  "editMember(page, SCENARIO.parentDisplayName)",
+  "openMemberInfo(page, SCENARIO.parentDisplayName)",
+  "editGroup(page, SCENARIO.groupName)",
+  "editTrainer(page, SCENARIO.trainerName)",
+  "editAthlete(page, fullName(SCENARIO.athlete))",
 ]) {
   if (!writing.includes(marker)) throw new Error(`Writing shared interaction is missing: ${marker}`);
 }
