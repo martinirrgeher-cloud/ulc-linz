@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import test from "node:test";
 
 const modulesSource = await readFile(new URL("../src/config/modules.tsx", import.meta.url), "utf8");
@@ -397,7 +397,7 @@ test("D2 macht den Übungskatalog kompakt, aufklappbar und mobile-first", () => 
 
 
 test("D3 rollt das Designsystem auf Bloecke, Planung und Dokumentation aus", () => {
-  assert.match(globalCssSource, /html\s*\{[^}]*font-size:\s*17px/s);
+  assert.match(globalCssSource, /html\s*\{[^}]*font-size:\s*18px/s);
   assert.ok(trainingBlocksPageSource.includes("training-blocks-page ui-page-shell"));
   assert.ok(trainingBlocksPageSource.includes("training-blocks-toolbar-compact ui-command-surface"));
   assert.ok(trainingPlanningPageSource.includes("training-planning-page ui-page-shell"));
@@ -405,6 +405,8 @@ test("D3 rollt das Designsystem auf Bloecke, Planung und Dokumentation aus", () 
   assert.ok(trainingDocumentationPageSource.includes("training-documentation-page ui-page-shell"));
   assert.ok(trainingDocumentationPageSource.includes("training-doc-controls ui-command-surface"));
   assert.ok(supabaseMockSource.includes('["training_documentation_overview"'), "Runtime-Mock für Trainingsdokumentation fehlt.");
+  assert.ok(supabaseMockSource.includes('["performance_registration_context"'), "Runtime-Mock für Leistungsgruppen-Kontext fehlt.");
+  assert.ok(supabaseMockSource.includes('["performance_group_week_overview"'), "Runtime-Mock für Leistungsgruppen-Woche fehlt.");
   assert.ok(trainingBlocksCssSource.startsWith('@import "./ui-design-system.css";'));
   assert.ok(trainingPlanningCssSource.startsWith('@import "./ui-design-system.css";'));
   assert.ok(trainingDocumentationCssSource.startsWith('@import "./ui-design-system.css";'));
@@ -1184,4 +1186,41 @@ test("U1 simuliert Benutzerrechte und blockiert Schreibzugriffe global", () => {
   assert.ok(u1SupabaseSource.includes("!READ_ONLY_RPC_NAMES.has(functionName)"));
   assert.ok(u1AppLayoutSource.includes("simulation-banner"));
   assert.ok(u1AppLayoutSource.includes("Simulation beenden"));
+});
+
+
+const finalUiCssSource = await readFile(
+  new URL("../src/styles/final-ui-v1.css", import.meta.url),
+  "utf8",
+);
+const finalUiGlobalSource = await readFile(
+  new URL("../src/styles/global.css", import.meta.url),
+  "utf8",
+);
+
+test("Final UI v4 vereinheitlicht Typografie, Editoren und Aktionen appweit", async () => {
+  assert.ok(u1AppLayoutSource.includes('className="app-shell final-ui-v1"'));
+  assert.ok(u1AppLayoutSource.includes('final-ui-v1.css'));
+  assert.match(finalUiGlobalSource, /font-size:\s*18px/);
+  for (const marker of [
+    "exercise-list-title",
+    "dashboard-quick-actions",
+    "app-bottom-submenu",
+    '[class$="-card"]',
+    '[class$="-tabs"]',
+    "ui-command-surface",
+  ]) assert.ok(finalUiCssSource.includes(marker), `Final-UI-Baustein fehlt: ${marker}`);
+  assert.ok(n1DashboardSource.includes('aria-label="Schnellzugriffe"'));
+  assert.ok(finalUiCssSource.includes("width:max-content"), "Untermenues muessen schmal am Navigationspunkt bleiben.");
+  assert.ok(finalUiCssSource.includes("font-weight:650"), "Mittlere UI-Gewichtung fehlt.");
+  assert.ok(finalUiCssSource.includes("font-weight:750"), "Titel-Gewichtung fehlt.");
+
+  const styleDirectory = new URL("../src/styles/", import.meta.url);
+  const styleFiles = (await readdir(styleDirectory)).filter((name) => name.endsWith(".css"));
+  const styleSources = await Promise.all(styleFiles.map((name) => readFile(new URL(name, styleDirectory), "utf8")));
+  const combinedStyles = styleSources.join("\n");
+  assert.doesNotMatch(combinedStyles, /font-weight:\s*(?:850|900)/, "850/900er Fettschrift soll im UI nicht mehr verwendet werden.");
+  for (const match of combinedStyles.matchAll(/font-size:\s*(0?\.[0-9]+)rem/g)) {
+    assert.ok(Number(match[1]) >= 0.76, `Zu kleine feste Schriftgroesse gefunden: ${match[0]}`);
+  }
 });

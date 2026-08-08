@@ -82,7 +82,7 @@
   border: 0;
   cursor: pointer;
   font: inherit;
-  font-weight: 800;
+  font-weight: 700;
   text-align: left;
 }
 
@@ -123,9 +123,9 @@
 .app-simulation-banner div { min-width: 0; display: grid; gap: 1px; }
 .app-simulation-banner strong, .app-simulation-banner span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .app-simulation-banner strong { font-size: 0.85rem; }
-.app-simulation-banner span { font-size: 0.72rem; }
+.app-simulation-banner span { font-size: .76rem; }
 .app-simulation-exit {
-  min-height: 34px; display: inline-flex; gap: 5px; align-items: center; padding: 5px 8px; color: #5d3b00; background: #fff; border: 1px solid #d9b657; border-radius: 8px; font: inherit; font-size: 0.75rem; font-weight: 850; cursor: pointer;
+  min-height: 34px; display: inline-flex; gap: 5px; align-items: center; padding: 5px 8px; color: #5d3b00; background: #fff; border: 1px solid #d9b657; border-radius: 8px; font: inherit; font-size: .76rem; font-weight: 700; cursor: pointer;
 }
 .app-simulation-exit svg { width: 15px; height: 15px; }
 
@@ -148,7 +148,7 @@
 .app-bottom-navigation-button {
   min-width: 0; min-height: 58px; width: 100%; display: grid; place-items: center; align-content: center;
   gap: 4px; padding: 5px 4px; color: #4d6256; background: transparent; border: 0; border-radius: 13px;
-  font: inherit; font-size: 0.76rem; font-weight: 850; cursor: pointer;
+  font: inherit; font-size: 0.76rem; font-weight: 700; cursor: pointer;
 }
 .app-bottom-navigation-button svg { width: 21px; height: 21px; }
 .app-bottom-more-dots { font-size: 1.1rem; line-height: 1; letter-spacing: 0.06em; }
@@ -169,7 +169,7 @@
 .app-bottom-submenu-scroll { min-width: 0; display: grid; gap: 3px; }
 .app-bottom-submenu-link {
   width: 100%; min-height: 42px; padding: 8px 11px; color: var(--green-800); background: #fff;
-  border: 0; border-radius: 9px; font: inherit; font-size: 0.84rem; font-weight: 850; text-align: left; white-space: nowrap; cursor: pointer;
+  border: 0; border-radius: 9px; font: inherit; font-size: 0.84rem; font-weight: 700; text-align: left; white-space: nowrap; cursor: pointer;
 }
 .app-bottom-submenu-link:hover,
 .app-bottom-submenu-link:focus-visible,
@@ -178,13 +178,13 @@
 .app-bottom-more-item {
   width: 100%; min-height: 44px; display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; align-items: center;
   gap: 9px; padding: 7px 10px; color: var(--green-900); background: transparent; border: 0; border-radius: 10px;
-  font: inherit; font-size: 0.92rem; font-weight: 850; text-align: left; cursor: pointer;
+  font: inherit; font-size: 0.92rem; font-weight: 700; text-align: left; cursor: pointer;
 }
 .app-bottom-more-item:hover,
 .app-bottom-more-item:focus-visible { background: var(--green-50); outline: none; }
 .app-bottom-more-icon { width: 30px; height: 30px; display: grid; place-items: center; color: var(--green-700); background: var(--green-50); border-radius: 9px; }
 .app-bottom-more-icon svg { width: 17px; height: 17px; }
-.app-bottom-more-item small { min-width: 24px; padding: 2px 6px; color: var(--muted); background: #f4f7f5; border-radius: 999px; font-size: 0.72rem; text-align: center; }
+.app-bottom-more-item small { min-width: 24px; padding: 2px 6px; color: var(--muted); background: #f4f7f5; border-radius: 999px; font-size: .76rem; text-align: center; }
 
 .app-shell .training-save-bar,
 .app-shell .training-plan-editor-actions,
@@ -201,7 +201,7 @@
   .app-shell { --app-bottom-nav-height: 64px; --app-bottom-nav-edge: max(6px, env(safe-area-inset-bottom)); --app-bottom-nav-clearance: calc(var(--app-bottom-nav-height) + var(--app-bottom-nav-edge) + 24px); --app-bottom-sticky-offset: calc(var(--app-bottom-nav-height) + var(--app-bottom-nav-edge) + 8px); }
   .app-bottom-navigation { width: calc(100vw - 12px); }
   .app-bottom-navigation-bar { gap: 1px; padding: 4px; border-radius: 16px; }
-  .app-bottom-navigation-button { min-height: 54px; gap: 3px; padding: 4px 2px; border-radius: 11px; font-size: 0.71rem; }
+  .app-bottom-navigation-button { min-height: 54px; gap: 3px; padding: 4px 2px; border-radius: 11px; font-size: .76rem; }
   .app-bottom-navigation-button svg { width: 20px; height: 20px; }
   .app-bottom-submenu, .app-bottom-more-menu { bottom: calc(100% + 6px); border-radius: 13px; }
   .app-bottom-submenu { min-width: 152px; padding: 5px; }

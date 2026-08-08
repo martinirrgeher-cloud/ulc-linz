@@ -48,7 +48,7 @@
 .exercise-filter-toggle.active { color: #fff; background: var(--green-700); border-color: var(--green-700); }
 .exercise-filter-toggle > span {
   position: absolute; top: -4px; right: -4px; min-width: 18px; height: 18px; display: grid; place-items: center;
-  padding: 0 4px; color: #fff; background: #9b6b0e; border: 2px solid #fff; border-radius: 999px; font-size: 0.7rem;
+  padding: 0 4px; color: #fff; background: #9b6b0e; border: 2px solid #fff; border-radius: 999px; font-size: .76rem;
 }
 
 .exercise-filter-scrim { display: none; }
@@ -61,7 +61,7 @@
 .exercise-filter-heading strong { color: var(--green-950); font-size: 1rem; }
 .exercise-filter-heading small { color: var(--muted); font-size: 0.8rem; }
 .exercise-filter-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 9px; }
-.exercise-filter-grid label { min-width: 0; display: grid; gap: 5px; color: #50645a; font-size: 0.8rem; font-weight: 800; }
+.exercise-filter-grid label { min-width: 0; display: grid; gap: 5px; color: #50645a; font-size: 0.8rem; font-weight: 700; }
 .exercise-filter-grid select {
   width: 100%; min-width: 0; min-height: 40px; padding: 7px 9px; color: #153326; background: #f9fbfa;
   border: 1px solid #d8e5dc; border-radius: 10px;
@@ -70,17 +70,17 @@
 .exercise-filter-apply { margin-left: auto; min-width: 120px; }
 .favorite-filter {
   min-height: 38px; display: inline-flex; align-items: center; gap: 6px; padding: 7px 10px; color: var(--green-950);
-  background: #fff8e8; border: 1px solid #efdcae; border-radius: 10px; font: inherit; font-size: 0.76rem; font-weight: 800; cursor: pointer;
+  background: #fff8e8; border: 1px solid #efdcae; border-radius: 10px; font: inherit; font-size: 0.76rem; font-weight: 700; cursor: pointer;
 }
 .favorite-filter svg { width: 16px; color: #a8730d; }
-.favorite-filter span { min-width: 22px; padding: 1px 6px; background: rgba(155, 107, 14, 0.1); border-radius: 999px; font-size: 0.7rem; text-align: center; }
+.favorite-filter span { min-width: 22px; padding: 1px 6px; background: rgba(155, 107, 14, 0.1); border-radius: 999px; font-size: .76rem; text-align: center; }
 .favorite-filter.active { color: #fff; background: #9b6b0e; border-color: #9b6b0e; }
 .favorite-filter.active svg { color: #fff; }
 .favorite-filter.active span { background: rgba(255,255,255,.18); }
 
 .exercise-result-summary { min-height: 28px; display: flex; justify-content: space-between; align-items: center; gap: 10px; color: var(--muted); font-size: 0.84rem; }
 .exercise-result-summary strong { color: var(--green-950); }
-.exercise-result-summary .text-button { min-height: 30px; display: inline-flex; align-items: center; gap: 4px; padding: 4px 7px; font-size: 0.72rem; }
+.exercise-result-summary .text-button { min-height: 38px; display: inline-flex; align-items: center; gap: 4px; padding: 4px 7px; font-size: .76rem; }
 .exercise-result-summary svg { width: 14px; }
 
 .exercise-list { min-width: 0; display: grid; gap: 8px; }
@@ -104,12 +104,12 @@
 .exercise-list-title strong { overflow: hidden; color: var(--green-950); font-size: 1rem; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
 .exercise-list-title small { overflow: hidden; color: #687970; font-size: .76rem; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
 
-.exercise-card-actions { display: flex; align-items: center; gap: 3px; }
+.exercise-card-actions { display: flex; align-items: center; gap: 5px; }
 .exercise-favorite-button,
 .exercise-edit-button,
 .exercise-action-link,
 .exercise-expand-button {
-  position: relative; width: 32px; height: 32px; min-width: 32px; display: grid; place-items: center; padding: 0;
+  position: relative; width: 40px; height: 40px; min-width: 40px; display: grid; place-items: center; padding: 0;
   color: #52675b; background: transparent; border: 0; border-radius: 9px; cursor: pointer; text-decoration: none;
 }
 .exercise-favorite-button:hover,
@@ -125,7 +125,7 @@
 .exercise-action-link > svg:last-child { position: absolute; right: 3px; bottom: 3px; width: 7px; }
 .exercise-video-count {
   position: absolute; top: -3px; right: -2px; min-width: 15px; height: 15px; display: grid; place-items: center;
-  padding: 0 3px; color: #fff; background: var(--green-700); border: 1px solid #fff; border-radius: 999px; font-size: .56rem; font-weight: 850;
+  padding: 0 3px; color: #fff; background: var(--green-700); border: 1px solid #fff; border-radius: 999px; font-size: .76rem; font-weight: 700;
 }
 
 .exercise-list-tags { min-width: 0; display: flex; gap: 5px; overflow: hidden; padding: 0 10px 8px 53px; }
@@ -133,7 +133,7 @@
 .exercise-quick-goal { margin: 0; color: #53675b; font-size: .84rem; line-height: 1.4; }
 .exercise-quick-parameters { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
 .exercise-quick-parameter { min-width: 0; display: grid; gap: 2px; padding: 7px 8px; background: #fff; border: 1px solid #e1eae4; border-radius: 9px; text-align: center; }
-.exercise-quick-parameter small { overflow: hidden; color: #718078; font-size: .72rem; text-overflow: ellipsis; white-space: nowrap; }
+.exercise-quick-parameter small { overflow: hidden; color: #718078; font-size: .76rem; text-overflow: ellipsis; white-space: nowrap; }
 .exercise-quick-parameter strong { overflow: hidden; color: var(--green-800); font-size: .88rem; text-overflow: ellipsis; white-space: nowrap; }
 .exercise-quick-empty,
 .exercise-quick-more { align-self: center; color: var(--muted); font-size: .78rem; }
@@ -145,7 +145,7 @@
 .exercise-usage-summary > svg:last-child { transform: rotate(-90deg); }
 .exercise-usage-summary span { min-width: 0; display: grid; gap: 1px; }
 .exercise-usage-summary strong { font-size: .82rem; }
-.exercise-usage-summary small { color: #63766a; font-size: .74rem; }
+.exercise-usage-summary small { color: #63766a; font-size: .76rem; }
 .exercise-list-grid .exercise-list-tags { padding-left: 10px; }
 .exercise-list-grid .exercise-list-summary { align-items: start; }
 .exercise-list-grid .exercise-card-actions { flex-wrap: wrap; justify-content: flex-end; max-width: 72px; }
@@ -179,7 +179,7 @@
   justify-content: space-between;
   align-items: flex-start;
   gap: 16px;
-  padding: 18px 20px 12px;
+  padding: 15px 17px 10px;
 }
 
 .exercise-editor-header h2 {
@@ -214,7 +214,7 @@
   border: 0;
   border-radius: 0;
   cursor: pointer;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .exercise-editor-tabs button.active {
@@ -233,7 +233,7 @@
   color: var(--green-800);
   background: rgba(255, 255, 255, 0.86);
   border-radius: 999px;
-  font-size: 0.72rem;
+  font-size: .76rem;
 }
 
 .exercise-editor-form {
@@ -256,8 +256,8 @@
 
 .exercise-editor-panel {
   display: grid;
-  gap: 18px;
-  padding: 18px 20px 24px;
+  gap: 14px;
+  padding: 15px 17px 20px;
 }
 
 .exercise-form-grid,
@@ -273,7 +273,7 @@
   align-content: start;
   gap: 6px;
   color: var(--green-950);
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .exercise-field-wide {
@@ -317,7 +317,7 @@
 .exercise-group-selection legend {
   padding: 0 5px;
   color: var(--green-950);
-  font-weight: 900;
+  font-weight: 750;
 }
 
 .exercise-group-selection > p {
@@ -341,7 +341,7 @@
   background: var(--green-50);
   border-radius: 999px;
   cursor: pointer;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .exercise-group-selection input,
@@ -389,7 +389,7 @@
 }
 
 .parameter-picker button {
-  min-height: 36px;
+  min-height: 38px;
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -399,7 +399,7 @@
   border: 1px solid var(--border);
   border-radius: 999px;
   cursor: pointer;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .parameter-picker button.selected {
@@ -490,8 +490,8 @@
   bottom: 0;
   display: flex;
   justify-content: flex-end;
-  gap: 9px;
-  padding: 12px 20px max(12px, env(safe-area-inset-bottom));
+  gap: 8px;
+  padding: 10px 14px max(12px, env(safe-area-inset-bottom));
   background: rgba(255, 255, 255, 0.97);
   border-top: 1px solid var(--border);
   backdrop-filter: blur(10px);
@@ -642,8 +642,8 @@
   color: #fff;
   background: var(--green-700);
   border-radius: 999px;
-  font-size: 0.58rem;
-  font-weight: 900;
+  font-size: .76rem;
+  font-weight: 750;
   line-height: 1.25;
   text-align: center;
 }
@@ -694,8 +694,8 @@
   color: var(--green-800);
   background: var(--green-100);
   border-radius: 999px;
-  font-size: 0.72rem;
-  font-weight: 900;
+  font-size: .76rem;
+  font-weight: 750;
 }
 
 .exercise-video-file-input {
@@ -816,8 +816,8 @@
   color: var(--green-800);
   background: var(--green-100);
   border-radius: 999px;
-  font-size: 0.68rem;
-  font-weight: 900;
+  font-size: .76rem;
+  font-weight: 750;
 }
 
 .exercise-video-primary-label svg {
@@ -831,8 +831,8 @@
 }
 
 .exercise-video-card-actions .icon-button {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
 }
 
 .danger-icon-button {
@@ -884,7 +884,7 @@
 
 @media (max-width: 390px) {
   .exercise-editor-tabs button {
-    font-size: 0.7rem;
+    font-size: .76rem;
   }
 
   .exercise-editor-tabs button span {
@@ -932,8 +932,8 @@
 
 .exercise-filter-select-content small {
   color: var(--muted);
-  font-size: 0.66rem;
-  font-weight: 800;
+  font-size: .76rem;
+  font-weight: 700;
   line-height: 1;
 }
 
@@ -942,7 +942,7 @@
   padding: 0 23px 0 0;
   appearance: none;
   cursor: pointer;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .exercise-filter-chevron {
@@ -966,14 +966,16 @@
   flex-direction: row;
   align-items: flex-start;
   justify-content: flex-end;
-  gap: 4px;
+  gap: 6px;
 }
 
 .exercise-favorite-button,
 .exercise-edit-button,
 .exercise-action-link {
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  min-height: 40px;
   border-radius: 9px;
 }
 
@@ -1023,8 +1025,10 @@
   .exercise-favorite-button,
   .exercise-edit-button,
   .exercise-action-link {
-    width: 30px;
-    height: 30px;
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    min-height: 40px;
   }
 }
 
@@ -1035,7 +1039,7 @@
   .exercise-catalog-heading { gap: 9px; margin-bottom: 1px; }
   .exercise-catalog-heading h1 { font-size: clamp(1.35rem, 6vw, 1.58rem); line-height: 1.08; }
   .exercise-catalog-heading p:not(.eyebrow) { display: none; }
-  .exercise-catalog-heading .eyebrow { margin-bottom: 3px !important; font-size: .64rem; }
+  .exercise-catalog-heading .eyebrow { margin-bottom: 3px !important; font-size: .76rem; }
   .exercise-create-button { min-width: 42px; min-height: 42px; padding: 0 10px; }
   .exercise-create-button span { display: none; }
   .exercise-create-button svg { width: 19px; }
@@ -1055,7 +1059,7 @@
   .exercise-filter-panel-footer { position: sticky; bottom: -13px; margin: 0 -13px -13px; padding: 10px 13px 13px; background: rgba(255,255,255,.97); border-top: 1px solid #e4ece7; }
   .exercise-filter-apply { flex: 1; }
 
-  .exercise-result-summary { font-size: .72rem; }
+  .exercise-result-summary { font-size: .76rem; }
   .exercise-list,
   .exercise-list-grid { grid-template-columns: 1fr; gap: 7px; }
   .exercise-list-summary { gap: 5px; padding: 8px 8px 6px; }
@@ -1063,18 +1067,18 @@
   .exercise-category-mark { width: 30px; height: 30px; border-radius: 8px; }
   .exercise-category-mark svg { width: 15px; height: 15px; }
   .exercise-list-title strong { font-size: .96rem; }
-  .exercise-list-title small { font-size: .73rem; }
-  .exercise-card-actions { gap: 1px; }
+  .exercise-list-title small { font-size: .76rem; }
+  .exercise-card-actions { gap: 5px; }
   .exercise-favorite-button,
   .exercise-edit-button,
   .exercise-action-link,
-  .exercise-expand-button { width: 34px; height: 34px; min-width: 34px; }
+  .exercise-expand-button { width: 40px; height: 40px; min-width: 40px; min-height: 40px; }
   .exercise-favorite-button svg,
   .exercise-edit-button svg,
   .exercise-action-link > svg:first-child,
   .exercise-expand-button svg { width: 16px; height: 16px; }
   .exercise-list-tags { gap: 4px; padding: 0 8px 7px 45px; }
-  .ui-meta-chip { min-height: 24px; padding: 3px 7px; font-size: .7rem; }
+  .ui-meta-chip { min-height: 24px; padding: 3px 7px; font-size: .76rem; }
   .exercise-quick-info { gap: 8px; padding: 8px; }
   .exercise-quick-parameters { grid-template-columns: repeat(3, minmax(0,1fr)); gap: 5px; }
   .exercise-quick-parameter { padding: 6px 5px; }
@@ -1086,7 +1090,7 @@
   .exercise-editor-header h2 { overflow: hidden; font-size: 1.03rem; text-overflow: ellipsis; white-space: nowrap; }
   .exercise-editor-tabs { display: flex; gap: 0; overflow-x: auto; padding: 0 8px; border-bottom: 1px solid var(--border); scrollbar-width: none; }
   .exercise-editor-tabs::-webkit-scrollbar { display: none; }
-  .exercise-editor-tabs button { min-width: max-content; min-height: 42px; padding: 8px 10px; background: transparent; border-radius: 0; font-size: .75rem; }
+  .exercise-editor-tabs button { min-width: max-content; min-height: 42px; padding: 8px 10px; background: transparent; border-radius: 0; font-size: .76rem; }
   .exercise-editor-tabs button.active { color: var(--green-800); background: transparent; box-shadow: inset 0 -2px 0 var(--green-700); }
   .exercise-editor-tabs svg { width: 15px; }
   .exercise-editor-tabs span { background: var(--green-50); }

@@ -36,7 +36,7 @@
   display: grid;
   gap: 6px;
   color: var(--green-950);
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .training-planning-selection label > span {
@@ -156,7 +156,7 @@
   color: var(--green-700);
   font-size: .94rem;
   font-style: normal;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .training-plan-summary-list em svg,
@@ -174,7 +174,7 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .training-planning-no-plans {
@@ -214,7 +214,7 @@
   background: var(--green-50);
   border-radius: 999px;
   font-size: .79rem;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .training-plan-copy-origin svg {
@@ -238,8 +238,8 @@
   background: var(--green-50);
   border: 1px solid #d8eadf;
   border-radius: 999px;
-  font-size: .74rem;
-  font-weight: 800;
+  font-size: .76rem;
+  font-weight: 700;
 }
 
 .training-plan-summary-chips svg {
@@ -347,7 +347,7 @@
   background: var(--green-700);
   border-radius: 50%;
   font-size: .84rem;
-  font-weight: 900;
+  font-weight: 750;
 }
 
 .training-plan-section-title,
@@ -376,7 +376,7 @@
 
 .training-plan-section-duration {
   white-space: nowrap;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .training-plan-section-actions,
@@ -388,8 +388,8 @@
 
 .training-plan-section-actions button,
 .training-plan-item-actions button {
-  width: 33px;
-  height: 33px;
+  width: 40px;
+  height: 40px;
   display: grid;
   place-items: center;
   padding: 0;
@@ -686,7 +686,7 @@
 .training-plan-copy-list small,
 .training-plan-overwrite-option small {
   color: var(--muted);
-  font-size: .74rem;
+  font-size: .76rem;
 }
 
 .training-plan-overwrite-option {
@@ -703,7 +703,7 @@
   border: 1px solid #ead9a5;
   border-radius: 11px;
   font-size: .84rem;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .training-plan-copy-warning.danger {
@@ -954,7 +954,7 @@
 .training-planning-day-toggle > span:nth-child(2) {
   color: var(--muted);
   font-size: .77rem;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .training-planning-day-toggle svg {
@@ -1026,11 +1026,11 @@
 }
 
 .training-plan-add-actions {
-  gap: 6px;
+  gap: 8px;
 }
 
 .training-plan-add-actions button {
-  min-height: 36px;
+  min-height: 38px;
   padding: 6px 10px;
 }
 
@@ -1091,8 +1091,8 @@
 
 .training-plan-section-actions button,
 .training-plan-item-actions button {
-  width: 29px;
-  height: 29px;
+  width: 40px;
+  height: 40px;
   border-radius: 7px;
 }
 
@@ -1243,7 +1243,7 @@
   padding: 10px;
   color: var(--muted);
   font-size: .84rem;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .training-plan-import-preview {
@@ -1261,14 +1261,14 @@
 .training-plan-import-empty,
 .training-plan-import-note {
   color: var(--muted);
-  font-size: .74rem;
+  font-size: .76rem;
 }
 
 .training-plan-import-preview small {
   display: flex;
   align-items: center;
   gap: 4px;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .training-plan-import-preview small svg {
@@ -1465,7 +1465,7 @@
   margin: 1px 0 -1px;
   color: var(--green-800);
   font-size: .77rem;
-  font-weight: 900;
+  font-weight: 750;
 }
 
 .training-plan-block-exercises-label svg {
@@ -1497,7 +1497,7 @@
   background: #dff0e5;
   border: 1px solid #bfddca;
   border-radius: 6px;
-  font-size: .64rem;
+  font-size: .76rem;
 }
 
 .training-plan-item-heading-actions {
@@ -1640,12 +1640,12 @@
 }
 
 .training-plan-item.nested .training-plan-item-title strong {
-  font-size: clamp(.72rem, 2.8vw, .86rem);
+  font-size: clamp(.78rem, 2.8vw, .86rem);
   line-height: 1.2;
 }
 
 .training-plan-item.nested .training-plan-item-title small {
-  font-size: clamp(.62rem, 2.35vw, .7rem);
+  font-size: clamp(.76rem, 2.35vw, .8rem);
   line-height: 1.15;
 }
 
@@ -1759,10 +1759,10 @@
 
 .training-plan-section-actions.training-plan-compact-actions button,
 .training-plan-item-actions.training-plan-compact-actions button {
-  width: 36px;
-  height: 36px;
-  min-width: 36px;
-  min-height: 36px;
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  min-height: 40px;
   padding: 0;
   background: transparent;
   border: 0;
@@ -1848,11 +1848,11 @@
 }
 
 .training-plan-item-title-row .training-plan-item-info {
-  width: 28px;
-  height: 28px;
-  min-width: 28px;
-  min-height: 28px;
-  flex: 0 0 28px;
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  min-height: 40px;
+  flex: 0 0 40px;
 }
 
 .training-plan-item-title-row .training-plan-item-info svg {
@@ -1875,10 +1875,10 @@
 
   .training-plan-section-actions.training-plan-compact-actions button,
   .training-plan-item-actions.training-plan-compact-actions button {
-    width: 34px;
-    height: 34px;
-    min-width: 34px;
-    min-height: 34px;
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    min-height: 40px;
   }
 
   .training-plan-item-title-row strong {

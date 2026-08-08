@@ -64,7 +64,7 @@
 .countdown-phase-line > span {
   color: var(--green-950);
   font-size: 1.15rem;
-  font-weight: 900;
+  font-weight: 750;
 }
 
 .phase-work .countdown-phase-line > span {
@@ -83,7 +83,7 @@
   color: var(--green-950);
   font-size: clamp(4rem, 12vw, 7.2rem);
   font-variant-numeric: tabular-nums;
-  font-weight: 900;
+  font-weight: 750;
   letter-spacing: -0.07em;
   line-height: 0.95;
 }
@@ -135,7 +135,7 @@
   border-radius: 999px;
   color: var(--muted);
   background: #f1f5f2;
-  font-size: 0.72rem;
+  font-size: .76rem;
   font-weight: 750;
 }
 
@@ -203,7 +203,7 @@
   min-width: 0;
   color: var(--green-950);
   font-size: 0.78rem;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .countdown-number-field {
@@ -223,7 +223,7 @@
 .countdown-number-field input {
   padding: 8px 42px 8px 10px;
   font-variant-numeric: tabular-nums;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .countdown-number-field small {
@@ -231,7 +231,7 @@
   top: 50%;
   right: 9px;
   color: var(--muted);
-  font-size: 0.68rem;
+  font-size: .76rem;
   transform: translateY(-50%);
   pointer-events: none;
 }
@@ -244,7 +244,7 @@
 
 .countdown-field-hint {
   color: var(--muted);
-  font-size: 0.68rem;
+  font-size: .76rem;
   font-weight: 600;
   line-height: 1.25;
 }
@@ -287,7 +287,7 @@
   border-radius: 10px;
   color: #7a5519;
   background: #fff7dd;
-  font-size: 0.74rem;
+  font-size: .76rem;
   line-height: 1.4;
 }
 
@@ -323,7 +323,7 @@
   .countdown-status-row > span {
     min-height: 25px;
     padding: 3px 7px;
-    font-size: 0.66rem;
+    font-size: .76rem;
   }
 
   .countdown-actions {
@@ -352,7 +352,7 @@
 
   .countdown-setting-grid > label,
   .countdown-announcement-grid > label {
-    font-size: 0.72rem;
+    font-size: .76rem;
   }
 
   .countdown-number-field input {
@@ -366,7 +366,7 @@
   .countdown-options label {
     min-height: 42px;
     padding: 6px 8px;
-    font-size: 0.74rem;
+    font-size: .76rem;
   }
 }
 

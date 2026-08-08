@@ -16,7 +16,7 @@
   }
   .data-import-heading .eyebrow {
     margin-bottom: 4px !important;
-        font-size: 0.68rem;
+        font-size: .76rem;
   }
   .data-export-filters input,
   .data-export-filters select {
@@ -43,6 +43,6 @@
   .data-import-mode-tabs button,
   .data-import-tabs button {
     padding-inline: 5px;
-        font-size: 0.72rem;
+        font-size: .76rem;
   }
 }

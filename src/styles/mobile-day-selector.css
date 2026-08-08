@@ -12,7 +12,7 @@
   }
   .mobile-day-selector small,
   .mobile-day-selector span {
-    font-size: 0.68rem;
+    font-size: .76rem;
   }
 }
 @media (pointer: coarse) {
@@ -60,7 +60,7 @@
     line-height: 1.12;
   }
   .mobile-day-selector span {
-    font-weight: 800;
+    font-weight: 700;
         opacity: 0.86;
   }
 }
