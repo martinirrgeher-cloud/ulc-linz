@@ -1,5 +1,6 @@
-import { requireSupabase } from "@/lib/supabase";
 import type { Json } from "@/types/database.generated";
+import { callJsonRpcRawError as callJsonRpc } from "@/lib/supabase-rpc";
+import { isRecord, parseStringArray } from "@/lib/json-value";
 import type {
   AthleteEmergencyContact,
   AttendanceStatus,
@@ -16,26 +17,6 @@ import type {
   TrainingSessionState,
 } from "@/features/kindertraining/types";
 
-type JsonRpcResponse = {
-  data: Json;
-  error: unknown | null;
-};
-
-async function callJsonRpc(
-  functionName: string,
-  args: Record<string, Json | undefined>,
-): Promise<Json> {
-  const supabase = requireSupabase();
-  const rpc = supabase.rpc.bind(supabase) as unknown as (
-    name: string,
-    parameters: Record<string, Json | undefined>,
-  ) => PromiseLike<JsonRpcResponse>;
-
-  const { data, error } = await rpc(functionName, args);
-  if (error) throw error;
-  return data;
-}
-
 const ATTENDANCE_STATUSES: AttendanceStatus[] = ["open", "present", "absent"];
 const QUICK_RESULT_STATUSES: QuickAthleteResultStatus[] = [
   "created",
@@ -48,10 +29,6 @@ const DELETE_RESULT_STATUSES: DeleteSpecialTrainingResult[] = [
   "archived",
   "not_found",
 ];
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
-}
 
 function asNullableString(value: unknown): string | null {
   return typeof value === "string" && value.length > 0 ? value : null;
@@ -78,11 +55,6 @@ function parseWeekdays(value: unknown): number[] {
   return [...new Set(value.filter((item): item is number => (
     typeof item === "number" && Number.isInteger(item) && item >= 1 && item <= 7
   )))].sort((left, right) => left - right);
-}
-
-function parseStringArray(value: unknown): string[] {
-  if (!Array.isArray(value)) return [];
-  return [...new Set(value.filter((item): item is string => typeof item === "string"))];
 }
 
 function parseContacts(value: unknown): AthleteEmergencyContact[] {

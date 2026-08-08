@@ -1,6 +1,8 @@
 import type { Json } from "@/types/database.generated";
 import { requireSupabase } from "@/lib/supabase";
 import type { EditLockWriteGuard } from "@/features/collaboration/edit-locks";
+import { callJsonRpc } from "@/lib/supabase-rpc";
+import { isRecord, numberOrNull, parseStringArray } from "@/lib/json-value";
 import {
   type Exercise,
   type ExerciseCatalogData,
@@ -24,26 +26,8 @@ import {
   type ExerciseVideoUploadProgress,
 } from "@/features/exercise-catalog/video-upload";
 
-type JsonRpc = (
-  functionName: string,
-  args?: Record<string, unknown>,
-) => PromiseLike<{ data: Json | null; error: { message: string } | null }>;
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
 function optionalString(value: unknown): string | null {
   return typeof value === "string" && value.trim() ? value : null;
-}
-
-function numberOrNull(value: unknown): number | null {
-  return typeof value === "number" && Number.isFinite(value) ? value : null;
-}
-
-function parseStringArray(value: unknown): string[] {
-  if (!Array.isArray(value)) return [];
-  return [...new Set(value.filter((item): item is string => typeof item === "string"))];
 }
 
 function parseCategories(value: unknown): ExerciseCategory[] {
@@ -206,17 +190,6 @@ function parseExercises(value: unknown): Exercise[] {
       updatedAt: typeof item.updated_at === "string" ? item.updated_at : "",
     }];
   });
-}
-
-async function callJsonRpc(
-  functionName: string,
-  args: Record<string, unknown>,
-): Promise<Json> {
-  const supabase = requireSupabase();
-  const rpc = supabase.rpc.bind(supabase) as unknown as JsonRpc;
-  const { data, error } = await rpc(functionName, args);
-  if (error) throw new Error(error.message);
-  return data ?? null;
 }
 
 type ExerciseVideoRow = ExerciseVideo & { exerciseId: string };

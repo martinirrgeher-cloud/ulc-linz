@@ -1,5 +1,5 @@
-import { requireSupabase } from "@/lib/supabase";
-import type { Json } from "@/types/database.generated";
+import { callJsonRpc } from "@/lib/supabase-rpc";
+import { isRecord, numberOrNull } from "@/lib/json-value";
 import type {
   TrainingOverviewAthlete,
   TrainingOverviewDate,
@@ -11,15 +11,6 @@ import type {
   TrainingWeekOverview,
 } from "@/features/training-overview/types";
 
-type JsonRpc = (
-  functionName: string,
-  args?: Record<string, unknown>,
-) => PromiseLike<{ data: Json | null; error: { message: string } | null }>;
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
 function stringValue(value: unknown): string {
   return typeof value === "string" ? value : "";
 }
@@ -30,10 +21,6 @@ function optionalString(value: unknown): string | null {
 
 function numberValue(value: unknown): number {
   return typeof value === "number" && Number.isFinite(value) ? value : 0;
-}
-
-function numberOrNull(value: unknown): number | null {
-  return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
 function parseDocumentationStatus(value: unknown): TrainingOverviewDocumentationStatus {
@@ -137,14 +124,11 @@ export async function loadTrainingWeekOverview(
   weekStart: string,
   groupId: string | null,
 ): Promise<TrainingWeekOverview> {
-  const supabase = requireSupabase();
-  const rpc = supabase.rpc.bind(supabase) as unknown as JsonRpc;
-  const { data, error } = await rpc("training_plan_week_overview", {
+  const data = await callJsonRpc("training_plan_week_overview", {
     p_organization_id: organizationId,
     p_week_start: weekStart,
     p_group_id: groupId,
   });
-  if (error) throw new Error(error.message);
   if (!isRecord(data)) throw new Error("Die Trainingsplan-Übersicht konnte nicht geladen werden.");
 
   const groups = parseGroups(data.groups);

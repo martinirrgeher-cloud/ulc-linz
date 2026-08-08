@@ -2,12 +2,9 @@ import { requireSupabase } from "@/lib/supabase";
 import type { Json } from "@/types/database.generated";
 import type { ImportRunResult } from "@/features/data-import/types";
 
+import { isRecord } from "@/lib/json-value";
 export type PreparedImportRow = Record<string, Json | undefined>;
 export type PreparedMissingOption = Record<string, Json | undefined>;
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
-}
 
 function parseImportResult(value: Json): ImportRunResult {
   if (!isRecord(value)) {

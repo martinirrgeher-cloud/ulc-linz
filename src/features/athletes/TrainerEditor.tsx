@@ -1,6 +1,6 @@
 import { useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { Layers3, NotebookText, UserRound } from "lucide-react";
-import { StickyEditorActions } from "@/features/athletes/StickyEditorActions";
+import { StickyEditorActions } from "@/components/ui/StickyEditorActions";
 import { useSwipeTabs } from "@/features/athletes/useSwipeTabs";
 import { useDraftDirtyState } from "@/features/collaboration/useDraftDirtyState";
 import type { LinkableUser, Trainer, TrainerInput, TrainingGroup } from "@/features/athletes/types";

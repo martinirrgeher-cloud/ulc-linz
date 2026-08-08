@@ -2,6 +2,8 @@ import type { Json } from "@/types/database.generated";
 import type { EditLockWriteGuard } from "@/features/collaboration/edit-locks";
 import { requireSupabase } from "@/lib/supabase";
 import type { ExerciseParameterDefinition, ExerciseParameterInputType } from "@/features/exercise-catalog/types";
+import { callJsonRpc } from "@/lib/supabase-rpc";
+import { isRecord, numberOrNull, parseStringArray } from "@/lib/json-value";
 import type {
   DocumentationAthlete,
   DocumentationExerciseStatistic,
@@ -29,15 +31,6 @@ import type {
 export const TRAINING_DOCUMENTATION_MEDIA_BUCKET = "training-documentation-media";
 export const EXERCISE_VIDEO_BUCKET = "exercise-videos";
 
-type JsonRpc = (
-  functionName: string,
-  args?: Record<string, unknown>,
-) => PromiseLike<{ data: Json | null; error: { message: string } | null }>;
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
 function stringValue(value: unknown): string {
   return typeof value === "string" ? value : "";
 }
@@ -48,15 +41,6 @@ function optionalString(value: unknown): string | null {
 
 function numberValue(value: unknown, fallback = 0): number {
   return typeof value === "number" && Number.isFinite(value) ? value : fallback;
-}
-
-function numberOrNull(value: unknown): number | null {
-  return typeof value === "number" && Number.isFinite(value) ? value : null;
-}
-
-function parseStringArray(value: unknown): string[] {
-  if (!Array.isArray(value)) return [];
-  return [...new Set(value.filter((item): item is string => typeof item === "string"))];
 }
 
 function parseNumberArray(value: unknown): number[] {
@@ -384,14 +368,6 @@ async function hydrateDetailVideos(detail: TrainingDocumentationDetail): Promise
   } : null;
 
   return { preview, session };
-}
-
-async function callJsonRpc(functionName: string, args: Record<string, unknown>): Promise<Json> {
-  const supabase = requireSupabase();
-  const rpc = supabase.rpc.bind(supabase) as unknown as JsonRpc;
-  const { data, error } = await rpc(functionName, args);
-  if (error) throw new Error(error.message);
-  return data;
 }
 
 export async function loadTrainingDocumentationOverview(

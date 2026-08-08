@@ -1,5 +1,5 @@
-import { requireSupabase } from "@/lib/supabase";
-import type { Json } from "@/types/database.generated";
+import { callJsonRpcRawError as callJsonRpc } from "@/lib/supabase-rpc";
+import { isRecord } from "@/lib/json-value";
 import type {
   PerformanceAthlete,
   PerformanceAvailability,
@@ -14,30 +14,6 @@ import type {
   PerformanceTrainingDate,
   PerformanceWeek,
 } from "@/features/performance-registration/types";
-
-type JsonRpcResponse = {
-  data: Json;
-  error: unknown | null;
-};
-
-async function callJsonRpc(
-  functionName: string,
-  args: Record<string, Json | undefined>,
-): Promise<Json> {
-  const supabase = requireSupabase();
-  const rpc = supabase.rpc.bind(supabase) as unknown as (
-    name: string,
-    parameters: Record<string, Json | undefined>,
-  ) => PromiseLike<JsonRpcResponse>;
-
-  const { data, error } = await rpc(functionName, args);
-  if (error) throw error;
-  return data;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
-}
 
 function stringValue(value: unknown, fallback = ""): string {
   return typeof value === "string" ? value : fallback;
