@@ -19,7 +19,7 @@
   }
   .training-documentation-heading .eyebrow {
     margin-bottom: 4px !important;
-        font-size: 0.68rem;
+        font-size: .76rem;
   }
   .training-doc-tabs {
     gap: 4px;
@@ -33,7 +33,7 @@
         border-radius: 8px;
   }
   .training-documentation-page small {
-    font-size: 0.75rem;
+    font-size: .76rem;
   }
   .training-doc-save-strip,
   .training-doc-completion-suggestion,
@@ -46,13 +46,13 @@
   .training-doc-exercise-info-summary,
   .training-doc-exercise-info-parameters strong,
   .training-doc-exercise-info-parameters small {
-    font-size: 0.72rem;
+    font-size: .76rem;
   }
   .training-doc-quick-status button,
   .training-doc-segmented button {
     min-height: 40px;
         padding: 6px 5px;
-        font-size: 0.74rem;
+        font-size: .76rem;
   }
   .training-doc-item-info-button {
     min-width: 42px;
@@ -89,7 +89,7 @@
     justify-content: flex-start;
   }
   .training-doc-status-legend span {
-    font-size: 0.7rem;
+    font-size: .76rem;
   }
   .training-doc-team-mobile-summary {
     display: flex;
@@ -106,7 +106,7 @@
         background: var(--green-50);
         border: 1px solid #d8eadf;
         border-radius: 999px;
-        font-size: 0.72rem;
+        font-size: .76rem;
   }
   .training-doc-team-mobile-list {
     display: grid;
@@ -139,8 +139,8 @@
         padding: 3px 6px;
         border: 1px solid transparent;
         border-radius: 999px;
-        font-size: 0.68rem;
-        font-weight: 850;
+        font-size: .76rem;
+        font-weight: 700;
   }
   .training-doc-team-mobile-athlete > header .session-completed {
     color: #126b3b;
@@ -202,7 +202,7 @@
   }
   .training-doc-team-mobile-plan small {
     color: var(--muted);
-        font-size: 0.7rem;
+        font-size: .76rem;
   }
   .training-doc-team-mobile-no-plan {
     margin: 0 5px 5px;
@@ -211,7 +211,7 @@
         background: #f8faf9;
         border: 1px dashed #d5dfd8;
         border-radius: 8px;
-        font-size: 0.74rem;
+        font-size: .76rem;
   }
   .training-doc-report-table-scroll {
     overflow: visible;
@@ -249,7 +249,7 @@
         gap: 10px;
         padding: 5px 0 0;
         border: 0;
-        font-size: 0.75rem;
+        font-size: .76rem;
         text-align: right;
   }
   .training-doc-report-table td::before {
@@ -274,7 +274,7 @@
 @media screen and (max-width: 390px) {
   .training-doc-tabs button {
     padding-inline: 5px;
-        font-size: 0.72rem;
+        font-size: .76rem;
   }
 }
 @media screen and (max-width: 760px) {

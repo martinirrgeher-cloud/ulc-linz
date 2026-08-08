@@ -20,13 +20,14 @@ function trainerFullName() {
 }
 
 test.describe("Schreibende Kernabläufe in isolierter Supabase-Umgebung", () => {
-  test("Administrator legt Gruppe, Athlet und Trainer an und Änderungen bleiben erhalten", async ({ page }) => {
+  test("Administrator legt Gruppe, Athlet und Trainer an und Änderungen bleiben erhalten", { tag: "@pr" }, async ({ page }) => {
     await login(page, "admin");
     await page.goto("/module/athletes");
     await expect(page.getByRole("heading", { name: "Athleten, Trainer & Gruppen" })).toBeVisible();
 
-    const createActions = page.getByLabel("Stammdaten anlegen");
-    await createActions.getByRole("button", { name: /Gruppe/ }).click();
+    const createActions = page.getByTestId("masterdata-create-menu-toggle");
+    await createActions.click();
+    await page.getByTestId("masterdata-create-groups").click();
     const groupEditor = page.locator(".management-editor");
     await expect(groupEditor.getByRole("heading", { name: "Gruppe anlegen" })).toBeVisible();
     await groupEditor.getByLabel("Gruppenname").fill(UI_GROUP);
@@ -35,7 +36,8 @@ test.describe("Schreibende Kernabläufe in isolierter Supabase-Umgebung", () => 
     await expect(page.getByText("Die Trainingsgruppe wurde angelegt.", { exact: true })).toBeVisible();
     await expect(page.getByRole("heading", { name: UI_GROUP, exact: true })).toBeVisible();
 
-    await createActions.getByRole("button", { name: /Athlet/ }).click();
+    await createActions.click();
+    await page.getByTestId("masterdata-create-athletes").click();
     const athleteEditor = page.locator(".athlete-editor");
     await athleteEditor.getByLabel("Vorname").fill(UI_ATHLETE.firstName);
     await athleteEditor.getByLabel("Nachname").fill(UI_ATHLETE.lastName);
@@ -55,9 +57,10 @@ test.describe("Schreibende Kernabläufe in isolierter Supabase-Umgebung", () => 
     await page.reload();
     await page.getByRole("button", { name: `${athleteFullName()} bearbeiten` }).click();
     await expect(athleteEditor.getByLabel("Interne Notiz")).toHaveValue("E1b.2 Persistenzprüfung");
-    await athleteEditor.getByRole("button", { name: "Abbrechen", exact: true }).click();
+    await athleteEditor.getByTestId("editor-close").click();
 
-    await createActions.getByRole("button", { name: /Trainer/ }).click();
+    await createActions.click();
+    await page.getByTestId("masterdata-create-trainers").click();
     const trainerEditor = page.locator(".trainer-editor");
     await trainerEditor.getByLabel("Vorname").fill(UI_TRAINER.firstName);
     await trainerEditor.getByLabel("Nachname").fill(UI_TRAINER.lastName);
@@ -123,7 +126,7 @@ test.describe("Schreibende Kernabläufe in isolierter Supabase-Umgebung", () => 
       await groupContext.close();
     }
 
-    await groupEditor.getByRole("button", { name: "Abbrechen", exact: true }).click();
+    await groupEditor.getByTestId("editor-close").click();
     await page.waitForTimeout(600);
     await page.getByRole("tab", { name: /Trainer/ }).click();
     await page.getByRole("button", { name: "Tom E2E bearbeiten", exact: true }).click();
@@ -165,8 +168,8 @@ test.describe("Schreibende Kernabläufe in isolierter Supabase-Umgebung", () => 
     await page.goto("/module/athletes");
     await expect(page.getByRole("heading", { name: "Athleten, Trainer & Gruppen" })).toBeVisible();
 
-    const createActions = page.getByLabel("Stammdaten anlegen");
-    await createActions.getByRole("button", { name: /Athlet/ }).click();
+    await page.getByTestId("masterdata-create-menu-toggle").click();
+    await page.getByTestId("masterdata-create-athletes").click();
     const firstEditor = page.locator(".athlete-editor");
     await firstEditor.getByLabel("Vorname").fill(UI_REALTIME_ATHLETE.firstName);
     await firstEditor.getByLabel("Nachname").fill(UI_REALTIME_ATHLETE.lastName);
@@ -235,13 +238,13 @@ test.describe("Schreibende Kernabläufe in isolierter Supabase-Umgebung", () => 
     await expectNoAppError(page);
   });
 
-  test("Administrator legt eine Übung und einen Trainingsblock an", async ({ page }) => {
+  test("Administrator legt eine Übung und einen Trainingsblock an", { tag: "@pr" }, async ({ page }) => {
     test.setTimeout(90_000);
     await login(page, "admin");
     await page.goto("/module/exercise_catalog");
     await expect(page.getByRole("heading", { name: "Übungskatalog" })).toBeVisible();
 
-    await page.getByRole("button", { name: "Übung", exact: true }).click();
+    await page.getByTestId("exercise-create").click();
     const exerciseDialog = page.getByRole("dialog", { name: "Übung anlegen" });
     await exerciseDialog.getByLabel("Name *").fill(UI_EXERCISE);
     await exerciseDialog.getByLabel("Schwierigkeitsgrad").selectOption("medium");
@@ -255,7 +258,7 @@ test.describe("Schreibende Kernabläufe in isolierter Supabase-Umgebung", () => 
 
     await page.goto("/module/training_blocks");
     await expect(page.getByRole("heading", { name: "Trainingsblöcke" })).toBeVisible();
-    await page.getByRole("button", { name: "Block", exact: true }).click();
+    await page.getByTestId("training-block-create").click();
     const blockDialog = page.getByRole("dialog", { name: "Neuer Trainingsblock" });
     await blockDialog.getByLabel("Name *").fill(UI_BLOCK);
     await blockDialog.getByLabel("Geschätzte Dauer").fill("18");
@@ -299,15 +302,16 @@ test.describe("Schreibende Kernabläufe in isolierter Supabase-Umgebung", () => 
 
     await page.goto("/module/exercise_catalog");
     const exerciseCard = page.locator(".exercise-card").filter({ hasText: UI_EXERCISE });
-    await expect(exerciseCard.getByText("Schwierigkeit: Mittel", { exact: true })).toBeVisible();
-    await exerciseCard.getByRole("button", { name: `Verwendung von ${UI_EXERCISE} anzeigen` }).click();
+    await expect(exerciseCard.getByText(/Mittel/)).toBeVisible();
+    await exerciseCard.getByTestId("exercise-primary").click();
+    await exerciseCard.getByTestId("exercise-usage").click();
     const usageDialog = page.getByRole("dialog", { name: UI_EXERCISE });
     await expect(usageDialog.getByText(UI_BLOCK, { exact: true })).toBeVisible();
     await usageDialog.getByRole("button", { name: "Schließen", exact: true }).click();
     await expectNoAppError(page);
   });
 
-  test("Athlet speichert die eigene Trainingsanmeldung und sieht sie nach Reload", async ({ page }) => {
+  test("Athlet speichert die eigene Trainingsanmeldung und sieht sie nach Reload", { tag: "@pr" }, async ({ page }) => {
     await login(page, "athlete");
     await page.goto("/module/performance_registration");
     await expect(page.getByRole("heading", { name: "Leistungsgruppen" })).toBeVisible();
@@ -323,7 +327,7 @@ test.describe("Schreibende Kernabläufe in isolierter Supabase-Umgebung", () => 
     await expectNoAppError(page);
   });
 
-  test("Trainingsplan wird gespeichert und eine zweite Sitzung wird sofort blockiert", async ({ page, browser }) => {
+  test("Trainingsplan wird gespeichert und eine zweite Sitzung wird sofort blockiert", { tag: "@pr" }, async ({ page, browser }) => {
     await login(page, "admin");
     const planUrl = `/module/training_planning?date=${PLAN_DATE}&group=${E2E.groupId}&athlete=${E2E.athleteId}`;
     await page.goto(planUrl);

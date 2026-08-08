@@ -56,6 +56,7 @@ export function StickyEditorActions({
           className="icon-button editor-save-button"
           disabled={!canEdit || !canSave || busy}
           aria-label={busy ? "Änderungen werden gespeichert" : "Änderungen speichern"}
+          data-testid="editor-save"
           title={
             busy
               ? "Speichert …"
@@ -72,6 +73,7 @@ export function StickyEditorActions({
           onClick={onClose}
           disabled={busy}
           aria-label="Bearbeitung schließen"
+          data-testid="editor-close"
           title="Bearbeitung schließen"
         >
           <X aria-hidden="true" />

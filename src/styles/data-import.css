@@ -195,7 +195,7 @@
   border-radius: 999px;
   background: var(--green-50);
   font-size: 0.8rem;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .data-import-preview-row select {
@@ -415,7 +415,7 @@
   gap: 0.45rem;
   padding: 0.55rem 0.8rem;
   font: inherit;
-  font-weight: 800;
+  font-weight: 700;
   cursor: pointer;
 }
 
@@ -433,7 +433,7 @@
 .data-import-review-launch { display: grid; gap: .55rem; padding: .65rem; border: 1px solid var(--border); border-radius: .85rem; background: var(--surface); }
 .data-import-review-launch > .secondary-button { justify-self: end; }
 .data-import-review-index { display: flex; gap: .35rem; overflow-x: auto; padding-bottom: .2rem; }
-.data-import-review-index button { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; min-width: 2.7rem; min-height: 2.45rem; border: 1px solid var(--border); border-radius: .7rem; background: var(--surface); color: var(--muted); font: inherit; font-weight: 800; }
+.data-import-review-index button { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; min-width: 2.7rem; min-height: 2.45rem; border: 1px solid var(--border); border-radius: .7rem; background: var(--surface); color: var(--muted); font: inherit; font-weight: 700; }
 .data-import-review-index button svg { width: 1rem; height: 1rem; }
 .data-import-review-index button.active { outline: 2px solid var(--green-700); }
 .data-import-review-index button.approved { color: #166534; border-color: #86efac; background: #f0fdf4; }

@@ -252,6 +252,18 @@ const block = {
 };
 
 
+
+const performanceGroup = {
+  id: E2E_IDS.group,
+  name: group.name,
+  short_name: group.short_name,
+  regular_weekdays: group.regular_weekdays,
+  deadline_weekday: group.registration_deadline_weekday,
+  deadline_time: group.registration_deadline_time,
+  weeks_ahead: group.performance_weeks_ahead,
+  allow_late_registration: group.allow_late_registration,
+};
+
 const statisticsOverview = {
   default_from_date: "2026-01-01",
   from_date: "2026-01-01",
@@ -343,6 +355,33 @@ const rpcPayloads = new Map([
     },
     created_at: "2026-08-01T08:00:00.000Z",
   }]],
+  ["performance_registration_context", {
+    role: "admin",
+    can_manage: true,
+    athlete: null,
+    trainer: null,
+    groups: [performanceGroup],
+  }],
+  ["performance_group_week_overview", {
+    week_start: "2026-08-03",
+    week_end: "2026-08-09",
+    group: performanceGroup,
+    dates: [
+      { date: "2026-08-03", weekday: 1, deadline_at: "2026-08-02T18:00:00.000Z" },
+      { date: "2026-08-05", weekday: 3, deadline_at: "2026-08-04T18:00:00.000Z" },
+      { date: "2026-08-07", weekday: 5, deadline_at: "2026-08-06T18:00:00.000Z" },
+    ],
+    athletes: [{
+      id: E2E_IDS.athlete,
+      first_name: "Anna",
+      last_name: "Testathletin",
+      is_active: true,
+      birth_year: 2012,
+      availability: [],
+      defaults: [],
+    }],
+    trainers: [],
+  }],
   ["training_plan_week_overview", {
     week_start: "2026-08-03",
     week_end: "2026-08-09",

@@ -16,10 +16,10 @@
   }
   .training-overview-heading .eyebrow {
     margin-bottom: 4px !important;
-        font-size: 0.68rem;
+        font-size: .76rem;
   }
   .training-overview-page small {
-    font-size: 0.75rem;
+    font-size: .76rem;
   }
   .training-overview-mobile-days button {
     min-height: 50px;
@@ -29,7 +29,7 @@
   }
   .training-overview-mobile-days small,
   .training-overview-mobile-days span {
-    font-size: 0.68rem;
+    font-size: .76rem;
   }
   .training-overview-mobile-athlete > header > strong,
   .training-overview-mobile-plan strong,
@@ -38,7 +38,7 @@
   }
   .training-overview-mobile-athlete > header > span,
   .training-overview-mobile-plan small {
-    font-size: 0.7rem;
+    font-size: .76rem;
   }
   .training-overview-mobile-athlete > div {
     grid-template-columns: minmax(0, 1fr) 50px;

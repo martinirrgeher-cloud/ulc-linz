@@ -10,6 +10,7 @@ import { useAuth } from "@/features/auth/AuthContext";
 import { env } from "@/lib/env";
 import { buildHelpHref } from "@/features/help/help-context";
 import "@/styles/app-layout.css";
+import "@/styles/final-ui-v1.css";
 
 import { copySupportInformation, reportTechnicalError } from "@/lib/diagnostics";
 const roleNames = {
@@ -98,7 +99,7 @@ function AppLayoutContent() {
   }
 
   return (
-    <div className="app-shell">
+    <div className="app-shell final-ui-v1">
       <header className="app-header">
         <button
           type="button"
