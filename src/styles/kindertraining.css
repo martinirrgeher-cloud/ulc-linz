@@ -1181,7 +1181,12 @@
 }
 
 .compact-athlete-name strong {
-  font-size: 0.82rem;
+  display: -webkit-box;
+  font-size: 0.86rem;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .compact-athlete-name small {
@@ -1398,7 +1403,7 @@
 }
 /* Sichere Athletenverwaltung direkt in Kindertraining, U12 und U14 */
 .compact-attendance-row {
-  grid-template-columns: minmax(72px, 1fr) 84px minmax(140px, 1.45fr);
+  grid-template-columns: minmax(0, 1fr) 84px 79px;
 }
 
 .compact-athlete-actions {
@@ -1485,10 +1490,6 @@
 }
 
 @media (max-width: 370px) {
-  .compact-attendance-row {
-    grid-template-columns: minmax(58px, 1fr) 84px minmax(128px, 1.45fr);
-  }
-
   .compact-athlete-actions {
     width: 84px;
     min-width: 84px;

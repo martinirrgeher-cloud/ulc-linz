@@ -1058,6 +1058,10 @@ const managementCssP2cSource = await readFile(
   new URL("../src/styles/management.css", import.meta.url),
   "utf8",
 );
+const swipeTabsP2cSource = await readFile(
+  new URL("../src/features/athletes/useSwipeTabs.ts", import.meta.url),
+  "utf8",
+);
 
 test("P2c vereinheitlicht Stammdatenanlage, Filter und Wischreiter", () => {
   assert.ok(athleteManagementP2cSource.includes("ManagementCreateMenu"));
@@ -1066,6 +1070,10 @@ test("P2c vereinheitlicht Stammdatenanlage, Filter und Wischreiter", () => {
   assert.ok(athleteManagementP2cSource.includes('"Gruppe suchen"'));
   assert.ok(athleteManagementP2cSource.includes("groupModuleFilter"));
   assert.ok(athleteManagementP2cSource.includes("trainerSortMode"));
+  assert.ok(athleteManagementP2cSource.includes('className="masterdata-sticky-zone"'));
+  assert.match(athleteManagementP2cSource, /const VIEW_TABS = \["athletes", "trainers", "groups"\] as const;/);
+  assert.match(athleteManagementP2cSource, /Athleten <span>\{athletes\.length\}<\/span>[\s\S]*Trainer <span>\{trainers\.length\}<\/span>[\s\S]*Gruppen <span>\{groups\.length\}<\/span>/);
+  assert.ok(managementCssP2cSource.includes(".masterdata-sticky-zone"));
 });
 
 test("P2c verwendet in allen Stammdateneditoren eine feste obere Aktionsleiste", () => {
@@ -1078,7 +1086,9 @@ test("P2c verwendet in allen Stammdateneditoren eine feste obere Aktionsleiste",
     assert.ok(source.includes("useSwipeTabs"), `${name}: Wischreiter fehlen.`);
     assert.doesNotMatch(source, /className="management-actions/);
   }
+  assert.doesNotMatch(swipeTabsP2cSource, /\n\s*"label",/, "Wischen soll auch auf Beschriftungsflaechen starten koennen.");
   assert.ok(managementCssP2cSource.includes(".management-editor-sticky-header"));
+  assert.ok(managementCssP2cSource.includes("white-space: nowrap;"));
   assert.ok(managementCssP2cSource.includes(".masterdata-filter-panel"));
 });
 
@@ -1258,6 +1268,7 @@ test("Anmeldung und Statistik sind fuer Kindertraining, U12 und U14 kompakt vere
     assert.ok(source.includes('className="training-details-header">Notiz</div>'));
     assert.doesNotMatch(source, /<details[\s\S]*className="training-details-panel"/);
     assert.match(source, /<strong>\{counts\[status\.value\]\}<\/strong>[\s\S]*<span>\{status\.label\}<\/span>/);
+    assert.doesNotMatch(source, /`Jg\. \${participant\.birthYear}`/);
   }
   assert.ok(trainingCss.includes('grid-template-columns: repeat(3, minmax(0, 1fr));'));
   assert.ok(trainingCss.includes('grid-template-columns: repeat(2, minmax(0, 1fr));'));
@@ -1281,11 +1292,16 @@ test("Anmeldung und Statistik sind fuer Kindertraining, U12 und U14 kompakt vere
     assert.doesNotMatch(source, /athlete\.openCount/);
     assert.doesNotMatch(source, /athlete\.attendanceRate/);
     assert.ok(source.includes('{athlete.presentCount}x'));
-    assert.ok(source.includes('<Undo2 aria-hidden="true" />'));
+    assert.ok(source.includes('<CornerUpLeft aria-hidden="true" />'));
     assert.ok(source.includes('className="statistics-filter-card statistics-filter-details"'));
     assert.ok(source.includes('statistics.summary.minPresent'));
+    assert.ok(source.includes('["development", "Trend"]'));
+    assert.doesNotMatch(source, /Trainingsteilnahmen, Entwicklung und Trainereinsätze auswerten/);
+    assert.ok(source.includes('className="statistics-summary-row paired"'));
   }
   assert.ok(statisticsCss.includes('grid-template-columns: repeat(2, minmax(0, 1fr));'));
+  assert.ok(statisticsCss.includes('.statistics-summary-row.paired'));
+  assert.ok(statisticsCss.includes('overflow: hidden;'));
   assert.ok(statisticsCss.includes('grid-template-columns: 1fr;'));
   assert.ok(statisticsCss.includes('.statistics-back-button svg'));
   assert.ok(statisticsCss.includes('.statistics-filter-details > summary'));

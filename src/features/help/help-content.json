@@ -771,9 +771,9 @@
       "sections": [
         {
           "id": "navigation",
-          "title": "Zwischen Athleten, Gruppen und Trainern wechseln",
+          "title": "Zwischen Athleten, Trainern und Gruppen wechseln",
           "paragraphs": [
-            "Die drei Stammdatenbereiche bleiben als Reiter sichtbar. Auf dem Smartphone kann zusätzlich nach links oder rechts gewischt werden."
+            "Die drei Stammdatenbereiche zeigen jeweils die Anzahl der Datensätze. Auf dem Smartphone kann zusätzlich nach links oder rechts gewischt werden."
           ],
           "bullets": [
             "Horizontale Wischgesten wechseln den Bereich.",
@@ -786,7 +786,7 @@
           "steps": [
             "Auf „Neu“ tippen.",
             "Athlet, Gruppe oder Trainer auswählen.",
-            "Suche verwenden oder das Filtersymbol öffnen.",
+            "Suche verwenden oder das Filtersymbol öffnen. Kopf, Reiter sowie Suche und Filter bleiben beim Scrollen erreichbar.",
             "Aktive Filter bei Bedarf gesammelt zurücksetzen."
           ],
           "tip": "Beim Fokus auf ein Such- oder Eingabefeld wird es auf kleinen Bildschirmen nach oben gerückt, damit die Bildschirmtastatur den Arbeitsbereich nicht verdeckt."

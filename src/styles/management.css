@@ -1,14 +1,8 @@
 /* Routebezogene Mobile-Regeln fuer Athleten- und Benutzerverwaltung. */
 
-@media (pointer: coarse) {
-  .management-tabs button {
-    min-height: 46px;
-  }
-}
 @media (max-width: 760px) {
   .management-page-heading h1 {
-    font-size: clamp(1.55rem, 7vw, 1.9rem);
-        overflow-wrap: anywhere;
+    overflow-wrap: anywhere;
   }
   .management-editor-heading h2,
   .training-group-card-heading h2 {
@@ -17,13 +11,9 @@
   .management-form {
     gap: 12px;
   }
-  .management-page-heading,
   .management-editor-heading,
   .management-toolbar {
     gap: 14px;
-  }
-  .management-page-heading {
-    margin-bottom: 20px;
   }
   .management-page-heading p:not(.eyebrow),
   .management-editor-heading p:not(.eyebrow) {
@@ -40,22 +30,13 @@
     top: 0;
         right: 0;
   }
-  .management-page-heading .primary-button,
-  .management-toolbar .secondary-button {
-    width: 100%;
-  }
   .management-tabs {
     display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 8px;
-        padding: 5px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .management-tabs button {
     min-width: 0;
-        min-height: 46px;
-        gap: 5px;
-        padding: 9px 6px;
-        font-size: 0.84rem;
+    gap: 5px;
   }
   .management-tabs button svg {
     width: 17px;
@@ -71,7 +52,7 @@
   .member-card,
   .athlete-card,
   .training-group-card {
-    padding: 14px;
+    padding: 11px;
         border-radius: 16px;
   }
   .member-primary,
@@ -82,9 +63,9 @@
   .member-avatar,
   .athlete-avatar,
   .group-icon {
-    width: 42px;
-        height: 42px;
-        border-radius: 12px;
+    width: 38px;
+        height: 38px;
+        border-radius: 11px;
   }
   .member-name h2,
   .member-name a,
@@ -183,9 +164,6 @@
   }
 }
 @media (max-width: 380px) {
-  .management-tabs button {
-    font-size: 0.78rem;
-  }
   .management-tabs button svg {
     display: none;
   }
@@ -204,11 +182,10 @@
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
   .management-tabs.three-tabs button {
-    padding-inline: 4px;
-        font-size: 0.76rem;
+    padding-inline: 3px;
   }
   .trainer-card {
-    padding: 12px;
+    padding: 10px;
         border-radius: 15px;
   }
   .fieldset-heading {
@@ -216,11 +193,8 @@
   }
 }
 @media (max-width: 380px) {
-  .management-tabs.three-tabs button {
-    font-size: .76rem;
-  }
   .management-tabs.three-tabs button span {
-    display: none;
+    display: inline-flex;
   }
   .fieldset-heading {
     flex-direction: column;
@@ -228,7 +202,7 @@
 }
 @media (max-width: 760px) {
   .athlete-management-page {
-    gap: 14px;
+    gap: 10px;
   }
   .athlete-management-page .compact-management-heading {
     margin-bottom: 0;
@@ -426,7 +400,7 @@
 .masterdata-filter-toolbar {
   min-width: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 46px 46px;
+  grid-template-columns: minmax(0, 1fr) 42px 42px;
   gap: 7px;
 }
 
@@ -661,7 +635,7 @@
   }
 
   .masterdata-filter-toolbar {
-    grid-template-columns: minmax(0, 1fr) 44px 44px;
+    grid-template-columns: minmax(0, 1fr) 42px 42px;
     gap: 5px;
   }
 
@@ -671,5 +645,41 @@
 
   .editor-section-tabs button {
     font-size: .76rem;
+  }
+}
+
+.masterdata-sticky-zone {
+  position: sticky;
+  z-index: 7;
+  top: 64px;
+  display: grid;
+  gap: 4px;
+  padding-bottom: 5px;
+  background: #f6faf7;
+}
+
+.editor-section-tabs button {
+  white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+  .compact-management-heading {
+    gap: 6px;
+    margin: 0;
+  }
+
+  .compact-management-heading .eyebrow {
+    display: none;
+  }
+
+  .compact-management-heading h1 {
+    margin: 0;
+    font-size: clamp(1.03rem, 4.6vw, 1.28rem);
+    line-height: 1.08;
+    white-space: nowrap;
+  }
+
+  .masterdata-filter-shell {
+    gap: 5px;
   }
 }
