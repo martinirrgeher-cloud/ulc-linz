@@ -535,11 +535,12 @@ test("E0 hält Import-Schema, Supabase-Typen und API konsistent", () => {
   assert.ok(dataImportApiTypedSource.includes('rpc("apply_athlete_import_v1"'));
 });
 
-test("Projektarchiv schließt Altlasten aus und behält env.example", () => {
-  assert.ok(projectArchiveScriptSource.includes('"_v1"'));
-  assert.ok(projectArchiveScriptSource.includes('"apply-patch.ps1"'));
-  assert.doesNotMatch(projectArchiveScriptSource, /"\.env\.\*"/);
-  assert.ok(projectArchiveScriptSource.includes('Where-Object { $_.Name -ne ".env.example" }'));
+test("Projektarchiv stammt ausschließlich aus Git und enthält eindeutige Source-Metadaten", () => {
+  assert.ok(projectArchiveScriptSource.includes("git -C $ProjectRoot archive"));
+  assert.ok(projectArchiveScriptSource.includes("ULC-SOURCE-METADATA.json"));
+  assert.match(projectArchiveScriptSource, /rev-parse\s+["\']?HEAD\^\{tree\}["\']?/);
+  assert.ok(projectArchiveScriptSource.includes("supabase-local.env"));
+  assert.doesNotMatch(projectArchiveScriptSource, /robocopy/i);
 });
 
 const databaseTestsWorkflowSource = await readFile(

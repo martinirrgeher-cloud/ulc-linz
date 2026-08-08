@@ -27,10 +27,10 @@ jobs:
 
     steps:
       - name: Projekt auschecken
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Node.js einrichten
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version-file: .nvmrc
           cache: npm
@@ -43,9 +43,6 @@ jobs:
       - name: Abhängigkeiten reproduzierbar installieren
         run: npm ci
 
-      - name: Playwright Test isoliert installieren
-        run: npm install --no-save --package-lock=false @playwright/test@1.62.1
-
       - name: Chromium für echten Runtime-Test installieren
         run: npx playwright install --with-deps chromium
 
@@ -54,7 +51,7 @@ jobs:
 
       - name: Runtime-Testbericht hochladen
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: runtime-smoke-report-${{ github.run_id }}
           path: |

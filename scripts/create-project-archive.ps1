@@ -9,75 +9,86 @@ if (-not (Test-Path -LiteralPath $ProjectRoot -PathType Container)) {
   throw "Project directory not found: $ProjectRoot"
 }
 
-$Commit = "no-git"
-try {
-  $CommitValue = (& git -C $ProjectRoot rev-parse --short HEAD 2>$null)
-  if ($LASTEXITCODE -eq 0 -and $CommitValue) {
-    $Commit = $CommitValue.Trim()
+$ProjectRoot = (Resolve-Path -LiteralPath $ProjectRoot).Path
+
+$Status = (& git -C $ProjectRoot status --porcelain=v1 --untracked-files=all)
+if ($LASTEXITCODE -ne 0) { throw "Git status failed." }
+if ($Status) { throw "Project archive may only be created from a clean Git worktree." }
+
+$Branch = (& git -C $ProjectRoot branch --show-current).Trim()
+if ($LASTEXITCODE -ne 0 -or -not $Branch) { throw "Current Git branch could not be determined." }
+$Commit = (& git -C $ProjectRoot rev-parse HEAD).Trim()
+if ($LASTEXITCODE -ne 0 -or $Commit.Length -ne 40) { throw "Full Git commit could not be determined." }
+$ShortCommit = (& git -C $ProjectRoot rev-parse --short=7 HEAD).Trim()
+$Tree = (& git -C $ProjectRoot rev-parse "HEAD^{tree}").Trim()
+if ($LASTEXITCODE -ne 0 -or $Tree.Length -ne 40) { throw "Git tree could not be determined." }
+
+$Tracked = @(& git -C $ProjectRoot ls-files)
+if ($LASTEXITCODE -ne 0) { throw "Tracked files could not be determined." }
+
+$ForbiddenTracked = @()
+foreach ($Path in $Tracked) {
+  $Normalized = $Path -replace '\\','/'
+  if (
+    $Normalized -match '^(playwright-report|test-results|dist|node_modules|\.git|\.ulc-runtime-dist|supabase/\.temp)(/|$)' -or
+    $Normalized -eq 'supabase-local.env' -or
+    ($Normalized -match '(^|/)\.env($|\.)' -and $Normalized -ne '.env.example')
+  ) {
+    $ForbiddenTracked += $Normalized
   }
-} catch {
-  $Commit = "no-git"
+}
+if ($ForbiddenTracked.Count -gt 0) {
+  throw "Unsafe generated/environment files are tracked by Git and would enter the source archive:`n$($ForbiddenTracked -join "`n")"
 }
 
 $Stamp = Get-Date -Format "yyyy-MM-dd_HHmm"
-$Stage = Join-Path $env:TEMP "ULC-Linz-App-$Stamp"
-$Zip = Join-Path $OutputDirectory "ULC-Linz-App-Aktuell_${Stamp}_${Commit}.zip"
+$Stage = Join-Path $env:TEMP "ULC-Linz-App-Source-$Stamp-$([Guid]::NewGuid().ToString('N'))"
+$TempTar = Join-Path $env:TEMP "ULC-Linz-App-Source-$([Guid]::NewGuid().ToString('N')).tar"
+$Zip = Join-Path $OutputDirectory "ULC-Linz-App-Aktuell_${Stamp}_${ShortCommit}.zip"
 
 Remove-Item -LiteralPath $Stage -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item -LiteralPath $TempTar -Force -ErrorAction SilentlyContinue
 Remove-Item -LiteralPath $Zip -Force -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Path $Stage | Out-Null
 
-$ExcludedDirectories = @(
-  "node_modules",
-  ".git",
-  "dist",
-  "_patch_backup",
-  "_v1",
-  ".vercel",
-  ".vite",
-  "coverage",
-  ".supabase"
-)
+try {
+  & git -C $ProjectRoot archive --format=tar --output=$TempTar HEAD
+  if ($LASTEXITCODE -ne 0) { throw "git archive failed." }
 
-$ExcludedFiles = @(
-  ".env",
-  ".env.local",
-  ".env.development.local",
-  ".env.test.local",
-  ".env.production.local",
-  "apply-patch.ps1",
-  "*.log",
-  "*.zip",
-  "*.tar.gz",
-  "*.gpg"
-)
+  & tar.exe -xf $TempTar -C $Stage
+  if ($LASTEXITCODE -ne 0) { throw "Extraction of git archive failed." }
 
-$RobocopyArguments = @(
-  $ProjectRoot,
-  $Stage,
-  "/E",
-  "/R:1",
-  "/W:1",
-  "/XD"
-) + $ExcludedDirectories + @("/XF") + $ExcludedFiles
+  $NodeVersion = "unknown"
+  $NpmVersion = "unknown"
+  try { $NodeVersion = (& node.exe --version).Trim() } catch {}
+  try { $NpmVersion = (& npm.cmd --version).Trim() } catch {}
 
-& robocopy.exe @RobocopyArguments | Out-Host
-if ($LASTEXITCODE -ge 8) {
-  throw "Robocopy failed with code $LASTEXITCODE."
+  $Metadata = [ordered]@{
+    formatVersion = 1
+    project = "ULC Linz App"
+    source = "git-archive"
+    commit = $Commit
+    shortCommit = $ShortCommit
+    tree = $Tree
+    branch = $Branch
+    createdAt = (Get-Date).ToUniversalTime().ToString("o")
+    node = $NodeVersion
+    npm = $NpmVersion
+  }
+  $MetadataPath = Join-Path $Stage "ULC-SOURCE-METADATA.json"
+  $Metadata | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $MetadataPath -Encoding UTF8
+
+  & tar.exe -a -c -f $Zip -C $Stage .
+  if ($LASTEXITCODE -ne 0) { throw "ZIP creation failed." }
+
+  Write-Host ""
+  Write-Host "Git-based source ZIP successfully created:"
+  Write-Host $Zip
+  Write-Host "Full commit: $Commit"
+  Write-Host "Git tree:    $Tree"
+  Write-Host "Metadata:    ULC-SOURCE-METADATA.json"
 }
-
-# Remove every environment file except the safe template.
-Get-ChildItem -LiteralPath $Stage -Recurse -Force -File -Filter ".env*" |
-  Where-Object { $_.Name -ne ".env.example" } |
-  Remove-Item -Force
-
-& tar.exe -a -c -f $Zip -C $Stage .
-if ($LASTEXITCODE -ne 0) {
-  throw "ZIP creation failed."
+finally {
+  Remove-Item -LiteralPath $Stage -Recurse -Force -ErrorAction SilentlyContinue
+  Remove-Item -LiteralPath $TempTar -Force -ErrorAction SilentlyContinue
 }
-
-Remove-Item -LiteralPath $Stage -Recurse -Force
-
-Write-Host ""
-Write-Host "ZIP successfully created:"
-Write-Host $Zip

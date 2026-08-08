@@ -4,7 +4,7 @@ cd /d "%~dp0"
 echo.
 echo ULC Linz App - Release pruefen
 echo ================================
-node.exe "%~dp0scripts\release\run-release-check.mjs"
+node.exe "%~dp0scripts\release\verify-current-state.mjs"
 set "RC=%ERRORLEVEL%"
 echo.
 if "%RC%"=="0" (
