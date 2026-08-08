@@ -346,6 +346,7 @@ const trainingBlocksCssSource = await readFile(new URL("../src/styles/training-b
 const globalCssSource = await readFile(new URL("../src/styles/global.css", import.meta.url), "utf8");
 const runtimeSmokeSource = await readFile(new URL("../tests/runtime/app-runtime.spec.mjs", import.meta.url), "utf8");
 const mobileReadOnlySource = await readFile(new URL("../tests/e2e/mobile-readonly.spec.mjs", import.meta.url), "utf8");
+const writingCoreSource = await readFile(new URL("../tests/e2e-writing/core-writing.spec.mjs", import.meta.url), "utf8");
 
 test("Mobile Stammdaten und Kopfzeile sind gegen Fehlbedienung optimiert", () => {
   assert.ok(appLayoutSource.includes("app-user-menu-panel"), "Sicheres Benutzermenü fehlt.");
@@ -393,6 +394,12 @@ test("Auswahllisten und Benutzerverwaltung nutzen die kompakte Mobile-UX", () =>
   assert.ok(mobileReadOnlySource.includes('const invitationInfo = page.getByRole("dialog", { name: "Offene Einladung" })'));
   assert.ok(mobileReadOnlySource.includes('invitationInfo.getByRole("button", { name: "Erneut senden", exact: true })'));
   assert.doesNotMatch(mobileReadOnlySource, /page\.getByText\("Letzter Versand"/);
+  assert.ok(writingCoreSource.includes('name: "E2E Elternteil bearbeiten"'));
+  assert.ok(writingCoreSource.includes('name: "Informationen zu E2E Elternteil"'));
+  assert.ok(writingCoreSource.includes('const parentInfo = page.getByRole("dialog", { name: "E2E Elternteil" })'));
+  assert.ok(writingCoreSource.includes('parentInfo.getByText(/Athleten: Anna E2E, Berta E2E/)'));
+  assert.doesNotMatch(writingCoreSource, /parentCard\.getByRole\("button", \{ name: "Bearbeiten"/);
+  assert.doesNotMatch(writingCoreSource, /parentCard\.getByText\(\/Athleten:/);
 });
 
 test("E2 schützt Trainer und Gruppen atomar vor paralleler Bearbeitung", () => {

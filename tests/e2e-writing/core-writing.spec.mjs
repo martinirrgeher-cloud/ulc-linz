@@ -76,7 +76,7 @@ test.describe("Schreibende Kernabläufe in isolierter Supabase-Umgebung", () => 
     await page.goto("/module/user_management");
     await expect(page.getByRole("heading", { name: "Benutzerverwaltung", exact: true })).toBeVisible();
     const parentCard = page.locator(".member-card").filter({ hasText: "E2E Elternteil" });
-    await parentCard.getByRole("button", { name: "Bearbeiten", exact: true }).click();
+    await parentCard.getByRole("button", { name: "E2E Elternteil bearbeiten", exact: true }).click();
     const memberEditor = page.locator(".management-editor");
     await expect(memberEditor.getByLabel("Rechtevorlage")).toBeEnabled({ timeout: 15_000 });
     await memberEditor.getByLabel("Rechtevorlage").selectOption("parent");
@@ -85,9 +85,14 @@ test.describe("Schreibende Kernabläufe in isolierter Supabase-Umgebung", () => 
     await expect(memberEditor.getByText("2 ausgewählt", { exact: true })).toBeVisible();
     await memberEditor.getByRole("button", { name: "Änderungen speichern", exact: true }).click();
     await expect(page.getByText("Die Benutzerdaten wurden gespeichert.", { exact: true })).toBeVisible({ timeout: 15_000 });
-    await expect(parentCard.getByText(/Athleten: Anna E2E, Berta E2E/)).toBeVisible();
 
-    await parentCard.getByRole("button", { name: "Bearbeiten", exact: true }).click();
+    await parentCard.getByRole("button", { name: "Informationen zu E2E Elternteil", exact: true }).click();
+    const parentInfo = page.getByRole("dialog", { name: "E2E Elternteil" });
+    await expect(parentInfo).toBeVisible();
+    await expect(parentInfo.getByText(/Athleten: Anna E2E, Berta E2E/)).toBeVisible();
+    await parentInfo.getByRole("button", { name: "Benutzerinfo schließen", exact: true }).click();
+
+    await parentCard.getByRole("button", { name: "E2E Elternteil bearbeiten", exact: true }).click();
     await expect(memberEditor.getByRole("checkbox", { name: "Anna E2E", exact: true })).toBeChecked();
     await expect(memberEditor.getByRole("checkbox", { name: "Berta E2E", exact: true })).toBeChecked();
     await expect(memberEditor.getByText("Änderungsprotokoll", { exact: true })).toBeVisible({ timeout: 15_000 });
