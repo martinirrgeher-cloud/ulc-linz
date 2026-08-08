@@ -85,6 +85,11 @@ for (const marker of [
 ]) {
   if (!testFile.includes(marker)) throw new Error(`Writing E2E stable selector/PR marker is missing: ${marker}`);
 }
+const trainerGroupSequence = /getByLabel\("E-Mail-Adresse"\)[\s\S]{0,300}getByRole\("tab", \{ name: \/Gruppen\/ \}\)\.click\(\)[\s\S]{0,300}getByRole\("checkbox", \{ name: UI_GROUP, exact: true \}\)\.check\(\)/;
+if (!trainerGroupSequence.test(testFile)) {
+  throw new Error("Trainer creation must open the Gruppen tab before selecting a training group.");
+}
+
 const prTagCount = (testFile.match(/tag:\s*"@pr"/g) ?? []).length;
 if (prTagCount < 4) {
   throw new Error(`Expected at least 4 PR-tagged writing E2E tests, found ${prTagCount}.`);

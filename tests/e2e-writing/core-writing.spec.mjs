@@ -65,7 +65,8 @@ test.describe("Schreibende Kernabläufe in isolierter Supabase-Umgebung", () => 
     await trainerEditor.getByLabel("Vorname").fill(UI_TRAINER.firstName);
     await trainerEditor.getByLabel("Nachname").fill(UI_TRAINER.lastName);
     await trainerEditor.getByLabel("E-Mail-Adresse").fill("tina.e1b2@example.test");
-    await trainerEditor.getByRole("checkbox", { name: UI_GROUP }).check();
+    await trainerEditor.getByRole("tab", { name: /Gruppen/ }).click();
+    await trainerEditor.getByRole("checkbox", { name: UI_GROUP, exact: true }).check();
     await trainerEditor.getByTestId("editor-save").click();
     await expect(page.getByText("Der Trainer wurde angelegt.", { exact: true })).toBeVisible();
 
