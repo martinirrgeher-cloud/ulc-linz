@@ -1071,9 +1071,8 @@ test("P2c vereinheitlicht Stammdatenanlage, Filter und Wischreiter", () => {
   assert.ok(athleteManagementP2cSource.includes("groupModuleFilter"));
   assert.ok(athleteManagementP2cSource.includes("trainerSortMode"));
   assert.ok(athleteManagementP2cSource.includes('className="masterdata-sticky-zone"'));
-  assert.match(athleteManagementP2cSource, /Athleten <span>\{athletes\.length\}<\/span>/);
-  assert.match(athleteManagementP2cSource, /Trainer <span>\{trainers\.length\}<\/span>/);
-  assert.match(athleteManagementP2cSource, /Gruppen <span>\{groups\.length\}<\/span>/);
+  assert.match(athleteManagementP2cSource, /const VIEW_TABS = \["athletes", "trainers", "groups"\] as const;/);
+  assert.match(athleteManagementP2cSource, /Athleten <span>\{athletes\.length\}<\/span>[\s\S]*Trainer <span>\{trainers\.length\}<\/span>[\s\S]*Gruppen <span>\{groups\.length\}<\/span>/);
   assert.ok(managementCssP2cSource.includes(".masterdata-sticky-zone"));
 });
 

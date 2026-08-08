@@ -218,6 +218,8 @@ test.describe("Authentifizierte, nicht schreibende Modulprüfungen", () => {
     await page.goto("/module/athletes");
     const surface = page.locator(".masterdata-tab-surface");
     await swipeLeft(surface);
+    await expect(page.getByRole("tab", { name: /Trainer/ })).toHaveAttribute("aria-selected", "true");
+    await swipeLeft(surface);
     await expect(page.getByRole("tab", { name: /Gruppen/ })).toHaveAttribute("aria-selected", "true");
 
     await page.getByRole("button", { name: "Leistungsgruppe Sprint und Mehrkampf bearbeiten" }).click();
