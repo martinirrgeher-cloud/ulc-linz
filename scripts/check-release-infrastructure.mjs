@@ -64,12 +64,24 @@ for (const [label, workflow] of [["Quality", qualityWorkflow], ["Read-only E2E",
   assert.match(workflow, /actions\/setup-node@v6/, `${label} muss Setup-Node v6 verwenden.`);
   assert.doesNotMatch(workflow, /npm install --no-save --package-lock=false @playwright\/test/, `${label} darf Playwright nicht dynamisch neben package-lock installieren.`);
 }
-assert.match(qualityWorkflow, /npm run release:check:ci/, "Quality-Workflow muss den echten Runtime-Gate ausfuehren.");
-assert.match(qualityWorkflow, /playwright install --with-deps chromium/, "Quality-Workflow muss Chromium installieren.");
+assert.match(qualityWorkflow, /quality-core:[\s\S]*npm run ci:quality/, "Quality-Workflow muss die Kernpruefung in einem eigenen Job ausfuehren.");
+assert.match(qualityWorkflow, /runtime:[\s\S]*test:runtime:pr[\s\S]*test:runtime:ci/, "Quality-Workflow muss PR-Runtime und Vollregression getrennt ausfuehren.");
+assert.match(qualityWorkflow, /quality:[\s\S]*name:\s*TypeScript, Tests, Build und Runtime[\s\S]*needs:[\s\S]*quality-core[\s\S]*runtime/, "Bestehendes verpflichtendes Quality-Gate muss als Aggregator erhalten bleiben.");
+assert.match(qualityWorkflow, /playwright install --with-deps chromium/, "Runtime-Job muss Chromium samt Systemabhaengigkeiten installieren.");
 assert.match(qualityWorkflow, /actions\/upload-artifact@v7/, "Quality muss Upload-Artifact v7 verwenden.");
 assert.match(readonlyWorkflow, /actions\/upload-artifact@v7/, "Read-only E2E muss Upload-Artifact v7 verwenden.");
 assert.match(writingWorkflow, /actions\/upload-artifact@v7/, "Writing E2E muss Upload-Artifact v7 verwenden.");
 assert.match(writingWorkflow, /supabase\/setup-cli@v2/, "Writing E2E muss die aktuelle Supabase Setup-CLI-Action verwenden.");
+assert.match(writingWorkflow, /scripts\/ci\/prepare-writing-e2e\.sh/, "Writing E2E muss Supabase und Chromium ueber den parallelen Vorbereitungsblock starten.");
+assert.doesNotMatch(writingWorkflow, /- name: Isolierte lokale Supabase-Umgebung starten/, "Der alte serielle Supabase-Start darf nicht mehr im Workflow stehen.");
+assert.doesNotMatch(writingWorkflow, /- name: Chromium und Systemabhaengigkeiten installieren/, "Die alte serielle Chromium-Installation darf nicht mehr im Workflow stehen.");
+
+const writingPreparation = readFileSync("scripts/ci/prepare-writing-e2e.sh", "utf8");
+assert.match(writingPreparation, /supabase start[\s\S]*&/, "Writing-Vorbereitung muss Supabase im Hintergrund starten.");
+assert.match(writingPreparation, /playwright install --with-deps chromium/, "Writing-Vorbereitung muss parallel Chromium samt Systemabhaengigkeiten installieren.");
+assert.match(writingPreparation, /wait "\$SUPABASE_PID"/, "Writing-Vorbereitung muss den Supabase-Prozess verbindlich abwarten.");
+assert.match(writingPreparation, /supabase status/, "Writing-Vorbereitung muss nach dem Parallelstart den Supabase-Status pruefen.");
+
 
 const mobileWorkflow = readFileSync(".github/workflows/mobile-patch.yml", "utf8");
 assert.match(mobileWorkflow, /mobile-patch\/\*\*/, "Mobile-Workflow muss auf mobile-patch-Branches begrenzt bleiben.");
@@ -117,6 +129,9 @@ assert.doesNotMatch(updateCmd, /-ProjectRoot\s+"%~dp0"/, "Permanente Update-CMD 
 assert.doesNotMatch(updateCmd, /-ProjectRoot\b/, "Permanente Update-CMD soll den Projektroot vom PowerShell-Installer selbst aus dessen Speicherort bestimmen lassen.");
 assert.match(updatePs, /ULC-Linz-App-UPDATE-\*\.zip/, "Update-Installer darf nur den festen Paketnamensraum im Download-Ordner pruefen.");
 assert.match(updatePs, /--check-only/, "Update-Installer muss Pakete vor der Auswahl gegen den aktuellen Git-Stand pruefen.");
+assert.match(updatePs, /PreviousErrorActionPreference[\s\S]*ErrorActionPreference = "Continue"[\s\S]*ProbeExitCode = \$LASTEXITCODE/, "Windows-PowerShell-5.1-Probes muessen erfolgreiche native stderr-Ausgaben tolerieren und nach Exitcode entscheiden.");
+assert.doesNotMatch(updatePs, /--check-only\s+\*>\s*\$null/, "Applicability-Probe darf unter Windows PowerShell 5.1 nicht alle nativen Streams bei ErrorActionPreference=Stop verwerfen.");
+assert.match(updatePs, /Gepruefte Pakete und Ablehnungsgruende/, "Paketfinder muss konkrete Ablehnungsgruende sichtbar machen, falls kein Update passt.");
 assert.match(updatePs, /Get-FileHash[\s\S]*SHA256/, "Identische Browser-Downloads muessen ueber SHA-256 erkannt werden.");
 assert.doesNotMatch(updatePs, /Get-ChildItem[^\n]*-Recurse/, "Update-Paket darf nicht rekursiv im Dateisystem gesucht werden.");
 
@@ -167,6 +182,8 @@ const runtimeRunner = readFileSync("scripts/release/run-runtime-smoke.mjs", "utf
 const playwrightEnsure = readFileSync("scripts/release/ensure-playwright.mjs", "utf8");
 assert.match(runtimeRunner, /VITE_SUPABASE_URL:\s*"https:\/\/e2e\.supabase\.co"/, "Runtime-Build muss die Fake-Supabase-URL fest setzen.");
 assert.match(runtimeRunner, /\.ulc-runtime-dist/, "Runtime-Build muss einen isolierten Ausgabeordner verwenden.");
+assert.match(runtimeRunner, /--profile=/, "Runtime-Runner muss ein explizites PR-/Full-Profil unterstuetzen.");
+assert.match(runtimeRunner, /--grep", "@pr"/, "PR-Runtime muss ausschliesslich markierte kritische Runtime-Tests ausfuehren.");
 assert.doesNotMatch(playwrightEnsure, /install[\s\S]*--no-save[\s\S]*@playwright\/test/, "Playwright darf lokal nicht mehr dynamisch in package.json vorbei installiert werden.");
 assert.match(playwrightEnsure, /npmCommand\(\)[\s\S]*\["ci"\]/, "Bei unsynchronisierten Abhaengigkeiten muss npm ci verwendet werden.");
 
@@ -182,6 +199,7 @@ assert.match(runtimeTest, /pageerror/, "Runtime-Test muss pageerror ueberwachen.
 assert.match(runtimeTest, /console\.error/, "Runtime-Test muss console.error ueberwachen.");
 assert.match(runtimeTest, /app-error-boundary/, "Runtime-Test muss den React Error Boundary pruefen.");
 assert.match(runtimeTest, /\/module\/athletes/, "Runtime-Test muss mindestens eine authentifizierte Modulroute oeffnen.");
+assert.equal((runtimeTest.match(/tag:\s*"@pr"/g) ?? []).length, 7, "Runtime-Suite muss exakt sieben kritische PR-Tests markieren.");
 
 const appSource = readFileSync("src/app/App.tsx", "utf8");
 if (/\bBrowserRouter\b/.test(appSource)) {

@@ -78,7 +78,7 @@ function spreadsheetXmlExerciseRows(rows) {
   return `<?xml version="1.0"?><?mso-application progid="Excel.Sheet"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Worksheet ss:Name="Übungen"><Table>${rowXml}</Table></Worksheet></Workbook>`;
 }
 
-test("oeffentliche Login-Seite rendert ohne React-Laufzeitfehler", async ({ page }) => {
+test("oeffentliche Login-Seite rendert ohne React-Laufzeitfehler", { tag: "@pr" }, async ({ page }) => {
   const problems = collectRuntimeProblems(page);
   const unhandled = await installSupabaseMock(page);
 
@@ -87,7 +87,7 @@ test("oeffentliche Login-Seite rendert ohne React-Laufzeitfehler", async ({ page
   await expectRuntimeHealthy(page, problems, unhandled);
 });
 
-test("authentifiziertes App-Layout rendert ohne React-Laufzeitfehler", async ({ page }) => {
+test("authentifiziertes App-Layout rendert ohne React-Laufzeitfehler", { tag: "@pr" }, async ({ page }) => {
   const problems = collectRuntimeProblems(page);
   await installAuthenticatedSession(page);
   const unhandled = await installSupabaseMock(page);
@@ -98,7 +98,7 @@ test("authentifiziertes App-Layout rendert ohne React-Laufzeitfehler", async ({ 
   await expectRuntimeHealthy(page, problems, unhandled);
 });
 
-test("zentrales Stammdatenmodul rendert ohne React-Laufzeitfehler", async ({ page }) => {
+test("zentrales Stammdatenmodul rendert ohne React-Laufzeitfehler", { tag: "@pr" }, async ({ page }) => {
   const problems = collectRuntimeProblems(page);
   await installAuthenticatedSession(page);
   const unhandled = await installSupabaseMock(page);
@@ -107,7 +107,7 @@ test("zentrales Stammdatenmodul rendert ohne React-Laufzeitfehler", async ({ pag
   await expectRuntimeHealthy(page, problems, unhandled);
 });
 
-test("D2 Übungskatalog zeigt kompakte Liste, Schnellinfos und Filter-Sheet", async ({ page }) => {
+test("D2 Übungskatalog zeigt kompakte Liste, Schnellinfos und Filter-Sheet", { tag: "@pr" }, async ({ page }) => {
   const problems = collectRuntimeProblems(page);
   await installAuthenticatedSession(page);
   const unhandled = await installSupabaseMock(page);
@@ -291,7 +291,7 @@ test("Übungsimport verlangt eine ausdrückliche Freigabe je Zeile", async ({ pa
   await expectRuntimeHealthy(page, problems, unhandled);
 });
 
-test("untere Hauptnavigation und Untermenues funktionieren ohne Laufzeitfehler", async ({ page }) => {
+test("untere Hauptnavigation und Untermenues funktionieren ohne Laufzeitfehler", { tag: "@pr" }, async ({ page }) => {
   const problems = collectRuntimeProblems(page);
   await installAuthenticatedSession(page);
   const unhandled = await installSupabaseMock(page);
@@ -341,7 +341,7 @@ test("untere Navigation verdeckt den letzten Seiteninhalt nicht", async ({ page 
   await expectRuntimeHealthy(page, problems, unhandled);
 });
 
-test("Benutzeransicht simuliert Rechte und bleibt sichtbar als schreibgeschuetzter Modus", async ({ page }) => {
+test("Benutzeransicht simuliert Rechte und bleibt sichtbar als schreibgeschuetzter Modus", { tag: "@pr" }, async ({ page }) => {
   const problems = collectRuntimeProblems(page);
   await installAuthenticatedSession(page);
   const unhandled = await installSupabaseMock(page);
@@ -365,7 +365,7 @@ test("Benutzeransicht simuliert Rechte und bleibt sichtbar als schreibgeschuetzt
   await expectRuntimeHealthy(page, problems, unhandled);
 });
 
-test("Simulationsmodus blockiert schreibende Serveraktionen vor dem Netzwerk", async ({ page }) => {
+test("Simulationsmodus blockiert schreibende Serveraktionen vor dem Netzwerk", { tag: "@pr" }, async ({ page }) => {
   const problems = collectRuntimeProblems(page);
   await installAuthenticatedSession(page);
   const unhandled = await installSupabaseMock(page);

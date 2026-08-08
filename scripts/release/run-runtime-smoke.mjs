@@ -6,6 +6,18 @@ import { npxCommand, repoRoot, run } from "./lib.mjs";
 const root = repoRoot();
 const runtimeDist = resolve(root, ".ulc-runtime-dist");
 
+function runtimeProfile() {
+  const explicit = process.argv.find((value) => value.startsWith("--profile="))?.split("=")[1]
+    ?? process.env.ULC_RUNTIME_PROFILE
+    ?? "full";
+  if (!["full", "pr"].includes(explicit)) {
+    throw new Error(`Unbekanntes Runtime-Testprofil: ${explicit}. Erlaubt sind full oder pr.`);
+  }
+  return explicit;
+}
+
+const profile = runtimeProfile();
+
 try {
   ensurePlaywright(root);
   rmSync(runtimeDist, { recursive: true, force: true });
@@ -32,8 +44,10 @@ try {
     "--emptyOutDir",
   ], { cwd: root, env });
 
-  console.log("\n=== Echter Browser-Runtime-Test ===");
-  run(npxCommand(), ["playwright", "test", "--config=playwright.runtime.config.mjs"], {
+  console.log(`\n=== Echter Browser-Runtime-Test (${profile === "pr" ? "PR-Kernset" : "Vollregression"}) ===`);
+  const playwrightArgs = ["playwright", "test", "--config=playwright.runtime.config.mjs"];
+  if (profile === "pr") playwrightArgs.push("--grep", "@pr");
+  run(npxCommand(), playwrightArgs, {
     cwd: root,
     env,
   });

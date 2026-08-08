@@ -109,7 +109,7 @@ if (writingTestCount !== 6) {
 
 const workflow = readFileSync(".github/workflows/e2e-writing.yml", "utf8");
 for (const marker of [
-  "supabase start",
+  "scripts/ci/prepare-writing-e2e.sh",
   "supabase migration list --local",
   "supabase status -o env",
   "seed-e2e-writing.mjs",
@@ -131,9 +131,16 @@ if (workflow.includes("supabase db reset")) {
   throw new Error("The writing E2E workflow must not reset Postgres after Realtime has started.");
 }
 const structureCheckIndex = workflow.indexOf("Teststruktur pruefen");
-const supabaseStartIndex = workflow.indexOf("Isolierte lokale Supabase-Umgebung starten");
-if (structureCheckIndex < 0 || supabaseStartIndex < 0 || structureCheckIndex > supabaseStartIndex) {
-  throw new Error("Writing E2E structure checks must run before the expensive Supabase startup.");
+const parallelPreparationIndex = workflow.indexOf("Supabase und Chromium parallel vorbereiten");
+if (structureCheckIndex < 0 || parallelPreparationIndex < 0 || structureCheckIndex > parallelPreparationIndex) {
+  throw new Error("Writing E2E structure checks must run before the expensive Supabase/Chromium preparation.");
+}
+const preparationScript = readFileSync("scripts/ci/prepare-writing-e2e.sh", "utf8");
+if (!preparationScript.includes("supabase start")) {
+  throw new Error("Parallel writing E2E preparation must start the local Supabase stack.");
+}
+if (!preparationScript.includes("playwright install --with-deps chromium")) {
+  throw new Error("Parallel writing E2E preparation must install Chromium and its Linux dependencies.");
 }
 
 const pkg = JSON.parse(readFileSync("package.json", "utf8"));

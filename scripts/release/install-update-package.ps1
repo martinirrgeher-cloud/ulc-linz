@@ -40,24 +40,45 @@ if ($Candidates.Count -eq 0) {
 }
 
 $Applicable = @()
+$Rejected = @()
 foreach ($Candidate in $Candidates) {
   $Probe = Join-Path $env:TEMP "ULC-UPDATE-PROBE-$([Guid]::NewGuid().ToString('N'))"
   try {
     New-Item -ItemType Directory -Path $Probe | Out-Null
     Expand-Archive -LiteralPath $Candidate.FullName -DestinationPath $Probe -Force
     $Manifest = Join-Path $Probe "manifest.json"
-    if (-not (Test-Path -LiteralPath $Manifest -PathType Leaf)) { continue }
+    if (-not (Test-Path -LiteralPath $Manifest -PathType Leaf)) {
+      $Rejected += [pscustomobject]@{ File = $Candidate; Reason = "manifest.json fehlt." }
+      continue
+    }
 
-    & node.exe $Installer --project $ProjectRoot --package-dir $Probe --check-only *> $null
-    if ($LASTEXITCODE -eq 0) {
+    # Windows PowerShell 5.1 can surface stderr from a successful native process
+    # as an error record when all streams are redirected while ErrorActionPreference=Stop.
+    # install-overlay.mjs intentionally runs `git fetch`, which writes progress to stderr
+    # even on exit code 0. Applicability must therefore be decided solely by the native
+    # process exit code, not by the presence of stderr output.
+    $PreviousErrorActionPreference = $ErrorActionPreference
+    try {
+      $ErrorActionPreference = "Continue"
+      $ProbeOutput = @(& node.exe $Installer --project $ProjectRoot --package-dir $Probe --check-only 2>&1)
+      $ProbeExitCode = $LASTEXITCODE
+    } finally {
+      $ErrorActionPreference = $PreviousErrorActionPreference
+    }
+
+    if ($ProbeExitCode -eq 0) {
       $Hash = (Get-FileHash -LiteralPath $Candidate.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
       $Applicable += [pscustomobject]@{
         File = $Candidate
         Hash = $Hash
       }
+    } else {
+      $Reason = (($ProbeOutput | ForEach-Object { $_.ToString() }) -join "`n").Trim()
+      if (-not $Reason) { $Reason = "Applicability-Pruefung endete mit Code $ProbeExitCode." }
+      $Rejected += [pscustomobject]@{ File = $Candidate; Reason = $Reason }
     }
   } catch {
-    # A broken or unrelated ZIP is intentionally ignored during applicability probing.
+    $Rejected += [pscustomobject]@{ File = $Candidate; Reason = $_.Exception.Message }
   } finally {
     Remove-Item -LiteralPath $Probe -Recurse -Force -ErrorAction SilentlyContinue
   }
@@ -69,6 +90,16 @@ if ($Applicable.Count -eq 0) {
   Write-Host ""
   Write-Host "Current branch: $Branch"
   Write-Host "Current HEAD:   $Head"
+  if ($Rejected.Count -gt 0) {
+    Write-Host ""
+    Write-Host "Gepruefte Pakete und Ablehnungsgruende:"
+    foreach ($Item in $Rejected) {
+      Write-Host "- $($Item.File.Name)"
+      foreach ($Line in ($Item.Reason -split "`r?`n")) {
+        if ($Line.Trim()) { Write-Host "    $Line" }
+      }
+    }
+  }
   throw "No update package in Downloads matches this exact Git state."
 }
 

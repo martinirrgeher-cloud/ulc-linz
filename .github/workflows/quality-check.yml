@@ -15,16 +15,10 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  quality:
-    name: TypeScript, Tests, Build und Runtime
+  quality-core:
+    name: Quality-Kernprüfung
     runs-on: ubuntu-latest
-    timeout-minutes: 25
-    env:
-      VITE_SUPABASE_URL: https://e2e.supabase.co
-      VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_e2e_runtime_tests
-      VITE_ALLOW_SELF_SIGNUP: "false"
-      E2E_RUNTIME_BASE_URL: http://127.0.0.1:4175
-
+    timeout-minutes: 20
     steps:
       - name: Projekt auschecken
         uses: actions/checkout@v6
@@ -43,11 +37,42 @@ jobs:
       - name: Abhängigkeiten reproduzierbar installieren
         run: npm ci
 
+      - name: Statische Prüfungen, Tests, Build und Performance
+        run: npm run ci:quality
+
+  runtime:
+    name: Browser-Runtime
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      VITE_SUPABASE_URL: https://e2e.supabase.co
+      VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_e2e_runtime_tests
+      VITE_ALLOW_SELF_SIGNUP: "false"
+      E2E_RUNTIME_BASE_URL: http://127.0.0.1:4175
+
+    steps:
+      - name: Projekt auschecken
+        uses: actions/checkout@v6
+
+      - name: Node.js einrichten
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Abhängigkeiten reproduzierbar installieren
+        run: npm ci
+
       - name: Chromium für echten Runtime-Test installieren
         run: npx playwright install --with-deps chromium
 
-      - name: Vollständiges Release-Gate ausführen
-        run: npm run release:check:ci
+      - name: Kritisches Runtime-PR-Kernset auf Mobile und Desktop
+        if: github.event_name == 'pull_request'
+        run: npm run test:runtime:pr
+
+      - name: Runtime-Vollregression auf Mobile und Desktop
+        if: github.event_name != 'pull_request'
+        run: npm run test:runtime:ci
 
       - name: Runtime-Testbericht hochladen
         if: always()
@@ -59,3 +84,28 @@ jobs:
             playwright-report
           if-no-files-found: ignore
           retention-days: 14
+
+  quality:
+    # Name bewusst beibehalten: bestehende Branch-Protection-Regeln bleiben gueltig.
+    name: TypeScript, Tests, Build und Runtime
+    if: always()
+    needs:
+      - quality-core
+      - runtime
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Parallele Quality-Gates zusammenführen
+        shell: bash
+        env:
+          CORE_RESULT: ${{ needs.quality-core.result }}
+          RUNTIME_RESULT: ${{ needs.runtime.result }}
+        run: |
+          set -euo pipefail
+          echo "Quality-Kernprüfung: $CORE_RESULT"
+          echo "Browser-Runtime:      $RUNTIME_RESULT"
+          if [[ "$CORE_RESULT" != "success" || "$RUNTIME_RESULT" != "success" ]]; then
+            echo "Mindestens ein verpflichtendes Quality-Gate ist fehlgeschlagen."
+            exit 1
+          fi
+          echo "Alle verpflichtenden Quality-Gates sind grün."
