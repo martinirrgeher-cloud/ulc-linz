@@ -99,6 +99,7 @@ const startChangeTest = readFileSync("scripts/test-start-change.mjs", "utf8");
 assert.match(startChangeTest, /copyFileSync\(archiveScript/, "Start-Test muss die reale Archivroutine in sein isoliertes Test-Repository kopieren.");
 assert.match(startChangeTest, /ULC_PROJECT_ARCHIVE_OUTPUT_DIRECTORY/, "Start-Test darf Projektarchive nicht auf den echten Benutzer-Desktop schreiben.");
 assert.match(startChangeTest, /ULC-Linz-App-Aktuell_/, "Windows-Erfolgsfall muss die erzeugte Projekt-ZIP verifizieren.");
+assert.match(startChangeTest, /unsafe-env/, "Start-Test muss echte verschachtelte .env-Dateien weiterhin als unsicher pruefen.");
 
 const archive = readFileSync("scripts/create-project-archive.ps1", "utf8");
 assert.match(archive, /git -C \$ProjectRoot archive/, "Projekt-ZIP muss direkt aus dem Git-Commit erzeugt werden.");
@@ -106,10 +107,14 @@ assert.match(archive, /ULC-SOURCE-METADATA\.json/, "Projekt-ZIP muss eindeutige 
 assert.match(archive, /rev-parse\s+["\']?HEAD\^\{tree\}["\']?/, "Projekt-ZIP muss den Git-Tree dokumentieren.");
 assert.doesNotMatch(archive, /robocopy/i, "Projekt-ZIP darf nicht mehr per Dateisystem-Kopie erzeugt werden.");
 assert.match(archive, /supabase-local\.env/, "Archivroutine muss lokale Supabase-Zugangsdaten explizit blockieren.");
+assert.match(archive, /\(\^\|\/\)\\\.env\\\.example\$/, "Archivroutine muss verschachtelte .env.example-Vorlagen erlauben.");
+assert.doesNotMatch(archive, /\$Normalized\s+-ne\s+["']\.env\.example["']/, "Archivroutine darf .env.example nicht nur im Projektstamm erlauben.");
 
 const updateCmd = readFileSync("ULC-UPDATE-INSTALLIEREN.cmd", "utf8");
 const updatePs = readFileSync("scripts/release/install-update-package.ps1", "utf8");
 assert.match(updateCmd, /install-update-package\.ps1/, "Permanente Update-CMD muss den zentralen Paketfinder verwenden.");
+assert.doesNotMatch(updateCmd, /-ProjectRoot\s+"%~dp0"/, "Permanente Update-CMD darf den mit Backslash endenden %~dp0-Pfad nicht als PowerShell-Argument uebergeben.");
+assert.doesNotMatch(updateCmd, /-ProjectRoot\b/, "Permanente Update-CMD soll den Projektroot vom PowerShell-Installer selbst aus dessen Speicherort bestimmen lassen.");
 assert.match(updatePs, /ULC-Linz-App-UPDATE-\*\.zip/, "Update-Installer darf nur den festen Paketnamensraum im Download-Ordner pruefen.");
 assert.match(updatePs, /--check-only/, "Update-Installer muss Pakete vor der Auswahl gegen den aktuellen Git-Stand pruefen.");
 assert.match(updatePs, /Get-FileHash[\s\S]*SHA256/, "Identische Browser-Downloads muessen ueber SHA-256 erkannt werden.");
