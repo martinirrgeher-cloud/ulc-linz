@@ -1174,9 +1174,6 @@ export function GroupTrainingPage({
                         <article className="compact-attendance-row" key={participant.athleteId}>
                           <div className="compact-athlete-name">
                             <strong>{athleteDisplayName(participant, sortMode)}</strong>
-                            <small>
-                              {participant.birthYear ? `Jg. ${participant.birthYear}` : "Jg. –"}
-                            </small>
                           </div>
 
                           <div className="compact-athlete-actions">

@@ -9,7 +9,7 @@ import {
   Save,
   TrendingUp,
   TrendingDown,
-  Undo2,
+  CornerUpLeft,
   UserRoundCog,
   UsersRound,
 } from "lucide-react";
@@ -175,7 +175,6 @@ export function KindertrainingStatisticsPage() {
         <div>
           <p className="eyebrow">Statistik</p>
           <h1>Kindertraining</h1>
-          <p>Trainingsteilnahmen, Entwicklung und Trainereinsätze auswerten.</p>
         </div>
         <Link
           className="secondary-button link-button compact-button statistics-back-button"
@@ -183,7 +182,7 @@ export function KindertrainingStatisticsPage() {
           aria-label="Zurück zum Training"
           title="Zurück zum Training"
         >
-          <Undo2 aria-hidden="true" />
+          <CornerUpLeft aria-hidden="true" />
         </Link>
       </div>
 
@@ -242,18 +241,24 @@ export function KindertrainingStatisticsPage() {
       ) : statistics ? (
         <>
           <div className="statistics-summary-grid">
-            <div className="statistics-summary-card"><CalendarDays aria-hidden="true" /><strong>{statistics.summary.sessionCount}</strong><span>Trainings</span></div>
-            <div className="statistics-summary-card"><UsersRound aria-hidden="true" /><strong>{statistics.summary.averagePresent}</strong><span>Ø Kinder</span></div>
-            <div className="statistics-summary-card"><TrendingUp aria-hidden="true" /><strong>{statistics.summary.maxPresent}</strong><span>Maximum</span></div>
-            <div className="statistics-summary-card"><TrendingDown aria-hidden="true" /><strong>{statistics.summary.minPresent}</strong><span>Minimum</span></div>
-            <div className="statistics-summary-card"><CheckCircle2 aria-hidden="true" /><strong>{statistics.summary.uniquePresent}</strong><span>verschiedene Kinder</span></div>
+            <div className="statistics-summary-row single">
+              <div className="statistics-summary-card"><CalendarDays aria-hidden="true" /><strong>{statistics.summary.sessionCount}</strong><span>Trainings</span></div>
+            </div>
+            <div className="statistics-summary-row paired">
+              <div className="statistics-summary-card"><UsersRound aria-hidden="true" /><strong>{statistics.summary.averagePresent}</strong><span>Ø Kinder</span></div>
+              <div className="statistics-summary-card"><CheckCircle2 aria-hidden="true" /><strong>{statistics.summary.uniquePresent}</strong><span>versch. Kinder</span></div>
+            </div>
+            <div className="statistics-summary-row paired">
+              <div className="statistics-summary-card"><TrendingDown aria-hidden="true" /><strong>{statistics.summary.minPresent}</strong><span>Minimum</span></div>
+              <div className="statistics-summary-card"><TrendingUp aria-hidden="true" /><strong>{statistics.summary.maxPresent}</strong><span>Maximum</span></div>
+            </div>
           </div>
 
           <div className="statistics-tabs" role="tablist" aria-label="Statistikbereich">
             {([
               ["sessions", "Trainings"],
               ["athletes", "Athleten"],
-              ["development", "Entwicklung"],
+              ["development", "Trend"],
               ["trainers", "Trainer"],
             ] as const).map(([value, label]) => (
               <button type="button" role="tab" aria-selected={tab === value} className={tab === value ? "active" : ""} onClick={() => setTab(value)} key={value}>{label}</button>

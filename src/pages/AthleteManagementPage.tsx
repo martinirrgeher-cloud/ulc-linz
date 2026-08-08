@@ -62,9 +62,9 @@ type TrainerSort = "lastName" | "firstName";
 type GroupSort = "name" | "shortName";
 type GroupModuleFilter = "all" | "none" | "kindertraining" | "u12" | "u14";
 type GroupTypeFilter = "all" | "standard" | "performance";
-type ViewTab = "athletes" | "groups" | "trainers";
+type ViewTab = "athletes" | "trainers" | "groups";
 
-const VIEW_TABS = ["athletes", "groups", "trainers"] as const;
+const VIEW_TABS = ["athletes", "trainers", "groups"] as const;
 
 const ATHLETE_REALTIME_TABLES = ["athletes", "training_groups", "trainers"] as const;
 
@@ -571,19 +571,6 @@ export function AthleteManagementPage() {
 
   return (
     <section className="athlete-management-page" data-realtime-status={realtimeStatus} onFocusCapture={revealFocusedField}>
-      <div className="management-page-heading compact-management-heading">
-        <div>
-          <p className="eyebrow">Gemeinsame Stammdaten</p>
-          <h1>Athleten, Trainer &amp; Gruppen</h1>
-        </div>
-        {canEdit && !editorOpen && (
-          <ManagementCreateMenu
-            disabled={loading || busy}
-            onCreate={openCreateEditor}
-          />
-        )}
-      </div>
-
       {!canEdit && (
         <div className="read-only-notice">
           Du besitzt für dieses Modul Leserechte. Änderungen sind nur mit Bearbeitungsrecht möglich.
@@ -645,19 +632,33 @@ export function AthleteManagementPage() {
 
       {!editorOpen && (
         <div className="masterdata-tab-surface" {...swipeTabs}>
-          <div className="management-tabs three-tabs" role="tablist" aria-label="Stammdatenbereich">
-            <button type="button" role="tab" aria-selected={tab === "athletes"} className={tab === "athletes" ? "active" : ""} onClick={() => switchTab("athletes")}>
-              <UserRound aria-hidden="true" /> Athleten <span>{athletes.length}</span>
-            </button>
-            <button type="button" role="tab" aria-selected={tab === "groups"} className={tab === "groups" ? "active" : ""} onClick={() => switchTab("groups")}>
-              <Layers3 aria-hidden="true" /> Gruppen <span>{groups.length}</span>
-            </button>
-            <button type="button" role="tab" aria-selected={tab === "trainers"} className={tab === "trainers" ? "active" : ""} onClick={() => switchTab("trainers")}>
-              <UserRoundCog aria-hidden="true" /> Trainer <span>{trainers.length}</span>
-            </button>
-          </div>
+          <div className="masterdata-sticky-zone">
+            <div className="management-page-heading compact-management-heading">
+              <div>
+                <p className="eyebrow">Gemeinsame Stammdaten</p>
+                <h1>Athleten, Trainer &amp; Gruppen</h1>
+              </div>
+              {canEdit && (
+                <ManagementCreateMenu
+                  disabled={loading || busy}
+                  onCreate={openCreateEditor}
+                />
+              )}
+            </div>
 
-          <ManagementFilterPanel
+            <div className="management-tabs three-tabs" role="tablist" aria-label="Stammdatenbereich">
+              <button type="button" role="tab" aria-selected={tab === "athletes"} className={tab === "athletes" ? "active" : ""} onClick={() => switchTab("athletes")}>
+                <UserRound aria-hidden="true" /> Athleten <span>{athletes.length}</span>
+              </button>
+              <button type="button" role="tab" aria-selected={tab === "trainers"} className={tab === "trainers" ? "active" : ""} onClick={() => switchTab("trainers")}>
+                <UserRoundCog aria-hidden="true" /> Trainer <span>{trainers.length}</span>
+              </button>
+              <button type="button" role="tab" aria-selected={tab === "groups"} className={tab === "groups" ? "active" : ""} onClick={() => switchTab("groups")}>
+                <Layers3 aria-hidden="true" /> Gruppen <span>{groups.length}</span>
+              </button>
+            </div>
+
+            <ManagementFilterPanel
             searchLabel={searchLabel}
             searchTerm={searchTerm}
             onSearchChange={setSearchTerm}
@@ -749,7 +750,8 @@ export function AthleteManagementPage() {
                 <button type="button" className={activeFilter === value ? "active" : ""} onClick={() => setActiveFilter(value)} key={value}>{label}</button>
               ))}
             </div>
-          </ManagementFilterPanel>
+            </ManagementFilterPanel>
+          </div>
 
           {loading ? (
             <div className="management-loading"><div className="spinner" aria-hidden="true" /> Stammdaten werden geladen …</div>
