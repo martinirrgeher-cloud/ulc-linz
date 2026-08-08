@@ -329,6 +329,10 @@ const trainerGroupLockMigrationSource = await readFile(
   "utf8",
 );
 const userManagementSource = await readFile(new URL("../src/pages/UserManagementPage.tsx", import.meta.url), "utf8");
+const dropdownSettingsSource = await readFile(new URL("../src/pages/DropdownSettingsPage.tsx", import.meta.url), "utf8");
+const dropdownSettingsCssSource = await readFile(new URL("../src/styles/dropdown-settings.css", import.meta.url), "utf8");
+const userManagementE5cCssSource = await readFile(new URL("../src/styles/user-management-e5c.css", import.meta.url), "utf8");
+const stickyEditorActionsSource = await readFile(new URL("../src/features/athletes/StickyEditorActions.tsx", import.meta.url), "utf8");
 const exerciseCatalogPageSource = await readFile(new URL("../src/pages/ExerciseCatalogPage.tsx", import.meta.url), "utf8");
 const exerciseCatalogCssSource = await readFile(new URL("../src/styles/exercise-catalog.css", import.meta.url), "utf8");
 const uiDesignSystemSource = await readFile(new URL("../src/styles/ui-design-system.css", import.meta.url), "utf8");
@@ -340,6 +344,9 @@ const trainingPlanningCssSource = await readFile(new URL("../src/styles/training
 const trainingDocumentationCssSource = await readFile(new URL("../src/styles/training-documentation.css", import.meta.url), "utf8");
 const trainingBlocksCssSource = await readFile(new URL("../src/styles/training-blocks.css", import.meta.url), "utf8");
 const globalCssSource = await readFile(new URL("../src/styles/global.css", import.meta.url), "utf8");
+const runtimeSmokeSource = await readFile(new URL("../tests/runtime/app-runtime.spec.mjs", import.meta.url), "utf8");
+const mobileReadOnlySource = await readFile(new URL("../tests/e2e/mobile-readonly.spec.mjs", import.meta.url), "utf8");
+const writingCoreSource = await readFile(new URL("../tests/e2e-writing/core-writing.spec.mjs", import.meta.url), "utf8");
 
 test("Mobile Stammdaten und Kopfzeile sind gegen Fehlbedienung optimiert", () => {
   assert.ok(appLayoutSource.includes("app-user-menu-panel"), "Sicheres Benutzermenü fehlt.");
@@ -356,6 +363,43 @@ test("Benutzerverwaltung kann nach Rolle filtern", () => {
   assert.ok(userManagementSource.includes("roleFilter"));
   assert.ok(userManagementSource.includes("Alle Rollen"));
   assert.ok(userManagementSource.includes("Benutzer nach Rolle filtern"));
+});
+
+test("Auswahllisten und Benutzerverwaltung nutzen die kompakte Mobile-UX", () => {
+  assert.ok(stickyEditorActionsSource.includes("eyebrow?: string"));
+  assert.ok(dropdownSettingsSource.includes('className="dropdown-settings-selector-row"'));
+  assert.ok(dropdownSettingsSource.includes("dropdown-create-menu-toggle"));
+  assert.ok(dropdownSettingsSource.includes('<Plus aria-hidden="true" /> Neu'));
+  assert.doesNotMatch(dropdownSettingsSource, /Dropdownwerte für Übungen und Trainingsplanung zentral verwalten/);
+  assert.doesNotMatch(dropdownSettingsSource, /dropdown-setting-status/);
+  assert.ok(dropdownSettingsSource.includes("dropdown-setting-save-button"));
+  assert.ok(dropdownSettingsSource.includes("dropdown-setting-active-toggle"));
+  assert.ok(dropdownSettingsCssSource.includes(".dropdown-settings-selector-row"));
+  assert.ok(userManagementSource.includes('className="primary-button user-management-create-button"'));
+  assert.ok(userManagementSource.includes("user-management-filter-toggle"));
+  assert.ok(userManagementSource.includes("MemberDetailDialog"));
+  assert.ok(userManagementSource.includes("e5c-compact-member-card"));
+  assert.ok(userManagementSource.includes('aria-label={`Informationen zu ${member.displayName}`}'));
+  assert.doesNotMatch(userManagementSource, /Benutzer einladen, Konten prüfen, Verknüpfungen und individuelle Rechte verwalten/);
+  assert.ok(userManagementE5cCssSource.includes(".member-info-backdrop"));
+  assert.ok(runtimeSmokeSource.includes('name: "Informationen zu E2E Trainer"'));
+  assert.ok(runtimeSmokeSource.includes('name: "Informationen zu E2E Zweitadmin"'));
+  assert.ok(runtimeSmokeSource.includes('name: "Informationen zu Offene Einladung"'));
+  assert.ok(runtimeSmokeSource.includes('const invitationInfo = page.getByRole("dialog", { name: "Offene Einladung" })'));
+  assert.ok(runtimeSmokeSource.includes('invitationInfo.getByRole("button", { name: "Erneut senden", exact: true })'));
+  assert.doesNotMatch(runtimeSmokeSource, /trainerCard\.getByRole\("button", \{ name: "Ansicht simulieren"/);
+  assert.doesNotMatch(runtimeSmokeSource, /adminCard\.getByRole\("button", \{ name: "Ansicht simulieren"/);
+  assert.doesNotMatch(runtimeSmokeSource, /invitationCard\.getByRole\("button", \{ name: "Erneut senden"/);
+  assert.ok(mobileReadOnlySource.includes('name: "Informationen zu Offene Einladung"'));
+  assert.ok(mobileReadOnlySource.includes('const invitationInfo = page.getByRole("dialog", { name: "Offene Einladung" })'));
+  assert.ok(mobileReadOnlySource.includes('invitationInfo.getByRole("button", { name: "Erneut senden", exact: true })'));
+  assert.doesNotMatch(mobileReadOnlySource, /page\.getByText\("Letzter Versand"/);
+  assert.ok(writingCoreSource.includes('name: "E2E Elternteil bearbeiten"'));
+  assert.ok(writingCoreSource.includes('name: "Informationen zu E2E Elternteil"'));
+  assert.ok(writingCoreSource.includes('const parentInfo = page.getByRole("dialog", { name: "E2E Elternteil" })'));
+  assert.ok(writingCoreSource.includes('parentInfo.getByText(/Athleten: Anna E2E, Berta E2E/)'));
+  assert.doesNotMatch(writingCoreSource, /parentCard\.getByRole\("button", \{ name: "Bearbeiten"/);
+  assert.doesNotMatch(writingCoreSource, /parentCard\.getByText\(\/Athleten:/);
 });
 
 test("E2 schützt Trainer und Gruppen atomar vor paralleler Bearbeitung", () => {
@@ -1086,6 +1130,9 @@ test("P2c verwendet in allen Stammdateneditoren eine feste obere Aktionsleiste",
     assert.ok(source.includes("useSwipeTabs"), `${name}: Wischreiter fehlen.`);
     assert.doesNotMatch(source, /className="management-actions/);
   }
+  assert.doesNotMatch(athleteEditorP2cSource, /Athletenstammdaten/, "Athleten-Editor soll keine lange Eyebrow mehr zeigen.");
+  assert.doesNotMatch(trainerEditorP2cSource, /Trainerstammdaten/, "Trainer-Editor soll keine lange Eyebrow mehr zeigen.");
+  assert.doesNotMatch(groupEditorP2cSource, /eyebrow="Trainingsgruppen"/, "Gruppen-Editor soll keine lange Eyebrow mehr zeigen.");
   assert.doesNotMatch(swipeTabsP2cSource, /\n\s*"label",/, "Wischen soll auch auf Beschriftungsflaechen starten koennen.");
   assert.ok(managementCssP2cSource.includes(".management-editor-sticky-header"));
   assert.ok(managementCssP2cSource.includes("white-space: nowrap;"));

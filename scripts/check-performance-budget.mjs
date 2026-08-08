@@ -150,7 +150,7 @@ const report = {
 await mkdir(path.dirname(reportPath), { recursive: true });
 await writeFile(reportPath, `${JSON.stringify(report, null, 2)}\n`, "utf8");
 
-const checks = [
+const hardChecks = [
   ["initiales JavaScript roh", initialJavaScript.rawBytes, limits.initialJavaScriptRaw],
   ["initiales JavaScript gzip", initialJavaScript.gzipBytes, limits.initialJavaScriptGzip],
   ["initiales CSS roh", initialCss.rawBytes, limits.initialCssRaw],
@@ -161,6 +161,13 @@ const checks = [
   ["groesster asynchroner CSS-Chunk gzip", largestAsyncCss.gzipBytes, limits.largestAsyncCssGzip],
   ["gesamtes JavaScript roh", totalJavaScript.rawBytes, limits.totalJavaScriptRaw],
   ["gesamtes JavaScript gzip", totalJavaScript.gzipBytes, limits.totalJavaScriptGzip],
+];
+
+// Die Summe aller lazy geladenen CSS-Chunks waechst mit dem Funktionsumfang der App
+// und ist kein sinnvoller harter Laufzeitindikator fuer eine einzelne Route.
+// Sie bleibt als transparenter Richtwert im Bericht. Das strukturelle Wachstum wird
+// separat durch scripts/check-css-architecture.mjs begrenzt.
+const advisoryChecks = [
   ["gesamtes CSS roh", totalCss.rawBytes, limits.totalCssRaw],
   ["gesamtes CSS gzip", totalCss.gzipBytes, limits.totalCssGzip],
 ];
@@ -174,9 +181,12 @@ console.log(`- Gesamtes JavaScript: ${kib(totalJavaScript.rawBytes)} roh / ${kib
 console.log(`- Gesamtes CSS: ${kib(totalCss.rawBytes)} roh / ${kib(totalCss.gzipBytes)} gzip`);
 console.log(`- Bericht: ${relative(reportPath)}`);
 
-const exceeded = checks.filter(([, actual, maximum]) => actual > maximum);
-for (const [label, actual, maximum] of checks) {
+const exceeded = hardChecks.filter(([, actual, maximum]) => actual > maximum);
+for (const [label, actual, maximum] of hardChecks) {
   console.log(`- ${label}: ${kib(actual)} / maximal ${kib(maximum)}${actual > maximum ? " UEBERSCHRITTEN" : ""}`);
+}
+for (const [label, actual, reference] of advisoryChecks) {
+  console.log(`- ${label}: ${kib(actual)} / Richtwert ${kib(reference)} (nur Beobachtung)${actual > reference ? " UEBER RICHTWERT" : ""}`);
 }
 
 assert.equal(
@@ -185,4 +195,4 @@ assert.equal(
   `Performance-Budget ueberschritten:\n${exceeded.map(([label, actual, maximum]) => `- ${label}: ${kib(actual)} > ${kib(maximum)}`).join("\n")}`,
 );
 
-console.log("Performance-Budgetpruefung erfolgreich.");
+console.log("Performance-Budgetpruefung erfolgreich. Gesamtes CSS wird informativ berichtet; das CSS-Wachstum prueft die Architekturpruefung.");

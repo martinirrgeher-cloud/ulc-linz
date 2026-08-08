@@ -114,9 +114,7 @@ export function TrainerEditor({
   return (
     <section className="management-editor trainer-editor compact-editor" aria-label={mode.type === "create" ? "Trainer anlegen" : "Trainer bearbeiten"}>
       <StickyEditorActions
-        eyebrow="Trainerstammdaten"
         title={mode.type === "create" ? "Trainer anlegen" : "Trainer bearbeiten"}
-        description="Kontaktdaten, Gruppenzuordnung und interne Hinweise verwalten."
         formId={TRAINER_FORM_ID}
         busy={busy}
         canEdit={canEdit}

@@ -4,7 +4,7 @@ import { useNavigationGuardController } from "@/components/layout/NavigationGuar
 import { buildHelpHref } from "@/features/help/help-context";
 
 type StickyEditorActionsProps = {
-  eyebrow: string;
+  eyebrow?: string;
   title: string;
   description?: string;
   formId: string;
@@ -36,7 +36,7 @@ export function StickyEditorActions({
   return (
     <div className="management-editor-sticky-header">
       <div className="management-editor-sticky-copy">
-        <p className="eyebrow">{eyebrow}</p>
+        {eyebrow && <p className="eyebrow">{eyebrow}</p>}
         <h2>{title}</h2>
         {description && <p>{description}</p>}
       </div>

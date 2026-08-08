@@ -2,11 +2,13 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   CheckCircle2,
   Clock3,
+  Eye,
+  Filter,
+  Info,
   Link2,
   Link2Off,
-  Eye,
-  MailPlus,
   Pencil,
+  Plus,
   RefreshCw,
   Search,
   Send,
@@ -14,6 +16,7 @@ import {
   TriangleAlert,
   UserRoundX,
   UsersRound,
+  X,
 } from "lucide-react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { EditLockNotice } from "@/components/collaboration/EditLockNotice";
@@ -114,6 +117,125 @@ function isUnlinked(member: ManagedMember): boolean {
   return member.linkedAthletes.length === 0 && !member.linkedTrainerId;
 }
 
+type MemberDetailDialogProps = {
+  member: ManagedMember;
+  modules: ManagedModule[];
+  isCurrentUser: boolean;
+  resendBusy: boolean;
+  onClose: () => void;
+  onResend: () => void;
+  onSimulate: () => void;
+};
+
+function MemberDetailDialog({
+  member,
+  modules,
+  isCurrentUser,
+  resendBusy,
+  onClose,
+  onResend,
+  onSimulate,
+}: MemberDetailDialogProps) {
+  const openInvitation = isInvitationOpen(member);
+  const visiblePermissions = member.role === "admin"
+    ? modules.filter((module) => module.key !== "user_management").map((module) => ({ title: module.title, canEdit: true }))
+    : member.permissions
+      .filter((permission) => permission.canView)
+      .map((permission) => ({
+        title: modules.find((module) => module.key === permission.moduleKey)?.title ?? permission.moduleKey,
+        canEdit: permission.canEdit,
+      }));
+
+  return (
+    <div className="member-info-backdrop" role="presentation">
+      <section className="member-info-dialog" role="dialog" aria-modal="true" aria-labelledby="member-info-title">
+        <header>
+          <div>
+            <p className="eyebrow">Benutzerinfo</p>
+            <h2 id="member-info-title">{member.displayName}</h2>
+          </div>
+          <button type="button" className="icon-button" onClick={onClose} aria-label="Benutzerinfo schließen" title="Schließen">
+            <X aria-hidden="true" />
+          </button>
+        </header>
+
+        <div className="member-info-content">
+          <section>
+            <h3>Konto</h3>
+            <dl className="member-info-grid">
+              <div><dt>E-Mail</dt><dd>{member.email}</dd></div>
+              <div><dt>Status</dt><dd>{statusNames[member.status]}</dd></div>
+              <div><dt>Rolle</dt><dd>{roleNames[member.role]}</dd></div>
+              <div><dt>Einladung</dt><dd>{invitationNames[member.invitationStatus]}</dd></div>
+              <div><dt>Letzter Versand</dt><dd>{formatDate(member.invitationLastSentAt)}</dd></div>
+              <div><dt>Versandanzahl</dt><dd>{member.invitationSendCount}</dd></div>
+              <div><dt>Letzte Anmeldung</dt><dd>{formatDate(member.lastSignInAt)}</dd></div>
+              <div><dt>E-Mail bestätigt</dt><dd>{member.emailConfirmedAt ? "Ja" : "Noch nicht"}</dd></div>
+              <div><dt>Angelegt</dt><dd>{formatDate(member.createdAt)}</dd></div>
+              <div><dt>Zuletzt geändert</dt><dd>{formatDate(member.updatedAt)}</dd></div>
+            </dl>
+          </section>
+
+          {member.warnings.length > 0 && (
+            <section>
+              <h3>Hinweise</h3>
+              <div className="e5c-warning-list" role="status">
+                {member.warnings.map((warning) => (
+                  <span key={warning}><TriangleAlert aria-hidden="true" />{warningNames[warning]}</span>
+                ))}
+              </div>
+            </section>
+          )}
+
+          <section>
+            <h3>Verknüpfungen</h3>
+            <div className="e5c-links">
+              <span className={member.linkedAthletes.length > 0 ? "linked" : "unlinked"}>
+                {member.linkedAthletes.length > 0 ? <Link2 aria-hidden="true" /> : <Link2Off aria-hidden="true" />}
+                Athleten: {member.linkedAthletes.length > 0
+                  ? member.linkedAthletes.map((athlete) => athlete.name).join(", ")
+                  : member.role === "trainer" ? "über Trainingsgruppen" : "nicht verknüpft"}
+              </span>
+              <span className={member.linkedTrainerId ? "linked" : "unlinked"}>
+                {member.linkedTrainerId ? <Link2 aria-hidden="true" /> : <Link2Off aria-hidden="true" />}
+                Trainer: {member.linkedTrainerName ?? "nicht verknüpft"}
+              </span>
+            </div>
+          </section>
+
+          <section>
+            <h3>Modulrechte</h3>
+            <p className="member-info-permission-summary">{permissionSummary(member, modules)}</p>
+            <div className="member-info-permissions">
+              {visiblePermissions.length === 0
+                ? <span>Keine sichtbaren Module.</span>
+                : visiblePermissions.map((permission) => (
+                  <span key={permission.title}><strong>{permission.title}</strong><small>{permission.canEdit ? "Bearbeiten" : "Lesen"}</small></span>
+                ))}
+            </div>
+          </section>
+
+          <div className="member-info-actions">
+            {openInvitation && (
+              <button type="button" className="secondary-button" onClick={onResend} disabled={resendBusy}>
+                <Send aria-hidden="true" />{resendBusy ? "Wird gesendet …" : "Erneut senden"}
+              </button>
+            )}
+            <button
+              type="button"
+              className="secondary-button e5c-simulate-button"
+              onClick={onSimulate}
+              disabled={isCurrentUser || member.status !== "active"}
+            >
+              <Eye aria-hidden="true" /> Ansicht simulieren
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
 export function UserManagementPage() {
   const { appContext, startSimulation } = useAuth();
   const navigate = useNavigate();
@@ -140,6 +262,8 @@ export function UserManagementPage() {
   const [editorRevision, setEditorRevision] = useState(0);
   const [editorDirty, setEditorDirty] = useState(false);
   const [remoteChangePending, setRemoteChangePending] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [detailMember, setDetailMember] = useState<ManagedMember | null>(null);
 
   const editedMember = editorMode?.type === "edit" ? editorMode.member : null;
   const memberLock = useEditLock({
@@ -255,6 +379,8 @@ export function UserManagementPage() {
     disabled: members.filter((member) => member.status === "disabled").length,
     incomplete: members.filter((member) => member.warnings.length > 0).length,
   }), [members]);
+
+  const activeFilterCount = Number(roleFilter !== "all") + Number(accountFilter !== "all");
 
   if (!isAdmin || !organizationId) return <Navigate to="/kein-zugriff" replace />;
   const activeOrganizationId = organizationId;
@@ -404,16 +530,14 @@ export function UserManagementPage() {
 
   return (
     <section className="user-management-page">
-      <div className="management-page-heading">
+      <div className="management-page-heading user-management-heading">
         <div>
           <p className="eyebrow">Administration</p>
           <h1>Benutzerverwaltung</h1>
-          <p>Benutzer einladen, Konten prüfen, Verknüpfungen und individuelle Rechte verwalten.</p>
-          <p className="e5c-simulation-hint">Mit „Ansicht simulieren“ prüfst du Navigation und Berechtigungen des Benutzers. Schreibzugriffe werden global blockiert; die serverseitige Datensicht bleibt aus Sicherheitsgründen die des Administrators.</p>
         </div>
         <button
           type="button"
-          className="primary-button"
+          className="primary-button user-management-create-button"
           onClick={() => {
             setSuccess(null);
             setEditorDirty(false);
@@ -422,7 +546,7 @@ export function UserManagementPage() {
           }}
           disabled={loading || busy}
         >
-          <MailPlus aria-hidden="true" /> Benutzer einladen
+          <Plus aria-hidden="true" /> Neu
         </button>
       </div>
 
@@ -453,47 +577,72 @@ export function UserManagementPage() {
         />
       )}
 
-      <div className="management-toolbar user-management-toolbar e5c-toolbar">
-        <label className="search-field">
-          <Search aria-hidden="true" />
-          <input
-            type="search"
-            value={searchTerm}
-            onChange={(event) => setSearchTerm(event.target.value)}
-            placeholder="Name, E-Mail oder Verknüpfung"
-            aria-label="Benutzer suchen"
-          />
-        </label>
-        <label className="management-filter-field">
-          <span>Rolle</span>
-          <select value={roleFilter} onChange={(event) => setRoleFilter(event.target.value as RoleFilter)} aria-label="Benutzer nach Rolle filtern">
-            <option value="all">Alle Rollen</option>
-            <option value="admin">Administratoren</option>
-            <option value="trainer">Trainer</option>
-            <option value="athlete">Athleten</option>
-            <option value="parent">Elternteile</option>
-          </select>
-        </label>
-        <label className="management-filter-field">
-          <span>Konto</span>
-          <select value={accountFilter} onChange={(event) => setAccountFilter(event.target.value as AccountFilter)}>
-            <option value="all">Alle Konten</option>
-            <option value="unlinked">Ohne Verknüpfung</option>
-            <option value="incomplete">Mit Warnung ({counts.incomplete})</option>
-          </select>
-        </label>
-        <button
-          type="button"
-          className="secondary-button"
-          onClick={() => void loadData()}
-          disabled={loading || busy}
-          title="Daten neu laden"
-        >
-          <RefreshCw aria-hidden="true" /><span>Aktualisieren</span>
-        </button>
+      {detailMember && (
+        <MemberDetailDialog
+          member={detailMember}
+          modules={modules}
+          isCurrentUser={detailMember.userId === currentUserId}
+          resendBusy={resendBusyId === detailMember.membershipId}
+          onClose={() => setDetailMember(null)}
+          onResend={() => void handleResend(detailMember)}
+          onSimulate={() => simulateMember(detailMember)}
+        />
+      )}
+
+      <div className="user-management-search-shell">
+        <div className="user-management-search-row">
+          <label className="search-field">
+            <Search aria-hidden="true" />
+            <input
+              type="search"
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              placeholder="Name oder E-Mail"
+              aria-label="Benutzer suchen"
+            />
+          </label>
+          <button
+            type="button"
+            className={`icon-button user-management-filter-toggle ${filtersOpen ? "active" : ""}`}
+            onClick={() => setFiltersOpen((current) => !current)}
+            aria-expanded={filtersOpen}
+            aria-label="Benutzerfilter"
+            title="Filter"
+          >
+            <Filter aria-hidden="true" />
+            {activeFilterCount > 0 && <span>{activeFilterCount}</span>}
+          </button>
+        </div>
+
+        {filtersOpen && (
+          <div className="user-management-filter-panel">
+            <label className="management-filter-field">
+              <span>Rolle</span>
+              <select value={roleFilter} onChange={(event) => setRoleFilter(event.target.value as RoleFilter)} aria-label="Benutzer nach Rolle filtern">
+                <option value="all">Alle Rollen</option>
+                <option value="admin">Administratoren</option>
+                <option value="trainer">Trainer</option>
+                <option value="athlete">Athleten</option>
+                <option value="parent">Elternteile</option>
+              </select>
+            </label>
+            <label className="management-filter-field">
+              <span>Konto</span>
+              <select value={accountFilter} onChange={(event) => setAccountFilter(event.target.value as AccountFilter)}>
+                <option value="all">Alle Konten</option>
+                <option value="unlinked">Ohne Verknüpfung</option>
+                <option value="incomplete">Mit Warnung ({counts.incomplete})</option>
+              </select>
+            </label>
+            <div className="user-management-filter-actions">
+              <button type="button" className="text-button" onClick={() => { setRoleFilter("all"); setAccountFilter("all"); }} disabled={activeFilterCount === 0}>Filter zurücksetzen</button>
+              <button type="button" className="text-button" onClick={() => void loadData()} disabled={loading || busy}><RefreshCw aria-hidden="true" /> Aktualisieren</button>
+            </div>
+          </div>
+        )}
       </div>
 
-      <div className="status-filter" aria-label="Benutzerstatus filtern">
+      <div className="status-filter user-management-status-filter" aria-label="Benutzerstatus filtern">
         {([
           ["all", "Alle", counts.all],
           ["active", "Aktiv", counts.active],
@@ -520,87 +669,32 @@ export function UserManagementPage() {
           <p>Passe Suche oder Filter an.</p>
         </div>
       ) : (
-        <div className="member-list">
+        <div className="member-list e5c-compact-member-list">
           {filteredMembers.map((member) => {
             const isCurrentUser = member.userId === currentUserId;
-            const openInvitation = isInvitationOpen(member);
             return (
-              <article className={`member-card status-${member.status}`} key={member.membershipId}>
-                <div className="member-primary">
-                  <div className="member-avatar" aria-hidden="true">
-                    {member.displayName.trim().charAt(0).toUpperCase() || "?"}
-                  </div>
+              <article className={`member-card e5c-compact-member-card status-${member.status}`} key={member.membershipId}>
+                <div className="e5c-member-summary">
                   <div className="member-name">
                     <div><h2>{member.displayName}</h2>{isCurrentUser && <span className="self-badge">Du</span>}</div>
                     <a href={`mailto:${member.email}`}>{member.email}</a>
                   </div>
-                </div>
-
-                <div className="member-badges">
-                  <span className={`status-badge ${member.status}`}>
-                    {member.status === "active" && <CheckCircle2 aria-hidden="true" />}
-                    {member.status === "invited" && <Clock3 aria-hidden="true" />}
-                    {member.status === "disabled" && <UserRoundX aria-hidden="true" />}
-                    {statusNames[member.status]}
-                  </span>
-                  <span className="role-badge"><ShieldCheck aria-hidden="true" />{roleNames[member.role]}</span>
-                </div>
-
-                {member.warnings.length > 0 && (
-                  <div className="e5c-warning-list" role="status">
-                    {member.warnings.map((warning) => (
-                      <span key={warning}><TriangleAlert aria-hidden="true" />{warningNames[warning]}</span>
-                    ))}
+                  <div className="member-badges">
+                    <span className={`status-badge ${member.status}`}>
+                      {member.status === "active" && <CheckCircle2 aria-hidden="true" />}
+                      {member.status === "invited" && <Clock3 aria-hidden="true" />}
+                      {member.status === "disabled" && <UserRoundX aria-hidden="true" />}
+                      {statusNames[member.status]}
+                    </span>
+                    <span className="role-badge"><ShieldCheck aria-hidden="true" />{roleNames[member.role]}</span>
                   </div>
-                )}
-
-                <dl className="member-details e5c-member-details">
-                  <div><dt>Einladung</dt><dd>{invitationNames[member.invitationStatus]}</dd></div>
-                  <div><dt>Letzter Versand</dt><dd>{formatDate(member.invitationLastSentAt)}</dd></div>
-                  <div><dt>Versandanzahl</dt><dd>{member.invitationSendCount}</dd></div>
-                  <div><dt>Modulrechte</dt><dd>{permissionSummary(member, modules)}</dd></div>
-                  <div><dt>Letzte Anmeldung</dt><dd>{formatDate(member.lastSignInAt)}</dd></div>
-                  <div><dt>E-Mail bestätigt</dt><dd>{member.emailConfirmedAt ? "Ja" : "Noch nicht"}</dd></div>
-                </dl>
-
-                <div className="e5c-links">
-                  <span className={member.linkedAthletes.length > 0 ? "linked" : "unlinked"}>
-                    {member.linkedAthletes.length > 0 ? <Link2 aria-hidden="true" /> : <Link2Off aria-hidden="true" />}
-                    Athleten: {member.linkedAthletes.length > 0
-                      ? member.linkedAthletes.map((athlete) => athlete.name).join(", ")
-                      : member.role === "trainer"
-                        ? "über Trainingsgruppen"
-                        : "nicht verknüpft"}
-                  </span>
-                  <span className={member.linkedTrainerId ? "linked" : "unlinked"}>
-                    {member.linkedTrainerId ? <Link2 aria-hidden="true" /> : <Link2Off aria-hidden="true" />}
-                    Trainer: {member.linkedTrainerName ?? "nicht verknüpft"}
-                  </span>
                 </div>
-
-                <div className="e5c-card-actions">
-                  {openInvitation && (
-                    <button
-                      type="button"
-                      className="secondary-button"
-                      onClick={() => void handleResend(member)}
-                      disabled={Boolean(resendBusyId) || busy}
-                    >
-                      <Send aria-hidden="true" />
-                      {resendBusyId === member.membershipId ? "Wird gesendet …" : "Erneut senden"}
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    className="secondary-button e5c-simulate-button"
-                    onClick={() => simulateMember(member)}
-                    disabled={isCurrentUser || member.status !== "active"}
-                    title={member.status !== "active" ? "Nur aktive Konten können simuliert werden" : isCurrentUser ? "Eigenes Konto" : "Berechtigungsansicht ohne Speicherung öffnen"}
-                  >
-                    <Eye aria-hidden="true" /> Ansicht simulieren
+                <div className="e5c-compact-actions">
+                  <button type="button" className="icon-button" onClick={() => openEditor(member)} aria-label={`${member.displayName} bearbeiten`} title="Bearbeiten">
+                    <Pencil aria-hidden="true" />
                   </button>
-                  <button type="button" className="secondary-button member-edit-button" onClick={() => openEditor(member)}>
-                    <Pencil aria-hidden="true" /> Bearbeiten
+                  <button type="button" className="icon-button" onClick={() => setDetailMember(member)} aria-label={`Informationen zu ${member.displayName}`} title="Information">
+                    <Info aria-hidden="true" />
                   </button>
                 </div>
               </article>

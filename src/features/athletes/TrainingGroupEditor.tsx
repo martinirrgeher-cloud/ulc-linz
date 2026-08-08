@@ -120,9 +120,7 @@ export function TrainingGroupEditor({
   return (
     <section className="management-editor training-group-editor compact-editor" aria-label={mode.type === "create" ? "Gruppe anlegen" : "Gruppe bearbeiten"}>
       <StickyEditorActions
-        eyebrow="Trainingsgruppen"
         title={mode.type === "create" ? "Gruppe anlegen" : "Gruppe bearbeiten"}
-        description="Grunddaten, Trainingsbetrieb und Leistungsgruppen-Einstellungen übersichtlich bearbeiten."
         formId={GROUP_FORM_ID}
         busy={busy}
         canEdit={canEdit}

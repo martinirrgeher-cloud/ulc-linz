@@ -321,7 +321,7 @@
 }
 
 .compact-management-heading {
-  align-items: flex-start;
+  align-items: center;
 }
 
 .masterdata-create-menu {
@@ -614,7 +614,7 @@
   .compact-management-heading {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
-    align-items: start;
+    align-items: center;
   }
 
   .masterdata-create-menu-toggle {
@@ -666,6 +666,7 @@
   .compact-management-heading {
     gap: 6px;
     margin: 0;
+    align-items: center;
   }
 
   .compact-management-heading .eyebrow {

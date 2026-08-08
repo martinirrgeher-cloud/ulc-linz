@@ -106,6 +106,12 @@ assert.match(
   "Release-Check muss den isolierten Runtime-Build ausfuehren und darf Playwright nicht direkt auf einem alten dist starten.",
 );
 
+const performanceBudget = readFileSync("scripts/check-performance-budget.mjs", "utf8");
+assert.match(performanceBudget, /const hardChecks = \[/, "Performance-Budget muss harte Laufzeitgrenzen explizit ausweisen.");
+assert.match(performanceBudget, /const advisoryChecks = \[[\s\S]*gesamtes CSS roh[\s\S]*gesamtes CSS gzip/, "Gesamtes CSS muss als informativer Richtwert berichtet werden.");
+assert.doesNotMatch(performanceBudget.match(/const hardChecks = \[[\s\S]*?\n\];/)?.[0] ?? "", /gesamtes CSS/, "Gesamtes CSS darf kein hartes Release-Gate mehr sein.");
+assert.match(performanceBudget, /check-css-architecture\.mjs/, "Performance-Budget muss auf die separate CSS-Architekturpruefung als Wachstumsgrenze verweisen.");
+
 const runtimeRunner = readFileSync("scripts/release/run-runtime-smoke.mjs", "utf8");
 assert.match(runtimeRunner, /VITE_SUPABASE_URL:\s*"https:\/\/e2e\.supabase\.co"/, "Runtime-Build muss die Fake-Supabase-URL fest setzen.");
 assert.match(runtimeRunner, /\.ulc-runtime-dist/, "Runtime-Build muss einen isolierten Ausgabeordner verwenden.");

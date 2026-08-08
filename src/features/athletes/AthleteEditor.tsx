@@ -183,9 +183,7 @@ export function AthleteEditor({
   return (
     <section className="management-editor athlete-editor compact-editor" aria-label={mode.type === "create" ? "Athlet anlegen" : "Athlet bearbeiten"}>
       <StickyEditorActions
-        eyebrow="Athletenstammdaten"
         title={mode.type === "create" ? "Athlet anlegen" : "Athlet bearbeiten"}
-        description="Stammdaten, Gruppen und Kontakte einheitlich verwalten."
         formId={ATHLETE_FORM_ID}
         busy={busy}
         canEdit={canEdit}

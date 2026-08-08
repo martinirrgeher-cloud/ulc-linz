@@ -336,10 +336,14 @@ test.describe("Authentifizierte, nicht schreibende Modulprüfungen", () => {
 
     await page.goto("/module/user_management");
     await page.getByRole("button", { name: /Einladung offen/ }).click();
-    await expect(page.getByRole("heading", { name: "Offene Einladung", exact: true })).toBeVisible();
-    await expect(page.getByText("Letzter Versand", { exact: true })).toBeVisible();
-    await expect(page.getByText("Trainerkonto ohne Trainerverknüpfung", { exact: true })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Erneut senden", exact: true })).toBeVisible();
+    const invitationCard = page.locator(".member-card").filter({ hasText: "Offene Einladung" });
+    await expect(invitationCard.getByRole("heading", { name: "Offene Einladung", exact: true })).toBeVisible();
+    await invitationCard.getByRole("button", { name: "Informationen zu Offene Einladung", exact: true }).click();
+    const invitationInfo = page.getByRole("dialog", { name: "Offene Einladung" });
+    await expect(invitationInfo).toBeVisible();
+    await expect(invitationInfo.getByText("Letzter Versand", { exact: true })).toBeVisible();
+    await expect(invitationInfo.getByText("Trainerkonto ohne Trainerverknüpfung", { exact: true })).toBeVisible();
+    await expect(invitationInfo.getByRole("button", { name: "Erneut senden", exact: true })).toBeVisible();
     await expectHealthyPage(page, problems, unhandled);
   });
 

@@ -36,6 +36,16 @@ Dabei laufen:
 
 Nach Erfolg wird in `.git/ulc-release/verification.json` ein Fingerabdruck des exakt geprüften Arbeitsstandes gespeichert. Diese Datei wird nicht committed.
 
+### Performance-Budget: harte Laufzeitgrenzen und CSS-Wachstum
+
+Das Performance-Budget unterscheidet bewusst zwischen **tatsaechlich pro Route geladenen Assets** und der **Summe aller lazy geladenen CSS-Dateien der gesamten Anwendung**:
+
+- harte Release-Gates bleiben initiales JavaScript/CSS, groesster asynchroner JavaScript-/CSS-Chunk sowie die JavaScript-Gesamtsumme,
+- die CSS-Gesamtsumme roh/gzip bleibt im Performance-Bericht als transparenter Richtwert sichtbar, bricht den Release aber nicht mehr ab,
+- das strukturelle CSS-Wachstum wird stattdessen durch `scripts/check-css-architecture.mjs` hart begrenzt (Quellgroesse, Zeilen, Dateigroesse, Media Queries, doppelte Selektoren, `!important` und Importarchitektur).
+
+Damit wird ein Release nicht allein deshalb blockiert, weil die App durch weitere lazy geladene Module insgesamt mehr CSS besitzt. Die fuer Start und konkrete Routen relevanten Performancegrenzen bleiben unveraendert streng. Der CSS-Richtwert darf deshalb nicht bei jeder UI-Aenderung einfach angehoben werden; auffaelliges Wachstum ist ueber die Architekturpruefung zu bereinigen.
+
 ### 3. Geprüften Stand freigeben
 
 `ULC-FREIGEBEN.cmd` doppelklicken.

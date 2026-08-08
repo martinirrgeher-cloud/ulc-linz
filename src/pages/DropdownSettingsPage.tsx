@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { Info, ListPlus, Pencil, Plus, Save, ToggleLeft, ToggleRight, X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ChevronDown, Info, ListPlus, Pencil, Plus, Save, X } from "lucide-react";
 import { useAuth } from "@/features/auth/AuthContext";
 import {
   loadDropdownSettings,
@@ -18,12 +18,21 @@ import {
 import { diagnosticErrorMessage } from "@/lib/diagnostics";
 import "@/styles/dropdown-settings.css";
 import "@/styles/dropdown-settings-mobile.css";
+
 const EMPTY_DATA: DropdownSettingsData = {
   category: [],
   subcategory: [],
   material: [],
   difficulty: [],
   planning_parameter: [],
+};
+
+const LIST_SINGULAR: Record<DropdownListKey, string> = {
+  category: "Kategorie",
+  subcategory: "Unterkategorie",
+  material: "Material",
+  difficulty: "Schwierigkeit",
+  planning_parameter: "Planungsparameter",
 };
 
 function errorMessage(error: unknown): string {
@@ -42,8 +51,10 @@ export function DropdownSettingsPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [editing, setEditing] = useState<DropdownSettingOption | null | undefined>(undefined);
   const [values, setValues] = useState<DropdownSettingInput>(() => optionToInput(null));
+  const [editorActive, setEditorActive] = useState(true);
   const [editorError, setEditorError] = useState<string | null>(null);
   const [introOpen, setIntroOpen] = useState(false);
+  const createMenuRef = useRef<HTMLDetailsElement>(null);
 
   const loadData = useCallback(async () => {
     if (!organizationId) return;
@@ -67,12 +78,31 @@ export function DropdownSettingsPage() {
     [activeList],
   );
 
-  function startEdit(option: DropdownSettingOption | null) {
+  const activeCount = useCallback(
+    (key: DropdownListKey) => data[key].filter((option) => option.isActive).length,
+    [data],
+  );
+
+  function selectList(key: DropdownListKey) {
+    setActiveList(key);
+    setEditing(undefined);
+    setIntroOpen(false);
+  }
+
+  function startEdit(option: DropdownSettingOption | null, listKey: DropdownListKey = activeList) {
+    setActiveList(listKey);
     setEditing(option);
     setValues(optionToInput(option));
+    setEditorActive(option?.isActive ?? true);
     setEditorError(null);
     setError(null);
     setSuccess(null);
+    setIntroOpen(false);
+  }
+
+  function startCreate(listKey: DropdownListKey) {
+    createMenuRef.current?.removeAttribute("open");
+    startEdit(null, listKey);
   }
 
   function closeEditor() {
@@ -124,12 +154,16 @@ export function DropdownSettingsPage() {
       setEditorError(`Der Eintrag „${exactDuplicate.label}“ ist bereits vorhanden.`);
       return;
     }
+
     setBusy(true);
     setEditorError(null);
     setError(null);
     setSuccess(null);
     try {
       await saveDropdownSetting(organizationId, activeList, editing, values);
+      if (editing && editorActive !== editing.isActive) {
+        await setDropdownSettingActive(organizationId, activeList, editing, editorActive);
+      }
       closeEditor();
       setSuccess(editing ? "Der Eintrag wurde gespeichert." : "Der Eintrag wurde angelegt.");
       await loadData();
@@ -140,21 +174,7 @@ export function DropdownSettingsPage() {
     }
   }
 
-  async function toggleActive(option: DropdownSettingOption) {
-    if (!organizationId || !canEdit || busy) return;
-    setBusy(true);
-    setError(null);
-    setSuccess(null);
-    try {
-      await setDropdownSettingActive(organizationId, activeList, option, !option.isActive);
-      setSuccess(option.isActive ? "Der Eintrag wurde ausgeblendet." : "Der Eintrag wurde wieder aktiviert.");
-      await loadData();
-    } catch (toggleError) {
-      setError(errorMessage(toggleError));
-    } finally {
-      setBusy(false);
-    }
-  }
+  const editorTitle = `${LIST_SINGULAR[activeList]} ${editing ? "bearbeiten" : "anlegen"}`;
 
   return (
     <section className="dropdown-settings-page">
@@ -162,56 +182,63 @@ export function DropdownSettingsPage() {
         <div>
           <p className="eyebrow">Stammdaten</p>
           <h1>Auswahllisten</h1>
-          <p>Dropdownwerte für Übungen und Trainingsplanung zentral verwalten.</p>
         </div>
         {canEdit && (
-          <button type="button" className="primary-button" onClick={() => startEdit(null)} disabled={loading || busy}>
-            <Plus aria-hidden="true" />Eintrag
-          </button>
+          <details className="dropdown-create-menu" ref={createMenuRef}>
+            <summary
+              className="primary-button dropdown-create-menu-toggle"
+              aria-label="Neuen Auswahllisteneintrag anlegen"
+              aria-disabled={loading || busy}
+              onClick={(event) => { if (loading || busy) event.preventDefault(); }}
+            >
+              <Plus aria-hidden="true" /> Neu <ChevronDown aria-hidden="true" />
+            </summary>
+            <div className="dropdown-create-menu-panel" role="menu" aria-label="Auswahlliste auswählen">
+              {DROPDOWN_LISTS.map((list) => (
+                <button type="button" role="menuitem" onClick={() => startCreate(list.key)} key={list.key}>
+                  <Plus aria-hidden="true" />
+                  <span>{LIST_SINGULAR[list.key]} anlegen</span>
+                </button>
+              ))}
+            </div>
+          </details>
         )}
       </div>
 
       {error && <div className="alert error">{error}</div>}
       {success && <div className="alert success">{success}</div>}
 
-      <nav className="dropdown-settings-tabs" aria-label="Auswahllisten">
-        {DROPDOWN_LISTS.map((list) => (
-          <button
-            type="button"
-            className={activeList === list.key ? "active" : ""}
-            onClick={() => {
-              setActiveList(list.key);
-              setEditing(undefined);
-              setIntroOpen(false);
-            }}
-            key={list.key}
+      <div className="dropdown-settings-selector-row">
+        <label className="dropdown-settings-selector">
+          <span className="sr-only">Auswahlliste</span>
+          <select
+            value={activeList}
+            onChange={(event) => selectList(event.target.value as DropdownListKey)}
+            aria-label="Auswahlliste auswählen"
           >
-            {list.title}<span>{data[list.key].filter((option) => option.isActive).length}</span>
-          </button>
-        ))}
-      </nav>
-
-      <div className={`dropdown-settings-intro ${introOpen ? "open" : ""}`}>
-        <div className="dropdown-settings-intro-heading">
-          <h2>{listDefinition.title}</h2>
-          <button
-            type="button"
-            className="dropdown-settings-info-button"
-            onClick={() => setIntroOpen((current) => !current)}
-            aria-expanded={introOpen}
-            aria-label={introOpen ? "Erklärung schließen" : `Erklärung zu ${listDefinition.title} öffnen`}
-            title="Information"
-          >
-            <Info aria-hidden="true" />
-          </button>
-        </div>
-        {introOpen && (
-          <div className="dropdown-settings-intro-copy">
-            <p>{listDefinition.description}</p>
-            <small>Deaktivierte Einträge bleiben bei bestehenden Übungen erhalten, können aber nicht mehr neu ausgewählt werden.</small>
-          </div>
-        )}
+            {DROPDOWN_LISTS.map((list) => (
+              <option value={list.key} key={list.key}>{list.title} · {activeCount(list.key)}</option>
+            ))}
+          </select>
+        </label>
+        <button
+          type="button"
+          className="dropdown-settings-info-button"
+          onClick={() => setIntroOpen((current) => !current)}
+          aria-expanded={introOpen}
+          aria-label={introOpen ? "Erklärung schließen" : `Erklärung zu ${listDefinition.title} öffnen`}
+          title="Information"
+        >
+          <Info aria-hidden="true" />
+        </button>
       </div>
+
+      {introOpen && (
+        <div className="dropdown-settings-intro-copy">
+          <p>{listDefinition.description}</p>
+          <small>Deaktivierte Einträge bleiben bei bestehenden Übungen erhalten, können aber nicht mehr neu ausgewählt werden.</small>
+        </div>
+      )}
 
       {loading ? (
         <div className="management-loading"><div className="spinner" aria-hidden="true" />Auswahllisten werden geladen …</div>
@@ -229,14 +256,10 @@ export function DropdownSettingsPage() {
                     : `${option.usageCount}-mal verwendet`}
                 </small>
               </div>
-              <span className={`dropdown-setting-status ${option.isActive ? "active" : ""}`}>{option.isActive ? "Aktiv" : "Inaktiv"}</span>
               {canEdit && (
-                <div className="dropdown-setting-actions">
-                  <button type="button" onClick={() => startEdit(option)} disabled={busy} aria-label={`${option.label} bearbeiten`} title="Bearbeiten"><Pencil aria-hidden="true" /></button>
-                  <button type="button" onClick={() => void toggleActive(option)} disabled={busy} aria-label={`${option.label} ${option.isActive ? "deaktivieren" : "aktivieren"}`} title={option.isActive ? "Deaktivieren" : "Aktivieren"}>
-                    {option.isActive ? <ToggleRight aria-hidden="true" /> : <ToggleLeft aria-hidden="true" />}
-                  </button>
-                </div>
+                <button className="dropdown-setting-edit-button" type="button" onClick={() => startEdit(option)} disabled={busy} aria-label={`${option.label} bearbeiten`} title="Bearbeiten">
+                  <Pencil aria-hidden="true" />
+                </button>
               )}
             </article>
           ))}
@@ -247,8 +270,22 @@ export function DropdownSettingsPage() {
         <div className="dropdown-setting-editor-backdrop" role="presentation">
           <section className="dropdown-setting-editor" role="dialog" aria-modal="true" aria-labelledby="dropdown-setting-editor-title">
             <header>
-              <div><p className="eyebrow">{listDefinition.title}</p><h2 id="dropdown-setting-editor-title">{editing ? "Eintrag bearbeiten" : "Eintrag anlegen"}</h2></div>
-              <button type="button" className="icon-button" onClick={closeEditor} disabled={busy} aria-label="Dialog schließen"><X aria-hidden="true" /></button>
+              <h2 id="dropdown-setting-editor-title">{editorTitle}</h2>
+              <div className="dropdown-setting-editor-actions">
+                <button
+                  type="button"
+                  className="icon-button dropdown-setting-save-button"
+                  onClick={() => void handleSave()}
+                  disabled={busy || Boolean(exactDuplicate) || values.label.trim().length < 2}
+                  aria-label={busy ? "Wird gespeichert" : "Speichern"}
+                  title="Speichern"
+                >
+                  <Save aria-hidden="true" />
+                </button>
+                <button type="button" className="icon-button" onClick={closeEditor} disabled={busy} aria-label="Dialog schließen" title="Schließen">
+                  <X aria-hidden="true" />
+                </button>
+              </div>
             </header>
             <div className="dropdown-setting-editor-form">
               {editorError && <div className="alert error dropdown-setting-editor-error">{editorError}</div>}
@@ -302,11 +339,13 @@ export function DropdownSettingsPage() {
                 </>
               )}
               <label><span>Sortierung</span><input type="number" step="1" value={values.sortOrder} onChange={(event) => update("sortOrder", event.target.value)} /></label>
+              {editing && (
+                <label className="dropdown-setting-active-toggle">
+                  <input type="checkbox" checked={editorActive} onChange={(event) => setEditorActive(event.target.checked)} />
+                  <span><strong>Aktiv</strong><small>Inaktive Einträge bleiben bei bestehenden Daten erhalten.</small></span>
+                </label>
+              )}
             </div>
-            <footer>
-              <button type="button" className="secondary-button" onClick={closeEditor} disabled={busy}>Abbrechen</button>
-              <button type="button" className="primary-button" onClick={() => void handleSave()} disabled={busy || Boolean(exactDuplicate)}><Save aria-hidden="true" />{busy ? "Wird gespeichert …" : "Speichern"}</button>
-            </footer>
           </section>
         </div>
       )}
