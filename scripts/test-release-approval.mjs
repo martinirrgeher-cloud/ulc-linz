@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { readVerification, writeVerification } from "./release/lib.mjs";
+import { REQUIRED_RELEASE_CHECKS, readVerification, writeVerification } from "./release/lib.mjs";
 
 const projectRoot = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const approveScript = resolve(projectRoot, "scripts", "release", "approve-change.mjs");
@@ -58,7 +58,7 @@ function runApprove(work, input = "", args = []) {
 }
 
 function verify(work) {
-  return writeVerification(work, { checks: ["test"] });
+  return writeVerification(work, { checks: [...REQUIRED_RELEASE_CHECKS] });
 }
 
 function remoteHead(work) {

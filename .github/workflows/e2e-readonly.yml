@@ -61,9 +61,6 @@ jobs:
       - name: Projektabhängigkeiten installieren
         run: npm ci
 
-      - name: Playwright Test isoliert installieren
-        run: npm install --no-save --package-lock=false @playwright/test@1.62.1
-
       - name: Chromium und Systemabhängigkeiten installieren
         run: npx playwright install --with-deps chromium
 

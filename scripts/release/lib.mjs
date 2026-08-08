@@ -6,6 +6,12 @@ import { createInterface } from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 
 export const PLAYWRIGHT_VERSION = "1.62.1";
+export const RELEASE_VERIFICATION_FORMAT_VERSION = 2;
+export const RELEASE_VERIFICATION_PROFILE = "full-release-v2";
+export const REQUIRED_RELEASE_CHECKS = Object.freeze([
+  "ci:quality",
+  "runtime-smoke-isolated",
+]);
 
 function displayCommand(command, args) {
   return [command, ...args].map((part) => (/\s/.test(part) ? JSON.stringify(part) : part)).join(" ");
@@ -128,7 +134,8 @@ export function writeVerification(root, extra = {}) {
   const filePath = verificationFile(root);
   mkdirSync(dirname(filePath), { recursive: true });
   const record = {
-    formatVersion: 1,
+    formatVersion: RELEASE_VERIFICATION_FORMAT_VERSION,
+    verificationProfile: RELEASE_VERIFICATION_PROFILE,
     branch: currentBranch(root),
     head: currentCommit(root),
     worktreeFingerprint: worktreeFingerprint(root),
@@ -142,11 +149,48 @@ export function writeVerification(root, extra = {}) {
 export function readVerification(root) {
   const filePath = verificationFile(root);
   if (!existsSync(filePath)) return null;
-  return JSON.parse(readFileSync(filePath, "utf8"));
+  try {
+    return JSON.parse(readFileSync(filePath, "utf8"));
+  } catch {
+    return null;
+  }
 }
 
 export function clearVerification(root) {
   rmSync(verificationFile(root), { force: true });
+}
+
+export function validateVerification(root, verification, options = {}) {
+  const { requireCurrentState = true } = options;
+  if (!verification || typeof verification !== "object") {
+    return { valid: false, reason: "Es existiert kein gueltiger Pruefnachweis." };
+  }
+  if (verification.formatVersion !== RELEASE_VERIFICATION_FORMAT_VERSION) {
+    return { valid: false, reason: "Der Pruefnachweis verwendet eine alte Formatversion." };
+  }
+  if (verification.verificationProfile !== RELEASE_VERIFICATION_PROFILE) {
+    return { valid: false, reason: "Der Pruefnachweis stammt nicht aus dem aktuellen vollstaendigen Releaseprofil." };
+  }
+  const checks = Array.isArray(verification.checks) ? verification.checks : [];
+  const missingChecks = REQUIRED_RELEASE_CHECKS.filter((check) => !checks.includes(check));
+  if (missingChecks.length > 0) {
+    return { valid: false, reason: `Im Pruefnachweis fehlen verbindliche Checks: ${missingChecks.join(", ")}.` };
+  }
+  if (!requireCurrentState) return { valid: true, reason: "" };
+
+  const branch = currentBranch(root);
+  if (verification.branch !== branch) {
+    return { valid: false, reason: `Branch hat sich geaendert (${verification.branch} -> ${branch || "detached HEAD"}).` };
+  }
+  const head = currentCommit(root);
+  if (verification.head !== head) {
+    return { valid: false, reason: "HEAD-Commit hat sich seit der Pruefung geaendert." };
+  }
+  const fingerprint = worktreeFingerprint(root);
+  if (verification.worktreeFingerprint !== fingerprint) {
+    return { valid: false, reason: "Der Arbeitsstand hat sich seit der Pruefung geaendert." };
+  }
+  return { valid: true, reason: "" };
 }
 
 export async function prompt(question) {

@@ -8,7 +8,7 @@ import {
   readVerification,
   repoRoot,
   run,
-  worktreeFingerprint,
+  validateVerification,
   writeVerification,
 } from "./lib.mjs";
 
@@ -58,14 +58,11 @@ function assertVerifiedState(branch) {
     throw new Error("Keine gueltige Release-Pruefung gefunden. Bitte zuerst ULC-PRUEFEN.cmd ausfuehren.");
   }
 
-  const fingerprint = worktreeFingerprint(root);
-  if (
-    verification.branch !== branch ||
-    verification.head !== currentCommit(root) ||
-    verification.worktreeFingerprint !== fingerprint
-  ) {
+  const validation = validateVerification(root, verification);
+  if (!validation.valid || verification.branch !== branch) {
     throw new Error(
-      "Der Arbeitsstand wurde seit der letzten erfolgreichen Pruefung veraendert. Bitte ULC-PRUEFEN.cmd erneut ausfuehren.",
+      `Der aktuelle Stand besitzt keinen wiederverwendbaren vollstaendigen Pruefnachweis: ${validation.reason || "Branch stimmt nicht."} ` +
+      "Bitte ULC-PRUEFEN.cmd ausfuehren.",
     );
   }
 

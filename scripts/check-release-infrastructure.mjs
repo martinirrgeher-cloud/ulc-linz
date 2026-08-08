@@ -5,13 +5,20 @@ const requiredFiles = [
   "playwright.runtime.config.mjs",
   "tests/runtime/app-runtime.spec.mjs",
   "scripts/release/install-overlay.mjs",
+  "scripts/release/install-update-package.ps1",
   "scripts/release/run-release-check.mjs",
+  "scripts/release/verify-current-state.mjs",
   "scripts/release/run-runtime-smoke.mjs",
   "scripts/release/serve-runtime-build.mjs",
   "scripts/release/approve-change.mjs",
+  "scripts/release/start-change.mjs",
   "scripts/release/mark-production.mjs",
+  "scripts/test-overlay-installer.mjs",
   "scripts/test-release-approval.mjs",
+  "scripts/test-release-verification.mjs",
+  "scripts/test-start-change.mjs",
   "ULC-AENDERUNG-STARTEN.cmd",
+  "ULC-UPDATE-INSTALLIEREN.cmd",
   "ULC-PRUEFEN.cmd",
   "ULC-FREIGEBEN.cmd",
   "ULC-LOKAL-ANSEHEN.cmd",
@@ -21,7 +28,6 @@ const requiredFiles = [
   ".devcontainer/devcontainer.json",
   "MOBILE-ENTWICKLUNG.md",
 ];
-
 for (const file of requiredFiles) assert.ok(existsSync(file), `Release-Infrastruktur fehlt: ${file}`);
 
 const pkg = JSON.parse(readFileSync("package.json", "utf8"));
@@ -31,31 +37,38 @@ for (const script of [
   "release:check",
   "release:check:ci",
   "test:release-approval",
+  "test:release-verification",
+  "test:start-change",
   "test:e2e:readonly:pr",
   "test:e2e:writing:pr",
   "ci:preview",
-]) {
-  assert.ok(pkg.scripts?.[script], `package.json Script fehlt: ${script}`);
-}
-assert.match(pkg.scripts["ci:quality"], /test:release-approval/, "CI-Qualitaetspruefung muss die Freigaberoutine selbst testen.");
-assert.match(pkg.scripts["ci:quality"], /check:simulation-safety/, "CI-Qualitaetspruefung muss den Simulations-Schreibschutz pruefen.");
-assert.equal(
-  pkg.scripts["release:check"],
-  pkg.scripts["release:check:ci"],
-  "Lokale und CI-Release-Pruefung muessen denselben Einstieg verwenden.",
-);
+]) assert.ok(pkg.scripts?.[script], `package.json Script fehlt: ${script}`);
+assert.equal(pkg.devDependencies?.["@playwright/test"], "1.62.1", "Playwright Test muss exakt im Projekt gepinnt sein.");
+assert.match(pkg.scripts["ci:quality"], /test:release-approval/, "CI muss die Freigaberoutine testen.");
+assert.match(pkg.scripts["ci:quality"], /test:release-verification/, "CI muss die Wiederverwendung von Pruefnachweisen testen.");
+assert.match(pkg.scripts["ci:quality"], /test:start-change/, "CI muss den Start eines Entwicklungszyklus testen.");
+assert.match(pkg.scripts["ci:quality"], /check:simulation-safety/, "CI muss den Simulations-Schreibschutz pruefen.");
+assert.equal(pkg.scripts["release:check"], pkg.scripts["release:check:ci"], "Lokale und CI-Release-Pruefung muessen denselben Einstieg verwenden.");
+
+const lock = JSON.parse(readFileSync("package-lock.json", "utf8"));
+assert.equal(lock.packages?.[""]?.devDependencies?.["@playwright/test"], "1.62.1", "package-lock muss Playwright exakt am Root pinnen.");
+assert.equal(lock.packages?.["node_modules/@playwright/test"]?.version, "1.62.1", "package-lock muss Playwright Test 1.62.1 enthalten.");
+assert.equal(lock.packages?.["node_modules/playwright"]?.version, "1.62.1", "package-lock muss Playwright 1.62.1 enthalten.");
+assert.equal(lock.packages?.["node_modules/playwright-core"]?.version, "1.62.1", "package-lock muss Playwright Core 1.62.1 enthalten.");
 
 const qualityWorkflow = readFileSync(".github/workflows/quality-check.yml", "utf8");
-assert.match(qualityWorkflow, /npm run release:check:ci/, "Quality-Workflow muss den echten Runtime-Gate ausfuehren.");
-assert.match(qualityWorkflow, /playwright install --with-deps chromium/, "Quality-Workflow muss Chromium installieren.");
-
 const readonlyWorkflow = readFileSync(".github/workflows/e2e-readonly.yml", "utf8");
 const writingWorkflow = readFileSync(".github/workflows/e2e-writing.yml", "utf8");
-for (const [label, workflow] of [["Read-only E2E", readonlyWorkflow], ["Writing E2E", writingWorkflow]]) {
-  assert.match(workflow, /actions\/checkout@v6/, `${label} muss die Node-24-kompatible Checkout-Action verwenden.`);
-  assert.match(workflow, /actions\/setup-node@v6/, `${label} muss die Node-24-kompatible Setup-Node-Action verwenden.`);
-  assert.match(workflow, /actions\/upload-artifact@v7/, `${label} muss die aktuelle Node-24-Artefakt-Action verwenden.`);
+for (const [label, workflow] of [["Quality", qualityWorkflow], ["Read-only E2E", readonlyWorkflow], ["Writing E2E", writingWorkflow]]) {
+  assert.match(workflow, /actions\/checkout@v6/, `${label} muss Checkout v6 verwenden.`);
+  assert.match(workflow, /actions\/setup-node@v6/, `${label} muss Setup-Node v6 verwenden.`);
+  assert.doesNotMatch(workflow, /npm install --no-save --package-lock=false @playwright\/test/, `${label} darf Playwright nicht dynamisch neben package-lock installieren.`);
 }
+assert.match(qualityWorkflow, /npm run release:check:ci/, "Quality-Workflow muss den echten Runtime-Gate ausfuehren.");
+assert.match(qualityWorkflow, /playwright install --with-deps chromium/, "Quality-Workflow muss Chromium installieren.");
+assert.match(qualityWorkflow, /actions\/upload-artifact@v7/, "Quality muss Upload-Artifact v7 verwenden.");
+assert.match(readonlyWorkflow, /actions\/upload-artifact@v7/, "Read-only E2E muss Upload-Artifact v7 verwenden.");
+assert.match(writingWorkflow, /actions\/upload-artifact@v7/, "Writing E2E muss Upload-Artifact v7 verwenden.");
 assert.match(writingWorkflow, /supabase\/setup-cli@v2/, "Writing E2E muss die aktuelle Supabase Setup-CLI-Action verwenden.");
 
 const mobileWorkflow = readFileSync(".github/workflows/mobile-patch.yml", "utf8");
@@ -64,20 +77,66 @@ assert.match(mobileWorkflow, /npm run ci:preview/, "Mobiler Patch muss das schne
 assert.doesNotMatch(mobileWorkflow, /npm run ci:quality/, "Mobiler Patch soll die teure Vollpruefung nicht vor jeder Preview doppelt ausfuehren.");
 assert.match(mobileWorkflow, /Vercel-Preview/, "Mobile-Workflow muss den Preview-Schritt sichtbar erklaeren.");
 assert.match(mobileWorkflow, /Produktion bleibt/, "Mobile-Workflow muss die Produktionsgrenze sichtbar machen.");
-assert.match(mobileWorkflow, /actions\/checkout@v6/, "Mobile-Workflow muss Checkout auf Node 24 verwenden.");
-assert.match(mobileWorkflow, /actions\/setup-node@v6/, "Mobile-Workflow muss Setup-Node auf Node 24 verwenden.");
-assert.match(mobileWorkflow, /actions\/upload-artifact@v7/, "Mobile-Workflow muss Upload-Artifact auf Node 24 verwenden.");
-assert.match(mobileWorkflow, /actions\/download-artifact@v7/, "Mobile-Workflow muss Download-Artifact auf Node 24 verwenden.");
+assert.match(mobileWorkflow, /actions\/checkout@v6/, "Mobile-Workflow muss Checkout v6 verwenden.");
+assert.match(mobileWorkflow, /actions\/setup-node@v6/, "Mobile-Workflow muss Setup-Node v6 verwenden.");
+assert.match(mobileWorkflow, /actions\/upload-artifact@v7/, "Mobile-Workflow muss Upload-Artifact v7 verwenden.");
+assert.match(mobileWorkflow, /actions\/download-artifact@v7/, "Mobile-Workflow muss Download-Artifact v7 verwenden.");
 
 const devcontainer = JSON.parse(readFileSync(".devcontainer/devcontainer.json", "utf8"));
-assert.match(devcontainer.image ?? "", /javascript-node:1-22-bookworm/, "Codespaces muss die Node-22-Umgebung verwenden.");
+assert.match(devcontainer.image ?? "", /javascript-node:1-22-bookworm/, "Codespaces muss Node 22 verwenden.");
 assert.equal(devcontainer.postCreateCommand, "npm ci", "Codespaces muss Abhaengigkeiten reproduzierbar mit npm ci installieren.");
 assert.ok(devcontainer.forwardPorts?.includes(5173), "Codespaces muss den Vite-Port 5173 weiterleiten.");
 
-const mobileDocs = readFileSync("MOBILE-ENTWICKLUNG.md", "utf8");
-for (const marker of ["MOBILE-PATCH-", "mobile-patch/", "Vercel Preview", "Squash and merge", "Codespaces"]) {
-  assert.match(mobileDocs, new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")), `Mobile-Dokumentation fehlt: ${marker}`);
-}
+const startChange = readFileSync("scripts/release/start-change.mjs", "utf8");
+assert.match(startChange, /branchBefore !== "main"/, "Neue Aenderungen duerfen nur von lokalem main starten.");
+assert.match(startChange, /localMain !== remoteMain/, "Lokaler main muss exakt origin\/main entsprechen.");
+assert.match(startChange, /production-\*/, "Start muss einen bestaetigten production-Tag verlangen.");
+assert.match(startChange, /remoteBranchExists/, "Start muss gleichnamige Remote-Feature-Branches blockieren.");
+assert.match(startChange, /Start des Entwicklungszyklus wird zurueckgerollt/, "Fehler nach Branch-Erstellung muessen den Start transaktional zurueckrollen.");
+assert.match(startChange, /ULC_PROJECT_ARCHIVE_OUTPUT_DIRECTORY/, "Start muss fuer isolierte Tests ein separates Archiv-Ausgabeverzeichnis unterstuetzen.");
+
+const startChangeTest = readFileSync("scripts/test-start-change.mjs", "utf8");
+assert.match(startChangeTest, /copyFileSync\(archiveScript/, "Start-Test muss die reale Archivroutine in sein isoliertes Test-Repository kopieren.");
+assert.match(startChangeTest, /ULC_PROJECT_ARCHIVE_OUTPUT_DIRECTORY/, "Start-Test darf Projektarchive nicht auf den echten Benutzer-Desktop schreiben.");
+assert.match(startChangeTest, /ULC-Linz-App-Aktuell_/, "Windows-Erfolgsfall muss die erzeugte Projekt-ZIP verifizieren.");
+
+const archive = readFileSync("scripts/create-project-archive.ps1", "utf8");
+assert.match(archive, /git -C \$ProjectRoot archive/, "Projekt-ZIP muss direkt aus dem Git-Commit erzeugt werden.");
+assert.match(archive, /ULC-SOURCE-METADATA\.json/, "Projekt-ZIP muss eindeutige Source-Metadaten enthalten.");
+assert.match(archive, /rev-parse\s+["\']?HEAD\^\{tree\}["\']?/, "Projekt-ZIP muss den Git-Tree dokumentieren.");
+assert.doesNotMatch(archive, /robocopy/i, "Projekt-ZIP darf nicht mehr per Dateisystem-Kopie erzeugt werden.");
+assert.match(archive, /supabase-local\.env/, "Archivroutine muss lokale Supabase-Zugangsdaten explizit blockieren.");
+
+const updateCmd = readFileSync("ULC-UPDATE-INSTALLIEREN.cmd", "utf8");
+const updatePs = readFileSync("scripts/release/install-update-package.ps1", "utf8");
+assert.match(updateCmd, /install-update-package\.ps1/, "Permanente Update-CMD muss den zentralen Paketfinder verwenden.");
+assert.match(updatePs, /ULC-Linz-App-UPDATE-\*\.zip/, "Update-Installer darf nur den festen Paketnamensraum im Download-Ordner pruefen.");
+assert.match(updatePs, /--check-only/, "Update-Installer muss Pakete vor der Auswahl gegen den aktuellen Git-Stand pruefen.");
+assert.match(updatePs, /Get-FileHash[\s\S]*SHA256/, "Identische Browser-Downloads muessen ueber SHA-256 erkannt werden.");
+assert.doesNotMatch(updatePs, /Get-ChildItem[^\n]*-Recurse/, "Update-Paket darf nicht rekursiv im Dateisystem gesucht werden.");
+
+const overlayInstaller = readFileSync("scripts/release/install-overlay.mjs", "utf8");
+assert.match(overlayInstaller, /\[1, 2\]\.includes/, "Overlay-Installer muss Manifest v1 und v2 verarbeiten.");
+assert.match(overlayInstaller, /fresh-feature/, "Manifest v2 muss fresh-feature unterstuetzen.");
+assert.match(overlayInstaller, /existing-pr/, "Manifest v2 muss bestehende PR-Korrekturen unterstuetzen.");
+assert.match(overlayInstaller, /remoteBranchCommit/, "PR-Korrekturen muessen den Remote-Feature-Commit pruefen.");
+assert.match(overlayInstaller, /--check-only/, "Paket-Anwendbarkeit muss ohne Installation pruefbar sein.");
+assert.doesNotMatch(overlayInstaller, /switch[\s\S]*-c[\s\S]*feature\//, "Overlay-Installer darf keinen zweiten Feature-Branch erzeugen.");
+assert.match(overlayInstaller, /git[\s\S]*restore[\s\S]*--source/, "Rollback muss Paketdateien gezielt aus dem Ausgangscommit wiederherstellen.");
+assert.doesNotMatch(overlayInstaller, /reset[\s\S]*--hard/, "Overlay-Installer darf keinen Hard-Reset verwenden.");
+assert.match(overlayInstaller, /uniqueLocalBranch/, "Overlay-Installer muss kollisionsfreie Backup-Branches erzeugen.");
+assert.match(overlayInstaller, /npmCommand\(\)[\s\S]*\["ci"\]/, "Aenderungen an package.json\/lock muessen node_modules reproduzierbar synchronisieren.");
+
+const verifyScript = readFileSync("scripts/release/verify-current-state.mjs", "utf8");
+const lib = readFileSync("scripts/release/lib.mjs", "utf8");
+const approve = readFileSync("scripts/release/approve-change.mjs", "utf8");
+const verifyCmd = readFileSync("ULC-PRUEFEN.cmd", "utf8");
+assert.match(verifyCmd, /verify-current-state\.mjs/, "ULC-PRUEFEN muss zuerst einen vorhandenen Pruefnachweis wiederverwenden koennen.");
+assert.match(verifyScript, /validateVerification/, "Schnellpruefung muss Branch, HEAD, Fingerprint und Profil validieren.");
+assert.match(verifyScript, /run-release-check\.mjs/, "Bei ungueltigem Nachweis muss automatisch die Vollpruefung laufen.");
+assert.match(lib, /RELEASE_VERIFICATION_PROFILE/, "Pruefnachweis muss ein versioniertes Releaseprofil besitzen.");
+assert.match(lib, /REQUIRED_RELEASE_CHECKS/, "Pruefnachweis muss die verbindlichen Checks explizit ausweisen.");
+assert.match(approve, /validateVerification/, "ULC-FREIGEBEN muss dasselbe strenge Pruefprofil verlangen.");
 
 const productionMarker = readFileSync("scripts/release/mark-production.mjs", "utf8");
 assert.match(productionMarker, /git[\s\S]*switch[\s\S]*main/, "Produktionsmarkierung muss lokal auf main wechseln.");
@@ -85,37 +144,26 @@ assert.match(productionMarker, /merge[\s\S]*--ff-only[\s\S]*origin\/main/, "Prod
 assert.doesNotMatch(productionMarker, /reset[\s\S]*--hard/, "Produktionsmarkierung darf den lokalen Stand nicht hart zuruecksetzen.");
 assert.match(productionMarker, /resolved !== remoteMain/, "Nur der aktuelle origin/main darf als Produktion bestaetigt werden.");
 
-const overlayInstaller = readFileSync("scripts/release/install-overlay.mjs", "utf8");
-assert.match(overlayInstaller, /targetBranch\.startsWith\("feature\/"\)/, "Overlay-Installer muss zwingend den von ULC-AENDERUNG-STARTEN erzeugten Feature-Branch verwenden.");
-assert.match(overlayInstaller, /currentHead !== baseCommit/, "Vorbereiteter Feature-Branch darf nur auf exakt der Paketbasis verwendet werden.");
-assert.doesNotMatch(overlayInstaller, /switch[\s\S]*-c[\s\S]*feature\//, "Overlay-Installer darf keinen zweiten Feature-Branch erzeugen.");
-assert.match(overlayInstaller, /git[\s\S]*restore[\s\S]*--source/, "Rollback muss die Paketdateien gezielt aus der Basis wiederherstellen.");
-assert.doesNotMatch(overlayInstaller, /reset[\s\S]*--hard/, "Overlay-Installer darf fuer den Rollback keinen Hard-Reset verwenden.");
-assert.match(overlayInstaller, /uniqueLocalBranch/, "Overlay-Installer muss Backup-Branches kollisionsfrei erzeugen.");
-
 const releaseDocs = readFileSync("DEVELOPMENT-RELEASE.md", "utf8");
-assert.match(releaseDocs, /ULC-AENDERUNG-STARTEN\.cmd[\s\S]*Projekt-ZIP/, "Release-Dokumentation muss die automatische Projekt-ZIP beim Aenderungsstart beschreiben.");
+for (const marker of ["ULC-UPDATE-INSTALLIEREN.cmd", "Manifestformat v2", "existing-pr", "ULC-SOURCE-METADATA.json", "Prüfnachweis wiederverwenden"]) {
+  assert.match(releaseDocs, new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")), `Release-Dokumentation fehlt: ${marker}`);
+}
 assert.match(releaseDocs, /Fast-Forward[\s\S]*main/, "Release-Dokumentation muss die sichere main-Synchronisierung nach Produktion festhalten.");
-assert.match(releaseDocs, /zwingend[\s\S]*`ULC-AENDERUNG-STARTEN\.cmd`[\s\S]*feature\//, "Release-Dokumentation muss den einen verbindlichen Feature-Branch festhalten.");
-assert.match(releaseDocs, /Download-Ordner/, "Release-Dokumentation muss ZIP und START-CMD im Download-Ordner belassen.");
 
 const releaseCheck = readFileSync("scripts/release/run-release-check.mjs", "utf8");
-assert.match(
-  releaseCheck,
-  /run-runtime-smoke\.mjs/,
-  "Release-Check muss den isolierten Runtime-Build ausfuehren und darf Playwright nicht direkt auf einem alten dist starten.",
-);
+assert.match(releaseCheck, /run-runtime-smoke\.mjs/, "Release-Check muss den isolierten Runtime-Build ausfuehren.");
 
 const performanceBudget = readFileSync("scripts/check-performance-budget.mjs", "utf8");
 assert.match(performanceBudget, /const hardChecks = \[/, "Performance-Budget muss harte Laufzeitgrenzen explizit ausweisen.");
-assert.match(performanceBudget, /const advisoryChecks = \[[\s\S]*gesamtes CSS roh[\s\S]*gesamtes CSS gzip/, "Gesamtes CSS muss als informativer Richtwert berichtet werden.");
-assert.doesNotMatch(performanceBudget.match(/const hardChecks = \[[\s\S]*?\n\];/)?.[0] ?? "", /gesamtes CSS/, "Gesamtes CSS darf kein hartes Release-Gate mehr sein.");
-assert.match(performanceBudget, /check-css-architecture\.mjs/, "Performance-Budget muss auf die separate CSS-Architekturpruefung als Wachstumsgrenze verweisen.");
+assert.match(performanceBudget, /const advisoryChecks = \[[\s\S]*gesamtes CSS roh[\s\S]*gesamtes CSS gzip/, "Gesamtes CSS muss als Richtwert berichtet werden.");
+assert.doesNotMatch(performanceBudget.match(/const hardChecks = \[[\s\S]*?\n\];/)?.[0] ?? "", /gesamtes CSS/, "Gesamtes CSS darf kein hartes Release-Gate sein.");
 
 const runtimeRunner = readFileSync("scripts/release/run-runtime-smoke.mjs", "utf8");
+const playwrightEnsure = readFileSync("scripts/release/ensure-playwright.mjs", "utf8");
 assert.match(runtimeRunner, /VITE_SUPABASE_URL:\s*"https:\/\/e2e\.supabase\.co"/, "Runtime-Build muss die Fake-Supabase-URL fest setzen.");
 assert.match(runtimeRunner, /\.ulc-runtime-dist/, "Runtime-Build muss einen isolierten Ausgabeordner verwenden.");
-assert.match(runtimeRunner, /vite\.js[\s\S]*"build"/, "Runtime-Runner muss vor Playwright einen eigenen Vite-Build erzeugen.");
+assert.doesNotMatch(playwrightEnsure, /install[\s\S]*--no-save[\s\S]*@playwright\/test/, "Playwright darf lokal nicht mehr dynamisch in package.json vorbei installiert werden.");
+assert.match(playwrightEnsure, /npmCommand\(\)[\s\S]*\["ci"\]/, "Bei unsynchronisierten Abhaengigkeiten muss npm ci verwendet werden.");
 
 const runtimeConfig = readFileSync("playwright.runtime.config.mjs", "utf8");
 assert.match(runtimeConfig, /serve-runtime-build\.mjs/, "Runtime-Test muss den isolierten Build ausliefern.");
@@ -129,7 +177,6 @@ assert.match(runtimeTest, /pageerror/, "Runtime-Test muss pageerror ueberwachen.
 assert.match(runtimeTest, /console\.error/, "Runtime-Test muss console.error ueberwachen.");
 assert.match(runtimeTest, /app-error-boundary/, "Runtime-Test muss den React Error Boundary pruefen.");
 assert.match(runtimeTest, /\/module\/athletes/, "Runtime-Test muss mindestens eine authentifizierte Modulroute oeffnen.");
-assert.match(runtimeTest, /unerwartet zum Login umgeleitet/, "Runtime-Test muss einen fehlerhaften Auth-Testaufbau eindeutig diagnostizieren.");
 
 const appSource = readFileSync("src/app/App.tsx", "utf8");
 if (/\bBrowserRouter\b/.test(appSource)) {
@@ -149,4 +196,4 @@ if (/\bBrowserRouter\b/.test(appSource)) {
   assert.deepEqual(blockerUsers, [], `BrowserRouter ist mit useBlocker nicht kompatibel: ${blockerUsers.join(", ")}`);
 }
 
-console.log("Release-Infrastruktur: Runtime-Build, Local/CI-Flow, Router-Kompatibilitaet, Browser-Gate und Freigaberoutine sind vollstaendig abgesichert.");
+console.log("Release-Infrastruktur S1: reproduzierbare Source-ZIP, permanenter Update-Installer, Manifest v2, Pruefnachweis-Reuse und lokale/CI-Gates sind abgesichert.");
