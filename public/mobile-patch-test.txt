@@ -1,0 +1,7 @@
+ULC Linz App – Mobile-Patch-Test
+Datum: 2026-08-08
+
+Wenn du diese Datei über die Vercel-Preview aufrufen kannst,
+funktioniert der mobile Ablauf ChatGPT -> GitHub Actions -> Vercel Preview.
+
+Dieser Test verändert keine App-Funktion und soll NICHT nach main gemergt werden.
