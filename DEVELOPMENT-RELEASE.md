@@ -325,3 +325,48 @@ sauberer main + production-* Tag
 ## Architekturgrenze
 
 S1 ändert ausschließlich die Entwicklungs-, Test- und Release-Infrastruktur. Fachliche Funktionen, Seiteninhalte, Benutzerabläufe und Datenbanklogik werden nicht verändert.
+
+## S2a – CI-Geschwindigkeit ohne schwächere Release-Gates
+
+Seit S2a wird die GitHub-CI auf Pull Requests zeitlich optimiert, ohne die
+vollständige Regression auf `main` zu entfernen.
+
+### Quality
+
+Die bisher serielle Kombination aus `ci:quality` und Browser-Runtime wurde in
+zwei parallele Jobs getrennt:
+
+- `Quality-Kernprüfung`: TypeScript, statische/strukturelle Tests, Build,
+  Performance- und Releaseprüfungen.
+- `Browser-Runtime`: echter Chromium-Test gegen einen isolierten Fake-Supabase-Build.
+
+Der bestehende verpflichtende Checkname `TypeScript, Tests, Build und Runtime`
+bleibt als Aggregator erhalten und wird nur grün, wenn beide parallelen Jobs grün sind.
+
+Auf Pull Requests läuft im Runtime-Job ein explizit markiertes kritisches Kernset
+auf Mobile 390 und Desktop 1280. Nach einem Merge auf `main` läuft weiterhin die
+vollständige Runtime-Regressionssuite auf beiden Viewports.
+
+### Schreibende E2E
+
+Die schreibende Suite behält weiterhin:
+
+- den Scope-Filter für nicht schreibrelevante Pull Requests,
+- die isolierte lokale Supabase-Umgebung,
+- dieselben ausgeschlossenen, nicht benötigten Supabase-Dienste,
+- das PR-Kernset bzw. die Vollregression auf `main`.
+
+Zur Zeitersparnis werden `supabase start` und die Installation von Chromium samt
+Linux-Systemabhängigkeiten nun parallel gestartet. Beide Prozesse werden
+verbindlich auf Exitcode und Status geprüft; ein Fehler in einem der beiden
+Teilprozesse bleibt ein harter CI-Fehler.
+
+Der Workflow schreibt die gemessene Dauer von Supabase, Chromium und dem gesamten
+Parallelblock in die GitHub Step Summary. Damit kann später datenbasiert entschieden
+werden, ob weitere Supabase-Dienste sicher entfallen können.
+
+Playwright-Browserbinaries werden bewusst nicht über GitHub Actions gecacht. Die
+Playwright-Dokumentation weist darauf hin, dass das Wiederherstellen dieses Caches
+unter Linux meist ähnlich lange dauert wie der Browserdownload und die
+Systemabhängigkeiten trotzdem installiert werden müssen.
+

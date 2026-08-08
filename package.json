@@ -41,6 +41,7 @@
     "check:release-infrastructure": "node scripts/check-release-infrastructure.mjs",
     "test:runtime": "node scripts/release/run-runtime-smoke.mjs",
     "test:runtime:ci": "node scripts/release/run-runtime-smoke.mjs",
+    "test:runtime:pr": "node scripts/release/run-runtime-smoke.mjs --profile=pr",
     "release:check": "node scripts/release/run-release-check.mjs",
     "release:check:ci": "node scripts/release/run-release-check.mjs",
     "change:start": "node scripts/release/start-change.mjs",

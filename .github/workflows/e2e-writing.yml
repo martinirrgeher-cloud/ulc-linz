@@ -14,6 +14,7 @@ on:
       - "scripts/seed-e2e-writing.mjs"
       - "scripts/check-e2e-writing-suite.mjs"
       - "scripts/run-e2e-writing.ps1"
+      - "scripts/ci/prepare-writing-e2e.sh"
       - "package.json"
       - "package-lock.json"
       - ".github/workflows/e2e-writing.yml"
@@ -27,6 +28,7 @@ on:
       - "scripts/seed-e2e-writing.mjs"
       - "scripts/check-e2e-writing-suite.mjs"
       - "scripts/run-e2e-writing.ps1"
+      - "scripts/ci/prepare-writing-e2e.sh"
       - "package.json"
       - "package-lock.json"
       - ".github/workflows/e2e-writing.yml"
@@ -125,11 +127,10 @@ jobs:
         if: steps.scope.outputs.run == 'true'
         run: docker info
 
-      - name: Isolierte lokale Supabase-Umgebung starten
+      - name: Supabase und Chromium parallel vorbereiten
         if: steps.scope.outputs.run == 'true'
-        run: >
-          supabase start
-          -x studio,imgproxy,mailpit,edge-runtime,logflare,vector,supavisor
+        shell: bash
+        run: bash scripts/ci/prepare-writing-e2e.sh
 
       # supabase start applies all migrations before Realtime is started. A second
       # reset would recreate Postgres underneath Realtime and make changes flaky.
@@ -157,10 +158,6 @@ jobs:
       - name: Kuenstliche Testbenutzer und Testdaten anlegen
         if: steps.scope.outputs.run == 'true'
         run: node scripts/seed-e2e-writing.mjs
-
-      - name: Chromium und Systemabhaengigkeiten installieren
-        if: steps.scope.outputs.run == 'true'
-        run: npx playwright install --with-deps chromium
 
       - name: Anwendung gegen lokales Supabase bauen
         if: steps.scope.outputs.run == 'true'
