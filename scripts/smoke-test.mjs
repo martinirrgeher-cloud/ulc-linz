@@ -346,7 +346,15 @@ const trainingBlocksCssSource = await readFile(new URL("../src/styles/training-b
 const globalCssSource = await readFile(new URL("../src/styles/global.css", import.meta.url), "utf8");
 const runtimeSmokeSource = await readFile(new URL("../tests/runtime/app-runtime.spec.mjs", import.meta.url), "utf8");
 const mobileReadOnlySource = await readFile(new URL("../tests/e2e/mobile-readonly.spec.mjs", import.meta.url), "utf8");
-const writingCoreSource = await readFile(new URL("../tests/e2e-writing/core-writing.spec.mjs", import.meta.url), "utf8");
+const writingCoreSource = (
+  await Promise.all([
+    "../tests/e2e-writing/masterdata-writing.spec.mjs",
+    "../tests/e2e-writing/collaboration-writing.spec.mjs",
+    "../tests/e2e-writing/catalog-writing.spec.mjs",
+    "../tests/e2e-writing/registration-writing.spec.mjs",
+    "../tests/e2e-writing/planning-writing.spec.mjs",
+  ].map((relativePath) => readFile(new URL(relativePath, import.meta.url), "utf8")))
+).join("\n");
 const userManagementTestHelperSource = await readFile(new URL("../tests/helpers/user-management.mjs", import.meta.url), "utf8");
 const masterdataTestHelperSource = await readFile(new URL("../tests/helpers/masterdata.mjs", import.meta.url), "utf8");
 
@@ -397,8 +405,8 @@ test("Auswahllisten und Benutzerverwaltung nutzen die kompakte Mobile-UX", () =>
   assert.ok(runtimeSmokeSource.includes('simulateMember(page, "E2E Zweitadmin")'));
   assert.ok(runtimeSmokeSource.includes('resendMemberInvitation(page, "Offene Einladung")'));
   assert.ok(mobileReadOnlySource.includes('openMemberInfo(page, "Offene Einladung")'));
-  assert.ok(writingCoreSource.includes('editMember(page, "E2E Elternteil")'));
-  assert.ok(writingCoreSource.includes('openMemberInfo(page, "E2E Elternteil")'));
+  assert.ok(writingCoreSource.includes("editMember(page, SCENARIO.parentDisplayName)"));
+  assert.ok(writingCoreSource.includes("openMemberInfo(page, SCENARIO.parentDisplayName)"));
   assert.ok(writingCoreSource.includes('parentInfo.getByText(/Athleten: Anna E2E, Berta E2E/)'));
   assert.doesNotMatch(runtimeSmokeSource, /\.member-card/);
   assert.doesNotMatch(mobileReadOnlySource, /\.member-card/);
@@ -499,10 +507,6 @@ const dataImportApiTypedSource = await readFile(
   new URL("../src/features/data-import/api.ts", import.meta.url),
   "utf8",
 );
-const projectArchiveScriptSource = await readFile(
-  new URL("../scripts/create-project-archive.ps1", import.meta.url),
-  "utf8",
-);
 
 test("E0 konsolidiert alte ungeschützte Schreibfunktionen im Migrationsstand", () => {
   for (const functionName of [
@@ -538,13 +542,6 @@ test("E0 hält Import-Schema, Supabase-Typen und API konsistent", () => {
   assert.ok(dataImportApiTypedSource.includes('rpc("apply_athlete_import_v1"'));
 });
 
-test("Projektarchiv stammt ausschließlich aus Git und enthält eindeutige Source-Metadaten", () => {
-  assert.ok(projectArchiveScriptSource.includes("git -C $ProjectRoot archive"));
-  assert.ok(projectArchiveScriptSource.includes("ULC-SOURCE-METADATA.json"));
-  assert.match(projectArchiveScriptSource, /rev-parse\s+["\']?HEAD\^\{tree\}["\']?/);
-  assert.ok(projectArchiveScriptSource.includes("supabase-local.env"));
-  assert.doesNotMatch(projectArchiveScriptSource, /robocopy/i);
-});
 
 const databaseTestsWorkflowSource = await readFile(
   new URL("../.github/workflows/database-tests.yml", import.meta.url),
@@ -1155,10 +1152,6 @@ const n1DashboardSource = await readFile(
   new URL("../src/pages/DashboardPage.tsx", import.meta.url),
   "utf8",
 );
-const n1StartChangeSource = await readFile(
-  new URL("./release/start-change.mjs", import.meta.url),
-  "utf8",
-);
 const d1DashboardApiSource = await readFile(
   new URL("../src/features/dashboard/api.ts", import.meta.url),
   "utf8",
@@ -1200,12 +1193,6 @@ test("D1 Dashboard nutzt vorhandene Lesemodelle fuer Aufgaben und Heute-Infos", 
   assert.ok(d1DashboardApiSource.includes("Benutzereinladungen offen"));
 });
 
-test("Aenderung starten erzeugt unter Windows automatisch das Projektarchiv", () => {
-  assert.ok(n1StartChangeSource.includes('"powershell.exe"'));
-  assert.ok(n1StartChangeSource.includes('"-ExecutionPolicy"'));
-  assert.ok(n1StartChangeSource.includes('"Bypass"'));
-  assert.ok(n1StartChangeSource.includes('create-project-archive.ps1'));
-});
 
 const u1AuthContextSource = await readFile(
   new URL("../src/features/auth/AuthContext.tsx", import.meta.url),

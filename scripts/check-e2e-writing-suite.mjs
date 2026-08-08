@@ -1,21 +1,36 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 
+const specFiles = [
+  "tests/e2e-writing/masterdata-writing.spec.mjs",
+  "tests/e2e-writing/collaboration-writing.spec.mjs",
+  "tests/e2e-writing/catalog-writing.spec.mjs",
+  "tests/e2e-writing/registration-writing.spec.mjs",
+  "tests/e2e-writing/planning-writing.spec.mjs",
+];
+
 const requiredFiles = [
   "playwright.writing.config.mjs",
   "scripts/seed-e2e-writing.mjs",
   "scripts/run-e2e-writing.ps1",
+  "scripts/check-writing-test-isolation.mjs",
+  "scripts/test-writing-test-isolation.mjs",
+  "scripts/lib/writing-test-isolation.mjs",
   "tests/e2e-writing/helpers/test-data.mjs",
   "tests/e2e-writing/helpers/auth.mjs",
+  "tests/e2e-writing/helpers/scenarios.mjs",
   "tests/helpers/masterdata.mjs",
   "tests/helpers/user-management.mjs",
-  "tests/e2e-writing/core-writing.spec.mjs",
+  ...specFiles,
   ".github/workflows/e2e-writing.yml",
   "E1B2-SCHREIBENDE-TESTS.md",
 ];
 
 for (const file of requiredFiles) {
   if (!existsSync(file)) throw new Error(`E1b.2 file is missing: ${file}`);
+}
+if (existsSync("tests/e2e-writing/core-writing.spec.mjs")) {
+  throw new Error("The old monolithic core-writing.spec.mjs must be removed after S2c.");
 }
 
 for (const file of requiredFiles.filter((file) => file.endsWith(".mjs"))) {
@@ -26,7 +41,7 @@ const config = readFileSync("playwright.writing.config.mjs", "utf8");
 for (const marker of [
   'testDir: "./tests/e2e-writing"',
   "fullyParallel: false",
-  "workers: 1",
+  "workers: process.env.CI ? 2 : 1",
   "retries: 0",
   "width: 390",
   "height: 844",
@@ -50,7 +65,9 @@ for (const marker of [
   if (!seed.includes(marker)) throw new Error(`Writing E2E seed marker is missing: ${marker}`);
 }
 
-const testFile = readFileSync("tests/e2e-writing/core-writing.spec.mjs", "utf8");
+const testSources = new Map(specFiles.map((file) => [file, readFileSync(file, "utf8")]));
+const allTests = [...testSources.values()].join("\n");
+
 for (const marker of [
   "/module/athletes",
   "/module/exercise_catalog",
@@ -61,8 +78,6 @@ for (const marker of [
   "Rechtevorlage",
   "Änderungsprotokoll",
   "Der Datensatz wird bereits bearbeitet.",
-  'editGroup(page, "E2E Leistungsgruppe")',
-  'editTrainer(page, "Tom E2E")',
   "Übung suchen",
   "Neuerer Serverstand vorhanden",
   "Eigene Eingaben behalten",
@@ -73,8 +88,9 @@ for (const marker of [
   "Berta E2E",
   'data-realtime-status="subscribed"',
 ]) {
-  if (!testFile.includes(marker)) throw new Error(`Writing E2E test marker is missing: ${marker}`);
+  if (!allTests.includes(marker)) throw new Error(`Writing E2E test marker is missing: ${marker}`);
 }
+
 for (const marker of [
   '{ tag: "@pr" }',
   'getByTestId("masterdata-create-menu-toggle")',
@@ -84,30 +100,36 @@ for (const marker of [
   'getByTestId("exercise-create")',
   'getByTestId("training-block-create")',
   'getByTestId("exercise-usage")',
-  'editMember(page, "E2E Elternteil")',
-  'openMemberInfo(page, "E2E Elternteil")',
-  'editAthlete(page, athleteFullName())',
+  "editMember(page, SCENARIO.parentDisplayName)",
+  "openMemberInfo(page, SCENARIO.parentDisplayName)",
 ]) {
-  if (!testFile.includes(marker)) throw new Error(`Writing E2E stable selector/PR marker is missing: ${marker}`);
+  if (!allTests.includes(marker)) throw new Error(`Writing E2E stable selector/PR marker is missing: ${marker}`);
 }
-const trainerGroupSequence = /getByLabel\("E-Mail-Adresse"\)[\s\S]{0,300}getByRole\("tab", \{ name: \/Gruppen\/ \}\)\.click\(\)[\s\S]{0,300}getByRole\("checkbox",\s*\{\s*name:\s*UI_GROUP\s*\}\)\.check\(\)/;
-if (!trainerGroupSequence.test(testFile)) {
-  throw new Error("Trainer creation must open the Gruppen tab before selecting the training group with a non-exact accessible-name locator.");
+
+const masterdataSource = testSources.get("tests/e2e-writing/masterdata-writing.spec.mjs");
+const trainerGroupSequence = /getByLabel\("E-Mail-Adresse"\)[\s\S]{0,300}getByRole\("tab", \{ name: \/Gruppen\/ \}\)\.click\(\)[\s\S]{0,300}getByRole\("checkbox",\s*\{\s*name:\s*SCENARIO\.groupName\s*\}\)\.check\(\)/;
+if (!trainerGroupSequence.test(masterdataSource)) {
+  throw new Error("Trainer creation must open the Gruppen tab before selecting the training group.");
 }
-const exactTrainerGroupLocator = /trainerEditor\.getByRole\("checkbox",\s*\{\s*name:\s*UI_GROUP,\s*exact:\s*true\s*\}\)/;
-if (exactTrainerGroupLocator.test(testFile)) {
+const exactTrainerGroupLocator = /trainerEditor\.getByRole\("checkbox",\s*\{\s*name:\s*SCENARIO\.groupName,\s*exact:\s*true\s*\}\)/;
+if (exactTrainerGroupLocator.test(masterdataSource)) {
   throw new Error("Trainer group locator must not use exact:true because the checkbox accessible name also contains the group short name.");
 }
 
-const prTagCount = (testFile.match(/tag:\s*"@pr"/g) ?? []).length;
-if (prTagCount < 4) {
-  throw new Error(`Expected at least 4 PR-tagged writing E2E tests, found ${prTagCount}.`);
+const prTagCount = (allTests.match(/tag:\s*"@pr"/g) ?? []).length;
+if (prTagCount !== 4) {
+  throw new Error(`Expected exactly 4 PR-tagged writing E2E tests, found ${prTagCount}.`);
 }
-
-if (testFile.includes("test.describe.serial")) {
-  throw new Error("Writing E2E tests must continue after an individual failure.");
+for (const source of testSources.values()) {
+  if (source.includes("test.describe.serial")) {
+    throw new Error("Writing E2E tests must continue after an individual failure.");
+  }
+  if (/test\.describe\.configure\(\s*\{\s*mode:\s*["']parallel["']/.test(source)) {
+    throw new Error("Parallelism must stay at domain-file level; tests inside one domain file remain serial.");
+  }
 }
-const writingTestCount = (testFile.match(/\btest\("/g) ?? []).length;
+const writingTestCount = [...testSources.values()]
+  .reduce((count, source) => count + (source.match(/\btest\("/g) ?? []).length, 0);
 if (writingTestCount !== 6) {
   throw new Error(`Expected 6 writing E2E tests, found ${writingTestCount}.`);
 }
@@ -115,6 +137,9 @@ if (writingTestCount !== 6) {
 const workflow = readFileSync(".github/workflows/e2e-writing.yml", "utf8");
 for (const marker of [
   "scripts/ci/prepare-writing-e2e.sh",
+  "scripts/check-writing-test-isolation.mjs",
+  "scripts/test-writing-test-isolation.mjs",
+  "scripts/lib/writing-test-isolation.mjs",
   "supabase migration list --local",
   "supabase status -o env",
   "seed-e2e-writing.mjs",
@@ -140,6 +165,7 @@ const parallelPreparationIndex = workflow.indexOf("Supabase und Chromium paralle
 if (structureCheckIndex < 0 || parallelPreparationIndex < 0 || structureCheckIndex > parallelPreparationIndex) {
   throw new Error("Writing E2E structure checks must run before the expensive Supabase/Chromium preparation.");
 }
+
 const preparationScript = readFileSync("scripts/ci/prepare-writing-e2e.sh", "utf8");
 if (!preparationScript.includes("supabase start")) {
   throw new Error("Parallel writing E2E preparation must start the local Supabase stack.");
@@ -155,10 +181,16 @@ if (!pkg.scripts?.["test:e2e:writing:pr"]?.includes("--grep @pr")) {
 if (!pkg.scripts?.["test:e2e:writing:ci"]) {
   throw new Error("Full writing E2E script is missing.");
 }
+if (pkg.scripts?.["check:writing-test-isolation"] !== "node scripts/check-writing-test-isolation.mjs") {
+  throw new Error("S2c writing isolation architecture check is missing.");
+}
+if (pkg.scripts?.["test:writing-test-isolation"] !== "node --test scripts/test-writing-test-isolation.mjs") {
+  throw new Error("S2c writing isolation logic test is missing.");
+}
 
 const runnerBuffer = readFileSync("scripts/run-e2e-writing.ps1");
 if ([...runnerBuffer].some((byte) => byte > 127)) {
   throw new Error("The Windows PowerShell runner must contain ASCII characters only.");
 }
 
-console.log("E1b.2 writing E2E suite structure verified.");
+console.log("E1b.2 writing E2E suite structure verified: 5 domain specs / 6 tests / 4 PR core tests / 2 CI workers.");

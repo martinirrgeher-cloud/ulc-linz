@@ -396,3 +396,37 @@ Playwright-Dokumentation weist darauf hin, dass das Wiederherstellen dieses Cach
 unter Linux meist ähnlich lange dauert wie der Browserdownload und die
 Systemabhängigkeiten trotzdem installiert werden müssen.
 
+
+## S2b – stabile Test-Interaktionen
+
+Browser-Tests greifen in häufig veränderten Bereichen über gemeinsame
+Interaktions-Helper und gezielte `data-testid`-Anker auf die Oberfläche zu.
+Runtime-, Read-only- und Writing-E2E sollen Bedienpfade nicht mehrfach über
+CSS-Klassen oder sichtbare Icon-Beschriftungen nachbauen.
+
+## S2c – Testschichten, Testdatenisolation und Writing-Parallelisierung
+
+Die schreibenden Browsertests sind ab S2c nach fachlichen Testdomänen getrennt.
+Der frühere monolithische `core-writing.spec.mjs` ist auf fünf Dateien verteilt:
+Stammdaten/Benutzer, Kollaboration, Katalog/Blöcke, Anmeldung und Planung.
+
+GitHub führt diese Domänendateien mit zwei Workern aus. Innerhalb einer Domäne
+bleibt die Reihenfolge seriell (`fullyParallel: false`). Lokale manuelle Läufe
+verwenden weiterhin einen Worker.
+
+Die Datei `tests/e2e-writing/helpers/scenarios.mjs` beschreibt für jede Domäne
+explizit ihre veränderbaren Ressourcen. `check:writing-test-isolation` und die
+Unit-Tests in `test:writing-test-isolation` verhindern, dass zwei parallel
+ausführbare Domänen dieselbe schreibbare Ressource beanspruchen.
+
+Die Testschichten werden gleichzeitig klarer getrennt:
+
+- `smoke-test.mjs`: schnelle App-/Fachstruktur-Invarianten,
+- dedizierte `check:*`-Skripte: Architektur- und Infrastrukturverträge,
+- `node:test`: echte Logiktests für wiederverwendbare Prüfalgorithmen,
+- Playwright Runtime/Read-only/Writing: sichtbares Browserverhalten.
+
+Zwei reine Release-Infrastrukturprüfungen wurden deshalb aus dem allgemeinen
+Smoke-Test entfernt und verbleiben ausschließlich im dedizierten
+Release-Infrastruktur-/Start-Change-Test. `check:test-layering` verhindert eine
+erneute Vermischung dieser Verantwortlichkeiten.

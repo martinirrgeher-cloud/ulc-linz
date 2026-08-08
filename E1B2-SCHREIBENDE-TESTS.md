@@ -11,8 +11,10 @@ Die wichtigsten schreibenden App-Abläufe werden mit künstlichen Benutzern und 
 - vollständiger Aufbau aus allen Repository-Migrationen
 - vier künstliche Rollen: Administrator, Trainer, Athlet und Elternteil
 - Chromium auf 390 x 844 Pixel
-- ein einzelner Playwright-Worker; unabhängige Tests laufen auch nach einem Einzelfehler weiter
-- Browsercache in GitHub Actions, damit Chromium nicht bei jedem Lauf neu geladen werden muss
+- lokal ein Playwright-Worker; in GitHub zwei Datei-Worker für voneinander isolierte Testdomänen
+- `fullyParallel` bleibt deaktiviert: innerhalb einer Testdomäne laufen Tests weiterhin seriell
+- Supabase und Chromium/Systemabhängigkeiten werden in GitHub parallel vorbereitet
+- kein Playwright-Browsercache; die Browserinstallation bleibt reproduzierbar und wird parallel zum Supabase-Start überlappt
 
 ## Aktuelle Tests
 
@@ -58,3 +60,27 @@ Remove-Item Env:E2E_REALTIME_DIAGNOSTIC -ErrorAction SilentlyContinue
 
 Offener Punkt: E4 Realtime-CI mit lokaler Supabase stabilisieren und den Test danach wieder verpflichtend aktivieren.
 
+
+## S2c – Testdomänen und sichere Parallelisierung
+
+Die frühere Datei `tests/e2e-writing/core-writing.spec.mjs` wurde in fünf fachlich
+getrennte Spezifikationen aufgeteilt:
+
+- `masterdata-writing.spec.mjs`
+- `collaboration-writing.spec.mjs`
+- `catalog-writing.spec.mjs`
+- `registration-writing.spec.mjs`
+- `planning-writing.spec.mjs`
+
+GitHub verwendet genau zwei Playwright-Worker. Da `fullyParallel` weiterhin
+deaktiviert ist, parallelisiert Playwright nur zwischen diesen Dateien; Tests
+innerhalb derselben Domäne bleiben seriell.
+
+`tests/e2e-writing/helpers/scenarios.mjs` dokumentiert für jede Domäne ihre
+schreibenden Ressourcen (`writeKeys`). `check:writing-test-isolation` blockiert
+eine Parallelisierung, sobald zwei Domänen dieselbe schreibbare Ressource
+beanspruchen. Die Validierungslogik besitzt zusätzlich echte `node:test`-Unit-Tests.
+
+Lokale manuelle Writing-E2E-Läufe bleiben bewusst auf einem Worker. Dadurch ist
+die lokale Fehlersuche deterministisch, während GitHub die voneinander isolierten
+Domänen parallel abarbeiten kann.
