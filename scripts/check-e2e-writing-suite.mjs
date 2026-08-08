@@ -85,9 +85,13 @@ for (const marker of [
 ]) {
   if (!testFile.includes(marker)) throw new Error(`Writing E2E stable selector/PR marker is missing: ${marker}`);
 }
-const trainerGroupSequence = /getByLabel\("E-Mail-Adresse"\)[\s\S]{0,300}getByRole\("tab", \{ name: \/Gruppen\/ \}\)\.click\(\)[\s\S]{0,300}getByRole\("checkbox", \{ name: UI_GROUP, exact: true \}\)\.check\(\)/;
+const trainerGroupSequence = /getByLabel\("E-Mail-Adresse"\)[\s\S]{0,300}getByRole\("tab", \{ name: \/Gruppen\/ \}\)\.click\(\)[\s\S]{0,300}getByRole\("checkbox",\s*\{\s*name:\s*UI_GROUP\s*\}\)\.check\(\)/;
 if (!trainerGroupSequence.test(testFile)) {
-  throw new Error("Trainer creation must open the Gruppen tab before selecting a training group.");
+  throw new Error("Trainer creation must open the Gruppen tab before selecting the training group with a non-exact accessible-name locator.");
+}
+const exactTrainerGroupLocator = /trainerEditor\.getByRole\("checkbox",\s*\{\s*name:\s*UI_GROUP,\s*exact:\s*true\s*\}\)/;
+if (exactTrainerGroupLocator.test(testFile)) {
+  throw new Error("Trainer group locator must not use exact:true because the checkbox accessible name also contains the group short name.");
 }
 
 const prTagCount = (testFile.match(/tag:\s*"@pr"/g) ?? []).length;
