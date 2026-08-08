@@ -1,6 +1,16 @@
 import { expect, test } from "@playwright/test";
 import { expectNoAppError, login } from "./helpers/auth.mjs";
 import { E2E } from "./helpers/test-data.mjs";
+import {
+  editAthlete,
+  editGroup,
+  editTrainer,
+} from "../helpers/masterdata.mjs";
+import {
+  closeMemberInfo,
+  editMember,
+  openMemberInfo,
+} from "../helpers/user-management.mjs";
 
 const UI_GROUP = "E2E UI Gruppe";
 const UI_ATHLETE = { firstName: "Eva", lastName: "E2E UI" };
@@ -28,7 +38,7 @@ test.describe("Schreibende Kernabläufe in isolierter Supabase-Umgebung", () => 
     const createActions = page.getByTestId("masterdata-create-menu-toggle");
     await createActions.click();
     await page.getByTestId("masterdata-create-groups").click();
-    const groupEditor = page.locator(".management-editor");
+    const groupEditor = page.getByTestId("masterdata-group-editor");
     await expect(groupEditor.getByRole("heading", { name: "Gruppe anlegen" })).toBeVisible();
     await groupEditor.getByLabel("Gruppenname").fill(UI_GROUP);
     await groupEditor.getByLabel("Kurzbezeichnung").fill("E2E-UI");
@@ -38,7 +48,7 @@ test.describe("Schreibende Kernabläufe in isolierter Supabase-Umgebung", () => 
 
     await createActions.click();
     await page.getByTestId("masterdata-create-athletes").click();
-    const athleteEditor = page.locator(".athlete-editor");
+    const athleteEditor = page.getByTestId("masterdata-athlete-editor");
     await athleteEditor.getByLabel("Vorname").fill(UI_ATHLETE.firstName);
     await athleteEditor.getByLabel("Nachname").fill(UI_ATHLETE.lastName);
     await athleteEditor.getByLabel("Geburtsjahr").fill("2012");
@@ -48,20 +58,20 @@ test.describe("Schreibende Kernabläufe in isolierter Supabase-Umgebung", () => 
     await expect(page.getByText("Der Athlet wurde angelegt.", { exact: true })).toBeVisible();
     await expect(page.getByRole("heading", { name: athleteFullName(), exact: true })).toBeVisible();
 
-    await page.getByRole("button", { name: `${athleteFullName()} bearbeiten` }).click();
+    await editAthlete(page, athleteFullName());
     await expect(athleteEditor.getByRole("heading", { name: "Athlet bearbeiten" })).toBeVisible();
     await athleteEditor.getByLabel("Interne Notiz").fill("E1b.2 Persistenzprüfung");
     await athleteEditor.getByTestId("editor-save").click();
     await expect(page.getByText("Die Athletendaten wurden gespeichert.", { exact: true })).toBeVisible();
 
     await page.reload();
-    await page.getByRole("button", { name: `${athleteFullName()} bearbeiten` }).click();
+    await editAthlete(page, athleteFullName());
     await expect(athleteEditor.getByLabel("Interne Notiz")).toHaveValue("E1b.2 Persistenzprüfung");
     await athleteEditor.getByTestId("editor-close").click();
 
     await createActions.click();
     await page.getByTestId("masterdata-create-trainers").click();
-    const trainerEditor = page.locator(".trainer-editor");
+    const trainerEditor = page.getByTestId("masterdata-trainer-editor");
     await trainerEditor.getByLabel("Vorname").fill(UI_TRAINER.firstName);
     await trainerEditor.getByLabel("Nachname").fill(UI_TRAINER.lastName);
     await trainerEditor.getByLabel("E-Mail-Adresse").fill("tina.e1b2@example.test");
@@ -75,9 +85,7 @@ test.describe("Schreibende Kernabläufe in isolierter Supabase-Umgebung", () => 
 
     await page.goto("/module/user_management");
     await expect(page.getByRole("heading", { name: "Benutzerverwaltung", exact: true })).toBeVisible();
-    const parentCard = page.locator(".member-card").filter({ hasText: "E2E Elternteil" });
-    await parentCard.getByRole("button", { name: "E2E Elternteil bearbeiten", exact: true }).click();
-    const memberEditor = page.locator(".management-editor");
+    const memberEditor = await editMember(page, "E2E Elternteil");
     await expect(memberEditor.getByLabel("Rechtevorlage")).toBeEnabled({ timeout: 15_000 });
     await memberEditor.getByLabel("Rechtevorlage").selectOption("parent");
     await memberEditor.getByRole("checkbox", { name: "Anna E2E", exact: true }).check();
@@ -86,13 +94,11 @@ test.describe("Schreibende Kernabläufe in isolierter Supabase-Umgebung", () => 
     await memberEditor.getByRole("button", { name: "Änderungen speichern", exact: true }).click();
     await expect(page.getByText("Die Benutzerdaten wurden gespeichert.", { exact: true })).toBeVisible({ timeout: 15_000 });
 
-    await parentCard.getByRole("button", { name: "Informationen zu E2E Elternteil", exact: true }).click();
-    const parentInfo = page.getByRole("dialog", { name: "E2E Elternteil" });
-    await expect(parentInfo).toBeVisible();
+    const parentInfo = await openMemberInfo(page, "E2E Elternteil");
     await expect(parentInfo.getByText(/Athleten: Anna E2E, Berta E2E/)).toBeVisible();
-    await parentInfo.getByRole("button", { name: "Benutzerinfo schließen", exact: true }).click();
+    await closeMemberInfo(parentInfo);
 
-    await parentCard.getByRole("button", { name: "E2E Elternteil bearbeiten", exact: true }).click();
+    await editMember(page, "E2E Elternteil");
     await expect(memberEditor.getByRole("checkbox", { name: "Anna E2E", exact: true })).toBeChecked();
     await expect(memberEditor.getByRole("checkbox", { name: "Berta E2E", exact: true })).toBeChecked();
     await expect(memberEditor.getByText("Änderungsprotokoll", { exact: true })).toBeVisible({ timeout: 15_000 });
@@ -106,9 +112,9 @@ test.describe("Schreibende Kernabläufe in isolierter Supabase-Umgebung", () => 
   test("Gruppen und Trainer werden in einer zweiten Sitzung sofort gesperrt", async ({ page, browser }) => {
     await login(page, "admin");
     await page.goto("/module/athletes?tab=groups");
-    await page.getByRole("button", { name: "E2E Leistungsgruppe bearbeiten", exact: true }).click();
+    await editGroup(page, "E2E Leistungsgruppe");
 
-    const groupEditor = page.locator(".management-editor");
+    const groupEditor = page.getByTestId("masterdata-group-editor");
     await expect(groupEditor.getByRole("heading", { name: "Gruppe bearbeiten", exact: true })).toBeVisible();
     await expect(groupEditor.getByLabel("Gruppenname")).toBeEnabled({ timeout: 15_000 });
 
@@ -123,7 +129,7 @@ test.describe("Schreibende Kernabläufe in isolierter Supabase-Umgebung", () => 
       const trainerPage = await groupContext.newPage();
       await login(trainerPage, "trainer");
       await trainerPage.goto("/module/athletes?tab=groups");
-      await trainerPage.getByRole("button", { name: "E2E Leistungsgruppe bearbeiten", exact: true }).click();
+      await editGroup(trainerPage, "E2E Leistungsgruppe");
       await expect(
         trainerPage.getByRole("alert").filter({ hasText: "Der Datensatz wird bereits bearbeitet." }),
       ).toBeVisible({ timeout: 15_000 });
@@ -135,9 +141,9 @@ test.describe("Schreibende Kernabläufe in isolierter Supabase-Umgebung", () => 
     await groupEditor.getByTestId("editor-close").click();
     await page.waitForTimeout(600);
     await page.getByRole("tab", { name: /Trainer/ }).click();
-    await page.getByRole("button", { name: "Tom E2E bearbeiten", exact: true }).click();
+    await editTrainer(page, "Tom E2E");
 
-    const trainerEditor = page.locator(".trainer-editor");
+    const trainerEditor = page.getByTestId("masterdata-trainer-editor");
     await expect(trainerEditor.getByRole("heading", { name: "Trainer bearbeiten", exact: true })).toBeVisible();
     await expect(trainerEditor.getByLabel("Vorname")).toBeEnabled({ timeout: 15_000 });
 
@@ -152,7 +158,7 @@ test.describe("Schreibende Kernabläufe in isolierter Supabase-Umgebung", () => 
       const secondTrainerPage = await trainerContext.newPage();
       await login(secondTrainerPage, "trainer");
       await secondTrainerPage.goto("/module/athletes?tab=trainers");
-      await secondTrainerPage.getByRole("button", { name: "Tom E2E bearbeiten", exact: true }).click();
+      await editTrainer(secondTrainerPage, "Tom E2E");
       await expect(
         secondTrainerPage.getByRole("alert").filter({ hasText: "Der Datensatz wird bereits bearbeitet." }),
       ).toBeVisible({ timeout: 15_000 });
@@ -176,7 +182,7 @@ test.describe("Schreibende Kernabläufe in isolierter Supabase-Umgebung", () => 
 
     await page.getByTestId("masterdata-create-menu-toggle").click();
     await page.getByTestId("masterdata-create-athletes").click();
-    const firstEditor = page.locator(".athlete-editor");
+    const firstEditor = page.getByTestId("masterdata-athlete-editor");
     await firstEditor.getByLabel("Vorname").fill(UI_REALTIME_ATHLETE.firstName);
     await firstEditor.getByLabel("Nachname").fill(UI_REALTIME_ATHLETE.lastName);
     await firstEditor.getByTestId("editor-save").click();
@@ -200,9 +206,9 @@ test.describe("Schreibende Kernabläufe in isolierter Supabase-Umgebung", () => 
       const secondPage = await secondContext.newPage();
       await login(secondPage, "admin");
       await secondPage.goto("/module/athletes");
-      await secondPage.getByRole("button", { name: `${originalName} bearbeiten`, exact: true }).click();
+      await editAthlete(secondPage, originalName);
 
-      const secondEditor = secondPage.locator(".athlete-editor");
+      const secondEditor = secondPage.getByTestId("masterdata-athlete-editor");
       await expect(secondEditor.getByLabel("Nachname")).toBeEnabled({ timeout: 15_000 });
       await secondEditor.getByLabel("Nachname").fill("E4 Server");
       await secondEditor.getByTestId("editor-save").click();
@@ -211,10 +217,10 @@ test.describe("Schreibende Kernabläufe in isolierter Supabase-Umgebung", () => 
         timeout: 15_000,
       });
 
-      await page.getByRole("button", { name: `${changedName} bearbeiten`, exact: true }).click();
+      await editAthlete(page, changedName);
       await firstEditor.getByLabel("Interne Notiz").fill("Lokaler E4 Konfliktentwurf");
 
-      await secondPage.getByRole("button", { name: `${changedName} bearbeiten`, exact: true }).click();
+      await editAthlete(secondPage, changedName);
       await expect(
         secondPage.getByRole("alert").filter({ hasText: "Der Datensatz wird bereits bearbeitet." }),
       ).toBeVisible({ timeout: 15_000 });

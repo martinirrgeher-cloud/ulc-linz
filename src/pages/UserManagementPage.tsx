@@ -148,13 +148,13 @@ function MemberDetailDialog({
 
   return (
     <div className="member-info-backdrop" role="presentation">
-      <section className="member-info-dialog" role="dialog" aria-modal="true" aria-labelledby="member-info-title">
+      <section className="member-info-dialog" role="dialog" aria-modal="true" aria-labelledby="member-info-title" data-testid="user-member-info-dialog">
         <header>
           <div>
             <p className="eyebrow">Benutzerinfo</p>
             <h2 id="member-info-title">{member.displayName}</h2>
           </div>
-          <button type="button" className="icon-button" onClick={onClose} aria-label="Benutzerinfo schließen" title="Schließen">
+          <button type="button" className="icon-button" onClick={onClose} aria-label="Benutzerinfo schließen" title="Schließen" data-testid="user-member-info-close">
             <X aria-hidden="true" />
           </button>
         </header>
@@ -217,13 +217,14 @@ function MemberDetailDialog({
 
           <div className="member-info-actions">
             {openInvitation && (
-              <button type="button" className="secondary-button" onClick={onResend} disabled={resendBusy}>
+              <button type="button" className="secondary-button" onClick={onResend} disabled={resendBusy} data-testid="user-member-resend">
                 <Send aria-hidden="true" />{resendBusy ? "Wird gesendet …" : "Erneut senden"}
               </button>
             )}
             <button
               type="button"
               className="secondary-button e5c-simulate-button"
+              data-testid="user-member-simulate"
               onClick={onSimulate}
               disabled={isCurrentUser || member.status !== "active"}
             >
@@ -673,7 +674,7 @@ export function UserManagementPage() {
           {filteredMembers.map((member) => {
             const isCurrentUser = member.userId === currentUserId;
             return (
-              <article className={`member-card e5c-compact-member-card status-${member.status}`} key={member.membershipId}>
+              <article className={`member-card e5c-compact-member-card status-${member.status}`} key={member.membershipId} data-testid="user-member-card">
                 <div className="e5c-member-summary">
                   <div className="member-name">
                     <div><h2>{member.displayName}</h2>{isCurrentUser && <span className="self-badge">Du</span>}</div>
@@ -690,10 +691,10 @@ export function UserManagementPage() {
                   </div>
                 </div>
                 <div className="e5c-compact-actions">
-                  <button type="button" className="icon-button" onClick={() => openEditor(member)} aria-label={`${member.displayName} bearbeiten`} title="Bearbeiten">
+                  <button type="button" className="icon-button" onClick={() => openEditor(member)} aria-label={`${member.displayName} bearbeiten`} title="Bearbeiten" data-testid="user-member-edit">
                     <Pencil aria-hidden="true" />
                   </button>
-                  <button type="button" className="icon-button" onClick={() => setDetailMember(member)} aria-label={`Informationen zu ${member.displayName}`} title="Information">
+                  <button type="button" className="icon-button" onClick={() => setDetailMember(member)} aria-label={`Informationen zu ${member.displayName}`} title="Information" data-testid="user-member-info">
                     <Info aria-hidden="true" />
                   </button>
                 </div>

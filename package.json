@@ -20,7 +20,7 @@
     "test:smoke": "node --test scripts/smoke-test.mjs",
     "verify": "npm run typecheck && npm run test:smoke",
     "check:migrations": "node scripts/check-migrations.mjs",
-    "ci:quality": "npm run typecheck && npm run test:smoke && npm run check:migrations && npm run check:database-types && npm run check:e2e-suite && npm run check:e2e-writing-suite && npm run check:security-headers && npm run check:backup-restore-suite && npm run check:catalog-block-suite && npm run check:help-suite && npm run check:pwa-suite && npm run check:css-architecture && npm run check:release-infrastructure && npm run check:simulation-safety && npm run test:overlay-installer && npm run test:release-approval && npm run test:release-verification && npm run test:start-change && npm run build && npm run check:performance-budget",
+    "ci:quality": "npm run typecheck && npm run test:smoke && npm run check:migrations && npm run check:database-types && npm run check:e2e-suite && npm run check:e2e-writing-suite && npm run check:test-interactions && npm run check:security-headers && npm run check:backup-restore-suite && npm run check:catalog-block-suite && npm run check:help-suite && npm run check:pwa-suite && npm run check:css-architecture && npm run check:release-infrastructure && npm run check:simulation-safety && npm run test:overlay-installer && npm run test:release-approval && npm run test:release-verification && npm run test:start-change && npm run build && npm run check:performance-budget",
     "backup:verify": "node scripts/verify-backup-archive.mjs",
     "check:database-types": "node scripts/check-generated-types.mjs",
     "archive:project": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/create-project-archive.ps1",
@@ -52,9 +52,10 @@
     "check:simulation-safety": "node scripts/check-simulation-safety.mjs",
     "test:e2e:readonly:pr": "playwright test --config=playwright.config.mjs --project=mobile-390 --retries=0",
     "test:e2e:writing:pr": "playwright test --config=playwright.writing.config.mjs --grep @pr",
-    "ci:preview": "npm run typecheck && npm run test:smoke && npm run check:migrations && npm run check:database-types && npm run check:e2e-suite && npm run check:e2e-writing-suite && npm run check:security-headers && npm run check:catalog-block-suite && npm run check:help-suite && npm run check:pwa-suite && npm run check:css-architecture && npm run check:simulation-safety && npm run build && npm run check:performance-budget",
+    "ci:preview": "npm run typecheck && npm run test:smoke && npm run check:migrations && npm run check:database-types && npm run check:e2e-suite && npm run check:e2e-writing-suite && npm run check:test-interactions && npm run check:security-headers && npm run check:catalog-block-suite && npm run check:help-suite && npm run check:pwa-suite && npm run check:css-architecture && npm run check:simulation-safety && npm run build && npm run check:performance-budget",
     "test:release-verification": "node --test scripts/test-release-verification.mjs",
-    "test:start-change": "node --test scripts/test-start-change.mjs"
+    "test:start-change": "node --test scripts/test-start-change.mjs",
+    "check:test-interactions": "node scripts/check-test-interaction-architecture.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.6",

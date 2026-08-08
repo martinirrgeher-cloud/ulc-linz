@@ -7,6 +7,8 @@ const requiredFiles = [
   "scripts/run-e2e-writing.ps1",
   "tests/e2e-writing/helpers/test-data.mjs",
   "tests/e2e-writing/helpers/auth.mjs",
+  "tests/helpers/masterdata.mjs",
+  "tests/helpers/user-management.mjs",
   "tests/e2e-writing/core-writing.spec.mjs",
   ".github/workflows/e2e-writing.yml",
   "E1B2-SCHREIBENDE-TESTS.md",
@@ -59,8 +61,8 @@ for (const marker of [
   "Rechtevorlage",
   "Änderungsprotokoll",
   "Der Datensatz wird bereits bearbeitet.",
-  "E2E Leistungsgruppe bearbeiten",
-  "Tom E2E bearbeiten",
+  'editGroup(page, "E2E Leistungsgruppe")',
+  'editTrainer(page, "Tom E2E")',
   "Übung suchen",
   "Neuerer Serverstand vorhanden",
   "Eigene Eingaben behalten",
@@ -82,6 +84,9 @@ for (const marker of [
   'getByTestId("exercise-create")',
   'getByTestId("training-block-create")',
   'getByTestId("exercise-usage")',
+  'editMember(page, "E2E Elternteil")',
+  'openMemberInfo(page, "E2E Elternteil")',
+  'editAthlete(page, athleteFullName())',
 ]) {
   if (!testFile.includes(marker)) throw new Error(`Writing E2E stable selector/PR marker is missing: ${marker}`);
 }

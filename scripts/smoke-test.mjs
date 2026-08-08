@@ -347,6 +347,8 @@ const globalCssSource = await readFile(new URL("../src/styles/global.css", impor
 const runtimeSmokeSource = await readFile(new URL("../tests/runtime/app-runtime.spec.mjs", import.meta.url), "utf8");
 const mobileReadOnlySource = await readFile(new URL("../tests/e2e/mobile-readonly.spec.mjs", import.meta.url), "utf8");
 const writingCoreSource = await readFile(new URL("../tests/e2e-writing/core-writing.spec.mjs", import.meta.url), "utf8");
+const userManagementTestHelperSource = await readFile(new URL("../tests/helpers/user-management.mjs", import.meta.url), "utf8");
+const masterdataTestHelperSource = await readFile(new URL("../tests/helpers/masterdata.mjs", import.meta.url), "utf8");
 
 test("Mobile Stammdaten und Kopfzeile sind gegen Fehlbedienung optimiert", () => {
   assert.ok(appLayoutSource.includes("app-user-menu-panel"), "Sicheres Benutzermenü fehlt.");
@@ -382,24 +384,25 @@ test("Auswahllisten und Benutzerverwaltung nutzen die kompakte Mobile-UX", () =>
   assert.ok(userManagementSource.includes('aria-label={`Informationen zu ${member.displayName}`}'));
   assert.doesNotMatch(userManagementSource, /Benutzer einladen, Konten prüfen, Verknüpfungen und individuelle Rechte verwalten/);
   assert.ok(userManagementE5cCssSource.includes(".member-info-backdrop"));
-  assert.ok(runtimeSmokeSource.includes('name: "Informationen zu E2E Trainer"'));
-  assert.ok(runtimeSmokeSource.includes('name: "Informationen zu E2E Zweitadmin"'));
-  assert.ok(runtimeSmokeSource.includes('name: "Informationen zu Offene Einladung"'));
-  assert.ok(runtimeSmokeSource.includes('const invitationInfo = page.getByRole("dialog", { name: "Offene Einladung" })'));
-  assert.ok(runtimeSmokeSource.includes('invitationInfo.getByRole("button", { name: "Erneut senden", exact: true })'));
-  assert.doesNotMatch(runtimeSmokeSource, /trainerCard\.getByRole\("button", \{ name: "Ansicht simulieren"/);
-  assert.doesNotMatch(runtimeSmokeSource, /adminCard\.getByRole\("button", \{ name: "Ansicht simulieren"/);
-  assert.doesNotMatch(runtimeSmokeSource, /invitationCard\.getByRole\("button", \{ name: "Erneut senden"/);
-  assert.ok(mobileReadOnlySource.includes('name: "Informationen zu Offene Einladung"'));
-  assert.ok(mobileReadOnlySource.includes('const invitationInfo = page.getByRole("dialog", { name: "Offene Einladung" })'));
-  assert.ok(mobileReadOnlySource.includes('invitationInfo.getByRole("button", { name: "Erneut senden", exact: true })'));
-  assert.doesNotMatch(mobileReadOnlySource, /page\.getByText\("Letzter Versand"/);
-  assert.ok(writingCoreSource.includes('name: "E2E Elternteil bearbeiten"'));
-  assert.ok(writingCoreSource.includes('name: "Informationen zu E2E Elternteil"'));
-  assert.ok(writingCoreSource.includes('const parentInfo = page.getByRole("dialog", { name: "E2E Elternteil" })'));
+  assert.ok(userManagementSource.includes('data-testid="user-member-card"'));
+  assert.ok(userManagementSource.includes('data-testid="user-member-info-dialog"'));
+  assert.ok(userManagementSource.includes('data-testid="user-member-simulate"'));
+  assert.ok(userManagementTestHelperSource.includes("openMemberInfo"));
+  assert.ok(userManagementTestHelperSource.includes("simulateMember"));
+  assert.ok(userManagementTestHelperSource.includes("resendMemberInvitation"));
+  assert.ok(masterdataTestHelperSource.includes("editAthlete"));
+  assert.ok(masterdataTestHelperSource.includes("editTrainer"));
+  assert.ok(masterdataTestHelperSource.includes("editGroup"));
+  assert.ok(runtimeSmokeSource.includes('simulateMember(page, "E2E Trainer")'));
+  assert.ok(runtimeSmokeSource.includes('simulateMember(page, "E2E Zweitadmin")'));
+  assert.ok(runtimeSmokeSource.includes('resendMemberInvitation(page, "Offene Einladung")'));
+  assert.ok(mobileReadOnlySource.includes('openMemberInfo(page, "Offene Einladung")'));
+  assert.ok(writingCoreSource.includes('editMember(page, "E2E Elternteil")'));
+  assert.ok(writingCoreSource.includes('openMemberInfo(page, "E2E Elternteil")'));
   assert.ok(writingCoreSource.includes('parentInfo.getByText(/Athleten: Anna E2E, Berta E2E/)'));
-  assert.doesNotMatch(writingCoreSource, /parentCard\.getByRole\("button", \{ name: "Bearbeiten"/);
-  assert.doesNotMatch(writingCoreSource, /parentCard\.getByText\(\/Athleten:/);
+  assert.doesNotMatch(runtimeSmokeSource, /\.member-card/);
+  assert.doesNotMatch(mobileReadOnlySource, /\.member-card/);
+  assert.doesNotMatch(writingCoreSource, /\.member-card/);
 });
 
 test("E2 schützt Trainer und Gruppen atomar vor paralleler Bearbeitung", () => {

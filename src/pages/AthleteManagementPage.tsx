@@ -631,7 +631,7 @@ export function AthleteManagementPage() {
       )}
 
       {!editorOpen && (
-        <div className="masterdata-tab-surface" {...swipeTabs}>
+        <div className="masterdata-tab-surface" data-testid="masterdata-tab-surface" {...swipeTabs}>
           <div className="masterdata-sticky-zone">
             <div className="management-page-heading compact-management-heading">
               <div>
@@ -761,7 +761,7 @@ export function AthleteManagementPage() {
             ) : (
               <div className="athlete-list">
                 {filteredAthletes.map((athlete) => (
-                  <article className={`athlete-card ${athlete.isActive ? "" : "inactive"}`} key={athlete.id}>
+                  <article className={`athlete-card ${athlete.isActive ? "" : "inactive"}`} key={athlete.id} data-testid="masterdata-athlete-card">
                     <div className="athlete-identity">
                       <div className="athlete-avatar" aria-hidden="true">{athlete.firstName.charAt(0).toUpperCase()}{athlete.lastName.charAt(0).toUpperCase()}</div>
                       <div><h2>{athleteName(athlete)}</h2><p>{athlete.birthYear ? `Jahrgang ${athlete.birthYear}` : "Kein Geburtsjahr"}</p></div>
@@ -781,7 +781,7 @@ export function AthleteManagementPage() {
                     <div className="athlete-card-top-actions">
                       <span className={`athlete-status-dot ${athlete.isActive ? "active" : "inactive"}`} role="status" aria-label={athlete.isActive ? "Athlet aktiv" : "Athlet inaktiv"} title={athlete.isActive ? "Aktiv" : "Inaktiv"} />
                       {canEdit && (
-                        <button type="button" className="icon-button athlete-edit-button" onClick={() => { setSuccess(null); closeEditors(); setAthleteEditor({ type: "edit", athlete }); window.scrollTo({ top: 0, behavior: "smooth" }); }} aria-label={`${athleteName(athlete)} bearbeiten`} title="Bearbeiten">
+                        <button type="button" className="icon-button athlete-edit-button" onClick={() => { setSuccess(null); closeEditors(); setAthleteEditor({ type: "edit", athlete }); window.scrollTo({ top: 0, behavior: "smooth" }); }} aria-label={`${athleteName(athlete)} bearbeiten`} title="Bearbeiten" data-testid="masterdata-athlete-edit">
                           <Pencil aria-hidden="true" />
                         </button>
                       )}
@@ -796,7 +796,7 @@ export function AthleteManagementPage() {
             ) : (
               <div className="training-group-grid">
                 {filteredGroups.map((group) => (
-                  <article className={`training-group-card compact-group-card ${group.isActive ? "" : "inactive"}`} key={group.id}>
+                  <article className={`training-group-card compact-group-card ${group.isActive ? "" : "inactive"}`} key={group.id} data-testid="masterdata-group-card">
                     <div className="training-group-card-heading">
                       <div className="group-icon" aria-hidden="true"><UsersRound /></div>
                       <div>
@@ -839,7 +839,7 @@ export function AthleteManagementPage() {
                     <div className="training-group-card-top-actions">
                       <span className={`athlete-status-dot ${group.isActive ? "active" : "inactive"}`} role="status" aria-label={group.isActive ? "Gruppe aktiv" : "Gruppe inaktiv"} title={group.isActive ? "Aktiv" : "Inaktiv"} />
                       {canEdit && (
-                        <button type="button" className="icon-button" onClick={() => { setSuccess(null); closeEditors(); setGroupEditor({ type: "edit", group }); window.scrollTo({ top: 0, behavior: "smooth" }); }} aria-label={`${group.name} bearbeiten`} title="Bearbeiten">
+                        <button type="button" className="icon-button" onClick={() => { setSuccess(null); closeEditors(); setGroupEditor({ type: "edit", group }); window.scrollTo({ top: 0, behavior: "smooth" }); }} aria-label={`${group.name} bearbeiten`} title="Bearbeiten" data-testid="masterdata-group-edit">
                           <Pencil aria-hidden="true" />
                         </button>
                       )}
@@ -853,7 +853,7 @@ export function AthleteManagementPage() {
           ) : (
             <div className="trainer-grid">
               {filteredTrainers.map((trainer) => (
-                <article className={`trainer-card ${trainer.isActive ? "" : "inactive"}`} key={trainer.id}>
+                <article className={`trainer-card ${trainer.isActive ? "" : "inactive"}`} key={trainer.id} data-testid="masterdata-trainer-card">
                   <div className="trainer-card-heading">
                     <div className="trainer-avatar" aria-hidden="true">{trainer.firstName.charAt(0).toUpperCase()}{trainer.lastName.charAt(0).toUpperCase()}</div>
                     <div><h2>{trainerName(trainer)}</h2><p>{trainer.isActive ? "Aktiv" : "Inaktiv"}</p></div>
@@ -871,7 +871,7 @@ export function AthleteManagementPage() {
                   </div>
                   {trainer.notes && <p className="trainer-notes">{trainer.notes}</p>}
                   {canEdit && (
-                    <button type="button" className="icon-button trainer-edit-button" onClick={() => { setSuccess(null); closeEditors(); setTrainerEditor({ type: "edit", trainer }); window.scrollTo({ top: 0, behavior: "smooth" }); }} aria-label={`${trainerName(trainer)} bearbeiten`} title="Bearbeiten">
+                    <button type="button" className="icon-button trainer-edit-button" onClick={() => { setSuccess(null); closeEditors(); setTrainerEditor({ type: "edit", trainer }); window.scrollTo({ top: 0, behavior: "smooth" }); }} aria-label={`${trainerName(trainer)} bearbeiten`} title="Bearbeiten" data-testid="masterdata-trainer-edit">
                       <Pencil aria-hidden="true" />
                     </button>
                   )}

@@ -247,7 +247,7 @@ export function MemberEditor({
   const fieldsDisabled = busy || !canEdit;
 
   return (
-    <section className="management-editor" aria-labelledby="member-editor-title">
+    <section className="management-editor" aria-labelledby="member-editor-title" data-testid="user-member-editor">
       <div className="management-editor-heading">
         <div>
           <p className="eyebrow">Benutzerverwaltung</p>
