@@ -32,7 +32,7 @@ foreach ($Path in $Tracked) {
   if (
     $Normalized -match '^(playwright-report|test-results|dist|node_modules|\.git|\.ulc-runtime-dist|supabase/\.temp)(/|$)' -or
     $Normalized -eq 'supabase-local.env' -or
-    ($Normalized -match '(^|/)\.env($|\.)' -and $Normalized -ne '.env.example')
+    ($Normalized -match '(^|/)\.env($|\.)' -and $Normalized -notmatch '(^|/)\.env\.example$')
   ) {
     $ForbiddenTracked += $Normalized
   }
