@@ -36,7 +36,7 @@ async function callJsonRpc(
   return data;
 }
 
-const ATTENDANCE_STATUSES: AttendanceStatus[] = ["open", "present", "excused", "absent"];
+const ATTENDANCE_STATUSES: AttendanceStatus[] = ["open", "present", "absent"];
 const QUICK_RESULT_STATUSES: QuickAthleteResultStatus[] = [
   "created",
   "duplicate",
@@ -58,6 +58,8 @@ function asNullableString(value: unknown): string | null {
 }
 
 function parseStatus(value: unknown): AttendanceStatus {
+  // Historische „Entschuldigt“-Einträge werden fachlich wie „Fehlt“ behandelt.
+  if (value === "excused") return "absent";
   return ATTENDANCE_STATUSES.includes(value as AttendanceStatus)
     ? (value as AttendanceStatus)
     : "open";
@@ -68,7 +70,7 @@ function parseState(value: unknown): TrainingSessionState {
 }
 
 function parseEnvironment(value: unknown): TrainingEnvironment {
-  return value === "indoor" || value === "outdoor" || value === "mixed" ? value : null;
+  return value === "indoor" || value === "outdoor" ? value : null;
 }
 
 function parseWeekdays(value: unknown): number[] {

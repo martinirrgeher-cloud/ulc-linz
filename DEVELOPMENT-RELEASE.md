@@ -16,7 +16,7 @@ Das Skript verlangt ein sauberes Arbeitsverzeichnis, aktualisiert `origin/main` 
 
 Unter Windows wird danach automatisch eine aktuelle Projekt-ZIP auf dem Desktop erzeugt. Damit ist der neue Arbeitsstand ohne zusätzlichen PowerShell-Befehl direkt zum Hochladen bereit.
 
-Bei normalen Overlay-Paketen übernimmt der Paketstarter diesen Schritt automatisch.
+**Verbindlicher Ablauf für von ChatGPT erzeugte Overlay-Pakete:** Zwingend zuerst `ULC-AENDERUNG-STARTEN.cmd` ausführen. Dadurch entsteht genau ein sauberer `feature/...`-Branch direkt vom aktuellen `origin/main` und automatisch die Projekt-ZIP auf dem Desktop. Die erzeugte Projekt-ZIP wird hochgeladen; ZIP und zugehörige START-CMD des späteren Overlays bleiben im Download-Ordner. Der Overlay-Installer verwendet ausschließlich diesen vorbereiteten Feature-Branch und erzeugt niemals selbst einen zweiten Arbeitsbranch.
 
 ### 2. Änderung prüfen
 
@@ -50,9 +50,9 @@ Erst danach und nur nach Eingabe von `JA` werden Commit und Push erstellt. Der P
 
 ## Produktionsstand markieren
 
-Nach einem erfolgreich geprüften Vercel-Produktionsdeployment kann `ULC-PRODUKTION-MARKIEREN.cmd` verwendet werden. Der Commit aus der Vercel-Diagnose muss mit dem aktuellen `origin/main` übereinstimmen. Danach wird ein Git-Tag `production-...` erzeugt und gepusht.
+Nach einem erfolgreich geprüften Vercel-Produktionsdeployment wird `ULC-PRODUKTION-MARKIEREN.cmd` verwendet. Der Commit aus der Vercel-Diagnose muss mit dem aktuellen `origin/main` übereinstimmen. Danach synchronisiert die Routine den lokalen PC ausschließlich per Fast-Forward auf diesen `main`, erzeugt den Git-Tag `production-...` und pusht ihn. Ein harter Reset ist ausdrücklich nicht Bestandteil dieser Routine.
 
-So existiert für jeden bestätigten Produktionsstand ein eindeutiger Wiederherstellungspunkt.
+Damit endet jeder Release-Zyklus lokal wieder auf einem sauberen, aktuellen `main`. Der vorherige Feature-Branch bleibt zunächst als Sicherheitsreferenz erhalten. So existiert für jeden bestätigten Produktionsstand ein eindeutiger Wiederherstellungspunkt und die nächste Änderung beginnt nicht versehentlich auf einem alten Feature-Branch.
 
 ## Overlay-Pakete
 
@@ -90,7 +90,9 @@ Der Installer `scripts/release/install-overlay.mjs` kennt nur sichere Zustände:
 - alle neuen Dateihashes sind bereits vorhanden: Paket gilt als bereits installiert,
 - gemischter/unbekannter Stand: Abbruch ohne Installation.
 
-Der Installer erstellt einen Feature-Branch, übernimmt alle Dateien vollständig und startet danach automatisch die Release-Prüfung. Bei einem Fehler setzt er den begonnenen Feature-Branch auf den Ausgangscommit zurück und wechselt auf den ursprünglichen Branch zurück. Commit, Push und Merge erfolgen niemals automatisch durch den Installer.
+Der Installer verwendet zwingend den bereits durch `ULC-AENDERUNG-STARTEN.cmd` erzeugten sauberen `feature/...`-Branch. Dessen HEAD muss exakt der Paketbasis entsprechen. Der Installer erzeugt niemals selbst einen zweiten Feature-Branch. Vor der Installation wird immer ein eindeutiger lokaler Backup-Branch erzeugt.
+
+Danach übernimmt der Installer alle Dateien vollständig und startet automatisch die Release-Prüfung. Bei einem Fehler wird der verwendete Feature-Branch vollständig auf den Ausgangscommit zurückgesetzt; ein vom Installer zusätzlich erzeugter Branch wird anschließend wieder entfernt. Commit, Push und Merge erfolgen niemals automatisch durch den Installer.
 
 ## Modulpaket und Releasepaket
 

@@ -1224,3 +1224,73 @@ test("Final UI v4 vereinheitlicht Typografie, Editoren und Aktionen appweit", as
     assert.ok(Number(match[1]) >= 0.76, `Zu kleine feste Schriftgroesse gefunden: ${match[0]}`);
   }
 });
+
+
+test("Anmeldung und Statistik sind fuer Kindertraining, U12 und U14 kompakt vereinheitlicht", async () => {
+  const attendancePages = await Promise.all([
+    readFile(new URL("../src/pages/KindertrainingDraftPage.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../src/pages/GroupTrainingPage.tsx", import.meta.url), "utf8"),
+  ]);
+  const statisticsPages = await Promise.all([
+    readFile(new URL("../src/pages/KindertrainingStatisticsPage.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../src/pages/GroupTrainingStatisticsPage.tsx", import.meta.url), "utf8"),
+  ]);
+  const trainingTypes = await readFile(new URL("../src/features/kindertraining/types.ts", import.meta.url), "utf8");
+  const trainingCss = await readFile(new URL("../src/styles/kindertraining.css", import.meta.url), "utf8");
+  const statisticsCss = await readFile(new URL("../src/styles/statistics.css", import.meta.url), "utf8");
+  const helpSource = await readFile(new URL("../src/features/help/help-content.json", import.meta.url), "utf8");
+
+  assert.doesNotMatch(trainingTypes, /"excused"/);
+  assert.doesNotMatch(trainingTypes, /"mixed"/);
+  for (const source of attendancePages) {
+    assert.doesNotMatch(source, /value:\s*"excused"/);
+    assert.doesNotMatch(source, /\["mixed",\s*"Gemischt"\]/);
+    assert.ok(source.includes('aria-label={`Status ${status.label} setzen`}'));
+    assert.ok(source.includes('<Check aria-hidden="true" />'));
+    assert.ok(source.includes('<X aria-hidden="true" />'));
+    assert.ok(source.includes('className="status-question-mark"'));
+    assert.doesNotMatch(source, /Trainingseinstellungen und Notiz/);
+    assert.ok(source.includes('className="special-training-picker-row"'));
+    assert.ok(source.includes('aria-label="Sondertraining speichern"'));
+    assert.ok(source.includes('aria-label="Sondertraining abbrechen"'));
+    assert.ok(source.includes('segmented-control three-options'));
+    assert.ok(source.includes('<legend><UsersRound aria-hidden="true" /> Trainer</legend>'));
+    assert.ok(source.includes('className="training-details-header">Notiz</div>'));
+    assert.doesNotMatch(source, /<details[\s\S]*className="training-details-panel"/);
+    assert.match(source, /<strong>\{counts\[status\.value\]\}<\/strong>[\s\S]*<span>\{status\.label\}<\/span>/);
+  }
+  assert.ok(trainingCss.includes('grid-template-columns: repeat(3, minmax(0, 1fr));'));
+  assert.ok(trainingCss.includes('grid-template-columns: repeat(2, minmax(0, 1fr));'));
+  assert.ok(trainingCss.includes('.compact-status-actions button.present'));
+  assert.ok(trainingCss.includes('.compact-status-actions button.absent'));
+  assert.ok(trainingCss.includes('.compact-status-actions button.open'));
+  assert.ok(trainingCss.includes('background: #e4f1e7;'));
+  assert.ok(trainingCss.includes('background: #f6e7e7;'));
+  assert.ok(trainingCss.includes('background: transparent;'));
+  assert.ok(trainingCss.includes('color: #111;'));
+  assert.ok(trainingCss.includes('.status-question-mark'));
+
+  for (const source of statisticsPages) {
+    assert.ok(source.includes('aria-label="Zurück zum Training"'));
+    assert.ok(source.includes('<Baby aria-hidden="true" />'));
+    assert.ok(source.includes('<UserRoundCog aria-hidden="true" />'));
+    assert.ok(source.includes('assigned.has(trainer.id) || trainer.sessionCount > 0'));
+    assert.doesNotMatch(source, /athlete\.birthYear/);
+    assert.doesNotMatch(source, /athlete\.excusedCount/);
+    assert.doesNotMatch(source, /athlete\.absentCount/);
+    assert.doesNotMatch(source, /athlete\.openCount/);
+    assert.doesNotMatch(source, /athlete\.attendanceRate/);
+    assert.ok(source.includes('{athlete.presentCount}x'));
+    assert.ok(source.includes('<Undo2 aria-hidden="true" />'));
+    assert.ok(source.includes('className="statistics-filter-card statistics-filter-details"'));
+    assert.ok(source.includes('statistics.summary.minPresent'));
+  }
+  assert.ok(statisticsCss.includes('grid-template-columns: repeat(2, minmax(0, 1fr));'));
+  assert.ok(statisticsCss.includes('grid-template-columns: 1fr;'));
+  assert.ok(statisticsCss.includes('.statistics-back-button svg'));
+  assert.ok(statisticsCss.includes('.statistics-filter-details > summary'));
+  const minimumMigration = await readFile(new URL("../supabase/migrations/202608080039_statistics_minimum_attendance.sql", import.meta.url), "utf8");
+  assert.equal((minimumMigration.match(/'min_present'/g) ?? []).length, 2);
+  assert.doesNotMatch(helpSource, /entschuldigt/i);
+
+});

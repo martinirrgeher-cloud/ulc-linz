@@ -1,7 +1,7 @@
-export type AttendanceStatus = "open" | "present" | "excused" | "absent";
+export type AttendanceStatus = "open" | "present" | "absent";
 export type TrainingSessionState = "scheduled" | "cancelled";
 export type AthleteNameSort = "firstName" | "lastName";
-export type TrainingEnvironment = "indoor" | "outdoor" | "mixed" | null;
+export type TrainingEnvironment = "indoor" | "outdoor" | null;
 
 export type KindertrainingGroupConfiguration = {
   id: string;

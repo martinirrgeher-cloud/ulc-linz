@@ -64,6 +64,23 @@ function isProtected(relativePath) {
   return PROTECTED_PREFIXES.some((prefix) => relativePath === prefix.replace(/\/$/, "") || relativePath.startsWith(prefix));
 }
 
+function uniqueLocalBranch(root, prefix) {
+  let candidate = prefix;
+  let suffix = 2;
+  while (
+    run("git", ["show-ref", "--verify", "--quiet", `refs/heads/${candidate}`], {
+      cwd: root,
+      capture: true,
+      allowFailure: true,
+      quiet: true,
+    }).status === 0
+  ) {
+    candidate = `${prefix}-${suffix}`;
+    suffix += 1;
+  }
+  return candidate;
+}
+
 function hashForEntry(filePath, entry) {
   if (entry.hashMode === "text-lf") {
     const normalized = readFileSync(filePath, "utf8").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
@@ -94,10 +111,10 @@ if (!packageDirArg) {
 const root = repoRoot(arg("--project") || process.cwd());
 const packageDir = resolve(packageDirArg);
 const manifestPath = resolve(packageDir, "manifest.json");
-let createdBranch = null;
-let originalBranch = null;
+let targetBranch = null;
 let baseCommit = null;
 let manifest = null;
+let installationStarted = false;
 
 try {
   if (!existsSync(manifestPath)) throw new Error("manifest.json fehlt im entpackten Overlay-Paket.");
@@ -141,8 +158,14 @@ try {
   }
 
   ensureClean(root);
-  originalBranch = currentBranch(root);
-  if (!originalBranch) throw new Error("Detached HEAD wird fuer Overlay-Installationen nicht unterstuetzt.");
+  targetBranch = currentBranch(root);
+  if (!targetBranch) throw new Error("Detached HEAD wird fuer Overlay-Installationen nicht unterstuetzt.");
+  if (!targetBranch.startsWith("feature/")) {
+    throw new Error(
+      `Overlay-Pakete werden nur auf einem durch ULC-AENDERUNG-STARTEN.cmd vorbereiteten Feature-Branch installiert.\n` +
+      `Aktueller Branch: ${targetBranch}`,
+    );
+  }
 
   run("git", ["fetch", "origin", "main", "--prune"], { cwd: root });
   baseCommit = gitText(["rev-parse", `${manifest.baseCommit}^{commit}`], { cwd: root });
@@ -150,15 +173,25 @@ try {
   if (remoteMain !== baseCommit) {
     throw new Error(
       `Paketbasis ist nicht der aktuelle origin/main.\nPaket: ${baseCommit}\norigin/main: ${remoteMain}\n` +
-      "Paket nicht anwenden; zuerst einen neuen Paketstand auf Basis des aktuellen stabilen main erstellen.",
+      "Paket nicht anwenden; mit ULC-PRODUKTION-MARKIEREN.cmd auf main abschliessen und eine neue Aenderung starten.",
+    );
+  }
+
+  const currentHead = gitText(["rev-parse", "HEAD"], { cwd: root });
+  if (currentHead !== baseCommit) {
+    throw new Error(
+      `Der vorbereitete Feature-Branch steht nicht mehr exakt auf der Paketbasis.\n` +
+      `Branch: ${targetBranch}\nHEAD: ${currentHead}\nPaketbasis: ${baseCommit}\n` +
+      "Patch nicht anwenden; keine manuelle Korrektur oder Branch-Umschaltung vornehmen.",
     );
   }
 
   const branchSlug = sanitizeBranchPart(manifest.packageId || "overlay");
-  const branch = `feature/${branchSlug}-${utcStamp().slice(0, 13).toLowerCase()}`;
-  run("git", ["branch", `backup/${branchSlug}-before-${utcStamp().slice(0, 13).toLowerCase()}`, baseCommit], { cwd: root });
-  run("git", ["switch", "-c", branch, baseCommit], { cwd: root });
-  createdBranch = branch;
+  const branchStamp = utcStamp().replace(/Z$/, "").toLowerCase();
+  const backupBranch = uniqueLocalBranch(root, `backup/${branchSlug}-before-${branchStamp}`);
+  run("git", ["branch", backupBranch, baseCommit], { cwd: root });
+  console.log(`Verwende vorbereiteten Feature-Branch: ${targetBranch}`);
+  console.log(`Sicherheitsbranch: ${backupBranch}`);
 
   const states = manifest.files.map((entry) => fileState(root, packageDir, entry));
   if (!states.every((state) => state.oldMatches)) {
@@ -166,6 +199,7 @@ try {
     throw new Error(`Ausgangsdateien stimmen nicht mit dem Paket ueberein:\n${bad.join("\n")}`);
   }
 
+  installationStarted = true;
   for (let index = 0; index < manifest.files.length; index += 1) {
     const entry = manifest.files[index];
     const { target, payload } = states[index];
@@ -184,21 +218,27 @@ try {
   run(process.execPath, [resolve(root, "scripts/release/run-release-check.mjs")], { cwd: root });
 
   console.log("\nERFOLG: Overlay installiert und geprueft.");
-  console.log(`Branch: ${createdBranch}`);
-  console.log("Noch wurde NICHT committed oder gepusht. Bitte die Funktion kurz pruefen und danach ULC-FREIGEBEN.cmd starten.");
+  console.log(`Branch: ${targetBranch}`);
+  console.log("Noch wurde NICHT committed oder gepusht. Bitte ULC-LOKAL-ANSEHEN.cmd starten und danach ULC-FREIGEBEN.cmd verwenden.");
 } catch (error) {
   console.error(`\nFEHLER: ${error.message}`);
-  if (createdBranch && baseCommit) {
+  if (installationStarted && targetBranch && baseCommit && manifest?.files) {
     try {
-      console.error("Setze die unvollstaendige Installation vollstaendig zurueck...");
-      run("git", ["reset", "--hard", baseCommit], { cwd: root, quiet: true });
-      if (manifest?.files) {
-        for (const entry of manifest.files) {
-          if (entry.mode === "create") rmSync(inside(root, entry.path), { force: true });
-        }
+      console.error("Setze die unvollstaendige Installation transaktional zurueck...");
+      const trackedPaths = manifest.files
+        .filter((entry) => entry.mode !== "create")
+        .map((entry) => entry.path);
+      if (trackedPaths.length > 0) {
+        run("git", ["restore", "--source", baseCommit, "--staged", "--worktree", "--", ...trackedPaths], {
+          cwd: root,
+          quiet: true,
+        });
       }
-      if (originalBranch) run("git", ["switch", originalBranch], { cwd: root, quiet: true });
-      run("git", ["branch", "-D", createdBranch], { cwd: root, quiet: true, allowFailure: true });
+      for (const entry of manifest.files) {
+        if (entry.mode === "create") rmSync(inside(root, entry.path), { force: true });
+      }
+      ensureClean(root);
+      console.error(`Feature-Branch wurde sauber auf die Paketbasis zurueckgestellt: ${targetBranch}`);
     } catch (rollbackError) {
       console.error(`WARNUNG: Automatisches Zurueckrollen ist fehlgeschlagen: ${rollbackError.message}`);
     }

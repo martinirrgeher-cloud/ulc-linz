@@ -71,10 +71,11 @@ function invokeInstaller(repo, packageDir) {
 test("Overlay-Installer kopiert vollständige Dateien und erkennt Wiederholung", () => {
   const fixture = createFixture();
   try {
+    run("git", ["switch", "-c", "feature/test-demo", fixture.baseCommit], fixture.repo);
     const first = invokeInstaller(fixture.repo, fixture.packageDir);
     assert.equal(first.status, 0, `${first.stdout}\n${first.stderr}`);
     assert.equal(readFileSync(resolve(fixture.repo, "src/features/demo/value.txt"), "utf8"), "neu\n");
-    assert.match(run("git", ["branch", "--show-current"], fixture.repo).stdout.trim(), /^feature\/test-demo-/);
+    assert.equal(run("git", ["branch", "--show-current"], fixture.repo).stdout.trim(), "feature/test-demo");
     assert.match(run("git", ["status", "--porcelain"], fixture.repo).stdout, /src\/features\/demo\/value\.txt/);
 
     const second = invokeInstaller(fixture.repo, fixture.packageDir);
@@ -88,11 +89,26 @@ test("Overlay-Installer kopiert vollständige Dateien und erkennt Wiederholung",
 test("Overlay-Installer rollt bei fehlgeschlagener Release-Prüfung vollständig zurück", () => {
   const fixture = createFixture({ releaseCheckExit: 7 });
   try {
+    run("git", ["switch", "-c", "feature/test-demo", fixture.baseCommit], fixture.repo);
     const result = invokeInstaller(fixture.repo, fixture.packageDir);
     assert.notEqual(result.status, 0);
-    assert.equal(run("git", ["branch", "--show-current"], fixture.repo).stdout.trim(), "main");
+    assert.equal(run("git", ["branch", "--show-current"], fixture.repo).stdout.trim(), "feature/test-demo");
     assert.equal(run("git", ["status", "--porcelain"], fixture.repo).stdout.trim(), "");
     assert.equal(readFileSync(resolve(fixture.repo, "src/features/demo/value.txt"), "utf8"), "alt\r\n");
+  } finally {
+    rmSync(fixture.base, { recursive: true, force: true });
+  }
+});
+
+
+test("Overlay-Installer lehnt main ab und erzeugt niemals selbst einen Feature-Branch", () => {
+  const fixture = createFixture();
+  try {
+    const result = invokeInstaller(fixture.repo, fixture.packageDir);
+    assert.notEqual(result.status, 0);
+    assert.match(`${result.stdout}\n${result.stderr}`, /ULC-AENDERUNG-STARTEN\.cmd/);
+    assert.equal(run("git", ["branch", "--show-current"], fixture.repo).stdout.trim(), "main");
+    assert.equal(run("git", ["status", "--porcelain"], fixture.repo).stdout.trim(), "");
   } finally {
     rmSync(fixture.base, { recursive: true, force: true });
   }

@@ -9,11 +9,13 @@ const requiredFiles = [
   "scripts/release/run-runtime-smoke.mjs",
   "scripts/release/serve-runtime-build.mjs",
   "scripts/release/approve-change.mjs",
+  "scripts/release/mark-production.mjs",
   "scripts/test-release-approval.mjs",
   "ULC-AENDERUNG-STARTEN.cmd",
   "ULC-PRUEFEN.cmd",
   "ULC-FREIGEBEN.cmd",
   "ULC-LOKAL-ANSEHEN.cmd",
+  "ULC-PRODUKTION-MARKIEREN.cmd",
   "scripts/check-simulation-safety.mjs",
   ".github/workflows/mobile-patch.yml",
   ".devcontainer/devcontainer.json",
@@ -76,6 +78,26 @@ const mobileDocs = readFileSync("MOBILE-ENTWICKLUNG.md", "utf8");
 for (const marker of ["MOBILE-PATCH-", "mobile-patch/", "Vercel Preview", "Squash and merge", "Codespaces"]) {
   assert.match(mobileDocs, new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")), `Mobile-Dokumentation fehlt: ${marker}`);
 }
+
+const productionMarker = readFileSync("scripts/release/mark-production.mjs", "utf8");
+assert.match(productionMarker, /git[\s\S]*switch[\s\S]*main/, "Produktionsmarkierung muss lokal auf main wechseln.");
+assert.match(productionMarker, /merge[\s\S]*--ff-only[\s\S]*origin\/main/, "Produktionsmarkierung muss main ausschliesslich per Fast-Forward synchronisieren.");
+assert.doesNotMatch(productionMarker, /reset[\s\S]*--hard/, "Produktionsmarkierung darf den lokalen Stand nicht hart zuruecksetzen.");
+assert.match(productionMarker, /resolved !== remoteMain/, "Nur der aktuelle origin/main darf als Produktion bestaetigt werden.");
+
+const overlayInstaller = readFileSync("scripts/release/install-overlay.mjs", "utf8");
+assert.match(overlayInstaller, /targetBranch\.startsWith\("feature\/"\)/, "Overlay-Installer muss zwingend den von ULC-AENDERUNG-STARTEN erzeugten Feature-Branch verwenden.");
+assert.match(overlayInstaller, /currentHead !== baseCommit/, "Vorbereiteter Feature-Branch darf nur auf exakt der Paketbasis verwendet werden.");
+assert.doesNotMatch(overlayInstaller, /switch[\s\S]*-c[\s\S]*feature\//, "Overlay-Installer darf keinen zweiten Feature-Branch erzeugen.");
+assert.match(overlayInstaller, /git[\s\S]*restore[\s\S]*--source/, "Rollback muss die Paketdateien gezielt aus der Basis wiederherstellen.");
+assert.doesNotMatch(overlayInstaller, /reset[\s\S]*--hard/, "Overlay-Installer darf fuer den Rollback keinen Hard-Reset verwenden.");
+assert.match(overlayInstaller, /uniqueLocalBranch/, "Overlay-Installer muss Backup-Branches kollisionsfrei erzeugen.");
+
+const releaseDocs = readFileSync("DEVELOPMENT-RELEASE.md", "utf8");
+assert.match(releaseDocs, /ULC-AENDERUNG-STARTEN\.cmd[\s\S]*Projekt-ZIP/, "Release-Dokumentation muss die automatische Projekt-ZIP beim Aenderungsstart beschreiben.");
+assert.match(releaseDocs, /Fast-Forward[\s\S]*main/, "Release-Dokumentation muss die sichere main-Synchronisierung nach Produktion festhalten.");
+assert.match(releaseDocs, /zwingend[\s\S]*`ULC-AENDERUNG-STARTEN\.cmd`[\s\S]*feature\//, "Release-Dokumentation muss den einen verbindlichen Feature-Branch festhalten.");
+assert.match(releaseDocs, /Download-Ordner/, "Release-Dokumentation muss ZIP und START-CMD im Download-Ordner belassen.");
 
 const releaseCheck = readFileSync("scripts/release/run-release-check.mjs", "utf8");
 assert.match(

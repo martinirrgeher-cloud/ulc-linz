@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFile, readdir, stat } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 
 const projectRoot = path.resolve(".");
@@ -73,6 +73,10 @@ function withoutComments(source) {
 
 function normalizeWhitespace(value) {
   return value.replace(/\s+/g, " ").trim();
+}
+
+function normalizedUtf8Bytes(source) {
+  return Buffer.byteLength(source.replace(/\r\n/g, "\n").replace(/\r/g, "\n"), "utf8");
 }
 
 function selectorsIn(source) {
@@ -173,12 +177,12 @@ const fileMetrics = [];
 
 for (const file of cssFiles) {
   const source = await readFile(file, "utf8");
-  const fileStat = await stat(file);
+  const bytes = normalizedUtf8Bytes(source);
   const lines = source.split(/\r?\n/).length;
   const cleaned = withoutComments(source);
-  const fileMetric = { file: relative(file), bytes: fileStat.size, lines };
+  const fileMetric = { file: relative(file), bytes, lines };
   fileMetrics.push(fileMetric);
-  metrics.totalBytes += fileStat.size;
+  metrics.totalBytes += bytes;
   metrics.totalLines += lines;
   metrics.importantDeclarations += (cleaned.match(/!important\b/gi) ?? []).length;
 
@@ -200,7 +204,7 @@ for (const file of cssFiles) {
 
 for (const importPath of mainImports) {
   try {
-    metrics.mainImportedBytes += (await stat(importPath)).size;
+    metrics.mainImportedBytes += normalizedUtf8Bytes(await readFile(importPath, "utf8"));
   } catch {
     throw new Error(`Global importierte CSS-Datei fehlt: ${relative(importPath)}`);
   }
