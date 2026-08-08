@@ -23,7 +23,6 @@ const INTERACTIVE_SELECTOR = [
   "input",
   "select",
   "textarea",
-  "label",
   "[contenteditable='true']",
   "[data-swipe-ignore='true']",
 ].join(",");
