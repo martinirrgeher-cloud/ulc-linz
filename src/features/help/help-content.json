@@ -347,7 +347,6 @@
         "anwesenheit",
         "da",
         "fehlt",
-        "entschuldigt",
         "sondertraining"
       ],
       "sections": [
@@ -363,7 +362,7 @@
           "title": "Anwesenheit erfassen",
           "steps": [
             "Athlet suchen.",
-            "Status Da, Fehlt, Entschuldigt oder Offen wählen.",
+            "Status Da, Fehlt oder Offen wählen.",
             "Bei Bedarf Notiz oder Kontaktdaten öffnen.",
             "Autosave-Status abwarten."
           ]
@@ -372,8 +371,8 @@
           "id": "trainers",
           "title": "Trainer, Ort und Absage",
           "bullets": [
-            "Anwesende Trainer auswählen.",
-            "Indoor/Outdoor beziehungsweise Trainingsort erfassen.",
+            "Trainer auswählen.",
+            "Trainingsort als Offen, Indoor oder Outdoor erfassen.",
             "Bei Absage bleibt der vorhandene Teilnehmerstand erhalten, die Anwesenheitsauswahl wird aber gesperrt."
           ]
         },

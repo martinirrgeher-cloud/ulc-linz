@@ -3,6 +3,7 @@ import {
   AlertTriangle,
   BarChart3,
   CalendarPlus,
+  Check,
   CheckCheck,
   ChevronLeft,
   ChevronRight,
@@ -13,6 +14,7 @@ import {
   Phone,
   RefreshCw,
   Search,
+  Save,
   Settings2,
   Trash2,
   UserMinus,
@@ -49,13 +51,17 @@ import "@/styles/kindertraining.css";
 const STATUS_OPTIONS: Array<{
   value: AttendanceStatus;
   label: string;
-  shortLabel: string;
 }> = [
-  { value: "open", label: "Offen", shortLabel: "Offen" },
-  { value: "present", label: "Da", shortLabel: "Da" },
-  { value: "excused", label: "Entschuldigt", shortLabel: "Entsch." },
-  { value: "absent", label: "Fehlt", shortLabel: "Fehlt" },
+  { value: "open", label: "Offen" },
+  { value: "present", label: "Da" },
+  { value: "absent", label: "Fehlt" },
 ];
+
+function attendanceStatusIcon(status: AttendanceStatus) {
+  if (status === "present") return <Check aria-hidden="true" />;
+  if (status === "absent") return <X aria-hidden="true" />;
+  return <span className="status-question-mark" aria-hidden="true">?</span>;
+}
 
 const SORT_STORAGE_KEY = "ulc-kindertraining-name-sort";
 
@@ -321,7 +327,6 @@ export function KindertrainingDraftPage() {
     const result: Record<AttendanceStatus, number> = {
       open: 0,
       present: 0,
-      excused: 0,
       absent: 0,
     };
 
@@ -1022,24 +1027,30 @@ export function KindertrainingDraftPage() {
 
           {showSpecialDatePicker && (
             <section className="special-training-picker" role="dialog" aria-modal="true">
-              <div>
-                <strong>Sondertraining auswählen</strong>
+              <strong>Sondertraining auswählen</strong>
+              <div className="special-training-picker-row">
                 <input
                   type="date"
                   value={specialDateInput}
                   onChange={(event) => setSpecialDateInput(event.target.value)}
                 />
-              </div>
-              <div>
                 <button
                   type="button"
-                  className="secondary-button"
-                  onClick={() => setShowSpecialDatePicker(false)}
+                  className="icon-button special-training-save"
+                  onClick={confirmSpecialDate}
+                  aria-label="Sondertraining speichern"
+                  title="Sondertraining speichern"
                 >
-                  Abbrechen
+                  <Save aria-hidden="true" />
                 </button>
-                <button type="button" className="primary-button" onClick={confirmSpecialDate}>
-                  Datum anlegen
+                <button
+                  type="button"
+                  className="icon-button special-training-cancel"
+                  onClick={() => setShowSpecialDatePicker(false)}
+                  aria-label="Sondertraining abbrechen"
+                  title="Sondertraining abbrechen"
+                >
+                  <X aria-hidden="true" />
                 </button>
               </div>
             </section>
@@ -1064,8 +1075,8 @@ export function KindertrainingDraftPage() {
                         onClick={() => setActiveCategory(status.value)}
                         key={status.value}
                       >
-                        <span>{status.label}</span>
                         <strong>{counts[status.value]}</strong>
+                        <span>{status.label}</span>
                       </button>
                     ))}
                   </div>
@@ -1196,9 +1207,11 @@ export function KindertrainingDraftPage() {
                                   className={status.value}
                                   onClick={() => setAttendance(participant.athleteId, status.value)}
                                   disabled={!canEdit}
+                                  aria-label={`Status ${status.label} setzen`}
+                                  title={status.label}
                                   key={status.value}
                                 >
-                                  {status.shortLabel}
+                                  {attendanceStatusIcon(status.value)}
                                 </button>
                               ),
                             )}
@@ -1210,23 +1223,16 @@ export function KindertrainingDraftPage() {
                 )}
               </section>
 
-              <details
-                className="training-details-panel"
-                open={draft.state === "cancelled" || draft.note.length > 0}
-              >
-                <summary>
-                  <Settings2 aria-hidden="true" />
-                  Trainingseinstellungen und Notiz
-                </summary>
+              <section className="training-details-panel">
+                <div className="training-details-header">Notiz</div>
                 <div className="training-details-content">
                   <fieldset className="training-environment-field">
                     <legend><MapPin aria-hidden="true" /> Trainingsort</legend>
-                    <div className="segmented-control four-options">
+                    <div className="segmented-control three-options">
                       {([
                         [null, "Offen"],
                         ["indoor", "Indoor"],
                         ["outdoor", "Outdoor"],
-                        ["mixed", "Gemischt"],
                       ] as const).map(([value, label]) => (
                         <button
                           type="button"
@@ -1243,7 +1249,7 @@ export function KindertrainingDraftPage() {
 
                   <fieldset className="training-trainer-field">
                     <div className="trainer-field-heading">
-                      <legend><UsersRound aria-hidden="true" /> Anwesende Trainer</legend>
+                      <legend><UsersRound aria-hidden="true" /> Trainer</legend>
                       {(session?.availableTrainers ?? []).length > 0 && (
                         <button
                           type="button"
@@ -1323,7 +1329,7 @@ export function KindertrainingDraftPage() {
                     <small>{draft.note.length} / 3000 Zeichen</small>
                   </label>
                 </div>
-              </details>
+              </section>
 
               {canEdit && (
                 <div className={`training-autosave-status ${autoSaveState}`} aria-live="polite">

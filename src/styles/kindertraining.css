@@ -170,22 +170,29 @@
 }
 
 .special-training-picker {
-  display: flex;
-  align-items: end;
-  justify-content: space-between;
-  gap: 14px;
-  padding: 13px 14px;
+  display: grid;
+  gap: 7px;
+  padding: 11px 12px;
   background: #fff8e8;
   border: 1px solid #ead59b;
   border-radius: 14px;
 }
 
-.special-training-picker > div:first-child {
+.special-training-picker > strong {
+  color: #6f5112;
+  font-size: 0.82rem;
+}
+
+.special-training-picker-row {
   display: grid;
-  gap: 6px;
+  grid-template-columns: minmax(0, 1fr) 42px 42px;
+  align-items: center;
+  gap: 7px;
 }
 
 .special-training-picker input {
+  width: 100%;
+  min-width: 0;
   min-height: 42px;
   padding: 7px 10px;
   border: 1px solid #cdbf98;
@@ -193,9 +200,29 @@
   font: inherit;
 }
 
-.special-training-picker > div:last-child {
-  display: flex;
-  gap: 8px;
+.special-training-picker .icon-button {
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+}
+
+.special-training-picker .icon-button svg {
+  width: 21px;
+  height: 21px;
+}
+
+.special-training-save {
+  color: #244735;
+  background: #e4f1e7;
+  border-color: #b6d5bf;
+  box-shadow: inset 0 0 0 1px rgba(73, 120, 88, 0.08);
+  border-color: var(--green-700);
+}
+
+.special-training-cancel {
+  color: #7c2929;
+  background: #fff;
+  border-color: #ddbeb7;
 }
 
 .attendance-workspace.compact {
@@ -214,21 +241,21 @@
 .attendance-category-tabs {
   grid-column: 1 / -1;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 5px;
 }
 
 .attendance-category-tabs button {
   min-width: 0;
   min-height: 45px;
-  display: grid;
-  grid-template-rows: auto auto;
-  place-items: center;
-  gap: 2px;
-  padding: 5px 4px;
-  color: #59655f;
-  background: #f2f5f3;
-  border: 1px solid transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 7px 9px;
+  color: #405049;
+  background: #f3f6f4;
+  border: 1px solid #d5e0d9;
   border-radius: 10px;
   cursor: pointer;
   font-size: .76rem;
@@ -239,43 +266,41 @@
 .attendance-category-tabs button span {
   max-width: 100%;
   overflow: hidden;
-  text-align: center;
+  text-align: left;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .attendance-category-tabs button strong {
-  min-width: 22px;
-  min-height: 38px;
-  display: grid;
-  place-items: center;
-  padding: 1px 6px;
-  background: rgba(255, 255, 255, 0.78);
-  border-radius: 999px;
-  font-size: .76rem;
+  min-width: 0;
+  min-height: 0;
+  display: block;
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
+  font-size: .9rem;
   line-height: 1;
 }
 
 .attendance-category-tabs button.active.open {
-  color: #34423a;
-  background: #dfe7e2;
-  border-color: #afbeb5;
+  color: #35423c;
+  background: #e8eeea;
+  border-color: #b8c6be;
+  box-shadow: inset 0 0 0 1px rgba(88, 110, 98, 0.08);
 }
 
 .attendance-category-tabs button.active.present {
-  color: #fff;
-  background: var(--green-700);
-}
-
-.attendance-category-tabs button.active.excused {
-  color: #684a05;
-  background: #ffe5a0;
-  border-color: #e1c45e;
+  color: #244735;
+  background: #e4f1e7;
+  border-color: #b6d5bf;
+  box-shadow: inset 0 0 0 1px rgba(73, 120, 88, 0.08);
 }
 
 .attendance-category-tabs button.active.absent {
-  color: #fff;
-  background: #a94242;
+  color: #6f3737;
+  background: #f6e7e7;
+  border-color: #e0bcbc;
+  box-shadow: inset 0 0 0 1px rgba(140, 77, 77, 0.06);
 }
 
 .attendance-list-tools {
@@ -402,37 +427,50 @@
 }
 
 .compact-status-actions button {
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
   min-height: 38px;
-  padding: 5px 8px;
+  display: grid;
+  place-items: center;
+  padding: 0;
   color: #45534b;
   background: #edf2ef;
   border: 1px solid transparent;
   border-radius: 8px;
   cursor: pointer;
-  font-size: .76rem;
-  font-weight: 700;
+}
+
+.compact-status-actions button svg {
+  width: 21px;
+  height: 21px;
+  stroke-width: 3;
 }
 
 .compact-status-actions button.present {
-  color: #fff;
-  background: var(--green-700);
-}
-
-.compact-status-actions button.excused {
-  color: #694c07;
-  background: #ffe7a8;
-  border-color: #e7ca73;
+  color: #244735;
+  background: #e4f1e7;
+  border-color: #b6d5bf;
+  box-shadow: inset 0 0 0 1px rgba(73, 120, 88, 0.08);
 }
 
 .compact-status-actions button.absent {
-  color: #fff;
-  background: #a94242;
+  color: #6f3737;
+  background: #f6e7e7;
+  border-color: #e0bcbc;
+  box-shadow: inset 0 0 0 1px rgba(140, 77, 77, 0.06);
 }
 
 .compact-status-actions button.open {
-  color: #435048;
+  color: #111;
   background: #dfe7e2;
   border-color: #b7c4bc;
+}
+
+.compact-status-actions .status-question-mark {
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1;
 }
 
 .attendance-empty {
@@ -468,31 +506,26 @@
   font-size: 0.79rem;
 }
 
-.training-details-panel summary {
+.training-details-panel {
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: var(--shadow);
+}
+
+.training-details-header {
   min-height: 46px;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 9px 12px;
+  padding: 9px 12px 0;
   color: var(--green-900);
-  cursor: pointer;
   font-weight: 700;
-  list-style: none;
-}
-
-.training-details-panel summary::-webkit-details-marker {
-  display: none;
-}
-
-.training-details-panel summary svg {
-  width: 18px;
-  height: 18px;
 }
 
 .training-details-content {
   display: grid;
   gap: 10px;
-  padding: 0 12px 12px;
+  padding: 8px 12px 12px;
 }
 
 .cancel-training-toggle {
@@ -809,27 +842,22 @@
     flex-direction: column;
   }
 
-  .special-training-picker > div:last-child {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-  }
-
   .attendance-category-tabs {
     gap: 3px;
   }
 
   .attendance-category-tabs button {
     min-height: 47px;
-    gap: 2px;
-    padding: 4px 2px;
+    gap: 5px;
+    padding: 6px 5px;
     font-size: clamp(.76rem, 2.55vw, .82rem);
   }
 
   .attendance-category-tabs button strong {
-    min-width: 20px;
-    min-height: 38px;
-    padding: 1px 5px;
-    font-size: .76rem;
+    min-width: 0;
+    min-height: 0;
+    padding: 0;
+    font-size: .86rem;
   }
 
   .attendance-list-tools {
@@ -987,8 +1015,8 @@
   background: var(--green-50);
 }
 
-.segmented-control.four-options {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+.segmented-control.three-options {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .segmented-control button {
@@ -1115,10 +1143,6 @@
     gap: 0.25rem;
   }
 
-  .segmented-control.four-options {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
   .trainer-checkbox-grid {
     grid-template-columns: 1fr;
   }
@@ -1177,7 +1201,7 @@
 
 .compact-status-actions {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 3px;
   flex-wrap: nowrap;
 }
@@ -1186,11 +1210,8 @@
   width: 100%;
   min-width: 0;
   min-height: 38px;
-  padding: 4px 3px;
+  padding: 0;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: .76rem;
 }
 
 .trainer-field-heading {
@@ -1226,7 +1247,6 @@
 
   .compact-status-actions button {
     min-height: 38px;
-    font-size: .76rem;
   }
 }
 

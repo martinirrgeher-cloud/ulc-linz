@@ -22,14 +22,8 @@ export type AthleteStatisticsRow = {
   id: string;
   firstName: string;
   lastName: string;
-  birthYear: number | null;
   isActive: boolean;
-  possibleCount: number;
   presentCount: number;
-  excusedCount: number;
-  absentCount: number;
-  openCount: number;
-  attendanceRate: number;
 };
 
 export type TrainerStatisticsRow = {
@@ -51,6 +45,7 @@ export type KindertrainingStatisticsSummary = {
   cancelledCount: number;
   averagePresent: number;
   maxPresent: number;
+  minPresent: number;
   uniquePresent: number;
 };
 

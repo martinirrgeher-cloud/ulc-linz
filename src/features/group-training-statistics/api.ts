@@ -40,7 +40,7 @@ function numberValue(value: unknown): number {
 }
 
 function parseEnvironment(value: unknown): TrainingEnvironment {
-  return value === "indoor" || value === "outdoor" || value === "mixed" ? value : null;
+  return value === "indoor" || value === "outdoor" ? value : null;
 }
 
 function parseState(value: unknown): TrainingSessionState {
@@ -89,14 +89,8 @@ function parseAthletes(value: unknown): AthleteStatisticsRow[] {
       id: item.id,
       firstName: item.first_name,
       lastName: item.last_name,
-      birthYear: typeof item.birth_year === "number" ? item.birth_year : null,
       isActive: item.is_active === true,
-      possibleCount: numberValue(item.possible_count),
       presentCount: numberValue(item.present_count),
-      excusedCount: numberValue(item.excused_count),
-      absentCount: numberValue(item.absent_count),
-      openCount: numberValue(item.open_count),
-      attendanceRate: numberValue(item.attendance_rate),
     }];
   });
 }
@@ -139,6 +133,7 @@ function parseSummary(value: unknown): KindertrainingStatisticsSummary {
     cancelledCount: numberValue(summary.cancelled_count),
     averagePresent: numberValue(summary.average_present),
     maxPresent: numberValue(summary.max_present),
+    minPresent: numberValue(summary.min_present),
     uniquePresent: numberValue(summary.unique_present),
   };
 }

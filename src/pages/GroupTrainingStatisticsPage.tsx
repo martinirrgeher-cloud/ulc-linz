@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  Baby,
   BarChart3,
   CalendarDays,
   CheckCircle2,
@@ -7,11 +8,14 @@ import {
   RefreshCw,
   Save,
   TrendingUp,
-  UserCheck,
+  TrendingDown,
+  Undo2,
+  UserRoundCog,
   UsersRound,
 } from "lucide-react";
 import { Link, Navigate } from "react-router-dom";
 import { useAuth } from "@/features/auth/AuthContext";
+import { loadGroupTrainingConfiguration } from "@/features/group-training/api";
 import {
   loadGroupTrainingStatistics,
   saveGroupTrainingStatisticsDefault,
@@ -71,8 +75,7 @@ function formatMonth(value: string): string {
 function environmentLabel(value: string | null): string {
   if (value === "indoor") return "Indoor";
   if (value === "outdoor") return "Outdoor";
-  if (value === "mixed") return "Gemischt";
-  return "Nicht erfasst";
+  return "Offen";
 }
 
 function errorMessage(error: unknown): string {
@@ -96,6 +99,7 @@ export function GroupTrainingStatisticsPage({
   const canEdit = canEditModule(moduleKey);
 
   const [statistics, setStatistics] = useState<KindertrainingStatistics | null>(null);
+  const [groupTrainerIds, setGroupTrainerIds] = useState<string[]>([]);
   const [fromDate, setFromDate] = useState<string>(() => isoToday());
   const [toDate, setToDate] = useState<string>(() => isoToday());
   const [sessionLimit, setSessionLimit] = useState(10);
@@ -120,14 +124,18 @@ export function GroupTrainingStatisticsPage({
     setError(null);
     setSuccess(null);
     try {
-      const data = await loadGroupTrainingStatistics(
-        organizationId,
-        moduleKey,
-        safeFromDate,
-        safeToDate,
-        sessionLimit,
-      );
+      const [data, configuration] = await Promise.all([
+        loadGroupTrainingStatistics(
+          organizationId,
+          moduleKey,
+          safeFromDate,
+          safeToDate,
+          sessionLimit,
+        ),
+        loadGroupTrainingConfiguration(organizationId, moduleKey),
+      ]);
       setStatistics(data);
+      setGroupTrainerIds(configuration.groupTrainerIds);
       setFromDate(isValidIsoDate(data.fromDate) ? data.fromDate : safeFromDate ?? today);
       setToDate(isValidIsoDate(data.toDate) ? data.toDate : today);
     } catch (loadError) {
@@ -149,6 +157,12 @@ export function GroupTrainingStatisticsPage({
     () => Math.max(1, ...(statistics?.monthly.map((row) => row.averagePresent) ?? [1])),
     [statistics?.monthly],
   );
+  const visibleTrainers = useMemo(() => {
+    const assigned = new Set(groupTrainerIds);
+    return (statistics?.trainers ?? []).filter(
+      (trainer) => assigned.has(trainer.id) || trainer.sessionCount > 0,
+    );
+  }, [groupTrainerIds, statistics?.trainers]);
 
   if (!canView || !organizationId) return <Navigate to="/kein-zugriff" replace />;
 
@@ -175,15 +189,25 @@ export function GroupTrainingStatisticsPage({
           <h1>{title}</h1>
           <p>Trainingsteilnahmen, Entwicklung und Trainereinsätze auswerten.</p>
         </div>
-        <Link className="secondary-button link-button compact-button" to={trainingRoute}>
-          <UserCheck aria-hidden="true" /> Training erfassen
+        <Link
+          className="secondary-button link-button compact-button statistics-back-button"
+          to={trainingRoute}
+          aria-label="Zurück zum Training"
+          title="Zurück zum Training"
+        >
+          <Undo2 aria-hidden="true" />
         </Link>
       </div>
 
       {error && <div className="alert error">{error}</div>}
       {success && <div className="alert success">{success}</div>}
 
-      <section className="statistics-filter-card">
+      <details className="statistics-filter-card statistics-filter-details">
+        <summary>
+          <span>Zeitraum &amp; Filter</span>
+          <small>{formatDate(fromDate)} – {formatDate(toDate)}</small>
+        </summary>
+        <div className="statistics-filter-content">
         <div className="statistics-filter-grid">
           <label>
             Von
@@ -222,17 +246,19 @@ export function GroupTrainingStatisticsPage({
         {statistics?.defaultFromDate && (
           <small>Globaler Standard: {formatDate(statistics.defaultFromDate)} · Bis wird beim Öffnen immer auf heute gesetzt.</small>
         )}
-      </section>
+        </div>
+      </details>
 
       {loading && !statistics ? (
         <div className="management-loading"><span className="spinner" aria-hidden="true" /> Statistik wird geladen …</div>
       ) : statistics ? (
         <>
           <div className="statistics-summary-grid">
-            <div className="statistics-summary-card"><CalendarDays aria-hidden="true" /><span><strong>{statistics.summary.sessionCount}</strong> Trainings</span></div>
-            <div className="statistics-summary-card"><UsersRound aria-hidden="true" /><span><strong>{statistics.summary.averagePresent}</strong> Ø Kinder</span></div>
-            <div className="statistics-summary-card"><TrendingUp aria-hidden="true" /><span><strong>{statistics.summary.maxPresent}</strong> Maximum</span></div>
-            <div className="statistics-summary-card"><CheckCircle2 aria-hidden="true" /><span><strong>{statistics.summary.uniquePresent}</strong> verschiedene Kinder</span></div>
+            <div className="statistics-summary-card"><CalendarDays aria-hidden="true" /><strong>{statistics.summary.sessionCount}</strong><span>Trainings</span></div>
+            <div className="statistics-summary-card"><UsersRound aria-hidden="true" /><strong>{statistics.summary.averagePresent}</strong><span>Ø Kinder</span></div>
+            <div className="statistics-summary-card"><TrendingUp aria-hidden="true" /><strong>{statistics.summary.maxPresent}</strong><span>Maximum</span></div>
+            <div className="statistics-summary-card"><TrendingDown aria-hidden="true" /><strong>{statistics.summary.minPresent}</strong><span>Minimum</span></div>
+            <div className="statistics-summary-card"><CheckCircle2 aria-hidden="true" /><strong>{statistics.summary.uniquePresent}</strong><span>verschiedene Kinder</span></div>
           </div>
 
           <div className="statistics-tabs" role="tablist" aria-label="Statistikbereich">
@@ -264,8 +290,8 @@ export function GroupTrainingStatisticsPage({
                           <small>{[session.isSpecial ? "Sondertraining" : null, environmentLabel(session.environment), session.state === "cancelled" ? "Abgesagt" : null].filter(Boolean).join(" · ")}</small>
                         </div>
                         <div className="statistics-session-counts">
-                          <span><UsersRound aria-hidden="true" />{session.presentCount}</span>
-                          <span><UserCheck aria-hidden="true" />{session.trainers.length}</span>
+                          <span aria-label={`${session.presentCount} Kinder`} title="Kinder"><Baby aria-hidden="true" />{session.presentCount}</span>
+                          <span aria-label={`${session.trainers.length} Trainer`} title="Trainer"><UserRoundCog aria-hidden="true" />{session.trainers.length}</span>
                         </div>
                       </summary>
                       <div className="statistics-session-details">
@@ -290,10 +316,8 @@ export function GroupTrainingStatisticsPage({
                   {statistics.athletes.map((athlete, index) => (
                     <article className={`athlete-statistics-row ${athlete.isActive ? "" : "inactive"}`} key={athlete.id}>
                       <span className="statistics-rank">{index + 1}</span>
-                      <div className="athlete-statistics-name"><strong>{athlete.firstName} {athlete.lastName}</strong><small>{athlete.birthYear ? `Jahrgang ${athlete.birthYear}` : "Kein Jahrgang"}{athlete.isActive ? "" : " · Inaktiv"}</small></div>
-                      <div className="athlete-statistics-main"><strong>{athlete.presentCount}</strong><small>Da</small></div>
-                      <div className="athlete-statistics-rate"><strong>{athlete.attendanceRate} %</strong><small>{athlete.possibleCount} Termine</small></div>
-                      <div className="athlete-statistics-breakdown"><span>E {athlete.excusedCount}</span><span>F {athlete.absentCount}</span><span>O {athlete.openCount}</span></div>
+                      <div className="athlete-statistics-name"><strong>{athlete.firstName} {athlete.lastName}</strong>{!athlete.isActive && <small>Inaktiv</small>}</div>
+                      <div className="athlete-statistics-main"><strong>{athlete.presentCount}x</strong></div>
                     </article>
                   ))}
                 </div>
@@ -323,11 +347,11 @@ export function GroupTrainingStatisticsPage({
           {tab === "trainers" && (
             <section className="statistics-panel">
               <div className="statistics-panel-heading"><div><h2>Trainereinsätze</h2><p>Anzahl der betreuten Trainings im Zeitraum.</p></div></div>
-              {statistics.trainers.length === 0 ? (
-                <div className="inline-empty-state">Noch keine Trainereinsätze erfasst.</div>
+              {visibleTrainers.length === 0 ? (
+                <div className="inline-empty-state">Keine Gruppentrainer oder Trainereinsätze im Zeitraum.</div>
               ) : (
                 <div className="trainer-statistics-list">
-                  {statistics.trainers.map((trainer, index) => (
+                  {visibleTrainers.map((trainer, index) => (
                     <article key={trainer.id}><span>{index + 1}</span><div><strong>{trainer.firstName} {trainer.lastName}</strong><small>{trainer.isActive ? "Aktiv" : "Inaktiv"}</small></div><strong>{trainer.sessionCount}</strong></article>
                   ))}
                 </div>
