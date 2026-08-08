@@ -853,9 +853,10 @@
           "id": "manage",
           "title": "Einträge verwalten",
           "steps": [
-            "Auswahlliste wählen.",
-            "Bezeichnung, Sortierung und gegebenenfalls Einheit oder Eingabetyp erfassen.",
-            "Speichern oder nicht mehr benötigte Werte inaktiv setzen."
+            "Auswahlliste im kompakten Auswahlfeld wählen; die Zahl daneben zeigt die aktiven Einträge.",
+            "Mit + Neu die gewünschte Listenart auswählen oder einen vorhandenen Eintrag über den Stift öffnen.",
+            "Bezeichnung, Sortierung und gegebenenfalls Einheit oder Eingabetyp erfassen. Aktiv/Inaktiv wird direkt im Bearbeitungsdialog gesetzt.",
+            "Mit der Diskette speichern; X schließt den Dialog."
           ],
           "warning": "Bereits verwendete Werte nicht unüberlegt löschen oder umdeuten."
         },
@@ -943,14 +944,16 @@
           "title": "Benutzer finden",
           "bullets": [
             "Nach Name oder E-Mail suchen.",
-            "Nach Rolle, offener Einladung, fehlender Verknüpfung oder Warnung filtern."
+            "Das Filtersymbol neben der Suche öffnet Rolle und Konto als Filter.",
+            "Der Status kann weiterhin direkt über Alle, Aktiv, Einladung offen oder Deaktiviert gefiltert werden.",
+            "Das Info-Symbol eines Benutzers öffnet die vollständigen Konto-, Verknüpfungs- und Rechteinformationen."
           ]
         },
         {
           "id": "invite",
           "title": "Einladen und erneut senden",
           "paragraphs": [
-            "Status, letzter Versand und Versandanzahl bleiben sichtbar."
+            "In der kompakten Übersicht bleiben Name, E-Mail, Status und Rolle sichtbar. Versanddetails und weitere Kontoinformationen stehen im Info-Fenster."
           ],
           "steps": [
             "E-Mail, Anzeigename und Rolle erfassen.",

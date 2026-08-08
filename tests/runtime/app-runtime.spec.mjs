@@ -348,7 +348,10 @@ test("Benutzeransicht simuliert Rechte und bleibt sichtbar als schreibgeschuetzt
 
   await expectAuthenticatedHeading(page, "/module/user_management", "Benutzerverwaltung");
   const trainerCard = page.locator(".member-card").filter({ hasText: "E2E Trainer" });
-  await trainerCard.getByRole("button", { name: "Ansicht simulieren", exact: true }).click();
+  await trainerCard.getByRole("button", { name: "Informationen zu E2E Trainer", exact: true }).click();
+  const trainerInfo = page.getByRole("dialog", { name: "E2E Trainer" });
+  await expect(trainerInfo).toBeVisible();
+  await trainerInfo.getByRole("button", { name: "Ansicht simulieren", exact: true }).click();
 
   await expect(page.getByRole("heading", { name: "Willkommen, E2E Trainer", exact: true })).toBeVisible();
   await expect(page.getByRole("status", { name: "Benutzeransicht Simulation" })).toContainText("Änderungen werden nicht gespeichert");
@@ -369,7 +372,10 @@ test("Simulationsmodus blockiert schreibende Serveraktionen vor dem Netzwerk", a
 
   await expectAuthenticatedHeading(page, "/module/user_management", "Benutzerverwaltung");
   const adminCard = page.locator(".member-card").filter({ hasText: "E2E Zweitadmin" });
-  await adminCard.getByRole("button", { name: "Ansicht simulieren", exact: true }).click();
+  await adminCard.getByRole("button", { name: "Informationen zu E2E Zweitadmin", exact: true }).click();
+  const adminInfo = page.getByRole("dialog", { name: "E2E Zweitadmin" });
+  await expect(adminInfo).toBeVisible();
+  await adminInfo.getByRole("button", { name: "Ansicht simulieren", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Willkommen, E2E Zweitadmin", exact: true })).toBeVisible();
 
   await expect(page.getByRole("status", { name: "Benutzeransicht Simulation" })).toContainText("Änderungen werden nicht gespeichert");
@@ -386,7 +392,10 @@ test("Simulationsmodus blockiert schreibende Serveraktionen vor dem Netzwerk", a
   await expect(page.getByRole("status", { name: "Benutzeransicht Simulation" })).toContainText("Änderungen werden nicht gespeichert");
 
   const invitationCard = page.locator(".member-card").filter({ hasText: "Offene Einladung" });
-  await invitationCard.getByRole("button", { name: "Erneut senden", exact: true }).click();
+  await invitationCard.getByRole("button", { name: "Informationen zu Offene Einladung", exact: true }).click();
+  const invitationInfo = page.getByRole("dialog", { name: "Offene Einladung" });
+  await expect(invitationInfo).toBeVisible();
+  await invitationInfo.getByRole("button", { name: "Erneut senden", exact: true }).click();
   await expect(page.locator(".alert.error")).toContainText("Simulation aktiv");
   await expect(page.locator(".alert.error")).toContainText("nicht gespeichert");
 
