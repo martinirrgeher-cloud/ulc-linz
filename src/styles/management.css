@@ -15,7 +15,7 @@
     overflow-wrap: anywhere;
   }
   .management-form {
-    gap: 18px;
+    gap: 12px;
   }
   .management-page-heading,
   .management-editor-heading,
@@ -30,7 +30,7 @@
     margin-bottom: 0;
   }
   .management-editor {
-    padding: 18px 14px;
+    padding: 16px 14px;
         border-radius: 16px;
   }
   .management-editor-heading {
@@ -47,7 +47,7 @@
   .management-tabs {
     display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 6px;
+        gap: 8px;
         padding: 5px;
   }
   .management-tabs button {
@@ -127,7 +127,7 @@
     font-size: 0.84rem;
   }
   .permission-group-copy small {
-    font-size: 0.68rem;
+    font-size: .76rem;
   }
   .permission-header {
     display: none;
@@ -161,8 +161,8 @@
         top: 7px;
         left: 50%;
         color: var(--muted);
-        font-size: 0.68rem;
-        font-weight: 800;
+        font-size: .76rem;
+        font-weight: 700;
         letter-spacing: 0.04em;
         text-transform: uppercase;
         transform: translateX(-50%);
@@ -217,7 +217,7 @@
 }
 @media (max-width: 380px) {
   .management-tabs.three-tabs button {
-    font-size: 0.7rem;
+    font-size: .76rem;
   }
   .management-tabs.three-tabs button span {
     display: none;
@@ -284,7 +284,7 @@
 @media (max-width: 390px) {
   .masterdata-filter-field,
   .management-filter-field {
-    font-size: 0.7rem;
+    font-size: .76rem;
   }
   .masterdata-filter-field select,
   .management-filter-field select {
@@ -311,7 +311,7 @@
   }
   .management-page-heading .eyebrow {
     margin-bottom: 4px !important;
-        font-size: 0.68rem;
+        font-size: .76rem;
   }
   .management-page-heading .primary-button,
   .management-toolbar .secondary-button {
@@ -337,7 +337,7 @@
 @media screen and (max-width: 390px) {
   .management-tabs button {
     padding-inline: 5px;
-        font-size: 0.72rem;
+        font-size: .76rem;
   }
 }
 
@@ -395,7 +395,7 @@
   border-bottom: 1px solid var(--border);
   cursor: pointer;
   font: inherit;
-  font-weight: 800;
+  font-weight: 700;
   text-align: left;
 }
 
@@ -453,7 +453,7 @@
   color: #fff;
   background: var(--green-700);
   border-radius: 999px;
-  font-size: 0.62rem;
+  font-size: .76rem;
   line-height: 1.25;
   text-align: center;
 }
@@ -529,7 +529,7 @@
 .management-editor-sticky-copy h2 {
   overflow: hidden;
   color: var(--green-950);
-  font-size: 1.18rem;
+  font-size: 1.08rem;
   line-height: 1.2;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -538,7 +538,7 @@
 .management-editor-sticky-copy p:not(.eyebrow) {
   overflow: hidden;
   color: var(--muted);
-  font-size: 0.77rem;
+  font-size: 0.82rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -584,8 +584,8 @@
 
 .editor-section-card {
   min-width: 0;
-  padding: 16px;
-  background: #f8fbf9;
+  padding: 14px;
+  background: #fbfcfb;
   border: 1px solid var(--border);
   border-radius: 15px;
 }
@@ -615,7 +615,7 @@
   }
 
   .management-editor-sticky-copy .eyebrow {
-    font-size: 0.62rem;
+    font-size: .76rem;
   }
 
   .management-editor-sticky-actions {
@@ -670,6 +670,6 @@
   }
 
   .editor-section-tabs button {
-    font-size: 0.68rem;
+    font-size: .76rem;
   }
 }

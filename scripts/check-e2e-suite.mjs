@@ -43,6 +43,43 @@ if (!workflow.includes("https://e2e.supabase.co")) throw new Error("The E2E work
 if (/SUPABASE_SERVICE_ROLE|BACKUP_ENCRYPTION|RCLONE_CONFIG/.test(workflow)) {
   throw new Error("The read-only E2E workflow must not use production or backup secrets.");
 }
+for (const marker of [
+  "test:e2e:readonly:pr",
+  "test:e2e:readonly:ci",
+  "github.event_name == 'pull_request'",
+  "github.event_name != 'pull_request'",
+]) {
+  if (!workflow.includes(marker)) throw new Error(`Read-only E2E CI split marker is missing: ${marker}`);
+}
+
+const pkg = JSON.parse(readFileSync("package.json", "utf8"));
+if (!pkg.scripts?.["test:e2e:readonly:pr"]?.includes("--project=mobile-390")) {
+  throw new Error("PR read-only E2E must use the representative mobile-390 project.");
+}
+if (!pkg.scripts?.["test:e2e:readonly:ci"]) {
+  throw new Error("Full read-only E2E script is missing.");
+}
+
+for (const marker of [
+  'data-testid="exercise-card"',
+  'data-testid="exercise-actions"',
+  'data-testid="exercise-primary"',
+  'data-testid="exercise-edit"',
+  'data-testid="exercise-expand"',
+  'data-testid="exercise-usage"',
+]) {
+  const source = readFileSync("src/pages/ExerciseCatalogPage.tsx", "utf8");
+  if (!source.includes(marker)) throw new Error(`Stable exercise catalog test anchor is missing: ${marker}`);
+}
+for (const marker of [
+  'getByTestId("masterdata-create-menu-toggle")',
+  'getByTestId("exercise-card")',
+  'getByTestId("exercise-edit")',
+  'getByTestId("exercise-expand")',
+  'getByTestId("exercise-usage")',
+]) {
+  if (!testFile.includes(marker)) throw new Error(`Read-only stable selector is missing: ${marker}`);
+}
 
 for (const marker of [
   "Hilfe für diese Seite",

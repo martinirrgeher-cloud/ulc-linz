@@ -23,7 +23,7 @@
   background: rgba(255, 255, 255, 0.78);
   border: 1px solid var(--border);
   font-size: 0.78rem;
-  font-weight: 800;
+  font-weight: 700;
   white-space: nowrap;
 }
 
@@ -65,7 +65,7 @@
   border-radius: 10px;
   background: transparent;
   color: var(--muted);
-  font-weight: 800;
+  font-weight: 700;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -101,8 +101,8 @@
   display: grid;
   gap: 4px;
   color: var(--green-950);
-  font-size: 0.75rem;
-  font-weight: 800;
+  font-size: .76rem;
+  font-weight: 700;
 }
 
 .performance-group-select select,
@@ -127,7 +127,7 @@
 
 .performance-single-group small {
   color: var(--muted);
-  font-size: 0.7rem;
+  font-size: .76rem;
 }
 
 .performance-single-group strong {
@@ -165,7 +165,7 @@
 .performance-week-label span,
 .performance-week-label small {
   color: var(--muted);
-  font-size: 0.68rem;
+  font-size: .76rem;
 }
 
 .performance-deadline-note {
@@ -262,7 +262,7 @@
 
 .performance-registration-day-heading small {
   color: var(--muted);
-  font-size: 0.68rem;
+  font-size: .76rem;
   line-height: 1.2;
 }
 
@@ -290,8 +290,8 @@
   border-radius: 9px;
   background: #f7faf8;
   color: var(--muted);
-  font-size: 0.73rem;
-  font-weight: 800;
+  font-size: .76rem;
+  font-weight: 700;
   cursor: pointer;
 }
 
@@ -336,8 +336,8 @@
   display: grid;
   gap: 3px;
   color: var(--green-950);
-  font-size: 0.7rem;
-  font-weight: 800;
+  font-size: .76rem;
+  font-weight: 700;
 }
 
 .performance-comment-field input {
@@ -349,8 +349,8 @@
   flex: 0 0 auto;
   padding: 4px 6px;
   border-radius: 999px;
-  font-size: 0.65rem;
-  font-weight: 800;
+  font-size: .76rem;
+  font-weight: 700;
 }
 
 .late-badge {
@@ -388,8 +388,8 @@
 .performance-count {
   padding: 4px 6px;
   border-radius: 999px;
-  font-size: 0.68rem;
-  font-weight: 800;
+  font-size: .76rem;
+  font-weight: 700;
   white-space: nowrap;
 }
 
@@ -456,7 +456,7 @@
 
 .performance-registration-matrix thead th small {
   color: var(--muted);
-  font-size: 0.65rem;
+  font-size: .76rem;
 }
 
 .performance-registration-matrix tbody th button {
@@ -483,15 +483,15 @@
   min-height: 32px;
   border: 1px solid transparent;
   border-radius: 8px;
-  font-size: 0.68rem;
-  font-weight: 900;
+  font-size: .76rem;
+  font-weight: 750;
   cursor: pointer;
 }
 
 .performance-matrix-hint {
   margin: 0;
   color: var(--muted);
-  font-size: 0.7rem;
+  font-size: .76rem;
 }
 
 .status-pill {
@@ -502,8 +502,8 @@
   padding: 4px 7px;
   border: 1px solid transparent;
   border-radius: 999px;
-  font-size: 0.7rem;
-  font-weight: 800;
+  font-size: .76rem;
+  font-weight: 700;
   white-space: nowrap;
 }
 
@@ -522,7 +522,7 @@
   gap: 6px;
   padding: 0 5px;
   color: var(--green-950);
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .performance-feature-switch,
@@ -562,7 +562,7 @@
 .performance-inline-switch small,
 .performance-setting-row small {
   color: var(--muted);
-  font-size: 0.7rem;
+  font-size: .76rem;
   font-weight: 500;
   line-height: 1.25;
 }
@@ -696,7 +696,7 @@
   .performance-save-indicator {
     min-height: 29px;
     padding: 5px 7px;
-    font-size: 0.7rem;
+    font-size: .76rem;
   }
 
   .performance-controls-card {
@@ -716,8 +716,8 @@
   }
 
   .performance-status-options button {
-    min-height: 36px;
-    font-size: 0.69rem;
+    min-height: 38px;
+    font-size: .76rem;
   }
 
   .performance-day-summary-list article {

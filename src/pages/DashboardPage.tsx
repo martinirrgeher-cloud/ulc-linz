@@ -1,4 +1,4 @@
-import { AlertCircle, CalendarDays, CheckCircle2, ChevronRight, ClipboardCheck, Info, RefreshCw, ShieldCheck, UserRoundCog } from "lucide-react";
+import { AlertCircle, CalendarDays, CheckCircle2, ChevronRight, ClipboardCheck, Dumbbell, Info, ListChecks, RefreshCw, ShieldCheck, UserRoundCog, UsersRound } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { APP_MODULES } from "@/config/modules";
@@ -25,6 +25,12 @@ export function DashboardPage() {
     performanceRegistration: canViewModule("performance_registration"), trainingOverview: canViewModule("training_overview"),
     trainingPlanning: canViewModule("training_planning"), trainingDocumentation: canViewModule("training_documentation"), userManagement: canViewModule("user_management"),
   }), [canViewModule]);
+  const quickActions = useMemo(() => [
+    canViewModule("training_planning") ? { label: "Planung", detail: "Athletenpläne öffnen", route: "/module/training_planning", icon: ListChecks } : null,
+    canViewModule("exercise_catalog") ? { label: "Übung suchen", detail: "Katalog öffnen", route: "/module/exercise_catalog", icon: Dumbbell } : null,
+    canViewModule("athletes") ? { label: "Stammdaten", detail: "Athleten & Gruppen", route: "/module/athletes", icon: UsersRound } : null,
+    canViewModule("training_documentation") ? { label: "Dokumentation", detail: "Training erfassen", route: "/module/training_documentation", icon: ClipboardCheck } : null,
+  ].filter((item) => item !== null), [canViewModule]);
   const today = useMemo(() => new Intl.DateTimeFormat("de-AT", { weekday: "long", day: "2-digit", month: "long" }).format(new Date()), []);
 
   const loadSnapshot = useCallback(async (refresh = false) => {
@@ -52,6 +58,20 @@ export function DashboardPage() {
       </div>
 
       {isSimulationActive && <div className="dashboard-notice"><Info aria-hidden="true" /><p>Im Simulationsmodus werden keine Dashboard-Zahlen geladen, weil die serverseitige Datensicht weiterhin deinem Administratorkonto entspricht.</p></div>}
+
+      {quickActions.length > 0 && (
+        <nav className="dashboard-quick-actions" aria-label="Schnellzugriffe">
+          {quickActions.map((item) => {
+            const QuickIcon = item.icon;
+            return (
+              <button type="button" className="dashboard-quick-action" key={item.route} onClick={() => navigate(item.route)}>
+                <span><QuickIcon aria-hidden="true" /></span>
+                <span><strong>{item.label}</strong><small>{item.detail}</small></span>
+              </button>
+            );
+          })}
+        </nav>
+      )}
 
       {!isSimulationActive && <>
         <section className="dashboard-section" aria-labelledby="dashboard-today-title">

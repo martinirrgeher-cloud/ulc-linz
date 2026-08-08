@@ -15,12 +15,24 @@ const requiredFiles = [
   "ULC-FREIGEBEN.cmd",
   "ULC-LOKAL-ANSEHEN.cmd",
   "scripts/check-simulation-safety.mjs",
+  ".github/workflows/mobile-patch.yml",
+  ".devcontainer/devcontainer.json",
+  "MOBILE-ENTWICKLUNG.md",
 ];
 
 for (const file of requiredFiles) assert.ok(existsSync(file), `Release-Infrastruktur fehlt: ${file}`);
 
 const pkg = JSON.parse(readFileSync("package.json", "utf8"));
-for (const script of ["test:runtime", "test:runtime:ci", "release:check", "release:check:ci", "test:release-approval"]) {
+for (const script of [
+  "test:runtime",
+  "test:runtime:ci",
+  "release:check",
+  "release:check:ci",
+  "test:release-approval",
+  "test:e2e:readonly:pr",
+  "test:e2e:writing:pr",
+  "ci:preview",
+]) {
   assert.ok(pkg.scripts?.[script], `package.json Script fehlt: ${script}`);
 }
 assert.match(pkg.scripts["ci:quality"], /test:release-approval/, "CI-Qualitaetspruefung muss die Freigaberoutine selbst testen.");
@@ -34,6 +46,36 @@ assert.equal(
 const qualityWorkflow = readFileSync(".github/workflows/quality-check.yml", "utf8");
 assert.match(qualityWorkflow, /npm run release:check:ci/, "Quality-Workflow muss den echten Runtime-Gate ausfuehren.");
 assert.match(qualityWorkflow, /playwright install --with-deps chromium/, "Quality-Workflow muss Chromium installieren.");
+
+const readonlyWorkflow = readFileSync(".github/workflows/e2e-readonly.yml", "utf8");
+const writingWorkflow = readFileSync(".github/workflows/e2e-writing.yml", "utf8");
+for (const [label, workflow] of [["Read-only E2E", readonlyWorkflow], ["Writing E2E", writingWorkflow]]) {
+  assert.match(workflow, /actions\/checkout@v6/, `${label} muss die Node-24-kompatible Checkout-Action verwenden.`);
+  assert.match(workflow, /actions\/setup-node@v6/, `${label} muss die Node-24-kompatible Setup-Node-Action verwenden.`);
+  assert.match(workflow, /actions\/upload-artifact@v7/, `${label} muss die aktuelle Node-24-Artefakt-Action verwenden.`);
+}
+assert.match(writingWorkflow, /supabase\/setup-cli@v2/, "Writing E2E muss die aktuelle Supabase Setup-CLI-Action verwenden.");
+
+const mobileWorkflow = readFileSync(".github/workflows/mobile-patch.yml", "utf8");
+assert.match(mobileWorkflow, /mobile-patch\/\*\*/, "Mobile-Workflow muss auf mobile-patch-Branches begrenzt bleiben.");
+assert.match(mobileWorkflow, /npm run ci:preview/, "Mobiler Patch muss das schnelle Preview-Gate verwenden.");
+assert.doesNotMatch(mobileWorkflow, /npm run ci:quality/, "Mobiler Patch soll die teure Vollpruefung nicht vor jeder Preview doppelt ausfuehren.");
+assert.match(mobileWorkflow, /Vercel-Preview/, "Mobile-Workflow muss den Preview-Schritt sichtbar erklaeren.");
+assert.match(mobileWorkflow, /Produktion bleibt/, "Mobile-Workflow muss die Produktionsgrenze sichtbar machen.");
+assert.match(mobileWorkflow, /actions\/checkout@v6/, "Mobile-Workflow muss Checkout auf Node 24 verwenden.");
+assert.match(mobileWorkflow, /actions\/setup-node@v6/, "Mobile-Workflow muss Setup-Node auf Node 24 verwenden.");
+assert.match(mobileWorkflow, /actions\/upload-artifact@v7/, "Mobile-Workflow muss Upload-Artifact auf Node 24 verwenden.");
+assert.match(mobileWorkflow, /actions\/download-artifact@v7/, "Mobile-Workflow muss Download-Artifact auf Node 24 verwenden.");
+
+const devcontainer = JSON.parse(readFileSync(".devcontainer/devcontainer.json", "utf8"));
+assert.match(devcontainer.image ?? "", /javascript-node:1-22-bookworm/, "Codespaces muss die Node-22-Umgebung verwenden.");
+assert.equal(devcontainer.postCreateCommand, "npm ci", "Codespaces muss Abhaengigkeiten reproduzierbar mit npm ci installieren.");
+assert.ok(devcontainer.forwardPorts?.includes(5173), "Codespaces muss den Vite-Port 5173 weiterleiten.");
+
+const mobileDocs = readFileSync("MOBILE-ENTWICKLUNG.md", "utf8");
+for (const marker of ["MOBILE-PATCH-", "mobile-patch/", "Vercel Preview", "Squash and merge", "Codespaces"]) {
+  assert.match(mobileDocs, new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")), `Mobile-Dokumentation fehlt: ${marker}`);
+}
 
 const releaseCheck = readFileSync("scripts/release/run-release-check.mjs", "utf8");
 assert.match(

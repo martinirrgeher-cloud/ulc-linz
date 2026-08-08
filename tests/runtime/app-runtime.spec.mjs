@@ -123,6 +123,10 @@ test("D2 Übungskatalog zeigt kompakte Liste, Schnellinfos und Filter-Sheet", as
   expect(titleFontSize).toBeGreaterThanOrEqual(15);
   const firstExercise = page.locator(".exercise-list-item").first();
   await expect(firstExercise).toBeVisible();
+  const exerciseEditBox = await firstExercise.locator(".exercise-edit-button").boundingBox();
+  expect(exerciseEditBox).not.toBeNull();
+  expect(exerciseEditBox.width).toBeGreaterThanOrEqual(38);
+  expect(exerciseEditBox.height).toBeGreaterThanOrEqual(38);
   await expect(firstExercise.locator(".exercise-quick-info")).toHaveCount(0);
   await firstExercise.locator(".exercise-list-primary").click();
   await expect(firstExercise.locator(".exercise-quick-info")).toBeVisible();
@@ -155,6 +159,51 @@ test("D3 Kernmodule nutzen das gemeinsame, lesbarere Designsystem", async ({ pag
 
   const rootFontSize = await page.locator("html").evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize));
   expect(rootFontSize).toBeGreaterThanOrEqual(17);
+  await expectRuntimeHealthy(page, problems, unhandled);
+});
+
+
+test("Final UI v4 rendert alle Hauptseiten mit konsistenter Typografie und Bediengroesse", async ({ page }) => {
+  const problems = collectRuntimeProblems(page);
+  await installAuthenticatedSession(page);
+  const unhandled = await installSupabaseMock(page);
+
+  const routes = [
+    ["/", "Willkommen, E2E Administrator"],
+    ["/module/kindertraining", "Kindertraining"],
+    ["/module/u12", "U12"],
+    ["/module/u14", "U14"],
+    ["/module/performance_registration", "Leistungsgruppen"],
+    ["/module/training_overview", "Trainingsplan-Übersicht"],
+    ["/module/training_planning", "Athletenpläne"],
+    ["/module/training_documentation", "Trainingsdokumentation"],
+    ["/module/exercise_catalog", "Übungskatalog"],
+    ["/module/training_blocks", "Trainingsblöcke"],
+    ["/module/athletes", "Athleten, Trainer & Gruppen"],
+    ["/module/dropdown_settings", "Auswahllisten"],
+    ["/module/data_import", "Datenimport/-export"],
+    ["/module/user_management", "Benutzerverwaltung"],
+    ["/module/countdown", "Intervall-Countdown"],
+    ["/module/kindertraining/statistik", "Kindertraining"],
+    ["/module/u12/statistik", "U12"],
+    ["/module/u14/statistik", "U14"],
+  ];
+
+  for (const [route, heading] of routes) {
+    await expectAuthenticatedHeading(page, route, heading);
+    await expect(page.locator(".app-shell.final-ui-v1")).toBeVisible();
+    const tinyButtons = await page.locator(".app-content button:visible").evaluateAll((buttons) => buttons
+      .filter((button) => button.textContent?.trim() && Number.parseFloat(getComputedStyle(button).fontSize) < 13.5)
+      .map((button) => `${button.textContent?.trim()}: ${getComputedStyle(button).fontSize}`));
+    const tinySmallText = await page.locator(".app-content small:visible").evaluateAll((elements) => elements
+      .filter((element) => Number.parseFloat(getComputedStyle(element).fontSize) < 13.5)
+      .map((element) => `${element.textContent?.trim()}: ${getComputedStyle(element).fontSize}`));
+    expect(tinyButtons, `Zu kleine Button-Schrift auf ${route}`).toEqual([]);
+    expect(tinySmallText, `Zu kleine Meta-Schrift auf ${route}`).toEqual([]);
+  }
+
+  const rootFontSize = await page.locator("html").evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize));
+  expect(rootFontSize).toBeGreaterThanOrEqual(18);
   await expectRuntimeHealthy(page, problems, unhandled);
 });
 

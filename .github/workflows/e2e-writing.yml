@@ -40,6 +40,7 @@ concurrency:
 
 jobs:
   writing-e2e:
+    # Name bewusst beibehalten: bestehende Branch-Protection-Regeln bleiben gueltig.
     name: Schreibende Kernablaeufe auf 390 px
     runs-on: ubuntu-latest
     timeout-minutes: 35
@@ -50,30 +51,82 @@ jobs:
 
     steps:
       - name: Projekt auschecken
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Schreibrelevante Aenderungen erkennen
+        id: scope
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+
+          if [[ "$EVENT_NAME" != "pull_request" ]]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            echo "mode=full" >> "$GITHUB_OUTPUT"
+            echo "Push auf main oder manueller Lauf: Vollregression wird ausgefuehrt."
+            exit 0
+          fi
+
+          git diff --name-only "$BASE_SHA" "$HEAD_SHA" > "$RUNNER_TEMP/e2e-writing-changed.txt"
+          echo "Geaenderte Dateien:"
+          cat "$RUNNER_TEMP/e2e-writing-changed.txt"
+
+          WRITE_RE='^(supabase/|tests/e2e-writing/|scripts/(seed-e2e-writing\.mjs|check-e2e-writing-suite\.mjs|run-e2e-writing\.ps1)|playwright\.writing\.config\.mjs|package(-lock)?\.json|\.github/workflows/e2e-writing\.yml|src/(features|lib)/.*\.(ts|tsx)$|src/pages/.*\.tsx$)'
+          if grep -Eq "$WRITE_RE" "$RUNNER_TEMP/e2e-writing-changed.txt"; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            echo "mode=pr" >> "$GITHUB_OUTPUT"
+            echo "Schreibrelevante Aenderung erkannt: PR-Kernset wird ausgefuehrt."
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "mode=skip" >> "$GITHUB_OUTPUT"
+            echo "Keine schreibrelevante Aenderung: teure lokale Supabase-Suite wird fuer diesen PR uebersprungen."
+          fi
+
+      - name: Schnellstatus fuer nicht schreibrelevanten PR
+        if: steps.scope.outputs.run != 'true'
+        shell: bash
+        run: |
+          {
+            echo "## Schreibende E2E nicht erforderlich"
+            echo
+            echo "Dieser Pull Request aendert keine schreibrelevanten TypeScript-, Supabase- oder E2E-Dateien."
+            echo "Die teure lokale Supabase-Umgebung wurde deshalb bewusst nicht gestartet."
+            echo "Auf main und bei manuellem Start laeuft weiterhin die Vollregression."
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Node.js einrichten
-        uses: actions/setup-node@v4
+        if: steps.scope.outputs.run == 'true'
+        uses: actions/setup-node@v6
         with:
           node-version-file: .nvmrc
           cache: npm
 
       - name: Projektabhaengigkeiten installieren
+        if: steps.scope.outputs.run == 'true'
         run: npm ci
 
       # Fail fast before Docker images and the local Supabase stack are started.
       - name: Teststruktur pruefen
+        if: steps.scope.outputs.run == 'true'
         run: npm run check:e2e-writing-suite
 
       - name: Supabase CLI einrichten
-        uses: supabase/setup-cli@v1
+        if: steps.scope.outputs.run == 'true'
+        uses: supabase/setup-cli@v2
         with:
           version: 2.109.1
 
       - name: Docker-Umgebung pruefen
+        if: steps.scope.outputs.run == 'true'
         run: docker info
 
       - name: Isolierte lokale Supabase-Umgebung starten
+        if: steps.scope.outputs.run == 'true'
         run: >
           supabase start
           -x studio,imgproxy,mailpit,edge-runtime,logflare,vector,supavisor
@@ -81,9 +134,11 @@ jobs:
       # supabase start applies all migrations before Realtime is started. A second
       # reset would recreate Postgres underneath Realtime and make changes flaky.
       - name: Lokalen Migrationsstand anzeigen
+        if: steps.scope.outputs.run == 'true'
         run: supabase migration list --local
 
       - name: Lokale Supabase-Zugangsdaten bereitstellen
+        if: steps.scope.outputs.run == 'true'
         shell: bash
         run: |
           supabase status -o env > supabase-local.env
@@ -100,30 +155,32 @@ jobs:
           echo "VITE_SUPABASE_PUBLISHABLE_KEY=$ANON_KEY_VALUE" >> "$GITHUB_ENV"
 
       - name: Kuenstliche Testbenutzer und Testdaten anlegen
+        if: steps.scope.outputs.run == 'true'
         run: node scripts/seed-e2e-writing.mjs
 
       - name: Playwright Test isoliert installieren
+        if: steps.scope.outputs.run == 'true'
         run: npm install --no-save --package-lock=false @playwright/test@1.62.1
 
-      - name: Chromium-Cache wiederherstellen
-        id: playwright-cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-chromium-1.62.1
-
       - name: Chromium und Systemabhaengigkeiten installieren
+        if: steps.scope.outputs.run == 'true'
         run: npx playwright install --with-deps chromium
 
       - name: Anwendung gegen lokales Supabase bauen
+        if: steps.scope.outputs.run == 'true'
         run: npm run build
 
-      - name: Schreibende End-to-End-Tests ausfuehren
+      - name: Schreibende PR-Kernablaeufe ausfuehren
+        if: steps.scope.outputs.run == 'true' && steps.scope.outputs.mode == 'pr'
+        run: npm run test:e2e:writing:pr
+
+      - name: Schreibende Vollregression ausfuehren
+        if: steps.scope.outputs.run == 'true' && steps.scope.outputs.mode == 'full'
         run: npm run test:e2e:writing:ci
 
       - name: Testbericht hochladen
-        if: always()
-        uses: actions/upload-artifact@v4
+        if: always() && steps.scope.outputs.run == 'true'
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-writing-report-${{ github.run_id }}
           path: |
@@ -133,5 +190,5 @@ jobs:
           retention-days: 14
 
       - name: Lokale Testumgebung entfernen
-        if: always()
+        if: always() && steps.scope.outputs.run == 'true'
         run: supabase stop --no-backup || true

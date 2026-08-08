@@ -188,11 +188,11 @@ test.describe("Authentifizierte, nicht schreibende Modulprüfungen", () => {
     await page.goto("/module/athletes");
     await expect(page.getByRole("heading", { name: "Athleten, Trainer & Gruppen", exact: true })).toBeVisible();
 
-    await page.getByRole("button", { name: "Neu", exact: true }).click();
+    await page.getByTestId("masterdata-create-menu-toggle").click();
     await expect(page.getByRole("menuitem", { name: "Athlet anlegen" })).toBeVisible();
     await expect(page.getByRole("menuitem", { name: "Gruppe anlegen" })).toBeVisible();
     await expect(page.getByRole("menuitem", { name: "Trainer anlegen" })).toBeVisible();
-    await page.getByRole("button", { name: "Neu", exact: true }).click();
+    await page.getByTestId("masterdata-create-menu-toggle").click();
 
     await page.getByRole("button", { name: "Filtermenü öffnen" }).click();
     await expect(page.getByLabel("Athleten nach Trainingsgruppe filtern")).toBeVisible();
@@ -255,9 +255,12 @@ test.describe("Authentifizierte, nicht schreibende Modulprüfungen", () => {
     const filterButton = page.getByRole("button", { name: "Filtermenü öffnen" });
     await expect(filterButton).toBeVisible();
 
-    const card = page.locator(".exercise-card").first();
-    const actionItems = card.locator(".exercise-card-actions > *");
-    await expect(actionItems).toHaveCount(5);
+    const card = page.getByTestId("exercise-card").first();
+    const actionItems = card.getByTestId("exercise-actions").locator(":scope > *");
+    await expect(card.getByRole("button", { name: /Favoriten/ })).toBeVisible();
+    await expect(card.getByTestId("exercise-edit")).toBeVisible();
+    await expect(card.getByTestId("exercise-expand")).toBeVisible();
+    expect(await actionItems.count()).toBeGreaterThanOrEqual(3);
 
     const layout = await page.evaluate(() => {
       const viewportWidth = document.documentElement.clientWidth;
@@ -268,7 +271,7 @@ test.describe("Authentifizierte, nicht schreibende Modulprüfungen", () => {
       }
       const cardRect = card.getBoundingClientRect();
       const filterRect = filter.getBoundingClientRect();
-      const actions = [...card.querySelectorAll(".exercise-card-actions > *")].map((element) => {
+      const actions = [...card.querySelectorAll('[data-testid="exercise-actions"] > *')].map((element) => {
         const rect = element.getBoundingClientRect();
         return { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom };
       });
@@ -305,7 +308,9 @@ test.describe("Authentifizierte, nicht schreibende Modulprüfungen", () => {
     await expect(page.getByRole("heading", { name: "Übungskatalog", exact: true })).toBeVisible();
     expect(rpcRequests.some((url) => url.includes("exercise_usage_overview"))).toBe(false);
 
-    await page.getByRole("button", { name: /Verwendung von .* anzeigen/ }).first().click();
+    const usageCard = page.getByTestId("exercise-card").first();
+    await usageCard.getByTestId("exercise-primary").click();
+    await usageCard.getByTestId("exercise-usage").click();
     await expect(page.getByRole("dialog", { name: longExerciseName })).toBeVisible();
     await expect(page.getByText(longBlockName, { exact: true })).toBeVisible();
     await expect.poll(() => rpcRequests.some((url) => url.includes("exercise_usage_overview"))).toBe(true);

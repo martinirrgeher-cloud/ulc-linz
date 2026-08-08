@@ -9,15 +9,11 @@ on:
       - "supabase/**"
       - "scripts/run-database-tests.ps1"
       - ".github/workflows/database-tests.yml"
-      - "package.json"
-      - "package-lock.json"
   pull_request:
     paths:
       - "supabase/**"
       - "scripts/run-database-tests.ps1"
       - ".github/workflows/database-tests.yml"
-      - "package.json"
-      - "package-lock.json"
 
 permissions:
   contents: read
@@ -34,10 +30,10 @@ jobs:
 
     steps:
       - name: Projekt auschecken
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Supabase CLI einrichten
-        uses: supabase/setup-cli@v1
+        uses: supabase/setup-cli@v2
         with:
           version: 2.109.1
 
