@@ -118,7 +118,7 @@ export function TrainingGroupEditor({
   }
 
   return (
-    <section className="management-editor training-group-editor compact-editor" aria-label={mode.type === "create" ? "Gruppe anlegen" : "Gruppe bearbeiten"}>
+    <section className="management-editor training-group-editor compact-editor" aria-label={mode.type === "create" ? "Gruppe anlegen" : "Gruppe bearbeiten"} data-testid="masterdata-group-editor">
       <StickyEditorActions
         title={mode.type === "create" ? "Gruppe anlegen" : "Gruppe bearbeiten"}
         formId={GROUP_FORM_ID}

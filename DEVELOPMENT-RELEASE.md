@@ -193,6 +193,32 @@ Der vollständige Releasecheck umfasst insbesondere:
 8. Performance-Budget,
 9. isolierten Chromium-Runtime-Test mit deterministischer E2E-Supabase-Konfiguration.
 
+### Stabile Browser-Test-Interaktionen
+
+Browser-Tests duerfen zentrale Bedienablaeufe nicht mehrfach mit CSS-Klassen oder
+sichtbaren Icon-Texten nachbauen. Fuer haeufig veraenderte Bereiche existiert eine
+gemeinsame Interaktionsschicht unter `tests/helpers/`.
+
+Aktuell verbindlich:
+
+- `tests/helpers/user-management.mjs`
+  - Benutzerkarte finden
+  - Benutzerinfo oeffnen/schliessen
+  - Benutzer bearbeiten
+  - Benutzeransicht simulieren
+  - Einladung erneut senden
+- `tests/helpers/masterdata.mjs`
+  - Athlet, Trainer und Gruppe ueber stabile Testanker bearbeiten
+  - Stammdaten-Wischflaeche adressieren
+
+Die React-Oberflaeche stellt dafuer gezielte `data-testid`-Anker bereit. Diese
+Attribute veraendern weder sichtbaren Inhalt noch Fachlogik. Runtime-, Read-only-
+und Writing-E2E verwenden die gemeinsamen Helper statt eigener CSS-/Buttonpfade.
+
+`scripts/check-test-interaction-architecture.mjs` ist ein hartes CI-Gate und
+verhindert, dass die Kern-Suites auf die alten fragilen Direktselektoren
+zurueckfallen.
+
 Nach Erfolg wird in:
 
 ```text

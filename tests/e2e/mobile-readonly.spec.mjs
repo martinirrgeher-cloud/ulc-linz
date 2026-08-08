@@ -4,6 +4,12 @@ import {
   installAuthenticatedSession,
   installSupabaseMock,
 } from "./helpers/supabase-mock.mjs";
+import {
+  editAthlete,
+  editGroup,
+  masterdataSurface,
+} from "../helpers/masterdata.mjs";
+import { openMemberInfo } from "../helpers/user-management.mjs";
 
 const longExerciseName = "Beschleunigungslauf mit aktivem Kniehub und vollständiger Streckung";
 const longBlockName = "Sprinttechnik mit koordinativem Schwerpunkt und sauberer Beschleunigungsphase";
@@ -198,7 +204,7 @@ test.describe("Authentifizierte, nicht schreibende Modulprüfungen", () => {
     await expect(page.getByLabel("Athleten nach Trainingsgruppe filtern")).toBeVisible();
     await expect(page.getByLabel("Athleten sortieren")).toBeVisible();
 
-    await page.getByRole("button", { name: "Anna Testathletin bearbeiten" }).click();
+    await editAthlete(page, "Anna Testathletin");
     await expect(page.getByLabel("Änderungen speichern")).toBeVisible();
     await expect(page.getByLabel("Änderungen speichern")).toBeEnabled();
     await expect(page.getByLabel("Bearbeitung schließen")).toBeVisible();
@@ -216,13 +222,13 @@ test.describe("Authentifizierte, nicht schreibende Modulprüfungen", () => {
     const unhandled = await installSupabaseMock(page);
 
     await page.goto("/module/athletes");
-    const surface = page.locator(".masterdata-tab-surface");
+    const surface = masterdataSurface(page);
     await swipeLeft(surface);
     await expect(page.getByRole("tab", { name: /Trainer/ })).toHaveAttribute("aria-selected", "true");
     await swipeLeft(surface);
     await expect(page.getByRole("tab", { name: /Gruppen/ })).toHaveAttribute("aria-selected", "true");
 
-    await page.getByRole("button", { name: "Leistungsgruppe Sprint und Mehrkampf bearbeiten" }).click();
+    await editGroup(page, "Leistungsgruppe Sprint und Mehrkampf");
     const editorForm = page.locator("#training-group-editor-form");
     await swipeLeft(editorForm);
     await expect(page.getByRole("tab", { name: /Training/ })).toHaveAttribute("aria-selected", "true");
@@ -336,14 +342,10 @@ test.describe("Authentifizierte, nicht schreibende Modulprüfungen", () => {
 
     await page.goto("/module/user_management");
     await page.getByRole("button", { name: /Einladung offen/ }).click();
-    const invitationCard = page.locator(".member-card").filter({ hasText: "Offene Einladung" });
-    await expect(invitationCard.getByRole("heading", { name: "Offene Einladung", exact: true })).toBeVisible();
-    await invitationCard.getByRole("button", { name: "Informationen zu Offene Einladung", exact: true }).click();
-    const invitationInfo = page.getByRole("dialog", { name: "Offene Einladung" });
-    await expect(invitationInfo).toBeVisible();
+    const invitationInfo = await openMemberInfo(page, "Offene Einladung");
     await expect(invitationInfo.getByText("Letzter Versand", { exact: true })).toBeVisible();
     await expect(invitationInfo.getByText("Trainerkonto ohne Trainerverknüpfung", { exact: true })).toBeVisible();
-    await expect(invitationInfo.getByRole("button", { name: "Erneut senden", exact: true })).toBeVisible();
+    await expect(invitationInfo.getByTestId("user-member-resend")).toBeVisible();
     await expectHealthyPage(page, problems, unhandled);
   });
 

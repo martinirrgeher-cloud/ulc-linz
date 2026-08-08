@@ -24,6 +24,7 @@ const requiredFiles = [
   "ULC-LOKAL-ANSEHEN.cmd",
   "ULC-PRODUKTION-MARKIEREN.cmd",
   "scripts/check-simulation-safety.mjs",
+  "scripts/check-test-interaction-architecture.mjs",
   ".github/workflows/mobile-patch.yml",
   ".devcontainer/devcontainer.json",
   "MOBILE-ENTWICKLUNG.md",
@@ -41,6 +42,7 @@ for (const script of [
   "test:start-change",
   "test:e2e:readonly:pr",
   "test:e2e:writing:pr",
+  "check:test-interactions",
   "ci:preview",
 ]) assert.ok(pkg.scripts?.[script], `package.json Script fehlt: ${script}`);
 assert.equal(pkg.devDependencies?.["@playwright/test"], "1.62.1", "Playwright Test muss exakt im Projekt gepinnt sein.");
@@ -48,6 +50,8 @@ assert.match(pkg.scripts["ci:quality"], /test:release-approval/, "CI muss die Fr
 assert.match(pkg.scripts["ci:quality"], /test:release-verification/, "CI muss die Wiederverwendung von Pruefnachweisen testen.");
 assert.match(pkg.scripts["ci:quality"], /test:start-change/, "CI muss den Start eines Entwicklungszyklus testen.");
 assert.match(pkg.scripts["ci:quality"], /check:simulation-safety/, "CI muss den Simulations-Schreibschutz pruefen.");
+assert.match(pkg.scripts["ci:quality"], /check:test-interactions/, "CI muss die stabilen Test-Interaktionsanker pruefen.");
+assert.match(pkg.scripts["ci:preview"], /check:test-interactions/, "Preview-Gate muss die stabilen Test-Interaktionsanker pruefen.");
 assert.equal(pkg.scripts["release:check"], pkg.scripts["release:check:ci"], "Lokale und CI-Release-Pruefung muessen denselben Einstieg verwenden.");
 
 const lock = JSON.parse(readFileSync("package-lock.json", "utf8"));

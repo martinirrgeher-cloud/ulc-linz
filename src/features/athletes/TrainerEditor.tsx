@@ -112,7 +112,7 @@ export function TrainerEditor({
   }
 
   return (
-    <section className="management-editor trainer-editor compact-editor" aria-label={mode.type === "create" ? "Trainer anlegen" : "Trainer bearbeiten"}>
+    <section className="management-editor trainer-editor compact-editor" aria-label={mode.type === "create" ? "Trainer anlegen" : "Trainer bearbeiten"} data-testid="masterdata-trainer-editor">
       <StickyEditorActions
         title={mode.type === "create" ? "Trainer anlegen" : "Trainer bearbeiten"}
         formId={TRAINER_FORM_ID}

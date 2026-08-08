@@ -4,6 +4,8 @@ import { existsSync, readFileSync } from "node:fs";
 const requiredFiles = [
   "playwright.config.mjs",
   "tests/e2e/helpers/supabase-mock.mjs",
+  "tests/helpers/masterdata.mjs",
+  "tests/helpers/user-management.mjs",
   "tests/e2e/mobile-readonly.spec.mjs",
   "scripts/run-e2e-readonly.ps1",
   ".github/workflows/e2e-readonly.yml",
@@ -79,6 +81,16 @@ for (const marker of [
   'getByTestId("exercise-usage")',
 ]) {
   if (!testFile.includes(marker)) throw new Error(`Read-only stable selector is missing: ${marker}`);
+}
+
+for (const marker of [
+  'editAthlete(page, "Anna Testathletin")',
+  'editGroup(page, "Leistungsgruppe Sprint und Mehrkampf")',
+  'masterdataSurface(page)',
+  'openMemberInfo(page, "Offene Einladung")',
+  'getByTestId("user-member-resend")',
+]) {
+  if (!testFile.includes(marker)) throw new Error(`Read-only shared interaction marker is missing: ${marker}`);
 }
 
 for (const marker of [

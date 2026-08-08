@@ -181,7 +181,7 @@ export function AthleteEditor({
   }
 
   return (
-    <section className="management-editor athlete-editor compact-editor" aria-label={mode.type === "create" ? "Athlet anlegen" : "Athlet bearbeiten"}>
+    <section className="management-editor athlete-editor compact-editor" aria-label={mode.type === "create" ? "Athlet anlegen" : "Athlet bearbeiten"} data-testid="masterdata-athlete-editor">
       <StickyEditorActions
         title={mode.type === "create" ? "Athlet anlegen" : "Athlet bearbeiten"}
         formId={ATHLETE_FORM_ID}
