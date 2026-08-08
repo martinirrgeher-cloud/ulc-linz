@@ -67,13 +67,29 @@ for (const marker of [
   "Schwierigkeitsgrad",
   "Neue Variante von",
   "für Vergleich auswählen",
-  "Verwendung von",
   "Verknüpfte Athleten geändert",
   "Berta E2E",
   'data-realtime-status="subscribed"',
 ]) {
   if (!testFile.includes(marker)) throw new Error(`Writing E2E test marker is missing: ${marker}`);
 }
+for (const marker of [
+  '{ tag: "@pr" }',
+  'getByTestId("masterdata-create-menu-toggle")',
+  'getByTestId("editor-save")',
+  'getByTestId("editor-close")',
+  'getByTestId("exercise-card")',
+  'getByTestId("exercise-create")',
+  'getByTestId("training-block-create")',
+  'getByTestId("exercise-usage")',
+]) {
+  if (!testFile.includes(marker)) throw new Error(`Writing E2E stable selector/PR marker is missing: ${marker}`);
+}
+const prTagCount = (testFile.match(/tag:\s*"@pr"/g) ?? []).length;
+if (prTagCount < 4) {
+  throw new Error(`Expected at least 4 PR-tagged writing E2E tests, found ${prTagCount}.`);
+}
+
 if (testFile.includes("test.describe.serial")) {
   throw new Error("Writing E2E tests must continue after an individual failure.");
 }
@@ -88,7 +104,10 @@ for (const marker of [
   "supabase migration list --local",
   "supabase status -o env",
   "seed-e2e-writing.mjs",
+  "Schreibrelevante Aenderungen erkennen",
+  "test:e2e:writing:pr",
   "test:e2e:writing:ci",
+  "steps.scope.outputs.run == 'true'",
   "supabase stop --no-backup",
 ]) {
   if (!workflow.includes(marker)) throw new Error(`Writing E2E workflow marker is missing: ${marker}`);
@@ -106,6 +125,14 @@ const structureCheckIndex = workflow.indexOf("Teststruktur pruefen");
 const supabaseStartIndex = workflow.indexOf("Isolierte lokale Supabase-Umgebung starten");
 if (structureCheckIndex < 0 || supabaseStartIndex < 0 || structureCheckIndex > supabaseStartIndex) {
   throw new Error("Writing E2E structure checks must run before the expensive Supabase startup.");
+}
+
+const pkg = JSON.parse(readFileSync("package.json", "utf8"));
+if (!pkg.scripts?.["test:e2e:writing:pr"]?.includes("--grep @pr")) {
+  throw new Error("PR writing E2E script must select the @pr core set.");
+}
+if (!pkg.scripts?.["test:e2e:writing:ci"]) {
+  throw new Error("Full writing E2E script is missing.");
 }
 
 const runnerBuffer = readFileSync("scripts/run-e2e-writing.ps1");

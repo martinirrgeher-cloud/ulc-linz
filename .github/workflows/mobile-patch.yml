@@ -1,4 +1,4 @@
-name: Mobilen Patch pruefen und vorbereiten
+name: Mobile Preview vorbereiten
 
 on:
   push:
@@ -25,7 +25,7 @@ jobs:
 
     steps:
       - name: Branch auschecken
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -69,7 +69,7 @@ jobs:
           echo "patch_file=${PATCHES[0]}" >> "$GITHUB_OUTPUT"
 
   verify:
-    name: Patch anwenden und testen
+    name: Patch anwenden und Preview-Gate pruefen
     needs: detect
     if: needs.detect.outputs.has_patch == 'true'
     runs-on: ubuntu-latest
@@ -79,12 +79,12 @@ jobs:
 
     steps:
       - name: Branch auschecken
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
       - name: Node.js einrichten
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version-file: .nvmrc
           cache: npm
@@ -291,8 +291,8 @@ jobs:
       - name: Abhaengigkeiten reproduzierbar installieren
         run: npm ci
 
-      - name: Vollstaendige Qualitaetspruefung
-        run: npm run ci:quality
+      - name: Schnelle Preview-Qualitaetspruefung
+        run: npm run ci:preview
 
       - name: Geprueften Patch als internes Artefakt ablegen
         shell: bash
@@ -303,7 +303,7 @@ jobs:
           cp "$RUNNER_TEMP/mobile-patch-result.json" mobile-patch-artifact/
 
       - name: Internes Patchartefakt hochladen
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: verified-mobile-patch-${{ github.run_id }}
           path: mobile-patch-artifact
@@ -317,8 +317,9 @@ jobs:
             echo "## Mobiler Patch erfolgreich geprueft"
             echo
             echo "- Branch: \`$GITHUB_REF_NAME\`"
-            echo "- Qualitaetspruefung: erfolgreich"
+            echo "- Preview-Gate: erfolgreich"
             echo "- Der Patch wird nun in denselben Branch geschrieben."
+            echo "- Nach dem Bot-Commit kann Vercel fuer diesen Branch die Preview aktualisieren."
           } >> "$GITHUB_STEP_SUMMARY"
 
   commit:
@@ -333,13 +334,13 @@ jobs:
 
     steps:
       - name: Branch frisch auschecken
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ github.ref_name }}
           fetch-depth: 0
 
       - name: Geprueftes Patchartefakt laden
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: verified-mobile-patch-${{ github.run_id }}
           path: mobile-patch-artifact
@@ -370,12 +371,13 @@ jobs:
           {
             echo "## Patch wurde in den mobilen Branch geschrieben"
             echo
-            echo "Erstelle jetzt bewusst einen Pull Request:"
+            echo "Teste zuerst die Vercel-Preview dieses Branches am Handy."
+            echo "Wenn die Darstellung passt, erstelle bewusst einen Pull Request:"
             echo
             echo "[$COMPARE_URL]($COMPARE_URL)"
             echo
-            echo "Durch das manuelle Erstellen des Pull Requests laufen die normalen"
-            echo "Qualitaets-, Datenbank- und E2E-Workflows wie gewohnt."
+            echo "Erst der Pull Request startet die normalen Qualitaets- und E2E-Gates."
+            echo "Produktion bleibt bis zum manuellen Squash-and-Merge unveraendert."
           } >> "$GITHUB_STEP_SUMMARY"
 
   no-patch:

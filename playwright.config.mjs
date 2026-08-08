@@ -6,9 +6,9 @@ export default defineConfig({
   testDir: "./tests/e2e",
   fullyParallel: false,
   workers: 1,
-  retries: process.env.CI ? 1 : 0,
-  timeout: 30_000,
-  expect: { timeout: 8_000 },
+  retries: Number(process.env.E2E_RETRIES ?? (process.env.CI ? 1 : 0)),
+  timeout: Number(process.env.E2E_TEST_TIMEOUT ?? 30_000),
+  expect: { timeout: Number(process.env.E2E_EXPECT_TIMEOUT ?? 8_000) },
   reporter: process.env.CI
     ? [["line"], ["html", { outputFolder: "playwright-report", open: "never" }]]
     : [["list"], ["html", { outputFolder: "playwright-report", open: "never" }]],

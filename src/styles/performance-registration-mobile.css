@@ -16,17 +16,17 @@
         border-radius: 8px;
   }
   .performance-registration-page small {
-    font-size: 0.75rem;
+    font-size: .76rem;
   }
   .performance-status-options button {
     min-height: 40px;
-        font-size: 0.75rem;
+        font-size: .76rem;
   }
   .performance-count,
   .performance-matrix-hint,
   .performance-save-indicator,
   .status-pill {
-    font-size: 0.72rem;
+    font-size: .76rem;
   }
 }
 @media (pointer: coarse) {
@@ -85,7 +85,7 @@
   }
   .performance-mobile-athlete small {
     color: var(--muted);
-        font-size: 0.72rem;
+        font-size: .76rem;
   }
   .performance-mobile-athlete > svg {
     width: 16px;
@@ -95,6 +95,6 @@
 @media screen and (max-width: 390px) {
   .performance-mode-tabs button {
     padding-inline: 5px;
-        font-size: 0.72rem;
+        font-size: .76rem;
   }
 }

@@ -87,7 +87,7 @@
 
 .statistics-summary-card span {
   display: grid;
-  font-size: 0.75rem;
+  font-size: .76rem;
   color: var(--muted);
 }
 
@@ -154,7 +154,7 @@
   border-radius: 999px;
   background: #fff1ef;
   color: #9b2820;
-  font-size: 0.75rem;
+  font-size: .76rem;
   font-weight: 750;
 }
 
@@ -215,7 +215,7 @@
   padding: 0.3rem 0.45rem;
   border-radius: 10px;
   background: var(--green-50);
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .statistics-session-counts svg {
@@ -270,7 +270,7 @@
   place-items: center;
   border-radius: 9px;
   background: var(--primary-soft);
-  font-weight: 800;
+  font-weight: 700;
   color: var(--green-800);
 }
 
@@ -291,7 +291,7 @@
 .athlete-statistics-main small,
 .athlete-statistics-rate small {
   color: var(--muted);
-  font-size: 0.7rem;
+  font-size: .76rem;
 }
 
 .athlete-statistics-main,
@@ -302,7 +302,7 @@
 .athlete-statistics-breakdown {
   display: flex;
   gap: 0.3rem;
-  font-size: 0.7rem;
+  font-size: .76rem;
   color: var(--muted);
 }
 
@@ -367,7 +367,7 @@
   place-items: center;
   border-radius: 9px;
   background: var(--green-50);
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .trainer-statistics-list article > div {

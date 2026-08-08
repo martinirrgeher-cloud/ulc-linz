@@ -27,7 +27,7 @@
 
 .training-save-badge {
   flex: 0 0 auto;
-  min-height: 32px;
+  min-height: 38px;
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -36,8 +36,8 @@
   background: #f5f7f6;
   border: 1px solid var(--border);
   border-radius: 999px;
-  font-size: 0.75rem;
-  font-weight: 800;
+  font-size: .76rem;
+  font-weight: 700;
   white-space: nowrap;
 }
 
@@ -111,7 +111,7 @@
 
 .fixed-training-group small {
   color: var(--muted);
-  font-size: 0.75rem;
+  font-size: .76rem;
 }
 
 .training-date-control.compact {
@@ -150,8 +150,8 @@
 
 .training-date-display span {
   color: #8b5c17;
-  font-size: 0.66rem;
-  font-weight: 850;
+  font-size: .76rem;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -164,7 +164,7 @@
 }
 
 .training-date-shortcuts .text-button {
-  min-height: 27px;
+  min-height: 38px;
   padding: 2px 4px;
   font-size: 0.77rem;
 }
@@ -231,8 +231,8 @@
   border: 1px solid transparent;
   border-radius: 10px;
   cursor: pointer;
-  font-size: 0.69rem;
-  font-weight: 850;
+  font-size: .76rem;
+  font-weight: 700;
   line-height: 1.05;
 }
 
@@ -246,13 +246,13 @@
 
 .attendance-category-tabs button strong {
   min-width: 22px;
-  min-height: 20px;
+  min-height: 38px;
   display: grid;
   place-items: center;
   padding: 1px 6px;
   background: rgba(255, 255, 255, 0.78);
   border-radius: 999px;
-  font-size: 0.72rem;
+  font-size: .76rem;
   line-height: 1;
 }
 
@@ -324,15 +324,15 @@
 }
 
 .name-sort-toggle button {
-  min-height: 34px;
+  min-height: 38px;
   padding: 5px 8px;
   color: var(--muted);
   background: transparent;
   border: 0;
   border-radius: 7px;
   cursor: pointer;
-  font-size: 0.71rem;
-  font-weight: 850;
+  font-size: .76rem;
+  font-weight: 700;
 }
 
 .name-sort-toggle button.active {
@@ -350,7 +350,7 @@
 .inline-hint {
   margin: -2px 0 0;
   color: #7d6424;
-  font-size: 0.74rem;
+  font-size: .76rem;
 }
 
 .compact-attendance-list {
@@ -391,7 +391,7 @@
 
 .compact-athlete-name small {
   color: var(--muted);
-  font-size: 0.69rem;
+  font-size: .76rem;
 }
 
 .compact-status-actions {
@@ -402,15 +402,15 @@
 }
 
 .compact-status-actions button {
-  min-height: 36px;
+  min-height: 38px;
   padding: 5px 8px;
   color: #45534b;
   background: #edf2ef;
   border: 1px solid transparent;
   border-radius: 8px;
   cursor: pointer;
-  font-size: 0.68rem;
-  font-weight: 850;
+  font-size: .76rem;
+  font-weight: 700;
 }
 
 .compact-status-actions button.present {
@@ -476,7 +476,7 @@
   padding: 9px 12px;
   color: var(--green-900);
   cursor: pointer;
-  font-weight: 850;
+  font-weight: 700;
   list-style: none;
 }
 
@@ -528,7 +528,7 @@
   display: grid;
   gap: 6px;
   color: var(--green-950);
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .training-note-field textarea {
@@ -572,7 +572,7 @@
   min-width: 0;
   padding-left: 5px;
   color: var(--muted);
-  font-size: 0.73rem;
+  font-size: .76rem;
   font-weight: 700;
 }
 
@@ -697,7 +697,7 @@
   display: grid;
   gap: 5px;
   color: var(--green-950);
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .quick-athlete-fields input {
@@ -822,14 +822,14 @@
     min-height: 47px;
     gap: 2px;
     padding: 4px 2px;
-    font-size: clamp(0.56rem, 2.55vw, 0.65rem);
+    font-size: clamp(.76rem, 2.55vw, .82rem);
   }
 
   .attendance-category-tabs button strong {
     min-width: 20px;
-    min-height: 19px;
+    min-height: 38px;
     padding: 1px 5px;
-    font-size: 0.67rem;
+    font-size: .76rem;
   }
 
   .attendance-list-tools {
@@ -878,7 +878,7 @@
 
   .training-autosave-status {
     justify-content: center;
-    min-height: 34px;
+    min-height: 38px;
     padding: 4px 2px;
   }
   .quick-athlete-dialog {
@@ -925,7 +925,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.7rem;
-  min-height: 34px;
+  min-height: 38px;
   padding: 0.35rem 0.2rem 0;
   font-size: 0.78rem;
   color: var(--muted);
@@ -945,9 +945,9 @@
 }
 
 .compact-attendance-row .contact-button {
-  width: 36px;
-  height: 36px;
-  min-width: 36px;
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
   flex: 0 0 auto;
   color: #9c2d27;
   background: #fff4f3;
@@ -967,7 +967,7 @@
   align-items: center;
   gap: 0.4rem;
   margin-bottom: 0.45rem;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--green-950);
 }
 
@@ -1161,14 +1161,14 @@
 }
 
 .compact-athlete-name small {
-  font-size: 0.62rem;
+  font-size: .76rem;
 }
 
 .compact-attendance-row .contact-button,
 .contact-button-placeholder {
-  width: 34px;
-  height: 34px;
-  min-width: 34px;
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
 }
 
 .contact-button-placeholder {
@@ -1185,12 +1185,12 @@
 .compact-status-actions button {
   width: 100%;
   min-width: 0;
-  min-height: 34px;
+  min-height: 38px;
   padding: 4px 3px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 0.62rem;
+  font-size: .76rem;
 }
 
 .trainer-field-heading {
@@ -1207,7 +1207,7 @@
 
 .trainer-field-heading .text-button {
   flex: 0 0 auto;
-  font-size: 0.75rem;
+  font-size: .76rem;
 }
 
 @media (max-width: 370px) {
@@ -1219,14 +1219,14 @@
 
   .compact-attendance-row .contact-button,
   .contact-button-placeholder {
-    width: 32px;
-    height: 32px;
-    min-width: 32px;
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
   }
 
   .compact-status-actions button {
-    min-height: 32px;
-    font-size: 0.57rem;
+    min-height: 38px;
+    font-size: .76rem;
   }
 }
 
@@ -1315,7 +1315,7 @@
 
 .attendance-progress-row > span,
 .attendance-progress-row .text-button {
-  font-size: 0.72rem;
+  font-size: .76rem;
 }
 
 .attendance-progress-row .text-button {
@@ -1329,13 +1329,13 @@
   }
 
   .training-date-buttons > .icon-button {
-    width: 38px;
-    min-width: 38px;
-    flex-basis: 38px;
+    width: 40px;
+    min-width: 40px;
+    flex-basis: 40px;
   }
 
   .special-training-action {
-    width: 36px;
+    width: 40px;
     height: 40px;
   }
 
@@ -1351,7 +1351,7 @@
 
   .attendance-progress-row > span,
   .attendance-progress-row .text-button {
-    font-size: 0.66rem;
+    font-size: .76rem;
   }
 }
 
@@ -1361,42 +1361,42 @@
   }
 
   .training-date-buttons > .icon-button {
-    width: 34px;
-    min-width: 34px;
-    flex-basis: 34px;
+    width: 40px;
+    min-width: 40px;
+    flex-basis: 40px;
   }
 
   .special-training-action {
-    width: 33px;
-    height: 38px;
+    width: 40px;
+    height: 40px;
   }
 
   .attendance-progress-row > span,
   .attendance-progress-row .text-button {
-    font-size: 0.61rem;
+    font-size: .76rem;
   }
 }
 /* Sichere Athletenverwaltung direkt in Kindertraining, U12 und U14 */
 .compact-attendance-row {
-  grid-template-columns: minmax(72px, 1fr) 60px minmax(140px, 1.45fr);
+  grid-template-columns: minmax(72px, 1fr) 84px minmax(140px, 1.45fr);
 }
 
 .compact-athlete-actions {
-  width: 60px;
-  min-width: 60px;
+  width: 84px;
+  min-width: 84px;
   display: grid;
-  grid-template-columns: repeat(2, 29px);
+  grid-template-columns: repeat(2, 40px);
   align-items: center;
   justify-content: end;
-  gap: 2px;
+  gap: 4px;
 }
 
 .compact-athlete-actions .contact-button,
 .compact-athlete-actions .athlete-more-button,
 .compact-athlete-actions .contact-button-placeholder {
-  width: 29px;
-  height: 32px;
-  min-width: 29px;
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
   flex: none;
 }
 
@@ -1466,19 +1466,19 @@
 
 @media (max-width: 370px) {
   .compact-attendance-row {
-    grid-template-columns: minmax(58px, 1fr) 56px minmax(128px, 1.45fr);
+    grid-template-columns: minmax(58px, 1fr) 84px minmax(128px, 1.45fr);
   }
 
   .compact-athlete-actions {
-    width: 56px;
-    min-width: 56px;
-    grid-template-columns: repeat(2, 27px);
+    width: 84px;
+    min-width: 84px;
+    grid-template-columns: repeat(2, 40px);
   }
 
   .compact-athlete-actions .contact-button,
   .compact-athlete-actions .athlete-more-button,
   .compact-athlete-actions .contact-button-placeholder {
-    width: 27px;
-    min-width: 27px;
+    width: 40px;
+    min-width: 40px;
   }
 }

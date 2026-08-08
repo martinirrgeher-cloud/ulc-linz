@@ -279,7 +279,7 @@ textarea {
     max-width: 100%;
   }
   .brand-user-line {
-    display: flex !important; font-size: .72rem;
+    display: flex !important; font-size: .76rem;
   }
   .user-area {
     flex: 0 0 auto;

@@ -43,6 +43,8 @@ export function ManagementCreateMenu({ disabled, onCreate }: ManagementCreateMen
         disabled={disabled}
         aria-expanded={open}
         aria-haspopup="menu"
+        aria-label="Stammdaten anlegen"
+        data-testid="masterdata-create-menu-toggle"
       >
         <Plus aria-hidden="true" />
         Neu
@@ -54,6 +56,7 @@ export function ManagementCreateMenu({ disabled, onCreate }: ManagementCreateMen
             <button
               type="button"
               role="menuitem"
+              data-testid={`masterdata-create-${key}`}
               onClick={() => {
                 setOpen(false);
                 onCreate(key);

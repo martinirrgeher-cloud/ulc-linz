@@ -31,7 +31,7 @@
   gap: 5px;
   color: var(--green-950);
   font-size: .8rem;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .training-overview-controls label > span {
@@ -67,14 +67,14 @@
 }
 
 .training-overview-athlete-filter button {
-  min-height: 34px;
+  min-height: 38px;
   padding: 5px 9px;
   color: #52665a;
   background: transparent;
   border: 0;
   border-radius: 7px;
-  font-size: .7rem;
-  font-weight: 850;
+  font-size: .76rem;
+  font-weight: 700;
   white-space: nowrap;
   cursor: pointer;
 }
@@ -124,13 +124,13 @@
 .training-overview-week-label span,
 .training-overview-week-label small {
   color: var(--muted);
-  font-size: .68rem;
+  font-size: .76rem;
   line-height: 1.15;
 }
 
 .training-overview-week-label small {
   color: var(--green-700);
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .training-overview-summary {
@@ -149,7 +149,7 @@
   background: var(--green-50);
   border: 1px solid #d8eadf;
   border-radius: 999px;
-  font-size: .72rem;
+  font-size: .76rem;
   font-weight: 700;
 }
 
@@ -171,8 +171,8 @@
   padding: 3px 7px;
   border: 1px solid transparent;
   border-radius: 999px;
-  font-size: .68rem;
-  font-weight: 800;
+  font-size: .76rem;
+  font-weight: 700;
 }
 
 .training-overview-legend svg {
@@ -271,7 +271,7 @@
 
 .training-overview-matrix thead th small {
   color: var(--muted);
-  font-size: .7rem;
+  font-size: .76rem;
 }
 
 .training-overview-matrix tbody > tr > th {
@@ -298,7 +298,7 @@
 }
 
 .training-overview-matrix tbody > tr > th span {
-  font-size: .72rem;
+  font-size: .76rem;
   font-weight: 600;
 }
 
@@ -336,14 +336,14 @@
   padding: 3px 5px;
   border: 1px solid transparent;
   border-radius: 8px;
-  font-size: .72rem;
-  font-weight: 900;
+  font-size: .76rem;
+  font-weight: 750;
   line-height: 1;
 }
 
 .training-overview-registration small {
   margin-top: 2px;
-  font-size: .55rem;
+  font-size: .76rem;
 }
 
 .training-overview-plan-state {
@@ -371,11 +371,11 @@
 
 .training-overview-plan-state strong {
   color: var(--green-800);
-  font-size: .72rem;
+  font-size: .76rem;
 }
 
 .training-overview-plan-state small {
-  font-size: .62rem;
+  font-size: .76rem;
 }
 
 .training-overview-cell:not(.has-plan) .training-overview-plan-state {
@@ -386,7 +386,7 @@
 .training-overview-hint {
   margin: -5px 0 0;
   color: var(--muted);
-  font-size: .72rem;
+  font-size: .76rem;
   font-weight: 700;
 }
 
@@ -439,7 +439,7 @@
 
   .training-overview-summary span {
     padding: 4px 7px;
-    font-size: .66rem;
+    font-size: .76rem;
   }
 
   .training-overview-matrix {
@@ -471,15 +471,15 @@
   .training-overview-registration {
     min-height: 25px;
     padding: 2px 3px;
-    font-size: .66rem;
+    font-size: .76rem;
   }
 
   .training-overview-plan-state strong {
-    font-size: .66rem;
+    font-size: .76rem;
   }
 
   .training-overview-plan-state small {
-    font-size: .57rem;
+    font-size: .76rem;
   }
 }
 
@@ -491,13 +491,13 @@
 
 .training-overview-cell-actions {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 34px;
+  grid-template-columns: minmax(0, 1fr) 40px;
   align-items: stretch;
   gap: 3px;
 }
 
 .training-overview-documentation-button {
-  min-width: 34px;
+  min-width: 40px;
   display: grid;
   place-items: center;
   align-content: center;
@@ -522,8 +522,8 @@
 }
 
 .training-overview-documentation-button span {
-  font-size: .52rem;
-  font-weight: 900;
+  font-size: .76rem;
+  font-weight: 750;
 }
 
 .training-overview-documentation-button.documentation-in_progress {
@@ -552,17 +552,17 @@
 
 @media (max-width: 720px) {
   .training-overview-cell-actions {
-    grid-template-columns: minmax(0, 1fr) 30px;
+    grid-template-columns: minmax(0, 1fr) 40px;
     gap: 2px;
   }
 
   .training-overview-documentation-button {
-    min-width: 30px;
+    min-width: 40px;
     padding-inline: 1px;
   }
 
   .training-overview-documentation-button span {
-    font-size: .48rem;
+    font-size: .76rem;
   }
 }
 
@@ -614,16 +614,16 @@
   }
 
   .training-overview-mobile-days strong {
-    font-size: .72rem;
+    font-size: .76rem;
   }
 
   .training-overview-mobile-days small {
-    font-size: .62rem;
+    font-size: .76rem;
   }
 
   .training-overview-mobile-days span {
-    font-size: .52rem;
-    font-weight: 800;
+    font-size: .76rem;
+    font-weight: 700;
     opacity: .84;
   }
 
@@ -662,8 +662,8 @@
     padding: 2px 6px;
     border: 1px solid transparent;
     border-radius: 999px;
-    font-size: .57rem;
-    font-weight: 900;
+    font-size: .76rem;
+    font-weight: 750;
   }
 
   .training-overview-mobile-athlete > header > .status-coming {
@@ -741,12 +741,12 @@
   }
 
   .training-overview-mobile-plan strong {
-    font-size: .68rem;
+    font-size: .76rem;
   }
 
   .training-overview-mobile-plan small {
     color: var(--muted);
-    font-size: .57rem;
+    font-size: .76rem;
   }
 
   .training-overview-mobile-documentation {
@@ -768,8 +768,8 @@
   }
 
   .training-overview-mobile-documentation span {
-    font-size: .52rem;
-    font-weight: 900;
+    font-size: .76rem;
+    font-weight: 750;
   }
 
   .training-overview-mobile-documentation.documentation-in_progress {

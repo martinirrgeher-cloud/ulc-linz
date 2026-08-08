@@ -38,6 +38,7 @@ concurrency:
 
 jobs:
   mobile-e2e:
+    # Name bewusst beibehalten: bestehende Branch-Protection-Regeln bleiben gueltig.
     name: Chromium 360, 390, 430 und Desktop
     runs-on: ubuntu-latest
     timeout-minutes: 25
@@ -49,10 +50,10 @@ jobs:
 
     steps:
       - name: Projekt auschecken
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Node.js einrichten
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version-file: .nvmrc
           cache: npm
@@ -72,12 +73,17 @@ jobs:
       - name: Anwendung bauen
         run: npm run build
 
-      - name: Nicht schreibende Mobile-E2E-Tests ausführen
+      - name: Schneller PR-Test auf 390 px
+        if: github.event_name == 'pull_request'
+        run: npm run test:e2e:readonly:pr
+
+      - name: Vollregression auf 360, 390, 430 px und Desktop
+        if: github.event_name != 'pull_request'
         run: npm run test:e2e:readonly:ci
 
       - name: Testbericht hochladen
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-readonly-report-${{ github.run_id }}
           path: |

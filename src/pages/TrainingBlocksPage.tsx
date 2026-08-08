@@ -435,7 +435,7 @@ export function TrainingBlocksPage() {
           <p>Wiederverwendbare Übungsfolgen erstellen und Leistungsgruppen zuordnen.</p>
         </div>
         {canEdit && (
-          <button type="button" className="primary-button" onClick={() => openEditor(null)} disabled={loading || busy || data.exercises.filter((exercise) => exercise.isActive).length === 0}>
+          <button type="button" className="primary-button" onClick={() => openEditor(null)} disabled={loading || busy || data.exercises.filter((exercise) => exercise.isActive).length === 0} aria-label="Trainingsblock anlegen" data-testid="training-block-create">
             <Plus aria-hidden="true" />Block
           </button>
         )}

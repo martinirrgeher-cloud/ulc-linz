@@ -374,6 +374,8 @@ export function ExerciseCatalogPage() {
             className="primary-button exercise-create-button"
             onClick={() => openEditor(null)}
             disabled={loading || busy || !data.categories.some((category) => category.isActive !== false)}
+            aria-label="Übung anlegen"
+            data-testid="exercise-create"
           >
             <Plus aria-hidden="true" />
             <span>Übung</span>
@@ -475,9 +477,9 @@ export function ExerciseCatalogPage() {
             const visibleParameters = [...exercise.parameters].sort((left, right) => left.sortOrder - right.sortOrder).slice(0, 4);
             const videoCount = exercise.videos.length + (exercise.videoUrl ? 1 : 0);
             return (
-              <article className={`exercise-card exercise-list-item ${exercise.isActive ? "" : "inactive"} ${expanded ? "expanded" : ""}`} key={exercise.id}>
+              <article className={`exercise-card exercise-list-item ${exercise.isActive ? "" : "inactive"} ${expanded ? "expanded" : ""}`} key={exercise.id} data-testid="exercise-card" data-exercise-id={exercise.id}>
                 <div className="exercise-list-summary">
-                  <button type="button" className="exercise-list-primary" onClick={() => setExpandedExerciseId(expanded ? null : exercise.id)} aria-expanded={expanded}>
+                  <button type="button" className="exercise-list-primary" data-testid="exercise-primary" onClick={() => setExpandedExerciseId(expanded ? null : exercise.id)} aria-expanded={expanded}>
                     <span className="exercise-category-mark"><BookOpen aria-hidden="true" /></span>
                     <span className="exercise-list-title">
                       <strong>{exercise.name}</strong>
@@ -485,7 +487,7 @@ export function ExerciseCatalogPage() {
                     </span>
                   </button>
 
-                  <div className="exercise-card-actions">
+                  <div className="exercise-card-actions" data-testid="exercise-actions">
                     <button type="button" className={`exercise-favorite-button ${exercise.isFavorite ? "active" : ""}`} onClick={() => void handleFavorite(exercise)} aria-label={exercise.isFavorite ? `${exercise.name} aus Favoriten entfernen` : `${exercise.name} zu Favoriten hinzufügen`} title={exercise.isFavorite ? "Aus Favoriten entfernen" : "Favorit"}>
                       <Star aria-hidden="true" fill={exercise.isFavorite ? "currentColor" : "none"} />
                     </button>
@@ -494,8 +496,8 @@ export function ExerciseCatalogPage() {
                     ) : exercise.videoUrl ? (
                       <a className="exercise-action-link" href={exercise.videoUrl} target="_blank" rel="noreferrer" aria-label={`Video oder Link zu ${exercise.name} öffnen`} title="Video oder Link öffnen"><Video aria-hidden="true" /><ExternalLink aria-hidden="true" /></a>
                     ) : null}
-                    <button type="button" className="exercise-edit-button" onClick={() => openEditor(exercise)} aria-label={`${exercise.name} ${canEdit ? "bearbeiten" : "anzeigen"}`} title={canEdit ? "Bearbeiten" : "Anzeigen"}>{canEdit ? <Pencil aria-hidden="true" /> : <BookOpen aria-hidden="true" />}</button>
-                    <button type="button" className="exercise-expand-button" onClick={() => setExpandedExerciseId(expanded ? null : exercise.id)} aria-label={expanded ? `${exercise.name} einklappen` : `${exercise.name} Schnellinfos anzeigen`} title={expanded ? "Einklappen" : "Schnellinfos"}>{expanded ? <ChevronUp aria-hidden="true" /> : <ChevronDown aria-hidden="true" />}</button>
+                    <button type="button" className="exercise-edit-button" data-testid="exercise-edit" onClick={() => openEditor(exercise)} aria-label={`${exercise.name} ${canEdit ? "bearbeiten" : "anzeigen"}`} title={canEdit ? "Bearbeiten" : "Anzeigen"}>{canEdit ? <Pencil aria-hidden="true" /> : <BookOpen aria-hidden="true" />}</button>
+                    <button type="button" className="exercise-expand-button" data-testid="exercise-expand" onClick={() => setExpandedExerciseId(expanded ? null : exercise.id)} aria-label={expanded ? `${exercise.name} einklappen` : `${exercise.name} Schnellinfos anzeigen`} title={expanded ? "Einklappen" : "Schnellinfos"}>{expanded ? <ChevronUp aria-hidden="true" /> : <ChevronDown aria-hidden="true" />}</button>
                   </div>
                 </div>
 
@@ -518,7 +520,7 @@ export function ExerciseCatalogPage() {
                       )) : <span className="exercise-quick-empty">Keine Planungsparameter hinterlegt.</span>}
                       {exercise.parameters.length > 4 && <span className="exercise-quick-more">+{exercise.parameters.length - 4} weitere</span>}
                     </div>
-                    <button type="button" className="exercise-usage-summary" onClick={() => setUsageExercise(exercise)}>
+                    <button type="button" className="exercise-usage-summary" onClick={() => setUsageExercise(exercise)} aria-label={`Verwendung von ${exercise.name} anzeigen`} data-testid="exercise-usage">
                       <ListTree aria-hidden="true" />
                       <span><strong>Verwendung</strong><small>{exercise.blockUsageCount} Block{exercise.blockUsageCount === 1 ? "" : "e"} · {exercise.planUsageCount} Plan{exercise.planUsageCount === 1 ? "" : "e"}</small></span>
                       <ChevronDown aria-hidden="true" />

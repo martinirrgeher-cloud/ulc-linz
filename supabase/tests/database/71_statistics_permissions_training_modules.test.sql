@@ -39,26 +39,42 @@ select is(
 );
 
 select ok(
-  position('kindertraining_statistics' in pg_get_functiondef('public.can_read_kindertraining_statistics(uuid)'::regprocedure)) = 0
-  and position('kindertraining' in pg_get_functiondef('public.can_read_kindertraining_statistics(uuid)'::regprocedure)) > 0,
+  (
+    select position('kindertraining_statistics' in procedure.prosrc) = 0
+      and position('kindertraining' in procedure.prosrc) > 0
+    from pg_proc procedure
+    where procedure.oid = 'public.can_read_kindertraining_statistics(uuid)'::regprocedure
+  ),
   'Kindertraining-Statistik liest ausschliesslich das Kindertraining-Recht'
 );
 
 select ok(
-  position('kindertraining_statistics' in pg_get_functiondef('public.can_edit_kindertraining_statistics(uuid)'::regprocedure)) = 0
-  and position('kindertraining' in pg_get_functiondef('public.can_edit_kindertraining_statistics(uuid)'::regprocedure)) > 0,
+  (
+    select position('kindertraining_statistics' in procedure.prosrc) = 0
+      and position('kindertraining' in procedure.prosrc) > 0
+    from pg_proc procedure
+    where procedure.oid = 'public.can_edit_kindertraining_statistics(uuid)'::regprocedure
+  ),
   'Kindertraining-Statistik bearbeitet ausschliesslich mit Kindertraining-Recht'
 );
 
 select ok(
-  position('_statistics' in pg_get_functiondef('public.can_read_training_module_statistics(uuid,text)'::regprocedure)) = 0
-  and position('p_module_key' in pg_get_functiondef('public.can_read_training_module_statistics(uuid,text)'::regprocedure)) > 0,
+  (
+    select position('_statistics' in procedure.prosrc) = 0
+      and position('p_module_key' in procedure.prosrc) > 0
+    from pg_proc procedure
+    where procedure.oid = 'public.can_read_training_module_statistics(uuid,text)'::regprocedure
+  ),
   'U12/U14-Statistik liest ausschliesslich das jeweilige Trainingsmodul-Recht'
 );
 
 select ok(
-  position('_statistics' in pg_get_functiondef('public.can_edit_training_module_statistics(uuid,text)'::regprocedure)) = 0
-  and position('p_module_key' in pg_get_functiondef('public.can_edit_training_module_statistics(uuid,text)'::regprocedure)) > 0,
+  (
+    select position('_statistics' in procedure.prosrc) = 0
+      and position('p_module_key' in procedure.prosrc) > 0
+    from pg_proc procedure
+    where procedure.oid = 'public.can_edit_training_module_statistics(uuid,text)'::regprocedure
+  ),
   'U12/U14-Statistik bearbeitet ausschliesslich mit dem jeweiligen Trainingsmodul-Recht'
 );
 
