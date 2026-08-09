@@ -75,7 +75,7 @@ export function TrainingDateControls({
           {canDeleteSpecialTraining && canEdit && (
             <button
               type="button"
-              className="icon-button special-training-action danger"
+              className="icon-button icon-button--danger special-training-action"
               disabled={sessionLoading || deletingSpecial}
               onClick={onDeleteSpecialTraining}
               aria-label="Sondertraining löschen"

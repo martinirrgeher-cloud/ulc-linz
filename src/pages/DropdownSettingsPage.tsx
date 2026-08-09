@@ -199,9 +199,9 @@ export function DropdownSettingsPage() {
           <div className="dropdown-setting-editor-form">
             {editorError && <div className="alert error dropdown-setting-editor-error">{editorError}</div>}
             <div className="dropdown-setting-label-field">
-              <label>
-                <span>Bezeichnung *</span>
-                <input
+              <label className="ui-labeled-field">
+                <span className="ui-field-label">Bezeichnung *</span>
+                <input className="ui-field-control"
                   type="text"
                   value={values.label}
                   onChange={(event) => update("label", event.target.value)}
@@ -232,16 +232,16 @@ export function DropdownSettingsPage() {
 
             {activeList === "planning_parameter" && (
               <>
-                <label>
-                  <span>Parametergruppe</span>
-                  <select value={values.parameterGroup} onChange={(event) => update("parameterGroup", event.target.value as DropdownSettingInput["parameterGroup"])}>
+                <label className="ui-labeled-field">
+                  <span className="ui-field-label">Parametergruppe</span>
+                  <select className="ui-field-control" value={values.parameterGroup} onChange={(event) => update("parameterGroup", event.target.value as DropdownSettingInput["parameterGroup"])}>
                     {EXERCISE_PARAMETER_GROUPS.map((group) => <option value={group.key} key={group.key}>{group.label}</option>)}
                   </select>
                   <small>Die Gruppe steuert die übersichtliche Anordnung im Übungseditor.</small>
                 </label>
-                <label>
-                  <span>Eingabetyp</span>
-                  <select
+                <label className="ui-labeled-field">
+                  <span className="ui-field-label">Eingabetyp</span>
+                  <select className="ui-field-control"
                     value={values.inputType}
                     onChange={(event) => update("inputType", event.target.value as "number" | "text")}
                     disabled={Boolean(editing?.usageCount)}
@@ -251,14 +251,14 @@ export function DropdownSettingsPage() {
                   </select>
                   {Boolean(editing?.usageCount) && <small>Der Eingabetyp bleibt bei bereits verwendeten Parametern unverändert.</small>}
                 </label>
-                <label><span>Einheit</span><input type="text" value={values.unit} onChange={(event) => update("unit", event.target.value)} maxLength={20} placeholder="z. B. m, kg, s" /></label>
-                {values.inputType === "number" && <label><span>Standard-Schrittweite</span><input type="number" min="0.01" step="any" value={values.stepValue} onChange={(event) => update("stepValue", event.target.value)} /></label>}
+                <label className="ui-labeled-field"><span className="ui-field-label">Einheit</span><input className="ui-field-control" type="text" value={values.unit} onChange={(event) => update("unit", event.target.value)} maxLength={20} placeholder="z. B. m, kg, s" /></label>
+                {values.inputType === "number" && <label className="ui-labeled-field"><span className="ui-field-label">Standard-Schrittweite</span><input className="ui-field-control" type="number" min="0.01" step="any" value={values.stepValue} onChange={(event) => update("stepValue", event.target.value)} /></label>}
               </>
             )}
 
-            <label><span>Sortierung</span><input type="number" step="1" value={values.sortOrder} onChange={(event) => update("sortOrder", event.target.value)} /></label>
+            <label className="ui-labeled-field"><span className="ui-field-label">Sortierung</span><input className="ui-field-control" type="number" step="1" value={values.sortOrder} onChange={(event) => update("sortOrder", event.target.value)} /></label>
             {editing && (
-              <label className="dropdown-setting-active-toggle">
+              <label className="ui-choice-row dropdown-setting-active-toggle">
                 <input type="checkbox" checked={editorActive} onChange={(event) => setEditorActive(event.target.checked)} />
                 <span><strong>Aktiv</strong><small>Inaktive Einträge bleiben bei bestehenden Daten erhalten.</small></span>
               </label>
@@ -298,15 +298,15 @@ export function DropdownSettingsPage() {
           {success && <div className="alert success">{success}</div>}
 
           <div className="dropdown-settings-selector-row">
-            <label className="dropdown-settings-selector">
-              <span className="sr-only">Auswahlliste</span>
-              <select value={activeList} onChange={(event) => selectList(event.target.value as DropdownListKey)} aria-label="Auswahlliste auswählen">
+            <label className="dropdown-settings-selector ui-labeled-field">
+              <span className="sr-only ui-field-label">Auswahlliste</span>
+              <select className="ui-field-control" value={activeList} onChange={(event) => selectList(event.target.value as DropdownListKey)} aria-label="Auswahlliste auswählen">
                 {DROPDOWN_LISTS.map((list) => <option value={list.key} key={list.key}>{list.title} · {activeCount(list.key)}</option>)}
               </select>
             </label>
             <button
               type="button"
-              className="dropdown-settings-info-button"
+              className="icon-button dropdown-settings-info-button"
               onClick={() => setIntroOpen((current) => !current)}
               aria-expanded={introOpen}
               aria-label={introOpen ? "Erklärung schließen" : `Erklärung zu ${listDefinition.title} öffnen`}
@@ -340,7 +340,7 @@ export function DropdownSettingsPage() {
                     </small>
                   </div>
                   {canEdit && (
-                    <button className="dropdown-setting-edit-button" type="button" onClick={() => startEdit(option)} disabled={busy} aria-label={`${option.label} bearbeiten`} title="Bearbeiten">
+                    <button className="icon-button dropdown-setting-edit-button" type="button" onClick={() => startEdit(option)} disabled={busy} aria-label={`${option.label} bearbeiten`} title="Bearbeiten">
                       <Pencil aria-hidden="true" />
                     </button>
                   )}

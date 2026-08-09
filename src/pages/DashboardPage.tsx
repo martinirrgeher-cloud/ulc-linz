@@ -51,7 +51,7 @@ export function DashboardPage() {
           <p>{today} · Das Wichtigste für deinen nächsten Schritt.</p>
         </div>
         {!isSimulationActive && (
-          <button type="button" className="dashboard-refresh-button" onClick={() => void loadSnapshot(true)} disabled={loading || refreshing} aria-label="Dashboard aktualisieren" title="Dashboard aktualisieren">
+          <button type="button" className="icon-button dashboard-refresh-button" onClick={() => void loadSnapshot(true)} disabled={loading || refreshing} aria-label="Dashboard aktualisieren" title="Dashboard aktualisieren">
             <RefreshCw aria-hidden="true" className={refreshing ? "spin-icon" : undefined} />
           </button>
         )}

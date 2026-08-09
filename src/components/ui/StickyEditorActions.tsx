@@ -2,6 +2,7 @@ import { CircleHelp, LoaderCircle, Save, X } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useNavigationGuardController } from "@/components/layout/NavigationGuardContext";
 import { buildHelpHref } from "@/features/help/help-context";
+import "@/styles/editor-shell.css";
 
 type StickyEditorActionsProps = {
   eyebrow?: string;
@@ -53,7 +54,7 @@ export function StickyEditorActions({
         <button
           type="submit"
           form={formId}
-          className="icon-button editor-save-button"
+          className="icon-button icon-button--save"
           disabled={!canEdit || !canSave || busy}
           aria-label={busy ? "Änderungen werden gespeichert" : "Änderungen speichern"}
           data-testid="editor-save"

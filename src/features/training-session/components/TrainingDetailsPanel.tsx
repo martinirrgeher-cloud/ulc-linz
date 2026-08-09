@@ -49,7 +49,7 @@ export function TrainingDetailsPanel({
       <div className="training-details-content">
         <fieldset className="training-environment-field">
           <legend><MapPin aria-hidden="true" /> Trainingsort</legend>
-          <div className="segmented-control three-options">
+          <div className="segmented-control three-options ui-segmented">
             {([
               [null, "Offen"],
               ["indoor", "Indoor"],
@@ -117,7 +117,7 @@ export function TrainingDetailsPanel({
           )}
         </fieldset>
 
-        <label className="cancel-training-toggle">
+        <label className="ui-choice-row cancel-training-toggle">
           <input
             type="checkbox"
             checked={draft.state === "cancelled"}
@@ -130,9 +130,9 @@ export function TrainingDetailsPanel({
           </span>
         </label>
 
-        <label className="training-note-field">
-          Tagesnotiz
-          <textarea
+        <label className="training-note-field ui-labeled-field">
+          <span className="ui-field-label">Tagesnotiz</span>
+          <textarea className="ui-field-control"
             value={draft.note}
             disabled={!canEdit}
             onChange={(event) => onNoteChange(event.target.value)}

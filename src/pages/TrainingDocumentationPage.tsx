@@ -845,7 +845,7 @@ export function TrainingDocumentationPage() {
         onKeepDraft={keepLocalDraftAfterRemoteChange}
       />
 
-      <nav className="training-doc-tabs" aria-label="Bereiche der Trainingsdokumentation">
+      <nav className="training-doc-tabs ui-tabs" aria-label="Bereiche der Trainingsdokumentation">
         <button type="button" className={mode === "document" ? "active" : ""} onClick={() => changeMode("document")}>
           <Dumbbell aria-hidden="true" />Dokumentieren
         </button>
@@ -860,16 +860,16 @@ export function TrainingDocumentationPage() {
       </nav>
 
       <section className="training-doc-controls ui-command-surface">
-        <label>
-          <span><Users aria-hidden="true" />Gruppe</span>
-          <select value={groupId} onChange={(event) => changeGroup(event.target.value)} disabled={loading}>
+        <label className="ui-labeled-field">
+          <span className="ui-field-label"><Users aria-hidden="true" />Gruppe</span>
+          <select className="ui-field-control" value={groupId} onChange={(event) => changeGroup(event.target.value)} disabled={loading}>
             {overview.groups.map((group) => <option value={group.id} key={group.id}>{group.shortName || group.name}</option>)}
           </select>
         </label>
         {isStaff ? (
-          <label>
-            <span>Athlet</span>
-            <select value={athleteId} onChange={(event) => changeAthlete(event.target.value)} disabled={loading}>
+          <label className="ui-labeled-field">
+            <span className="ui-field-label">Athlet</span>
+            <select className="ui-field-control" value={athleteId} onChange={(event) => changeAthlete(event.target.value)} disabled={loading}>
               {availableAthletes.map((athlete) => <option value={athlete.id} key={athlete.id}>{athlete.firstName} {athlete.lastName}</option>)}
             </select>
           </label>
@@ -970,8 +970,10 @@ export function TrainingDocumentationPage() {
       {mode === "statistics" && (
         <>
           <section className="training-doc-stat-controls">
-            <label>Von<input type="date" value={statsFrom} onChange={(event) => setStatsFrom(event.target.value)} /></label>
-            <label>Bis<input type="date" value={statsTo} onChange={(event) => setStatsTo(event.target.value)} /></label>
+            <label className="ui-labeled-field"><span className="ui-field-label">Von</span>
+<input className="ui-field-control" type="date" value={statsFrom} onChange={(event) => setStatsFrom(event.target.value)} /></label>
+            <label className="ui-labeled-field"><span className="ui-field-label">Bis</span>
+<input className="ui-field-control" type="date" value={statsTo} onChange={(event) => setStatsTo(event.target.value)} /></label>
             <button type="button" className="secondary-button" onClick={() => void loadStatistics()} disabled={statsLoading || !athleteId}>
               <BarChart3 aria-hidden="true" />{statsLoading ? "Wird geladen …" : "Auswertung aktualisieren"}
             </button>

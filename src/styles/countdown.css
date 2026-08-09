@@ -212,9 +212,9 @@
 
 .countdown-number-field input {
   width: 100%;
-  min-height: 42px;
+  min-height: var(--ui-control-height);
   border: 1px solid #b9cdc0;
-  border-radius: 10px;
+  border-radius: var(--ui-control-radius);
   color: #153326;
   background: #fff;
   font-size: 16px;
@@ -255,25 +255,13 @@
 }
 
 .countdown-options label {
-  min-height: 42px;
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  padding: 7px 9px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
   color: var(--green-950);
-  background: var(--green-50);
   font-size: 0.78rem;
   font-weight: 700;
-  cursor: pointer;
 }
 
 .countdown-options input {
-  width: 19px;
-  height: 19px;
   flex: 0 0 auto;
-  accent-color: var(--green-700);
 }
 
 .countdown-settings :disabled {
@@ -356,7 +344,7 @@
   }
 
   .countdown-number-field input {
-    min-height: 42px;
+    min-height: var(--ui-control-height);
   }
 
   .countdown-announcement-grid {
@@ -364,8 +352,6 @@
   }
 
   .countdown-options label {
-    min-height: 42px;
-    padding: 6px 8px;
     font-size: .76rem;
   }
 }

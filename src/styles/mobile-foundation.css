@@ -1,11 +1,171 @@
 /* Gemeinsame kompakte Mobile-Komponenten. Feature-Regeln werden routebezogen geladen. */
 
+.ui-switch {
+  width: 100%;
+  min-height: var(--ui-control-height);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  color: var(--green-950);
+  background: #fff;
+  border: 1px solid #dce8e0;
+  border-radius: var(--ui-control-radius);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ui-switch:hover,
+.ui-switch:focus-visible,
+.ui-switch.active,
+.ui-switch[aria-checked="true"] {
+  background: #f1f8f4;
+  border-color: #9fcab0;
+}
+
+.ui-switch-control {
+  position: relative;
+  width: 42px;
+  height: 24px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: #cbd5cf;
+  transition: background 0.18s ease;
+}
+
+.ui-switch-control > span {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 2px 6px rgba(24, 58, 39, 0.25);
+  transition: transform 0.18s ease;
+}
+
+.ui-switch.active .ui-switch-control,
+.ui-switch[aria-checked="true"] .ui-switch-control {
+  background: var(--green-700);
+}
+
+.ui-switch.active .ui-switch-control > span,
+.ui-switch[aria-checked="true"] .ui-switch-control > span {
+  transform: translateX(18px);
+}
+
+/* Verbindlicher Standard fuer normal beschriftete Formularfelder.
+   Feldtitel und Wert bilden eine gemeinsame kompakte Control-Flaeche. */
+.ui-labeled-field {
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: 0;
+  overflow: hidden;
+  color: var(--green-950);
+  background: var(--ui-control-background);
+  border: 1px solid var(--ui-control-border);
+  border-radius: var(--ui-control-radius);
+  font-weight: 700;
+}
+
+.ui-labeled-field:focus-within {
+  border-color: var(--green-700);
+  box-shadow: 0 0 0 3px var(--ui-control-focus);
+}
+
+.ui-labeled-field > .ui-field-label {
+  min-width: 0;
+  min-height: 25px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px 3px;
+  color: #6d7d74;
+  background: #f1f4f2;
+  font-size: 0.76rem;
+  font-weight: 750;
+  line-height: 1.2;
+}
+
+.ui-labeled-field .ui-field-control {
+  width: 100%;
+  min-width: 0;
+  min-height: var(--ui-control-height-compact);
+  margin: 0;
+  padding: 6px 10px 8px;
+  color: var(--ui-control-text);
+  background: var(--ui-control-background);
+  border: 0;
+  border-radius: 0;
+  outline: 0;
+  box-shadow: none;
+  font: inherit;
+  font-weight: 500;
+}
+
+.ui-labeled-field select.ui-field-control {
+  padding-right: 30px;
+}
+
+.ui-labeled-field textarea.ui-field-control {
+  min-height: var(--ui-textarea-height-compact);
+  padding-top: 8px;
+  padding-bottom: 9px;
+  line-height: 1.45;
+  resize: vertical;
+}
+
+.ui-labeled-field .ui-field-control:focus,
+.ui-labeled-field .ui-field-control:focus-visible {
+  border: 0;
+  outline: 0;
+  box-shadow: none;
+}
+
+.ui-labeled-field .ui-field-control:disabled,
+.ui-labeled-field .ui-field-control[readonly] {
+  color: #687970;
+  background: #f7f9f8;
+}
+
+.ui-labeled-field > small {
+  display: block;
+  padding: 5px 10px 7px;
+  color: var(--muted);
+  background: #fbfcfb;
+  border-top: 1px solid #edf2ef;
+  font-size: 0.76rem;
+  font-weight: 550;
+  line-height: 1.35;
+}
+
+.ui-labeled-field > .ui-field-control-wrap {
+  min-width: 0;
+  min-height: var(--ui-control-height-compact);
+  margin: 0;
+  background: var(--ui-control-background);
+  border: 0;
+  border-radius: 0;
+}
+
+.ui-labeled-field > .password-field .ui-field-control {
+  padding-right: 52px;
+}
+
+@media (max-width: 760px) {
+  .ui-labeled-field .ui-field-control {
+    font-size: 16px;
+  }
+}
+
 :root {
-  --ui-control-height: 42px;
-    --ui-control-height-compact: 38px;
-    --ui-touch-target: 42px;
-    --ui-gap-compact: 8px;
-    --ui-radius-compact: 10px;
+  --ui-touch-target: var(--ui-control-height);
+  --ui-gap-compact: 8px;
+  --ui-radius-compact: var(--ui-control-radius);
 }
 .status-card-compact {
   width: min(100%, 390px);
@@ -58,9 +218,9 @@
         font-size: 0.76rem;
   }
   .icon-button {
-    width: 40px;
-        height: 40px;
-        border-radius: 10px;
+    width: var(--ui-icon-button-size);
+    height: var(--ui-icon-button-size);
+    border-radius: var(--ui-control-radius);
   }
   .form-stack input,
   .form-grid input,
@@ -68,10 +228,20 @@
   .search-field input,
   .toolbar-select,
   .full-width-field textarea {
-    min-height: 42px;
-        padding: 8px 10px;
-        font-size: 16px;
-        border-radius: 10px;
+    min-height: var(--ui-control-height);
+    padding: 8px 10px;
+    font-size: 16px;
+    border-radius: var(--ui-control-radius);
+  }
+
+  .ui-tabs {
+    gap: 3px;
+    padding: 3px;
+  }
+  .ui-tabs > button {
+    min-height: var(--ui-control-height);
+    padding: 7px 9px;
+    font-size: .82rem;
   }
   .button-row {
     flex-direction: row;
@@ -116,13 +286,14 @@
 @media (pointer: coarse) {
   .primary-button,
   .secondary-button,
-  .icon-button,
-  .status-filter button {
+  .status-filter button,
+  .ui-tabs > button {
     min-height: var(--ui-touch-target);
   }
   .icon-button {
-    width: var(--ui-touch-target);
-        height: var(--ui-touch-target);
+    width: var(--ui-icon-button-size);
+    height: var(--ui-icon-button-size);
+    min-height: var(--ui-icon-button-size);
   }
 }
 @media screen and (max-width: 390px) {

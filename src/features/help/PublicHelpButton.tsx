@@ -12,7 +12,7 @@ export function PublicHelpButton() {
 
   return (
     <Link
-      className="public-help-button"
+      className="icon-button public-help-button"
       to={buildHelpHref(`${pathname}${location.search}`)}
       aria-label="Hilfe für diese Seite"
       title="Hilfe für diese Seite"

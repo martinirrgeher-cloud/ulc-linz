@@ -216,7 +216,7 @@ export function TrainingBlockEditor({
           </button>
         </header>
 
-        <div className="training-block-editor-tabs" role="tablist" aria-label="Trainingsblock bearbeiten">
+        <div className="training-block-editor-tabs ui-tabs" role="tablist" aria-label="Trainingsblock bearbeiten">
           <button
             type="button"
             className={section === "basis" ? "active" : ""}
@@ -257,9 +257,9 @@ export function TrainingBlockEditor({
             {section === "basis" && (
               <div className="training-block-editor-panel">
                 <div className="training-block-form-grid">
-                  <label className="training-block-field training-block-field-wide">
-                    <span>Name *</span>
-                    <input
+                  <label className="training-block-field training-block-field-wide ui-labeled-field">
+                    <span className="ui-field-label">Name *</span>
+                    <input className="ui-field-control"
                       value={values.name}
                       onChange={(event) => update("name", event.target.value)}
                       maxLength={120}
@@ -268,9 +268,9 @@ export function TrainingBlockEditor({
                     />
                   </label>
 
-                  <label className="training-block-field training-block-field-wide">
-                    <span>Trainingsziel</span>
-                    <input
+                  <label className="training-block-field training-block-field-wide ui-labeled-field">
+                    <span className="ui-field-label">Trainingsziel</span>
+                    <input className="ui-field-control"
                       value={values.goal}
                       onChange={(event) => update("goal", event.target.value)}
                       maxLength={240}
@@ -278,10 +278,10 @@ export function TrainingBlockEditor({
                     />
                   </label>
 
-                  <label className="training-block-field">
-                    <span>Geschätzte Dauer</span>
-                    <div className="training-block-number-field">
-                      <input
+                  <label className="training-block-field ui-labeled-field">
+                    <span className="ui-field-label">Geschätzte Dauer</span>
+                    <div className="training-block-number-field ui-field-control-wrap">
+                      <input className="ui-field-control"
                         type="number"
                         inputMode="numeric"
                         min="1"
@@ -293,7 +293,7 @@ export function TrainingBlockEditor({
                     </div>
                   </label>
 
-                  <label className="training-block-active-toggle">
+                  <label className="ui-choice-row training-block-active-toggle">
                     <input
                       type="checkbox"
                       checked={values.isActive}
@@ -305,9 +305,9 @@ export function TrainingBlockEditor({
                     </span>
                   </label>
 
-                  <label className="training-block-field training-block-field-wide">
-                    <span>Beschreibung</span>
-                    <textarea
+                  <label className="training-block-field training-block-field-wide ui-labeled-field">
+                    <span className="ui-field-label">Beschreibung</span>
+                    <textarea className="ui-field-control"
                       value={values.description}
                       onChange={(event) => update("description", event.target.value)}
                       rows={4}
@@ -399,7 +399,7 @@ export function TrainingBlockEditor({
                                 </button>
                                 <button
                                   type="button"
-                                  className="training-block-exercise-info-button"
+                                  className="icon-button training-block-exercise-info-button"
                                   onClick={() => openExerciseInfo(exercise)}
                                   aria-label={`Informationen zu ${exercise.name} anzeigen`}
                                   title="Übungsinformationen"
@@ -448,7 +448,7 @@ export function TrainingBlockEditor({
                             </div>
                             <button
                               type="button"
-                              className="training-block-item-info-button"
+                              className="icon-button training-block-item-info-button"
                               onClick={() => openExerciseInfo(exercise)}
                               aria-label={`Informationen zu ${exercise.name} anzeigen`}
                               title="Übungsinformationen"
@@ -459,6 +459,7 @@ export function TrainingBlockEditor({
                               <div className="training-block-item-actions">
                                 <button
                                   type="button"
+                                  className="icon-button"
                                   onClick={() => moveItem(index, -1)}
                                   disabled={index === 0}
                                   aria-label={`${exercise.name} nach oben verschieben`}
@@ -468,6 +469,7 @@ export function TrainingBlockEditor({
                                 </button>
                                 <button
                                   type="button"
+                                  className="icon-button"
                                   onClick={() => moveItem(index, 1)}
                                   disabled={index === values.items.length - 1}
                                   aria-label={`${exercise.name} nach unten verschieben`}
@@ -477,6 +479,7 @@ export function TrainingBlockEditor({
                                 </button>
                                 <button
                                   type="button"
+                                  className="icon-button"
                                   onClick={() => duplicateItem(index)}
                                   aria-label={`${exercise.name} duplizieren`}
                                   title="Übung duplizieren"
@@ -485,7 +488,7 @@ export function TrainingBlockEditor({
                                 </button>
                                 <button
                                   type="button"
-                                  className="danger"
+                                  className="icon-button icon-button--danger"
                                   onClick={() => removeItem(item.clientId)}
                                   aria-label={`${exercise.name} entfernen`}
                                   title="Entfernen"
@@ -549,9 +552,9 @@ export function TrainingBlockEditor({
                             <p className="training-block-no-parameters">Für diese Übung sind keine Planungsparameter hinterlegt.</p>
                           )}
 
-                          <label className="training-block-field">
-                            <span>Hinweis für diesen Block</span>
-                            <textarea
+                          <label className="training-block-field ui-labeled-field">
+                            <span className="ui-field-label">Hinweis für diesen Block</span>
+                            <textarea className="ui-field-control"
                               value={item.note}
                               onChange={(event) => updateItem(item.clientId, (current) => ({
                                 ...current,

@@ -4,7 +4,7 @@
   .training-blocks-heading h1 { font-size: clamp(1.45rem, 6vw, 1.72rem); line-height: 1.12; }
   .training-blocks-heading p:not(.eyebrow) { display: none; }
   .training-blocks-heading .eyebrow { margin-bottom: 4px !important; font-size: .76rem; }
-  .training-block-search input, .training-block-filter-grid select { min-height: 42px; padding: 8px 10px; font-size: 16px; border-radius: 10px; }
+  .training-block-search input, .training-block-filter-grid select { min-height: var(--ui-control-height); padding: 8px 10px; font-size: 16px; border-radius: var(--ui-control-radius); }
   .training-block-filter-toggle { position: relative; width: 42px; min-width: 42px; min-height: 42px; padding: 0; }
   .training-block-filter-toggle .filter-toggle-label, .training-block-filter-toggle .filter-toggle-chevron { display: none; }
   .filter-toggle-count { position: absolute; top: -4px; right: -4px; min-width: 18px; height: 18px; display: grid; place-items: center; padding: 0 4px; border: 2px solid #fff; border-radius: 999px; font-size: .76rem; }
@@ -12,9 +12,9 @@
   .training-block-filter-grid { grid-template-columns: 1fr 1fr; gap: 7px; }
   .training-block-filter-footer { gap: 7px; }
   .training-block-filter-footer .text-button { min-height: 38px; padding: 6px 9px; font-size: .8rem; }
-  .training-block-card-actions button, .training-block-item-actions button, .training-block-item-info-button { width: 42px; height: 42px; min-width: 42px; min-height: 42px; border-radius: 9px; }
+  
   .training-block-card-actions, .training-block-item-actions { gap: 5px; }
-  .training-block-card-actions svg, .training-block-item-actions svg { width: 17px; height: 17px; }
+  
   .training-block-editor-backdrop { padding-bottom: env(safe-area-inset-bottom); }
 }
 @media screen and (max-width: 560px) {

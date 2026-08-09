@@ -432,7 +432,7 @@ export function PerformanceRegistrationPage() {
         </div>
       ) : (
         <>
-          <div className="performance-mode-tabs performance-mode-tabs-v2" role="tablist" aria-label="Leistungsgruppenansicht">
+          <div className="performance-mode-tabs performance-mode-tabs-v2 ui-tabs" role="tablist" aria-label="Leistungsgruppenansicht">
             <button type="button" role="tab" aria-selected={mode === "registration"} className={mode === "registration" ? "active" : ""} onClick={() => setMode("registration")}>
               <CalendarCheck aria-hidden="true" /> Anmeldung
             </button>
@@ -443,9 +443,9 @@ export function PerformanceRegistrationPage() {
 
           <div className="performance-controls-card performance-controls-v2">
             {context.groups.length > 1 ? (
-              <label className="performance-group-select">
-                Leistungsgruppe
-                <select value={selectedGroupId} onChange={(event) => void changeGroup(event.target.value)}>
+              <label className="performance-group-select ui-labeled-field">
+                <span className="ui-field-label">Leistungsgruppe</span>
+                <select className="ui-field-control" value={selectedGroupId} onChange={(event) => void changeGroup(event.target.value)}>
                   {context.groups.map((group) => (
                     <option value={group.id} key={group.id}>{group.name}</option>
                   ))}
@@ -548,9 +548,9 @@ function RegistrationPanel({
   return (
     <div className="performance-registration-panel">
       <div className="performance-athlete-picker-row">
-        <label>
-          Anmeldung für
-          <select value={selectedAthleteId} onChange={(event) => void onSelectAthlete(event.target.value)}>
+        <label className="ui-labeled-field">
+          <span className="ui-field-label">Anmeldung für</span>
+          <select className="ui-field-control" value={selectedAthleteId} onChange={(event) => void onSelectAthlete(event.target.value)}>
             {week.athletes.map((athlete) => (
               <option value={athlete.id} key={athlete.id}>{personName(athlete)}</option>
             ))}

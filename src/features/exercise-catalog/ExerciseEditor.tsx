@@ -291,7 +291,7 @@ export function ExerciseEditor({
   const canSave = !videoBusy && !exactDuplicate;
   const editorContent = (
     <>
-      <nav className="exercise-editor-tabs" aria-label="Übungsbereiche">
+      <nav className="exercise-editor-tabs ui-tabs" aria-label="Übungsbereiche">
           <button type="button" className={section === "basis" ? "active" : ""} onClick={() => setSection("basis")}>
             <Dumbbell aria-hidden="true" />Basis
           </button>
@@ -319,9 +319,9 @@ export function ExerciseEditor({
             {section === "basis" && (
               <div className="exercise-editor-panel">
                 <div className="exercise-form-grid">
-                  <label className="exercise-field exercise-field-wide">
-                    <span>Name *</span>
-                    <input
+                  <label className="exercise-field exercise-field-wide ui-labeled-field">
+                    <span className="ui-field-label">Name *</span>
+                    <input className="ui-field-control"
                       type="text"
                       value={values.name}
                       onChange={(event) => update("name", event.target.value)}
@@ -349,9 +349,9 @@ export function ExerciseEditor({
                     </div>
                   )}
 
-                  <label className="exercise-field">
-                    <span>Kategorie *</span>
-                    <select value={values.categoryKey} onChange={(event) => update("categoryKey", event.target.value)}>
+                  <label className="exercise-field ui-labeled-field">
+                    <span className="ui-field-label">Kategorie *</span>
+                    <select className="ui-field-control" value={values.categoryKey} onChange={(event) => update("categoryKey", event.target.value)}>
                       {categories
                         .filter((category) => category.isActive !== false || category.key === values.categoryKey)
                         .map((category) => (
@@ -362,9 +362,9 @@ export function ExerciseEditor({
                     </select>
                   </label>
 
-                  <label className="exercise-field">
-                    <span>Unterkategorie</span>
-                    <select value={values.subcategory} onChange={(event) => update("subcategory", event.target.value)}>
+                  <label className="exercise-field ui-labeled-field">
+                    <span className="ui-field-label">Unterkategorie</span>
+                    <select className="ui-field-control" value={values.subcategory} onChange={(event) => update("subcategory", event.target.value)}>
                       <option value="">Keine Unterkategorie</option>
                       {subcategories
                         .filter((option) => option.isActive || option.label === values.subcategory)
@@ -375,9 +375,9 @@ export function ExerciseEditor({
                     </select>
                   </label>
 
-                  <label className="exercise-field">
-                    <span>Schwierigkeitsgrad</span>
-                    <select value={values.difficultyKey} onChange={(event) => update("difficultyKey", event.target.value)}>
+                  <label className="exercise-field ui-labeled-field">
+                    <span className="ui-field-label">Schwierigkeitsgrad</span>
+                    <select className="ui-field-control" value={values.difficultyKey} onChange={(event) => update("difficultyKey", event.target.value)}>
                       <option value="">Nicht festgelegt</option>
                       {difficulties
                         .filter((difficulty) => difficulty.isActive || difficulty.key === values.difficultyKey)
@@ -389,9 +389,9 @@ export function ExerciseEditor({
                     </select>
                   </label>
 
-                  <label className="exercise-field exercise-field-wide">
-                    <span>Trainingsziel</span>
-                    <input
+                  <label className="exercise-field exercise-field-wide ui-labeled-field">
+                    <span className="ui-field-label">Trainingsziel</span>
+                    <input className="ui-field-control"
                       type="text"
                       value={values.goal}
                       onChange={(event) => update("goal", event.target.value)}
@@ -408,7 +408,7 @@ export function ExerciseEditor({
                         .map((option) => {
                           const checked = values.equipment.includes(option.label);
                           return (
-                            <label className={checked ? "selected" : ""} key={option.key}>
+                            <label className={`ui-choice-row ${checked ? "selected" : ""}`} key={option.key}>
                               <input type="checkbox" checked={checked} onChange={() => toggleMaterial(option.label)} />
                               <span className="exercise-choice-check" aria-hidden="true">{checked && <Check />}</span>
                               <span>{option.label}</span>
@@ -418,7 +418,7 @@ export function ExerciseEditor({
                       {values.equipment
                         .filter((material) => !materials.some((option) => option.label === material))
                         .map((material) => (
-                          <label className="selected" key={material}>
+                          <label className="ui-choice-row selected" key={material}>
                             <input type="checkbox" checked onChange={() => toggleMaterial(material)} />
                             <span className="exercise-choice-check" aria-hidden="true"><Check /></span>
                             <span>{material} (bestehend)</span>
@@ -441,7 +441,7 @@ export function ExerciseEditor({
                   </div>
                 </fieldset>
 
-                <label className="exercise-active-toggle">
+                <label className="ui-choice-row exercise-active-toggle">
                   <input type="checkbox" checked={values.isActive} onChange={(event) => update("isActive", event.target.checked)} />
                   <span>
                     <strong>Übung aktiv</strong>
@@ -453,19 +453,19 @@ export function ExerciseEditor({
 
             {section === "anleitung" && (
               <div className="exercise-editor-panel">
-                <div className="exercise-field exercise-speech-field">
-                  <div className="exercise-field-heading"><label htmlFor="exercise-description">Durchführung</label><SpeechToTextButton label="Durchführung" disabled={!canEdit || busy || videoBusy} onTranscript={(transcript) => appendSpeech("description", transcript)} /></div>
-                  <textarea id="exercise-description" value={values.description} onChange={(event) => update("description", event.target.value)} rows={5} placeholder="Kurze, klare Beschreibung der Durchführung" />
+                <div className="exercise-field exercise-speech-field ui-labeled-field">
+                  <div className="exercise-field-heading ui-field-label"><label htmlFor="exercise-description">Durchführung</label><SpeechToTextButton label="Durchführung" disabled={!canEdit || busy || videoBusy} onTranscript={(transcript) => appendSpeech("description", transcript)} /></div>
+                  <textarea className="ui-field-control" id="exercise-description" value={values.description} onChange={(event) => update("description", event.target.value)} rows={5} placeholder="Kurze, klare Beschreibung der Durchführung" />
                 </div>
-                <div className="exercise-field exercise-speech-field">
-                  <div className="exercise-field-heading"><label htmlFor="exercise-coaching-cues">Trainerhinweise</label><SpeechToTextButton label="Trainerhinweise" disabled={!canEdit || busy || videoBusy} onTranscript={(transcript) => appendSpeech("coachingCues", transcript)} /></div>
-                  <textarea id="exercise-coaching-cues" value={values.coachingCues} onChange={(event) => update("coachingCues", event.target.value)} rows={4} placeholder="Worauf soll besonders geachtet werden?" />
+                <div className="exercise-field exercise-speech-field ui-labeled-field">
+                  <div className="exercise-field-heading ui-field-label"><label htmlFor="exercise-coaching-cues">Trainerhinweise</label><SpeechToTextButton label="Trainerhinweise" disabled={!canEdit || busy || videoBusy} onTranscript={(transcript) => appendSpeech("coachingCues", transcript)} /></div>
+                  <textarea className="ui-field-control" id="exercise-coaching-cues" value={values.coachingCues} onChange={(event) => update("coachingCues", event.target.value)} rows={4} placeholder="Worauf soll besonders geachtet werden?" />
                 </div>
-                <div className="exercise-field exercise-speech-field">
-                  <div className="exercise-field-heading"><label htmlFor="exercise-common-mistakes">Typische Fehler</label><SpeechToTextButton label="Typische Fehler" disabled={!canEdit || busy || videoBusy} onTranscript={(transcript) => appendSpeech("commonMistakes", transcript)} /></div>
-                  <textarea id="exercise-common-mistakes" value={values.commonMistakes} onChange={(event) => update("commonMistakes", event.target.value)} rows={4} placeholder="Häufige Fehler und mögliche Korrekturen" />
+                <div className="exercise-field exercise-speech-field ui-labeled-field">
+                  <div className="exercise-field-heading ui-field-label"><label htmlFor="exercise-common-mistakes">Typische Fehler</label><SpeechToTextButton label="Typische Fehler" disabled={!canEdit || busy || videoBusy} onTranscript={(transcript) => appendSpeech("commonMistakes", transcript)} /></div>
+                  <textarea className="ui-field-control" id="exercise-common-mistakes" value={values.commonMistakes} onChange={(event) => update("commonMistakes", event.target.value)} rows={4} placeholder="Häufige Fehler und mögliche Korrekturen" />
                 </div>
-                <label className="exercise-field"><span>Video- oder Weblink</span><input type="url" inputMode="url" value={values.videoUrl} onChange={(event) => update("videoUrl", event.target.value)} placeholder="https://…" /></label>
+                <label className="exercise-field ui-labeled-field"><span className="ui-field-label">Video- oder Weblink</span><input className="ui-field-control" type="url" inputMode="url" value={values.videoUrl} onChange={(event) => update("videoUrl", event.target.value)} placeholder="https://…" /></label>
               </div>
             )}
 
@@ -483,7 +483,7 @@ export function ExerciseEditor({
                     <strong>Ausgewählt</strong>
                     <div className="exercise-choice-list exercise-relation-list">
                       {selectedRelations.map((candidate) => (
-                        <label className="selected" key={candidate.id}>
+                        <label className="ui-choice-row selected" key={candidate.id}>
                           <input type="checkbox" checked onChange={() => toggleSimilarExercise(candidate.id)} />
                           <span className="exercise-choice-check" aria-hidden="true"><Check /></span>
                           <span><strong>{candidate.name}</strong><small>{candidate.categoryTitle}{candidate.subcategory ? ` · ${candidate.subcategory}` : ""}{candidate.isActive ? "" : " · archiviert"}</small></span>
@@ -502,7 +502,7 @@ export function ExerciseEditor({
                   {relationOptions.length > 0 ? (
                     <div className="exercise-choice-list exercise-relation-list">
                       {relationOptions.map((candidate) => (
-                        <label key={candidate.id}>
+                        <label className="ui-choice-row" key={candidate.id}>
                           <input type="checkbox" checked={false} onChange={() => toggleSimilarExercise(candidate.id)} />
                           <span className="exercise-choice-check" aria-hidden="true" />
                           <span><strong>{candidate.name}</strong><small>{candidate.subcategory || candidate.goal || "Keine weitere Beschreibung"}{candidate.isActive ? "" : " · archiviert"}</small></span>
@@ -594,7 +594,7 @@ export function ExerciseEditor({
                               <article className="exercise-parameter-card" key={parameter.key}>
                                 <header>
                                   <div><strong>{parameter.label}</strong><small>{parameter.unit || (parameter.inputType === "number" ? "Zahl" : "Text")}</small></div>
-                                  <button type="button" className="exercise-parameter-delete" onClick={() => toggleParameter(parameter.key)} aria-label={`${parameter.label} entfernen`} title="Parameter entfernen"><Trash2 aria-hidden="true" /></button>
+                                  <button type="button" className="icon-button icon-button--danger exercise-parameter-delete" onClick={() => toggleParameter(parameter.key)} aria-label={`${parameter.label} entfernen`} title="Parameter entfernen"><Trash2 aria-hidden="true" /></button>
                                 </header>
                                 <div className="parameter-detail-grid">
                                   <label><span>Standard</span><input aria-label="Standardwert" type={parameter.inputType === "number" ? "number" : "text"} inputMode={parameter.inputType === "number" ? "decimal" : undefined} step={parameter.stepValue ?? undefined} value={parameter.defaultValue} onChange={(event) => updateParameter(parameter.key, { defaultValue: event.target.value })} /></label>
@@ -606,7 +606,7 @@ export function ExerciseEditor({
                                     </>
                                   )}
                                 </div>
-                                <div className="exercise-parameter-requirement" role="group" aria-label={`${parameter.label}: Verwendung in der Planung`}>
+                                <div className="exercise-parameter-requirement ui-segmented" role="group" aria-label={`${parameter.label}: Verwendung in der Planung`}>
                                   <span>In der Planung</span>
                                   <div>
                                     <button type="button" className={!parameter.isRequired ? "active" : ""} aria-pressed={!parameter.isRequired} onClick={() => updateParameter(parameter.key, { isRequired: false })}>Optional</button>
@@ -673,7 +673,7 @@ export function ExerciseEditor({
           </div>
           <div className="exercise-editor-header-actions">
             {canEdit && !useFooterActions && (
-              <button type="button" className="icon-button exercise-editor-save-button" onClick={() => void handleSave()} disabled={busy || videoBusy || Boolean(exactDuplicate)} aria-label={busy ? "Wird gespeichert" : "Übung speichern"} title="Speichern">
+              <button type="button" className="icon-button icon-button--save" onClick={() => void handleSave()} disabled={busy || videoBusy || Boolean(exactDuplicate)} aria-label={busy ? "Wird gespeichert" : "Übung speichern"} title="Speichern">
                 <Save aria-hidden="true" />
               </button>
             )}

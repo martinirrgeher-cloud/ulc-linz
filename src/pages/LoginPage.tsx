@@ -55,9 +55,9 @@ export function LoginPage() {
         {error && <div className="alert error">{error}</div>}
 
         <form onSubmit={handleSubmit} className="form-stack">
-          <label>
-            E-Mail-Adresse
-            <input
+          <label className="ui-labeled-field">
+            <span className="ui-field-label">E-Mail-Adresse</span>
+            <input className="ui-field-control"
               type="email"
               autoComplete="email"
               value={email}
@@ -67,10 +67,10 @@ export function LoginPage() {
             />
           </label>
 
-          <label>
-            Passwort
-            <span className="password-field">
-              <input
+          <label className="ui-labeled-field">
+            <span className="ui-field-label">Passwort</span>
+            <span className="password-field ui-field-control-wrap">
+              <input className="ui-field-control"
                 type={showPassword ? "text" : "password"}
                 autoComplete="current-password"
                 value={password}
@@ -81,7 +81,7 @@ export function LoginPage() {
               />
               <button
                 type="button"
-                className="password-toggle"
+                className="icon-button icon-button--inline password-toggle"
                 onClick={() => setShowPassword((current) => !current)}
                 aria-label={showPassword ? "Passwort ausblenden" : "Passwort anzeigen"}
                 title={showPassword ? "Passwort ausblenden" : "Passwort anzeigen"}

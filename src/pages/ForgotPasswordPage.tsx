@@ -46,9 +46,9 @@ export function ForgotPasswordPage() {
         {message && <div className="alert success">{message}</div>}
         {error && <div className="alert error">{error}</div>}
         <form onSubmit={handleSubmit} className="form-stack">
-          <label>
-            E-Mail-Adresse
-            <input
+          <label className="ui-labeled-field">
+            <span className="ui-field-label">E-Mail-Adresse</span>
+            <input className="ui-field-control"
               type="email"
               autoComplete="email"
               value={email}

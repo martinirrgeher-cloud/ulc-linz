@@ -326,6 +326,41 @@ Bevor ein hartes Budget erhöht wird, muss zuerst geprüft werden, ob CSS konsol
 
 `scripts/check-css-ownership.mjs` verhindert insbesondere, dass ausgelagerte Stammdaten-/Benutzerverwaltungsregeln wieder nach `global.css` zurückwandern.
 
+### 7.1 Verbindlicher UI-Control-Standard
+
+Die App verwendet für normale Bedienelemente semantische, fachlich neutrale Grundvarianten. Ziel ist, dass ein Speichern-, Bearbeiten-, Schließen- oder Löschbutton unabhängig von Route und CSS-Ladereihenfolge gleich gerendert wird.
+
+Zentrale Geometrie:
+
+- `--ui-control-height: 42px` für normale Buttons und Formularfelder
+- `--ui-control-height-compact: 38px` für explizit kompakte Controls
+- `--ui-icon-button-size: 40px` für normale Iconaktionen
+- `--ui-control-radius: 10px`
+- Checkboxen/Radios: `20 x 20px`
+- mobile Formulareingaben: mindestens `16px` Schriftgröße
+
+Zentrale Semantik:
+
+- `.icon-button` – neutrale Iconaktion
+- `.icon-button--save` – grüne Fläche, weißes Speichern-Symbol
+- `.icon-button--danger` – destruktive Iconaktion
+- `.icon-button--inline` – feldinterne Iconaktion
+- `.ui-tabs` – gemeinsamer Tabcontainer
+- `.ui-segmented` – kompakte exklusive Auswahl
+- `.ui-choice-row` – anklickbare Checkbox-/Mehrfachauswahlzeile
+- `.ui-switch` / `.ui-switch-control` – echter Ein/Aus-Zustand
+- `.ui-labeled-field` – normales beschriftetes Formularfeld als gemeinsamer Rahmen
+- `.ui-field-label` – dauerhaft sichtbare hellgraue Feldkopfzeile innerhalb dieses Rahmens
+- `.ui-field-control` – eigentliche Text-/Select-/Zahl-/Datum-/Textarea-Eingabe innerhalb des Feldrahmens
+
+Normale beschriftete Textfelder, Selects, Zahlen-/Datumsfelder und Textareas verwenden dieses integrierte Feldmuster appweit. Suchfelder, Checkboxen/Switches, kompakte Inline-Parameter in Tabellen und fachliche Spezialcontrols bleiben bewusst eigene Controltypen. Ein Placeholder ersetzt keine Feldbezeichnung.
+
+`EditorShell` und `StickyEditorActions` greifen auf dieselben semantischen Varianten zurück. Feature-CSS darf normale Save-/Close-/Edit-/Info-/Delete-Controls nicht über eigene Farben und Größen neu definieren. `final-ui-v1.css` darf die Semantik generischer `.icon-button` ebenfalls nicht überschreiben.
+
+Fachliche Statuscontrols dürfen eigene Zustandsfarben behalten, müssen aber zur gemeinsamen Größen-, Fokus- und Radiusfamilie passen.
+
+`scripts/check-ui-controls.mjs` schützt diesen Vertrag und ist Teil von `ci:quality` und `ci:preview`. Der Runtime-Smoke prüft bei zentralen Editoraktionen zusätzlich berechnete Styles, damit Fehler durch CSS-Spezifität erkannt werden.
+
 ---
 
 ## 8. Testarchitektur

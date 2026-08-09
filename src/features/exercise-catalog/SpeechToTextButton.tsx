@@ -121,7 +121,7 @@ export function SpeechToTextButton({ label, disabled = false, onTranscript }: Sp
     <span className="exercise-speech-control">
       <button
         type="button"
-        className={`exercise-speech-button ${listening ? "listening" : ""}`}
+        className={`icon-button exercise-speech-button ${listening ? "listening" : ""}`}
         onClick={listening ? stopRecognition : startRecognition}
         disabled={disabled || !supported}
         aria-label={buttonLabel}

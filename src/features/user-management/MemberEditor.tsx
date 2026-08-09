@@ -277,9 +277,9 @@ export function MemberEditor({
       <form className="management-form" onSubmit={handleSubmit}>
         <fieldset disabled={fieldsDisabled} className="e5c-editor-fieldset">
           <div className="e5c-template-panel">
-            <label>
-              <span><WandSparkles aria-hidden="true" /> Rechtevorlage</span>
-              <select
+            <label className="ui-labeled-field">
+              <span className="ui-field-label"><WandSparkles aria-hidden="true" /> Rechtevorlage</span>
+              <select className="ui-field-control"
                 value={selectedTemplate}
                 onChange={(event) => {
                   const key = event.target.value;
@@ -303,9 +303,9 @@ export function MemberEditor({
           </div>
 
           <div className="form-grid">
-            <label>
-              Anzeigename
-              <input
+            <label className="ui-labeled-field">
+              <span className="ui-field-label">Anzeigename</span>
+              <input className="ui-field-control"
                 type="text"
                 value={displayName}
                 onChange={(event) => setDisplayName(event.target.value)}
@@ -316,9 +316,9 @@ export function MemberEditor({
               />
             </label>
 
-            <label>
-              E-Mail-Adresse
-              <input
+            <label className="ui-labeled-field">
+              <span className="ui-field-label">E-Mail-Adresse</span>
+              <input className="ui-field-control"
                 type="email"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
@@ -329,9 +329,9 @@ export function MemberEditor({
               {mode.type === "edit" && <small>Die E-Mail-Adresse wird in Supabase Auth verwaltet.</small>}
             </label>
 
-            <label>
-              Rolle
-              <select
+            <label className="ui-labeled-field">
+              <span className="ui-field-label">Rolle</span>
+              <select className="ui-field-control"
                 value={role}
                 onChange={(event) => changeRole(event.target.value as AppRole)}
                 disabled={fieldsDisabled || isCurrentUser}
@@ -344,9 +344,9 @@ export function MemberEditor({
             </label>
 
             {mode.type === "edit" && (
-              <label>
-                Status
-                <select
+              <label className="ui-labeled-field">
+                <span className="ui-field-label">Status</span>
+                <select className="ui-field-control"
                   value={status}
                   onChange={(event) => setStatus(event.target.value as MembershipStatus)}
                   disabled={fieldsDisabled || isCurrentUser}
@@ -436,9 +436,9 @@ export function MemberEditor({
                 </div>
               )}
 
-              <label>
-                Verknüpfter Trainer
-                <select value={linkedTrainerId} onChange={(event) => setLinkedTrainerId(event.target.value)}>
+              <label className="ui-labeled-field">
+                <span className="ui-field-label">Verknüpfter Trainer</span>
+                <select className="ui-field-control" value={linkedTrainerId} onChange={(event) => setLinkedTrainerId(event.target.value)}>
                   <option value="">Keine Verknüpfung</option>
                   {trainerOptions.map((option) => (
                     <option value={option.id} key={option.id}>

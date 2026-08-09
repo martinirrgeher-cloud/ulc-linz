@@ -464,13 +464,13 @@ export function ExerciseCatalogPage() {
 
 
             <div className="exercise-filter-grid">
-              <label><span>Kategorie</span><select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}><option value="all">Alle Kategorien</option>{data.categories.map((category) => <option value={category.key} key={category.key}>{category.title}</option>)}</select></label>
-              <label><span>Unterkategorie</span><select value={subcategoryFilter} onChange={(event) => setSubcategoryFilter(event.target.value)}><option value="all">Alle Unterkategorien</option>{subcategoryOptions.map((subcategory) => <option value={subcategory} key={subcategory}>{subcategory}</option>)}</select></label>
-              <label><span>Schwierigkeitsgrad</span><select value={difficultyFilter} onChange={(event) => setDifficultyFilter(event.target.value)}><option value="all">Alle Schwierigkeitsgrade</option>{data.difficulties.map((difficulty) => <option value={difficulty.key} key={difficulty.key}>{difficulty.label}</option>)}</select></label>
-              <label><span>Material</span><select value={equipmentFilter} onChange={(event) => setEquipmentFilter(event.target.value)}><option value="all">Alle Materialien</option>{equipmentOptions.map((equipment) => <option value={equipment} key={equipment}>{equipment}</option>)}</select></label>
-              <label><span>Trainingsgruppe</span><select value={groupFilter} onChange={(event) => setGroupFilter(event.target.value)}><option value="all">Alle Trainingsgruppen</option><option value="club">Vereinsweit / alle Gruppen</option>{data.groups.map((group) => <option value={group.id} key={group.id}>{group.shortName || group.name}</option>)}</select></label>
-              <label><span>Video</span><select value={videoFilter} onChange={(event) => setVideoFilter(event.target.value as VideoFilter)}><option value="all">Alle</option><option value="yes">Vorhanden</option><option value="no">Ohne Video</option></select></label>
-              <label><span>Status</span><select value={activityFilter} onChange={(event) => setActivityFilter(event.target.value as ActivityFilter)}><option value="active">Aktiv</option><option value="inactive">Archiv</option><option value="all">Alle</option></select></label>
+              <label className="ui-labeled-field"><span className="ui-field-label">Kategorie</span><select className="ui-field-control" value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}><option value="all">Alle Kategorien</option>{data.categories.map((category) => <option value={category.key} key={category.key}>{category.title}</option>)}</select></label>
+              <label className="ui-labeled-field"><span className="ui-field-label">Unterkategorie</span><select className="ui-field-control" value={subcategoryFilter} onChange={(event) => setSubcategoryFilter(event.target.value)}><option value="all">Alle Unterkategorien</option>{subcategoryOptions.map((subcategory) => <option value={subcategory} key={subcategory}>{subcategory}</option>)}</select></label>
+              <label className="ui-labeled-field"><span className="ui-field-label">Schwierigkeitsgrad</span><select className="ui-field-control" value={difficultyFilter} onChange={(event) => setDifficultyFilter(event.target.value)}><option value="all">Alle Schwierigkeitsgrade</option>{data.difficulties.map((difficulty) => <option value={difficulty.key} key={difficulty.key}>{difficulty.label}</option>)}</select></label>
+              <label className="ui-labeled-field"><span className="ui-field-label">Material</span><select className="ui-field-control" value={equipmentFilter} onChange={(event) => setEquipmentFilter(event.target.value)}><option value="all">Alle Materialien</option>{equipmentOptions.map((equipment) => <option value={equipment} key={equipment}>{equipment}</option>)}</select></label>
+              <label className="ui-labeled-field"><span className="ui-field-label">Trainingsgruppe</span><select className="ui-field-control" value={groupFilter} onChange={(event) => setGroupFilter(event.target.value)}><option value="all">Alle Trainingsgruppen</option><option value="club">Vereinsweit / alle Gruppen</option>{data.groups.map((group) => <option value={group.id} key={group.id}>{group.shortName || group.name}</option>)}</select></label>
+              <label className="ui-labeled-field"><span className="ui-field-label">Video</span><select className="ui-field-control" value={videoFilter} onChange={(event) => setVideoFilter(event.target.value as VideoFilter)}><option value="all">Alle</option><option value="yes">Vorhanden</option><option value="no">Ohne Video</option></select></label>
+              <label className="ui-labeled-field"><span className="ui-field-label">Status</span><select className="ui-field-control" value={activityFilter} onChange={(event) => setActivityFilter(event.target.value as ActivityFilter)}><option value="active">Aktiv</option><option value="inactive">Archiv</option><option value="all">Alle</option></select></label>
             </div>
 
             <div className="exercise-filter-panel-footer">
@@ -515,11 +515,11 @@ export function ExerciseCatalogPage() {
                   </button>
 
                   <div className="exercise-card-actions" data-testid="exercise-actions">
-                    <button type="button" className={`exercise-favorite-button ${exercise.isFavorite ? "active" : ""}`} onClick={() => void handleFavorite(exercise)} aria-label={exercise.isFavorite ? `${exercise.name} aus Favoriten entfernen` : `${exercise.name} zu Favoriten hinzufügen`} title={exercise.isFavorite ? "Aus Favoriten entfernen" : "Favorit"}>
+                    <button type="button" className={`icon-button exercise-favorite-button ${exercise.isFavorite ? "active" : ""}`} onClick={() => void handleFavorite(exercise)} aria-label={exercise.isFavorite ? `${exercise.name} aus Favoriten entfernen` : `${exercise.name} zu Favoriten hinzufügen`} title={exercise.isFavorite ? "Aus Favoriten entfernen" : "Favorit"}>
                       <Star aria-hidden="true" fill={exercise.isFavorite ? "currentColor" : "none"} />
                     </button>
-                    <button type="button" className="exercise-edit-button" data-testid="exercise-edit" onClick={() => openEditor(exercise)} aria-label={`${exercise.name} ${canEdit ? "bearbeiten" : "anzeigen"}`} title={canEdit ? "Bearbeiten" : "Anzeigen"}>{canEdit ? <Pencil aria-hidden="true" /> : <BookOpen aria-hidden="true" />}</button>
-                    <button type="button" className="exercise-expand-button" data-testid="exercise-expand" onClick={() => setExpandedExerciseId(expanded ? null : exercise.id)} aria-label={expanded ? `${exercise.name} einklappen` : `${exercise.name} Schnellinfos anzeigen`} title={expanded ? "Einklappen" : "Schnellinfos"}>{expanded ? <ChevronUp aria-hidden="true" /> : <ChevronDown aria-hidden="true" />}</button>
+                    <button type="button" className="icon-button exercise-edit-button" data-testid="exercise-edit" onClick={() => openEditor(exercise)} aria-label={`${exercise.name} ${canEdit ? "bearbeiten" : "anzeigen"}`} title={canEdit ? "Bearbeiten" : "Anzeigen"}>{canEdit ? <Pencil aria-hidden="true" /> : <BookOpen aria-hidden="true" />}</button>
+                    <button type="button" className="icon-button exercise-expand-button" data-testid="exercise-expand" onClick={() => setExpandedExerciseId(expanded ? null : exercise.id)} aria-label={expanded ? `${exercise.name} einklappen` : `${exercise.name} Schnellinfos anzeigen`} title={expanded ? "Einklappen" : "Schnellinfos"}>{expanded ? <ChevronUp aria-hidden="true" /> : <ChevronDown aria-hidden="true" />}</button>
                   </div>
                 </div>
 
@@ -537,7 +537,7 @@ export function ExerciseCatalogPage() {
                       <div className="exercise-quick-videos">
                         <small>Video</small>
                         {exercise.videos.length > 0 ? (
-                          <button type="button" onClick={() => openEditor(exercise, "videos")} aria-label={`Videos zu ${exercise.name} öffnen`}>
+                          <button type="button" className="secondary-button compact-button" onClick={() => openEditor(exercise, "videos")} aria-label={`Videos zu ${exercise.name} öffnen`}>
                             <Video aria-hidden="true" />{exercise.videos.length} Video{exercise.videos.length === 1 ? "" : "s"}
                           </button>
                         ) : (

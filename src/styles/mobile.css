@@ -26,11 +26,11 @@ textarea {
   .icon-button,
   .status-filter button,
   .back-link {
-    min-height: 46px;
+    min-height: var(--ui-control-height);
   }
   .icon-button {
-    width: 46px;
-        height: 46px;
+    width: var(--ui-icon-button-size);
+    height: var(--ui-icon-button-size);
   }
 }
 @media (max-width: 760px) {
@@ -79,11 +79,11 @@ textarea {
   .search-field input,
   .toolbar-select,
   .full-width-field textarea {
-    min-height: 48px;
+    min-height: var(--ui-control-height);
         font-size: 16px;
   }
   .full-width-field textarea {
-    min-height: 108px;
+    min-height: var(--ui-textarea-height);
   }
   .app-header {
     min-height: 64px;
@@ -131,8 +131,8 @@ textarea {
   }
   .primary-button,
   .secondary-button {
-    min-height: 48px;
-        padding: 12px 15px;
+    min-height: var(--ui-control-height);
+    padding: 9px 14px;
   }
   .module-grid {
     gap: 12px;

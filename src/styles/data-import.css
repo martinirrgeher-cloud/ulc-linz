@@ -25,32 +25,8 @@
   margin: 0.25rem 0 0;
 }
 
-.data-import-tabs {
-  display: flex;
-  gap: 0.5rem;
-  overflow-x: auto;
-}
 
-.data-import-tabs button {
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: #153326;
-  border-radius: 0.75rem;
-  min-height: 2.6rem;
-  padding: 0.55rem 0.9rem;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  font: inherit;
-  font-weight: 700;
-  white-space: nowrap;
-}
 
-.data-import-tabs button.active {
-  border-color: var(--green-700);
-  background: color-mix(in srgb, var(--green-700) 12%, var(--surface));
-  color: var(--green-950);
-}
 
 .data-import-tabs svg,
 .data-import-start-actions svg,
@@ -61,7 +37,6 @@
 }
 
 .data-import-start-card,
-.data-import-option,
 .data-import-result,
 .data-import-empty {
   border: 1px solid var(--border);
@@ -101,15 +76,10 @@
 }
 
 .data-import-option {
-  display: flex;
   align-items: flex-start;
-  gap: 0.7rem;
-  cursor: pointer;
 }
 
 .data-import-option input {
-  width: 1.15rem;
-  height: 1.15rem;
   margin-top: 0.1rem;
 }
 
@@ -393,42 +363,9 @@
   }
 }
 
-.data-import-mode-tabs {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.25rem;
-  padding: 0.25rem;
-  border: 1px solid var(--border);
-  border-radius: 0.9rem;
-  background: color-mix(in srgb, var(--surface) 86%, var(--green-50));
-}
 
-.data-import-mode-tabs button {
-  min-height: 2.7rem;
-  border: 0;
-  border-radius: 0.68rem;
-  background: transparent;
-  color: var(--muted);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.45rem;
-  padding: 0.55rem 0.8rem;
-  font: inherit;
-  font-weight: 700;
-  cursor: pointer;
-}
 
-.data-import-mode-tabs button.active {
-  background: var(--surface);
-  color: var(--green-900);
-  box-shadow: 0 0.15rem 0.55rem rgb(0 0 0 / 0.09);
-}
 
-.data-import-mode-tabs svg {
-  width: 1.05rem;
-  height: 1.05rem;
-}
 
 .data-import-review-launch { display: grid; gap: .55rem; padding: .65rem; border: 1px solid var(--border); border-radius: .85rem; background: var(--surface); }
 .data-import-review-launch > .secondary-button { justify-self: end; }

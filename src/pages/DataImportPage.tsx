@@ -401,7 +401,7 @@ export function DataImportPage() {
 
       {error && <div className="alert error">{error}</div>}
 
-      <nav className="data-import-mode-tabs" aria-label="Import oder Export auswählen">
+      <nav className="data-import-mode-tabs ui-tabs" aria-label="Import oder Export auswählen">
         <button type="button" className={activeMode === "import" ? "active" : ""} onClick={() => setActiveMode("import")}>
           <Upload aria-hidden="true" />Import
         </button>
@@ -410,7 +410,7 @@ export function DataImportPage() {
         </button>
       </nav>
 
-      <nav className="data-import-tabs" aria-label="Datenart auswählen">
+      <nav className="data-import-tabs ui-tabs" aria-label="Datenart auswählen">
         {canImportExercises && (
           <button type="button" className={activeKind === "exercises" ? "active" : ""} onClick={() => { setActiveKind("exercises"); resetPreview(); }}>
             <FileSpreadsheet aria-hidden="true" />Übungen
@@ -454,7 +454,7 @@ export function DataImportPage() {
           </section>
 
           {activeKind === "exercises" && canCreateOptions && exerciseRows.length > 0 && (
-            <label className="data-import-option">
+            <label className="ui-choice-row data-import-option">
               <input
                 type="checkbox"
                 checked={createMissingOptions}
@@ -568,7 +568,7 @@ export function DataImportPage() {
               </div>
 
               {actionableExistingRows.length > 0 && (
-                <label className="data-import-option">
+                <label className="ui-choice-row data-import-option">
                   <input
                     type="checkbox"
                     checked={updateAllExisting}
@@ -666,20 +666,20 @@ export function DataImportPage() {
 
           {activeKind === "exercises" ? (
             <div className="data-export-filters">
-              <label><span>Übung suchen</span><input value={exerciseFilters.search} onChange={(event) => setExerciseFilters((current) => ({ ...current, search: event.target.value }))} /></label>
-              <label><span>Kategorie</span><select value={exerciseFilters.category} onChange={(event) => setExerciseFilters((current) => ({ ...current, category: event.target.value }))}><option value="">Alle</option>{catalog.categories.map((item) => <option key={item.key} value={item.key}>{item.title}</option>)}</select></label>
-              <label><span>Unterkategorie</span><select value={exerciseFilters.subcategory} onChange={(event) => setExerciseFilters((current) => ({ ...current, subcategory: event.target.value }))}><option value="">Alle</option>{catalog.subcategories.map((item) => <option key={item.key} value={item.label}>{item.label}</option>)}</select></label>
-              <label><span>Material</span><select value={exerciseFilters.material} onChange={(event) => setExerciseFilters((current) => ({ ...current, material: event.target.value }))}><option value="">Alle</option>{catalog.materials.map((item) => <option key={item.key} value={item.label}>{item.label}</option>)}</select></label>
-              <label><span>Schwierigkeitsgrad</span><select value={exerciseFilters.difficulty} onChange={(event) => setExerciseFilters((current) => ({ ...current, difficulty: event.target.value }))}><option value="">Alle</option>{catalog.difficulties.map((item) => <option key={item.key} value={item.key}>{item.label}</option>)}</select></label>
-              <label><span>Trainingsgruppe</span><select value={exerciseFilters.groupId} onChange={(event) => setExerciseFilters((current) => ({ ...current, groupId: event.target.value }))}><option value="">Alle</option>{catalog.groups.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-              <label><span>Video</span><select value={exerciseFilters.video} onChange={(event) => setExerciseFilters((current) => ({ ...current, video: event.target.value as ExerciseExportFilters["video"] }))}><option value="all">Alle</option><option value="yes">Vorhanden</option><option value="no">Nicht vorhanden</option></select></label>
-              <label><span>Status</span><select value={exerciseFilters.active} onChange={(event) => setExerciseFilters((current) => ({ ...current, active: event.target.value as ExerciseExportFilters["active"] }))}><option value="all">Alle</option><option value="yes">Aktiv</option><option value="no">Inaktiv</option></select></label>
+              <label className="ui-labeled-field"><span className="ui-field-label">Übung suchen</span><input className="ui-field-control" value={exerciseFilters.search} onChange={(event) => setExerciseFilters((current) => ({ ...current, search: event.target.value }))} /></label>
+              <label className="ui-labeled-field"><span className="ui-field-label">Kategorie</span><select className="ui-field-control" value={exerciseFilters.category} onChange={(event) => setExerciseFilters((current) => ({ ...current, category: event.target.value }))}><option value="">Alle</option>{catalog.categories.map((item) => <option key={item.key} value={item.key}>{item.title}</option>)}</select></label>
+              <label className="ui-labeled-field"><span className="ui-field-label">Unterkategorie</span><select className="ui-field-control" value={exerciseFilters.subcategory} onChange={(event) => setExerciseFilters((current) => ({ ...current, subcategory: event.target.value }))}><option value="">Alle</option>{catalog.subcategories.map((item) => <option key={item.key} value={item.label}>{item.label}</option>)}</select></label>
+              <label className="ui-labeled-field"><span className="ui-field-label">Material</span><select className="ui-field-control" value={exerciseFilters.material} onChange={(event) => setExerciseFilters((current) => ({ ...current, material: event.target.value }))}><option value="">Alle</option>{catalog.materials.map((item) => <option key={item.key} value={item.label}>{item.label}</option>)}</select></label>
+              <label className="ui-labeled-field"><span className="ui-field-label">Schwierigkeitsgrad</span><select className="ui-field-control" value={exerciseFilters.difficulty} onChange={(event) => setExerciseFilters((current) => ({ ...current, difficulty: event.target.value }))}><option value="">Alle</option>{catalog.difficulties.map((item) => <option key={item.key} value={item.key}>{item.label}</option>)}</select></label>
+              <label className="ui-labeled-field"><span className="ui-field-label">Trainingsgruppe</span><select className="ui-field-control" value={exerciseFilters.groupId} onChange={(event) => setExerciseFilters((current) => ({ ...current, groupId: event.target.value }))}><option value="">Alle</option>{catalog.groups.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+              <label className="ui-labeled-field"><span className="ui-field-label">Video</span><select className="ui-field-control" value={exerciseFilters.video} onChange={(event) => setExerciseFilters((current) => ({ ...current, video: event.target.value as ExerciseExportFilters["video"] }))}><option value="all">Alle</option><option value="yes">Vorhanden</option><option value="no">Nicht vorhanden</option></select></label>
+              <label className="ui-labeled-field"><span className="ui-field-label">Status</span><select className="ui-field-control" value={exerciseFilters.active} onChange={(event) => setExerciseFilters((current) => ({ ...current, active: event.target.value as ExerciseExportFilters["active"] }))}><option value="all">Alle</option><option value="yes">Aktiv</option><option value="no">Inaktiv</option></select></label>
             </div>
           ) : (
             <div className="data-export-filters athlete">
-              <label><span>Athlet suchen</span><input value={athleteFilters.search} onChange={(event) => setAthleteFilters((current) => ({ ...current, search: event.target.value }))} /></label>
-              <label><span>Trainingsgruppe</span><select value={athleteFilters.groupId} onChange={(event) => setAthleteFilters((current) => ({ ...current, groupId: event.target.value }))}><option value="">Alle</option>{groups.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-              <label><span>Status</span><select value={athleteFilters.active} onChange={(event) => setAthleteFilters((current) => ({ ...current, active: event.target.value as AthleteExportFilters["active"] }))}><option value="all">Alle</option><option value="yes">Aktiv</option><option value="no">Inaktiv</option></select></label>
+              <label className="ui-labeled-field"><span className="ui-field-label">Athlet suchen</span><input className="ui-field-control" value={athleteFilters.search} onChange={(event) => setAthleteFilters((current) => ({ ...current, search: event.target.value }))} /></label>
+              <label className="ui-labeled-field"><span className="ui-field-label">Trainingsgruppe</span><select className="ui-field-control" value={athleteFilters.groupId} onChange={(event) => setAthleteFilters((current) => ({ ...current, groupId: event.target.value }))}><option value="">Alle</option>{groups.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+              <label className="ui-labeled-field"><span className="ui-field-label">Status</span><select className="ui-field-control" value={athleteFilters.active} onChange={(event) => setAthleteFilters((current) => ({ ...current, active: event.target.value as AthleteExportFilters["active"] }))}><option value="all">Alle</option><option value="yes">Aktiv</option><option value="no">Inaktiv</option></select></label>
             </div>
           )}
 

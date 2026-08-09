@@ -55,9 +55,9 @@ export function RegisterPage() {
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="form-stack">
-            <label>
-              Anzeigename
-              <input
+            <label className="ui-labeled-field">
+              <span className="ui-field-label">Anzeigename</span>
+              <input className="ui-field-control"
                 type="text"
                 autoComplete="name"
                 value={displayName}
@@ -65,9 +65,9 @@ export function RegisterPage() {
                 required
               />
             </label>
-            <label>
-              E-Mail-Adresse
-              <input
+            <label className="ui-labeled-field">
+              <span className="ui-field-label">E-Mail-Adresse</span>
+              <input className="ui-field-control"
                 type="email"
                 autoComplete="email"
                 value={email}
@@ -75,9 +75,9 @@ export function RegisterPage() {
                 required
               />
             </label>
-            <label>
-              Passwort
-              <input
+            <label className="ui-labeled-field">
+              <span className="ui-field-label">Passwort</span>
+              <input className="ui-field-control"
                 type="password"
                 autoComplete="new-password"
                 value={password}
