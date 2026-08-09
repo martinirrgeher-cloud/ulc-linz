@@ -70,14 +70,15 @@ test.describe("Schreibende Übungs- und Trainingsblocktests", () => {
 
     const createdBlockCard = page.locator(".training-block-card").filter({ hasText: SCENARIO.blockName });
     await createdBlockCard.locator(".training-block-card-summary").click();
-    const blockFavorite = createdBlockCard.getByRole("button", { name: `${SCENARIO.blockName} zu Favoriten hinzufügen` });
+    const blockFavorite = createdBlockCard.locator("button.icon-button--favorite");
+    await expect(blockFavorite).toHaveAttribute("aria-pressed", "false");
     await blockFavorite.click();
     await expect(blockFavorite).toHaveAttribute("aria-pressed", "true");
     await page.reload();
     const persistedBlockCard = page.locator(".training-block-card").filter({ hasText: SCENARIO.blockName }).first();
     await expect(persistedBlockCard).toBeVisible();
     await persistedBlockCard.locator(".training-block-card-summary").click();
-    await expect(persistedBlockCard.getByRole("button", { name: `${SCENARIO.blockName} aus Favoriten entfernen` })).toHaveAttribute("aria-pressed", "true");
+    await expect(persistedBlockCard.locator("button.icon-button--favorite")).toHaveAttribute("aria-pressed", "true");
     await persistedBlockCard.getByRole("button", { name: `Neue Variante von ${SCENARIO.blockName} erstellen` }).click();
 
     const variantEditor = page.getByRole("region", { name: `${SCENARIO.blockName} – Variante 2` });
@@ -102,12 +103,13 @@ test.describe("Schreibende Übungs- und Trainingsblocktests", () => {
     await page.goto("/module/exercise_catalog");
     let exerciseCard = page.locator(".exercise-card").filter({ hasText: SCENARIO.exerciseName });
     await expect(exerciseCard.getByText(/Mittel/)).toBeVisible();
-    const exerciseFavorite = exerciseCard.getByRole("button", { name: `${SCENARIO.exerciseName} zu Favoriten hinzufügen` });
+    const exerciseFavorite = exerciseCard.locator("button.icon-button--favorite");
+    await expect(exerciseFavorite).toHaveAttribute("aria-pressed", "false");
     await exerciseFavorite.click();
     await expect(exerciseFavorite).toHaveAttribute("aria-pressed", "true");
     await page.reload();
     exerciseCard = page.locator(".exercise-card").filter({ hasText: SCENARIO.exerciseName });
-    await expect(exerciseCard.getByRole("button", { name: `${SCENARIO.exerciseName} aus Favoriten entfernen` })).toHaveAttribute("aria-pressed", "true");
+    await expect(exerciseCard.locator("button.icon-button--favorite")).toHaveAttribute("aria-pressed", "true");
     await exerciseCard.getByTestId("exercise-primary").click();
     await exerciseCard.getByTestId("exercise-usage").click();
     const usageDialog = page.getByRole("dialog", { name: SCENARIO.exerciseName });
