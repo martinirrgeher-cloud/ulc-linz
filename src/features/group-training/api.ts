@@ -1,209 +1,49 @@
-import type { Json } from "@/types/database.generated";
 import { callJsonRpcRawError as callJsonRpc } from "@/lib/supabase-rpc";
-import { isRecord, parseStringArray } from "@/lib/json-value";
+import { parseStringArray } from "@/lib/json-value";
+import {
+  parseDeleteSpecialTrainingResult,
+  parseQuickAthleteResult,
+  parseTrainingConfigurationOverview,
+  parseTrainingSessionPayload,
+} from "@/features/training-session/api-parsers";
+import type { GroupTrainingModuleKey } from "@/features/group-training/modules";
 import type {
-  AthleteEmergencyContact,
-  AttendanceStatus,
   DeleteSpecialTrainingResult,
-  KindertrainingConfiguration,
-  KindertrainingParticipant,
-  KindertrainingSession,
-  KindertrainingTrainer,
   QuickAthleteInput,
   QuickAthleteResult,
-  QuickAthleteResultStatus,
-  SaveKindertrainingInput,
-  TrainingEnvironment,
-  TrainingSessionState,
-} from "@/features/kindertraining/types";
+  SaveTrainingInput,
+  TrainingConfiguration,
+  TrainingSession,
+} from "@/features/training-session/types";
 
-export type GroupTrainingModuleKey = "u12" | "u14";
-
-const ATTENDANCE_STATUSES: AttendanceStatus[] = ["open", "present", "absent"];
-const QUICK_RESULT_STATUSES: QuickAthleteResultStatus[] = [
-  "created",
-  "duplicate",
-  "attached",
-  "already_assigned",
-];
-const DELETE_RESULT_STATUSES: DeleteSpecialTrainingResult[] = [
-  "deleted",
-  "archived",
-  "not_found",
-];
-
-function asNullableString(value: unknown): string | null {
-  return typeof value === "string" && value.length > 0 ? value : null;
-}
-
-function parseStatus(value: unknown): AttendanceStatus {
-  // Historische „Entschuldigt“-Einträge werden fachlich wie „Fehlt“ behandelt.
-  if (value === "excused") return "absent";
-  return ATTENDANCE_STATUSES.includes(value as AttendanceStatus)
-    ? (value as AttendanceStatus)
-    : "open";
-}
-
-function parseState(value: unknown): TrainingSessionState {
-  return value === "cancelled" ? "cancelled" : "scheduled";
-}
-
-function parseEnvironment(value: unknown): TrainingEnvironment {
-  return value === "indoor" || value === "outdoor" ? value : null;
-}
-
-function parseWeekdays(value: unknown): number[] {
-  if (!Array.isArray(value)) return [];
-  return [...new Set(value.filter((item): item is number => (
-    typeof item === "number" && Number.isInteger(item) && item >= 1 && item <= 7
-  )))].sort((left, right) => left - right);
-}
-
-function parseContacts(value: unknown): AthleteEmergencyContact[] {
-  if (!Array.isArray(value)) return [];
-
-  return value.flatMap((item, index) => {
-    if (
-      !isRecord(item) ||
-      typeof item.id !== "string" ||
-      typeof item.contact_name !== "string" ||
-      typeof item.phone !== "string"
-    ) {
-      return [];
-    }
-
-    return [{
-      id: item.id,
-      contactName: item.contact_name,
-      relationship: typeof item.relationship === "string" ? item.relationship : "",
-      phone: item.phone,
-      isEmergency: item.is_emergency !== false,
-      priority: typeof item.priority === "number" ? item.priority : index + 1,
-      notes: typeof item.notes === "string" ? item.notes : "",
-    }];
-  });
-}
-
-function parseParticipants(value: unknown): KindertrainingParticipant[] {
-  if (!Array.isArray(value)) return [];
-
-  return value.flatMap((item) => {
-    if (!isRecord(item)) return [];
-    if (
-      typeof item.athlete_id !== "string" ||
-      typeof item.first_name !== "string" ||
-      typeof item.last_name !== "string"
-    ) {
-      return [];
-    }
-
-    return [{
-      athleteId: item.athlete_id,
-      firstName: item.first_name,
-      lastName: item.last_name,
-      birthYear: typeof item.birth_year === "number" ? item.birth_year : null,
-      isActive: item.is_active !== false,
-      status: parseStatus(item.status),
-      contacts: parseContacts(item.contacts),
-    }];
-  });
-}
-
-function parseTrainers(value: unknown): KindertrainingTrainer[] {
-  if (!Array.isArray(value)) return [];
-
-  return value.flatMap((item) => {
-    if (
-      !isRecord(item) ||
-      typeof item.id !== "string" ||
-      typeof item.first_name !== "string" ||
-      typeof item.last_name !== "string"
-    ) {
-      return [];
-    }
-
-    return [{
-      id: item.id,
-      firstName: item.first_name,
-      lastName: item.last_name,
-      phone: asNullableString(item.phone),
-      email: asNullableString(item.email),
-      isActive: item.is_active === true,
-    }];
-  });
-}
-
-function parseSessionPayload(value: Json): KindertrainingSession {
-  if (!isRecord(value)) {
-    throw new Error("Die Trainingsdaten besitzen ein ungültiges Format.");
-  }
-
-  const rawSession = isRecord(value.session) ? value.session : null;
-  const storedTrainerIds = parseStringArray(rawSession?.trainer_ids);
-  const defaultTrainerIds = parseStringArray(value.default_trainer_ids);
-  const storedEnvironment = parseEnvironment(rawSession?.environment);
-  const defaultEnvironment = parseEnvironment(value.default_environment);
-
-  return {
-    id: rawSession && typeof rawSession.id === "string" ? rawSession.id : null,
-    state: parseState(rawSession?.state),
-    note: rawSession && typeof rawSession.note === "string" ? rawSession.note : "",
-    isSpecial: rawSession?.is_special === true,
-    isRegularDay: value.is_regular_day === true,
-    environment: rawSession ? storedEnvironment : defaultEnvironment,
-    trainerIds: rawSession ? storedTrainerIds : defaultTrainerIds,
-    availableTrainers: parseTrainers(value.trainers),
-    usesDefaults: !rawSession && (defaultTrainerIds.length > 0 || defaultEnvironment !== null),
-    createdAt: asNullableString(rawSession?.created_at),
-    updatedAt: asNullableString(rawSession?.updated_at),
-    participants: parseParticipants(value.participants),
-  };
-}
+export type { GroupTrainingModuleKey } from "@/features/group-training/modules";
 
 export async function loadGroupTrainingConfiguration(
   organizationId: string,
   moduleKey: GroupTrainingModuleKey,
-): Promise<KindertrainingConfiguration> {
+): Promise<TrainingConfiguration> {
   const data = await callJsonRpc("training_module_configuration_overview", {
     p_organization_id: organizationId,
     p_module_key: moduleKey,
   });
 
-  if (!isRecord(data)) {
-    throw new Error("Die Trainingskonfiguration besitzt ein ungültiges Format.");
-  }
-
-  const rawGroup = isRecord(data.group) ? data.group : null;
-  const specialDates = Array.isArray(data.special_dates)
-    ? data.special_dates.filter((item): item is string => typeof item === "string")
-    : [];
-
-  if (!rawGroup) return { group: null, specialDates, groupTrainerIds: [] };
-  if (typeof rawGroup.id !== "string" || typeof rawGroup.name !== "string") {
-    throw new Error("Die zugeordnete Trainingsgruppe ist ungültig.");
-  }
+  const configuration = parseTrainingConfigurationOverview(
+    data,
+    "Die Trainingskonfiguration besitzt ein ungültiges Format.",
+    "Die zugeordnete Trainingsgruppe ist ungültig.",
+  );
+  if (!configuration.group) return configuration;
 
   const groupTrainerIds = parseStringArray(await callJsonRpc(
     "training_module_group_trainer_ids",
     {
       p_organization_id: organizationId,
       p_module_key: moduleKey,
-      p_group_id: rawGroup.id,
+      p_group_id: configuration.group.id,
     },
   ));
 
-  return {
-    group: {
-      id: rawGroup.id,
-      name: rawGroup.name,
-      shortName: typeof rawGroup.short_name === "string" ? rawGroup.short_name : null,
-      isActive: rawGroup.is_active === true,
-      regularWeekdays: parseWeekdays(rawGroup.regular_weekdays),
-      allowSpecialTraining: rawGroup.allow_special_training !== false,
-    },
-    specialDates,
-    groupTrainerIds,
-  };
+  return { ...configuration, groupTrainerIds };
 }
 
 export async function loadGroupTrainingSession(
@@ -211,7 +51,7 @@ export async function loadGroupTrainingSession(
   moduleKey: GroupTrainingModuleKey,
   groupId: string,
   sessionDate: string,
-): Promise<KindertrainingSession> {
+): Promise<TrainingSession> {
   const data = await callJsonRpc("training_module_session_overview", {
     p_organization_id: organizationId,
     p_module_key: moduleKey,
@@ -219,13 +59,13 @@ export async function loadGroupTrainingSession(
     p_session_date: sessionDate,
   });
 
-  return parseSessionPayload(data);
+  return parseTrainingSessionPayload(data);
 }
 
 export async function saveGroupTrainingSession(
   moduleKey: GroupTrainingModuleKey,
-  input: SaveKindertrainingInput,
-): Promise<KindertrainingSession> {
+  input: SaveTrainingInput,
+): Promise<TrainingSession> {
   const attendance = input.participants.map((participant) => ({
     athlete_id: participant.athleteId,
     status: input.attendance[participant.athleteId] ?? "open",
@@ -244,7 +84,7 @@ export async function saveGroupTrainingSession(
     p_expected_updated_at: input.expectedUpdatedAt,
   });
 
-  return parseSessionPayload(data);
+  return parseTrainingSessionPayload(data);
 }
 
 export async function deleteGroupTrainingSpecialSession(
@@ -260,11 +100,7 @@ export async function deleteGroupTrainingSpecialSession(
     p_session_date: sessionDate,
   });
 
-  if (!isRecord(data) || !DELETE_RESULT_STATUSES.includes(data.mode as DeleteSpecialTrainingResult)) {
-    throw new Error("Das Ergebnis der Löschung ist ungültig.");
-  }
-
-  return data.mode as DeleteSpecialTrainingResult;
+  return parseDeleteSpecialTrainingResult(data);
 }
 
 export async function createGroupTrainingAthlete(
@@ -282,33 +118,5 @@ export async function createGroupTrainingAthlete(
     p_attach_existing: input.attachExisting === true,
   });
 
-  if (!isRecord(data) || !isRecord(data.athlete)) {
-    throw new Error("Die Rückgabe der Athletenanlage ist ungültig.");
-  }
-
-  const status = QUICK_RESULT_STATUSES.includes(data.status as QuickAthleteResultStatus)
-    ? (data.status as QuickAthleteResultStatus)
-    : null;
-  const athlete = data.athlete;
-
-  if (
-    !status ||
-    typeof athlete.id !== "string" ||
-    typeof athlete.first_name !== "string" ||
-    typeof athlete.last_name !== "string" ||
-    typeof athlete.birth_year !== "number"
-  ) {
-    throw new Error("Die Rückgabe der Athletenanlage ist unvollständig.");
-  }
-
-  return {
-    status,
-    athlete: {
-      id: athlete.id,
-      firstName: athlete.first_name,
-      lastName: athlete.last_name,
-      birthYear: athlete.birth_year,
-      isActive: athlete.is_active !== false,
-    },
-  };
+  return parseQuickAthleteResult(data);
 }

@@ -1061,8 +1061,8 @@ test("Statistik ist Bestandteil der Trainingsmodule", async () => {
     assert.doesNotMatch(templatesSource, new RegExp(`[\"']${obsoleteKey}[\"']`));
   }
   assert.match(appSource, /<ProtectedRoute\s+moduleKey=["']kindertraining["']>\s*<KindertrainingStatisticsPage\s*\/>/);
-  assert.match(appSource, /<ProtectedRoute\s+moduleKey=["']u12["']>\s*<GroupTrainingStatisticsPage[\s\S]*?\/>\s*<\/ProtectedRoute>/);
-  assert.match(appSource, /<ProtectedRoute\s+moduleKey=["']u14["']>\s*<GroupTrainingStatisticsPage[\s\S]*?\/>\s*<\/ProtectedRoute>/);
+  assert.match(appSource, /<ProtectedRoute\s+moduleKey=["']u12["']>\s*<U12TrainingStatisticsPage\s*\/>\s*<\/ProtectedRoute>/);
+  assert.match(appSource, /<ProtectedRoute\s+moduleKey=["']u14["']>\s*<U14TrainingStatisticsPage\s*\/>\s*<\/ProtectedRoute>/);
   assert.doesNotMatch(statisticsPageSource, /kindertraining_statistics/);
   assert.doesNotMatch(groupStatisticsPageSource, /statisticsModuleKey/);
   for (const marker of [

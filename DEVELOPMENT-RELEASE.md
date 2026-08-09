@@ -545,3 +545,61 @@ Stand verschärft, statt die alten großzügigen Grenzwerte beizubehalten.
 S3c kann damit auf einer kleineren globalen CSS-Basis die gemeinsamen
 Trainings-/Statistikbausteine für Kindertraining, U12 und U14 konsolidieren.
 
+
+
+## S3c – Gemeinsamer Trainingskern mit getrennten Modulgrenzen
+
+S3c konsolidiert nur technische Gemeinsamkeiten von Kindertraining, U12 und U14.
+Die drei Trainingsbereiche werden ausdrücklich **nicht** zu einer einzigen
+fachlichen Seite oder einem starren gemeinsamen Feature verschmolzen.
+
+Grundregel für die weitere Entwicklung:
+
+- gemeinsamer technischer Kern für stabile, fachlich neutrale Logik,
+- getrennte API-Adapter für Kindertraining und U12/U14,
+- Kindertraining behält eigene Seiten,
+- U12 und U14 besitzen eigene Route-Komponenten und eigene Moduldefinitionen,
+- die aktuell gemeinsame U12/U14-Implementierung ist nur eine wiederverwendete
+  Basis und kann pro Modul jederzeit ersetzt oder erweitert werden.
+
+Damit ist eine spätere unterschiedliche Entwicklung ausdrücklich vorgesehen.
+Wenn z. B. U12 später zusätzliche Anwesenheitszustände, U14 andere Trainerlogik
+oder Kindertraining eine andere Sonderterminlogik benötigt, soll das betreffende
+Modul seinen Adapter bzw. seine Seite erweitern, statt die anderen Module zu
+einer identischen Fachlogik zu zwingen.
+
+Gemeinsame technische Basis:
+
+- `src/features/training-session/types.ts`
+- `src/features/training-session/core.ts`
+- `src/features/training-session/api-parsers.ts`
+- `src/features/training-session/statistics-types.ts`
+- `src/features/training-session/statistics-core.ts`
+- `src/features/training-session/statistics-parsers.ts`
+
+Diese Dateien enthalten keine konkrete Modulkennung (`kindertraining`, `u12`,
+`u14`) und keinen Supabase-Zugriff. Sie kapseln nur stabile Datentypen,
+Datums-/Sortier-/Draft-Helfer und Parser.
+
+Die konkreten RPC-Namen bleiben bewusst in:
+
+- `features/kindertraining/api.ts`
+- `features/group-training/api.ts`
+- `features/kindertraining-statistics/api.ts`
+- `features/group-training-statistics/api.ts`
+
+U12 und U14 erhalten getrennte Einstiegspunkte:
+
+- `U12TrainingPage`
+- `U14TrainingPage`
+- `U12TrainingStatisticsPage`
+- `U14TrainingStatisticsPage`
+
+Die Moduldefinitionen enthalten Route, Titel und lokalen Sortierschlüssel je
+Modul. Dadurch kann ein einzelner Einstieg später auf eine eigene Implementierung
+wechseln, ohne Routing oder das jeweils andere Modul umzubauen.
+
+`scripts/check-training-module-architecture.mjs` schützt diese Trennung als S3c-Teil-Gate und wird automatisch von `check:api-foundation` ausgeführt:
+gemeinsame Parser dürfen nicht wieder in den konkreten APIs kopiert werden,
+der gemeinsame Kern darf keine konkrete Trainingsgruppe fest verdrahten und
+das App-Routing darf U12/U14 nicht direkt an die gemeinsame Implementierung koppeln.
