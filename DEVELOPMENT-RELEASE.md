@@ -682,22 +682,20 @@ Nach dem Squash-Merge auf `main` führt `.github/workflows/production-database.y
 
 Nur ein erfolgreicher Lauf erzeugt `database-verified-<commit>`. `ULC-PRODUKTION-MARKIEREN.cmd` verlangt diesen Tag zusätzlich zum bestätigten Vercel-Commit und `origin/main`. Der normale sechs-CMD-Benutzerworkflow bleibt damit unverändert.
 
-### Einmalige historische Baseline-Recovery
+### Einmalige historische Baseline-Diagnose und anschließende Recovery
 
-Für den im August 2026 festgestellten Altbestand gilt genau eine kontrollierte Ausnahme: Die produktive Datenbank enthielt die fachlichen Schemaänderungen bis `202608080039`, ihre Tabelle `supabase_migrations.schema_migrations` war jedoch leer. Deshalb konnte der normale Produktionsworkflow die Historie nicht von einem frischen Projekt unterscheiden.
+Der erste sichere Recovery-Versuch am 2026-08-09 hat gezeigt, dass die produktive Datenbank bei leerer `supabase_migrations.schema_migrations` **nicht exakt** dem Repository-Stand 001-039 entspricht. Deshalb ist der frühere direkte Weg „Schema vergleichen → 001-039 als `applied` markieren → 040 pushen“ gesperrt.
 
-`.github/workflows/production-database-baseline-recovery.yml` ist ausschließlich für diesen Altbestand vorgesehen und nur manuell mit der exakten Bestätigung `BASELINE-REPARIEREN` auf `main` startbar. Vor jedem `migration repair` muss `scripts/ci/recover-production-migration-baseline.sh`:
+`.github/workflows/production-database-baseline-recovery.yml` ist bis zur abgeschlossenen Bestandsklärung bewusst eine **strikt read-only Diagnose**. Sie:
 
-1. eine vollständig leere Remote-Migrationshistorie feststellen,
-2. das produktive Schema über `supabase db diff` gegen die Repository-Baseline bis `202608080039` vergleichen,
-3. Storage-Buckets, Realtime-Publication/Replica-Identity und zentrale Modul-Stammdaten zusätzlich prüfen,
-4. erst danach die 38 historischen Versionsnummern als `applied` eintragen,
-5. anschließend ausschließlich die echte offene Migration `202608090040` per Dry-Run und `db push` anwenden,
-6. Repo- und Produktionshistorie 1:1 vergleichen und die Postconditions der Migration 040 prüfen.
+1. darf nur manuell auf `main` mit der exakten Bestätigung `BASELINE-DIAGNOSE` laufen,
+2. verlangt weiterhin eine vollständig leere Remote-Migrationshistorie,
+3. erzeugt mit der im Projekt gepinnten Supabase CLI `2.109.1` einen eindeutig gerichteten Diff `001-039 → Produktion` und erfasst dessen SQL direkt aus stdout,
+4. sichert zusätzlich einen schema-only Dump von `public` sowie nicht personenbezogene technische Invarianten für Auth, Storage, Realtime, App-Module und die zuletzt relevanten DB-Objekte,
+5. lädt alles als GitHub-Artefakt `produktionsdatenbank-baseline-diagnose-<commit>` hoch,
+6. führt **keinen** `migration repair`, `db push`, DB-Reset oder Seed aus.
 
-Die Recovery erzeugt **bewusst keinen** `database-verified-*`-Tag. Nach erfolgreicher Recovery muss der zuvor fehlgeschlagene normale Workflow **`Produktionsdatenbank migrieren`** für denselben `main`-Commit erneut gestartet werden. Erst dieser normale Workflow darf den Verifikations-Tag erzeugen. So bleibt der reguläre Produktionsnachweis auch nach der einmaligen Reparatur unverändert.
-
-Der normale `.github/workflows/production-database.yml` bleibt ausdrücklich unverändert streng und führt **niemals** automatisch `migration repair` aus. Die Recovery darf nach erfolgreicher Baseline nicht erneut laufen, weil sie bei jeder nichtleeren Remote-Historie abbricht.
+Die Diagnose-SQL-Dateien sind ausdrücklich **keine ausführbaren Reparaturskripte**. Erst nach fachlicher Prüfung des Artefakts wird eine einmalige, konkret auf den nachgewiesenen Produktionszustand zugeschnittene Recovery gebaut. Der normale `.github/workflows/production-database.yml` bleibt weiterhin unverändert streng und führt niemals automatisch `migration repair` aus. Der reguläre Tag `database-verified-<commit>` darf weiterhin ausschließlich nach einem normalen erfolgreichen Produktionsdatenbank-Lauf entstehen.
 
 ### UI-/CSS-Hardening
 

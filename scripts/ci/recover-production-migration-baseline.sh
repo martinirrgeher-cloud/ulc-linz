@@ -6,12 +6,13 @@ FIRST_PENDING_VERSION="202608090040"
 EXPECTED_BASELINE_COUNT=38
 EXPECTED_TOTAL_COUNT=39
 DB_URL="${SUPABASE_DB_URL:-${1:-}}"
+ROOT="$(pwd)"
+REPORT_DIR="${ULC_DB_BASELINE_REPORT_DIR:-$ROOT/.ulc-db-baseline-diagnostic}"
 
 if [[ -z "$DB_URL" ]]; then
   echo "FEHLER: SUPABASE_DB_URL fehlt." >&2
   exit 1
 fi
-
 if ! command -v supabase >/dev/null 2>&1; then
   echo "FEHLER: Supabase CLI ist nicht verfuegbar." >&2
   exit 1
@@ -30,7 +31,7 @@ mapfile -t BASELINE_VERSIONS < <(printf '%s\n' "${ALL_VERSIONS[@]}" | awk -v max
 mapfile -t PENDING_VERSIONS < <(printf '%s\n' "${ALL_VERSIONS[@]}" | awk -v max="$BASELINE_VERSION" '$1 > max')
 
 if [[ "${#ALL_VERSIONS[@]}" -ne "$EXPECTED_TOTAL_COUNT" ]]; then
-  echo "FEHLER: Fuer die einmalige Recovery werden exakt ${EXPECTED_TOTAL_COUNT} Repository-Migrationen erwartet; gefunden: ${#ALL_VERSIONS[@]}." >&2
+  echo "FEHLER: Fuer die Diagnose werden exakt ${EXPECTED_TOTAL_COUNT} Repository-Migrationen erwartet; gefunden: ${#ALL_VERSIONS[@]}." >&2
   exit 1
 fi
 if [[ "${#BASELINE_VERSIONS[@]}" -ne "$EXPECTED_BASELINE_COUNT" ]]; then
@@ -38,7 +39,7 @@ if [[ "${#BASELINE_VERSIONS[@]}" -ne "$EXPECTED_BASELINE_COUNT" ]]; then
   exit 1
 fi
 if [[ "${#PENDING_VERSIONS[@]}" -ne 1 || "${PENDING_VERSIONS[0]}" != "$FIRST_PENDING_VERSION" ]]; then
-  echo "FEHLER: Nach der Baseline darf fuer diese Recovery ausschliesslich ${FIRST_PENDING_VERSION} offen sein." >&2
+  echo "FEHLER: Nach der Baseline darf fuer diese einmalige Diagnose ausschliesslich ${FIRST_PENDING_VERSION} offen sein." >&2
   printf 'Gefunden: %s\n' "${PENDING_VERSIONS[*]:-(keine)}" >&2
   exit 1
 fi
@@ -56,12 +57,31 @@ else
 fi
 
 if [[ "${#REMOTE_VERSIONS[@]}" -ne 0 ]]; then
-  echo "FEHLER: Diese einmalige Baseline-Recovery ist nur fuer eine vollstaendig leere Remote-Migrationshistorie erlaubt." >&2
+  echo "FEHLER: Diese historische Diagnose ist nur fuer die noch vollstaendig leere Remote-Migrationshistorie erlaubt." >&2
   printf 'Remote vorhanden: %s\n' "${REMOTE_VERSIONS[*]}" >&2
   exit 1
 fi
 
-echo "1/5: Produktionsschema gegen die nachweisliche Baseline bis ${BASELINE_VERSION} vergleichen..."
+rm -rf "$REPORT_DIR"
+mkdir -p "$REPORT_DIR"
+printf '%s\n' "${ALL_VERSIONS[@]}" > "$REPORT_DIR/repository-migrations.txt"
+: > "$REPORT_DIR/remote-migrations.txt"
+
+sanitize_report_file() {
+  local file="$1"
+  [[ -f "$file" ]] || return 0
+  REPORT_FILE="$file" DB_URL_SECRET="$DB_URL" python3 - <<'PY'
+import os
+from pathlib import Path
+path = Path(os.environ["REPORT_FILE"])
+secret = os.environ["DB_URL_SECRET"]
+text = path.read_text(encoding="utf-8", errors="replace")
+if secret:
+    text = text.replace(secret, "[REDACTED_DB_URL]")
+path.write_text(text, encoding="utf-8")
+PY
+}
+
 TEMP_ROOT="$(mktemp -d)"
 trap 'rm -rf "$TEMP_ROOT"' EXIT
 mkdir -p "$TEMP_ROOT/project"
@@ -74,191 +94,146 @@ find "$TEMP_ROOT/project/supabase/migrations" -maxdepth 1 -type f -name '*.sql' 
       fi
     done
 
-DIFF_FILE="$TEMP_ROOT/baseline-diff.sql"
-(
+echo "Erzeuge Schema-Diff Repository-Baseline 001-039 -> Produktion..."
+FORWARD_SQL="$REPORT_DIR/baseline-001-039-to-production.sql"
+FORWARD_LOG="$REPORT_DIR/baseline-001-039-to-production.log"
+if ! (
   cd "$TEMP_ROOT/project"
-  supabase db diff \
-    --db-url "$DB_URL" \
-    --schema public \
-    --use-migra \
-    --output "$DIFF_FILE"
-)
-
-NORMALIZED_DIFF="$TEMP_ROOT/baseline-diff-substantive.sql"
-sed -E \
-  -e '/^[[:space:]]*$/d' \
-  -e '/^[[:space:]]*--/d' \
-  -e '/^[[:space:]]*set[[:space:]]+check_function_bodies[[:space:]]*=[[:space:]]*off;?[[:space:]]*$/Id' \
-  "$DIFF_FILE" > "$NORMALIZED_DIFF"
-if [[ -s "$NORMALIZED_DIFF" ]]; then
-  echo "FEHLER: Das produktive Schema entspricht nicht exakt der Repository-Baseline 001-039." >&2
-  echo "Es wird KEINE Migrationshistorie repariert. Schema-Differenz:" >&2
-  cat "$DIFF_FILE" >&2
+  # Supabase CLI 2.109.1 schreibt den Diff auf stdout. Neuere Richtungs- und
+  # Output-Flags werden in dieser gepinnten CLI-Version bewusst nicht verwendet.
+  supabase db diff --db-url "$DB_URL" --schema public --use-migra > "$FORWARD_SQL" 2> "$FORWARD_LOG"
+); then
+  sanitize_report_file "$FORWARD_LOG"
+  echo "FEHLER: Schema-Diff Baseline 001-039 -> Produktion ist fehlgeschlagen." >&2
+  cat "$FORWARD_LOG" >&2 || true
+  exit 1
+fi
+sanitize_report_file "$FORWARD_LOG"
+if [[ ! -f "$FORWARD_SQL" ]]; then
+  echo "FEHLER: Der Schema-Diff wurde nicht als stdout-Artefakt erfasst." >&2
   exit 1
 fi
 
-echo "2/5: Nicht-schemafeste Baseline-Bestandteile pruefen..."
-BUCKET_COUNT="$(psql_query "
-select count(*)
-from storage.buckets
-where id in ('exercise-videos', 'training-documentation-media')
-  and public = false
-  and file_size_limit = 52428800
-  and cardinality(allowed_mime_types) = 6
-  and allowed_mime_types @> array['video/mp4','video/quicktime','video/webm','video/x-m4v','video/3gpp','video/3gpp2']::text[];")"
-if [[ "$BUCKET_COUNT" != "2" ]]; then
-  echo "FEHLER: Die beiden erwarteten privaten Storage-Buckets entsprechen nicht der Baseline." >&2
+echo "Erzeuge schema-only Dump der produktiven public-Schemaobjekte..."
+if ! supabase db dump \
+  --db-url "$DB_URL" \
+  --schema public \
+  --file "$REPORT_DIR/production-public-schema.sql" \
+  > "$REPORT_DIR/production-public-schema.log" 2>&1; then
+  sanitize_report_file "$REPORT_DIR/production-public-schema.log"
+  echo "FEHLER: Schema-only Dump der Produktionsdatenbank ist fehlgeschlagen." >&2
+  cat "$REPORT_DIR/production-public-schema.log" >&2 || true
   exit 1
 fi
+sanitize_report_file "$REPORT_DIR/production-public-schema.log"
 
-AUTH_TRIGGER_COUNT="$(psql_query "
-select count(*)
-from pg_trigger t
-join pg_class c on c.oid = t.tgrelid
-join pg_namespace n on n.oid = c.relnamespace
-join pg_proc p on p.oid = t.tgfoid
-join pg_namespace pn on pn.oid = p.pronamespace
-where n.nspname = 'auth'
-  and c.relname = 'users'
-  and t.tgname = 'on_auth_user_created'
-  and pn.nspname = 'public'
-  and p.proname = 'handle_new_auth_user'
-  and not t.tgisinternal;")"
-if [[ "$AUTH_TRIGGER_COUNT" != "1" ]]; then
-  echo "FEHLER: Der erwartete Auth-Trigger on_auth_user_created fehlt oder zeigt auf die falsche Funktion." >&2
-  exit 1
-fi
+echo "Erzeuge gezielte, nicht personenbezogene Produktions-Invarianten..."
+{
+  echo "# ULC Linz App – Produktionsdatenbank Baseline-Diagnose"
+  echo "baseline_version=${BASELINE_VERSION}"
+  echo "first_pending_version=${FIRST_PENDING_VERSION}"
+  echo "repository_migration_count=${#ALL_VERSIONS[@]}"
+  echo "remote_migration_count=${#REMOTE_VERSIONS[@]}"
+  echo
 
-STORAGE_POLICY_COUNT="$(psql_query "
-select count(*)
-from pg_policies
-where schemaname = 'storage'
-  and tablename = 'objects'
-  and (
-    (policyname in ('exercise_videos_storage_select','exercise_videos_storage_insert','exercise_videos_storage_update','exercise_videos_storage_delete')
-      and (coalesce(qual,'') || ' ' || coalesce(with_check,'')) like '%exercise-videos%')
-    or
-    (policyname in ('training_documentation_media_storage_select','training_documentation_media_storage_insert','training_documentation_media_storage_update','training_documentation_media_storage_delete')
-      and (coalesce(qual,'') || ' ' || coalesce(with_check,'')) like '%training-documentation-media%')
-  );")"
-if [[ "$STORAGE_POLICY_COUNT" != "8" ]]; then
-  echo "FEHLER: Die acht erwarteten Storage-RLS-Policies entsprechen nicht der Baseline." >&2
-  exit 1
-fi
+  echo "## Kernobjekte"
+  psql_query "select 'training_blocks.usage_count=' || case when exists (select 1 from information_schema.columns where table_schema='public' and table_name='training_blocks' and column_name='usage_count') then 'present' else 'missing' end;"
+  psql_query "select 'organization_dropdown_options.parameter_group=' || case when exists (select 1 from information_schema.columns where table_schema='public' and table_name='organization_dropdown_options' and column_name='parameter_group') then 'present' else 'missing' end;"
+  psql_query "select 'kindertraining_statistics_overview.signatures=' || coalesce(string_agg(pg_get_function_identity_arguments(p.oid), ' | ' order by pg_get_function_identity_arguments(p.oid)), '(none)') from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='kindertraining_statistics_overview';"
+  psql_query "select 'training_module_statistics_overview.signatures=' || coalesce(string_agg(pg_get_function_identity_arguments(p.oid), ' | ' order by pg_get_function_identity_arguments(p.oid)), '(none)') from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='training_module_statistics_overview';"
+  psql_query "select 'apply_exercise_import_v2.signatures=' || coalesce(string_agg(pg_get_function_identity_arguments(p.oid), ' | ' order by pg_get_function_identity_arguments(p.oid)), '(none)') from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='apply_exercise_import_v2';"
+  psql_query "select 'save_dropdown_setting.signatures=' || coalesce(string_agg(pg_get_function_identity_arguments(p.oid), ' | ' order by pg_get_function_identity_arguments(p.oid)), '(none)') from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='save_dropdown_setting';"
+  echo
 
-read -r -d '' REALTIME_SQL <<'SQL' || true
-with expected(tablename) as (
-  values
-    ('athletes'),
-    ('training_groups'),
-    ('trainers'),
-    ('exercises'),
-    ('training_blocks'),
-    ('athlete_training_plans'),
-    ('athlete_training_sessions'),
-    ('training_block_user_favorites'),
-    ('organization_members'),
-    ('audit_log')
-)
-select count(*)
-from expected e
-join pg_publication_tables p
-  on p.pubname = 'supabase_realtime'
- and p.schemaname = 'public'
- and p.tablename = e.tablename
-join pg_class c on c.oid = to_regclass(format('public.%I', e.tablename))
-where c.relreplident = 'f';
-SQL
-REALTIME_COUNT="$(psql_query "$REALTIME_SQL")"
-if [[ "$REALTIME_COUNT" != "10" ]]; then
-  echo "FEHLER: Realtime-Publication/Replica-Identity entspricht nicht der Baseline (erwartet 10, gefunden ${REALTIME_COUNT})." >&2
-  exit 1
-fi
+  echo "## App-Module"
+  psql_query "select key || E'\\t' || is_active::text from public.app_modules order by key;"
+  echo
 
-MODULE_COUNT="$(psql_query "
-select count(*)
-from public.app_modules
-where key in (
-  'kindertraining','athletes','performance_registration','exercise_catalog',
-  'training_planning','training_overview','training_blocks','training_documentation',
-  'user_management','u12','u14','dropdown_settings','data_import','countdown'
-);")"
-if [[ "$MODULE_COUNT" != "14" ]]; then
-  echo "FEHLER: Erwartete App-Module der Baseline fehlen (erwartet 14, gefunden ${MODULE_COUNT})." >&2
-  exit 1
-fi
+  echo "## Storage-Buckets"
+  psql_query "select id || E'\\tpublic=' || public::text || E'\\tlimit=' || coalesce(file_size_limit::text,'null') || E'\\tmimes=' || coalesce(array_to_string(allowed_mime_types,','),'null') from storage.buckets where id in ('exercise-videos','training-documentation-media') order by id;"
+  echo
 
-INACTIVE_STATISTICS_COUNT="$(psql_query "
-select count(*)
-from public.app_modules
-where key in ('kindertraining_statistics','u12_statistics','u14_statistics')
-  and is_active = false;")"
-if [[ "$INACTIVE_STATISTICS_COUNT" != "3" ]]; then
-  echo "FEHLER: Statistik-Rechtekonsolidierung aus Migration 037 ist nicht vollstaendig vorhanden." >&2
-  exit 1
-fi
+  echo "## Storage-Policies"
+  psql_query "select policyname from pg_policies where schemaname='storage' and tablename='objects' and policyname in ('exercise_videos_storage_select','exercise_videos_storage_insert','exercise_videos_storage_update','exercise_videos_storage_delete','training_documentation_media_storage_select','training_documentation_media_storage_insert','training_documentation_media_storage_update','training_documentation_media_storage_delete') order by policyname;"
+  echo
 
-echo "3/5: Historische Migrationen 001-039 in der Supabase-Historie baselinen..."
-BASELINE_REPAIRED=0
-cleanup_partial_repair() {
-  local rc=$?
-  if [[ $rc -ne 0 && "$BASELINE_REPAIRED" == "0" ]]; then
-    echo "Recovery vor Abschluss der Baseline fehlgeschlagen; versuche partielle Historieneintraege wieder zu entfernen..." >&2
-    supabase migration repair "${BASELINE_VERSIONS[@]}" --status reverted --db-url "$DB_URL" >/dev/null 2>&1 || true
+  echo "## Auth-Trigger"
+  psql_query "select t.tgname || E'\\t' || pn.nspname || '.' || p.proname from pg_trigger t join pg_class c on c.oid=t.tgrelid join pg_namespace n on n.oid=c.relnamespace join pg_proc p on p.oid=t.tgfoid join pg_namespace pn on pn.oid=p.pronamespace where n.nspname='auth' and c.relname='users' and t.tgname='on_auth_user_created' and not t.tgisinternal;"
+  echo
+
+  echo "## Realtime"
+  psql_query "select p.tablename || E'\\treplident=' || c.relreplident from pg_publication_tables p join pg_class c on c.oid=to_regclass(format('%I.%I',p.schemaname,p.tablename)) where p.pubname='supabase_realtime' and p.schemaname='public' and p.tablename in ('athletes','training_groups','trainers','exercises','training_blocks','athlete_training_plans','athlete_training_sessions','training_block_user_favorites','organization_members','audit_log') order by p.tablename;"
+  echo
+
+  echo "## Statistikrechte"
+  psql_query "select key || E'\\t' || is_active::text from public.app_modules where key in ('kindertraining_statistics','u12_statistics','u14_statistics') order by key;"
+  echo
+
+  echo "## Planning-Parameter (nur technische Keys/Gruppe)"
+  if [[ "$(psql_query "select case when exists (select 1 from information_schema.columns where table_schema='public' and table_name='organization_dropdown_options' and column_name='parameter_group') then '1' else '0' end;")" == "1" ]]; then
+    psql_query "select option_key || E'\\t' || parameter_group from public.organization_dropdown_options where list_key='planning_parameter' group by option_key, parameter_group order by option_key, parameter_group;"
+  else
+    psql_query "select option_key from public.organization_dropdown_options where list_key='planning_parameter' group by option_key order by option_key;"
   fi
-  rm -rf "$TEMP_ROOT"
-  exit $rc
+} > "$REPORT_DIR/production-invariants.txt"
+
+normalize_diff() {
+  local input="$1"
+  local output="$2"
+  sed -E \
+    -e '/^[[:space:]]*$/d' \
+    -e '/^[[:space:]]*--/d' \
+    -e '/^[[:space:]]*set[[:space:]]+check_function_bodies[[:space:]]*=[[:space:]]*off;?[[:space:]]*$/Id' \
+    "$input" > "$output"
 }
-trap cleanup_partial_repair EXIT
+normalize_diff "$FORWARD_SQL" "$REPORT_DIR/baseline-001-039-to-production.substantive.sql"
 
-supabase migration repair "${BASELINE_VERSIONS[@]}" --status applied --db-url "$DB_URL"
-mapfile -t REMOTE_AFTER_REPAIR < <(psql_query "select version from supabase_migrations.schema_migrations order by version;")
-if [[ "${#REMOTE_AFTER_REPAIR[@]}" -ne "${#BASELINE_VERSIONS[@]}" ]] || \
-   [[ "$(printf '%s\n' "${REMOTE_AFTER_REPAIR[@]}")" != "$(printf '%s\n' "${BASELINE_VERSIONS[@]}")" ]]; then
-  echo "FEHLER: Die reparierte Migrationshistorie entspricht nicht exakt der verifizierten Baseline." >&2
-  exit 1
-fi
-BASELINE_REPAIRED=1
-trap 'rm -rf "$TEMP_ROOT"' EXIT
+FORWARD_LINES="$(wc -l < "$REPORT_DIR/baseline-001-039-to-production.substantive.sql" | tr -d ' ')"
+FORWARD_SHA="$(sha256sum "$FORWARD_SQL" | awk '{print $1}')"
+DUMP_SHA="$(sha256sum "$REPORT_DIR/production-public-schema.sql" | awk '{print $1}')"
 
-echo "4/5: Ausschliesslich die echte offene Migration ${FIRST_PENDING_VERSION} anwenden..."
-supabase db push --db-url "$DB_URL" --dry-run
-supabase db push --db-url "$DB_URL"
+cat > "$REPORT_DIR/README.txt" <<EOF_README
+ULC Linz App – Produktionsdatenbank Baseline-Diagnose
 
-echo "5/5: Endzustand und Migration 040 verifizieren..."
-mapfile -t REMOTE_FINAL < <(psql_query "select version from supabase_migrations.schema_migrations order by version;")
-if [[ "${#REMOTE_FINAL[@]}" -ne "${#ALL_VERSIONS[@]}" ]] || \
-   [[ "$(printf '%s\n' "${REMOTE_FINAL[@]}")" != "$(printf '%s\n' "${ALL_VERSIONS[@]}")" ]]; then
-  echo "FEHLER: Repo und Produktionsdatenbank besitzen nach der Recovery nicht dieselbe Migrationshistorie." >&2
-  exit 1
-fi
+Diese Diagnose ist strikt READ-ONLY. Sie fuehrt weder migration repair noch db push,
+DB-Reset, Seeds oder sonstige schreibende SQL-Befehle gegen Produktion aus.
 
-POSTCHECK="$(psql_query "
-select case when
-  exists (
-    select 1 from information_schema.columns
-    where table_schema='public' and table_name='organization_dropdown_options'
-      and column_name='parameter_group' and is_nullable='NO'
-  )
-  and exists (
-    select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace
-    where n.nspname='public' and p.proname='save_dropdown_setting' and p.pronargs=10
-  )
-  and exists (
-    select 1 from pg_trigger t
-    where t.tgrelid='public.organizations'::regclass
-      and t.tgname='organizations_seed_planning_parameters'
-      and not t.tgisinternal
-  )
-  and not exists (
-    select 1 from public.organization_dropdown_options
-    where list_key='planning_parameter'
-      and parameter_group not in ('volume','distance_geometry','time_recovery','load','execution')
-  )
-then 'ok' else 'fail' end;")"
-if [[ "$POSTCHECK" != "ok" ]]; then
-  echo "FEHLER: Postcheck fuer Migration ${FIRST_PENDING_VERSION} ist fehlgeschlagen." >&2
-  exit 1
-fi
+Dateien:
+- baseline-001-039-to-production.sql
+  Supabase-CLI-2.109.1-Diff vom durch Migrationen 001-039 rekonstruierten
+  Repository-Stand zum aktuellen Produktionsstand. Der Diff wird direkt aus
+  stdout erfasst; es werden keine in dieser CLI-Version unbekannten neueren
+  Richtungs- oder Output-Flags verwendet.
+- baseline-001-039-to-production.substantive.sql
+  Gleicher Diff ohne Leer-/Kommentarzeilen und technische SET-Zeilen.
+- production-public-schema.sql
+  Schema-only Dump von public, ohne Tabellendaten.
+- production-invariants.txt
+  Nicht personenbezogene technische Invarianten fuer Auth/Storage/Realtime/Module.
+- repository-migrations.txt / remote-migrations.txt
+  Erwartete Repository-Versionen und die vor Diagnose gelesene Remote-Historie.
+- *.log
+  Supabase-CLI-Diagnoselog ohne absichtlich ausgegebene DB-URL.
 
-echo "ERFOLG: Produktionsschema 001-039 verifiziert, Historie baselined und Migration ${FIRST_PENDING_VERSION} angewendet."
+WICHTIG: Der SQL-Diff ist ein Diagnoseartefakt und darf NICHT manuell gegen
+Produktion ausgefuehrt werden. Zusammen mit dem Produktions-Schema-Dump und
+den Invarianten wird daraus erst nach fachlicher Pruefung die einmalige,
+konkret passende Recovery abgeleitet.
+EOF_README
+
+cat > "$REPORT_DIR/SUMMARY.txt" <<EOF_SUMMARY
+baseline_version=${BASELINE_VERSION}
+first_pending_version=${FIRST_PENDING_VERSION}
+repository_migrations=${#ALL_VERSIONS[@]}
+remote_migrations=${#REMOTE_VERSIONS[@]}
+baseline_to_production_substantive_lines=${FORWARD_LINES}
+baseline_to_production_sha256=${FORWARD_SHA}
+production_public_schema_sha256=${DUMP_SHA}
+supabase_cli_expected=2.109.1
+write_operations=NONE
+EOF_SUMMARY
+
+printf 'Diagnose abgeschlossen. Baseline 001-039 -> Produktion: %s substantive Zeilen.\n' "$FORWARD_LINES"
+printf 'Diff SHA-256: %s\n' "$FORWARD_SHA"
+echo "Es wurden KEINE Aenderungen an der Produktionsdatenbank vorgenommen."
+echo "Das GitHub-Artefakt muss vor jeder Reparatur ausgewertet werden."

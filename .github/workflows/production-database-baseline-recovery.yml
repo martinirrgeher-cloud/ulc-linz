@@ -1,10 +1,10 @@
-name: Produktionsdatenbank Baseline-Recovery
+name: Produktionsdatenbank Baseline-Diagnose
 
 on:
   workflow_dispatch:
     inputs:
       confirmation:
-        description: "Zur einmaligen Ausfuehrung exakt BASELINE-REPARIEREN eingeben"
+        description: "Zur einmaligen READ-ONLY-Diagnose exakt BASELINE-DIAGNOSE eingeben"
         required: true
         type: string
 
@@ -16,8 +16,8 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  recover:
-    name: Historie 001-039 verifizieren und Migration 040 anwenden
+  diagnose:
+    name: Produktionsstand gegen Migrationen 001-039 analysieren
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
@@ -28,16 +28,16 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Recovery-Kontext strikt pruefen
+      - name: Diagnose-Kontext strikt pruefen
         shell: bash
         run: |
           set -euo pipefail
-          if [ "${{ github.event.inputs.confirmation }}" != "BASELINE-REPARIEREN" ]; then
+          if [ "${{ github.event.inputs.confirmation }}" != "BASELINE-DIAGNOSE" ]; then
             echo "FEHLER: Bestaetigung stimmt nicht exakt." >&2
             exit 1
           fi
           if [ "${GITHUB_REF}" != "refs/heads/main" ]; then
-            echo "FEHLER: Baseline-Recovery darf ausschliesslich auf main ausgefuehrt werden." >&2
+            echo "FEHLER: Baseline-Diagnose darf ausschliesslich auf main ausgefuehrt werden." >&2
             exit 1
           fi
           git fetch origin main --prune
@@ -61,6 +61,15 @@ jobs:
       - name: Docker-Umgebung pruefen
         run: docker info
 
-      - name: Verifizieren, baselinen und offene Migration anwenden
+      - name: Read-only Baseline-Diagnose ausfuehren
         shell: bash
         run: bash scripts/ci/recover-production-migration-baseline.sh
+
+      - name: Diagnose-Artefakt sichern
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: produktionsdatenbank-baseline-diagnose-${{ github.sha }}
+          path: .ulc-db-baseline-diagnostic/
+          if-no-files-found: error
+          retention-days: 7
