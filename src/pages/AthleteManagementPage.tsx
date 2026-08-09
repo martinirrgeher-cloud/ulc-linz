@@ -55,6 +55,7 @@ import type {
 } from "@/features/athletes/types";
 
 import { diagnosticErrorMessage } from "@/lib/diagnostics";
+import "@/styles/masterdata-foundation.css";
 import "@/styles/management.css";
 type ActiveFilter = "active" | "inactive" | "all";
 type AthleteSort = "lastName" | "firstName" | "birthYearAsc" | "birthYearDesc";

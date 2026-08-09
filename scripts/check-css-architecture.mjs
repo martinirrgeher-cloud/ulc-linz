@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
+import "./check-css-ownership.mjs";
 
 const projectRoot = path.resolve(".");
 const sourceRoot = path.join(projectRoot, "src");
@@ -8,21 +9,21 @@ const mainPath = path.join(sourceRoot, "main.tsx");
 
 const limits = Object.freeze({
   mainCssImports: 3,
-  mainImportedBytes: 68_000,
+  mainImportedBytes: 40_000,
   importantDeclarations: 38,
-  duplicateSelectorRatio: 0.10,
-  largestFileBytes: 56_000,
-  largestFileLines: 3_100,
+  duplicateSelectorRatio: 0.095,
+  largestFileBytes: 45_000,
+  largestFileLines: 2_200,
   maxRouteImportedBytes: 50_000,
-  globalFeatureSelectorOccurrences: 269,
+  globalFeatureSelectorOccurrences: 30,
   legacyMediaQueries: 54,
 });
 
 const expectedRouteImports = Object.freeze({
   "pages/DashboardPage.tsx": ["dashboard.css"],
   "pages/HelpPage.tsx": ["help.css"],
-  "pages/AthleteManagementPage.tsx": ["management.css"],
-  "pages/UserManagementPage.tsx": ["management.css", "user-management-e5c.css"],
+  "pages/AthleteManagementPage.tsx": ["masterdata-foundation.css", "management.css"],
+  "pages/UserManagementPage.tsx": ["user-management-foundation.css", "management.css", "user-management-e5c.css"],
   "pages/KindertrainingDraftPage.tsx": ["kindertraining.css"],
   "pages/GroupTrainingPage.tsx": ["kindertraining.css"],
   "pages/KindertrainingStatisticsPage.tsx": ["statistics.css", "statistics-mobile.css"],
