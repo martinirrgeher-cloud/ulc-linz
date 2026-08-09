@@ -335,6 +335,8 @@ const userManagementE5cCssSource = await readFile(new URL("../src/styles/user-ma
 const stickyEditorActionsSource = await readFile(new URL("../src/components/ui/StickyEditorActions.tsx", import.meta.url), "utf8");
 const exerciseCatalogPageSource = await readFile(new URL("../src/pages/ExerciseCatalogPage.tsx", import.meta.url), "utf8");
 const exerciseCatalogCssSource = await readFile(new URL("../src/styles/exercise-catalog.css", import.meta.url), "utf8");
+const exerciseEditorSource = await readFile(new URL("../src/features/exercise-catalog/ExerciseEditor.tsx", import.meta.url), "utf8");
+const speechToTextSource = await readFile(new URL("../src/features/exercise-catalog/SpeechToTextButton.tsx", import.meta.url), "utf8");
 const uiDesignSystemSource = await readFile(new URL("../src/styles/ui-design-system.css", import.meta.url), "utf8");
 const trainingBlocksPageSource = await readFile(new URL("../src/pages/TrainingBlocksPage.tsx", import.meta.url), "utf8");
 const trainingBlockEditorSource = await readFile(new URL("../src/features/training-blocks/TrainingBlockEditor.tsx", import.meta.url), "utf8");
@@ -382,7 +384,10 @@ test("Auswahllisten und Benutzerverwaltung nutzen die kompakte Mobile-UX", () =>
   assert.ok(dropdownSettingsSource.includes('<Plus aria-hidden="true" /> Neu'));
   assert.doesNotMatch(dropdownSettingsSource, /Dropdownwerte für Übungen und Trainingsplanung zentral verwalten/);
   assert.doesNotMatch(dropdownSettingsSource, /dropdown-setting-status/);
-  assert.ok(dropdownSettingsSource.includes("dropdown-setting-save-button"));
+  assert.ok(dropdownSettingsSource.includes("<EditorShell"));
+  assert.ok(dropdownSettingsSource.includes('saveTestId="dropdown-setting-save"'));
+  assert.ok(dropdownSettingsSource.includes("EXERCISE_PARAMETER_GROUPS"));
+  assert.ok(dropdownSettingsSource.includes("Parametergruppe"));
   assert.ok(dropdownSettingsSource.includes("dropdown-setting-active-toggle"));
   assert.ok(dropdownSettingsCssSource.includes(".dropdown-settings-selector-row"));
   assert.ok(userManagementSource.includes('className="primary-button user-management-create-button"'));
@@ -437,7 +442,33 @@ test("D2 macht den Übungskatalog kompakt, aufklappbar und mobile-first", () => 
   assert.ok(exerciseCatalogPageSource.includes("exercise-quick-parameters"));
   assert.ok(exerciseCatalogPageSource.includes("exercise-usage-summary"));
   assert.doesNotMatch(exerciseCatalogPageSource, /exercise-quick-filters|Schnellfilter/);
-  assert.ok(exerciseCatalogPageSource.includes("ui-segmented"));
+  assert.doesNotMatch(exerciseCatalogPageSource, /ui-segmented|Grid2X2|LayoutList|viewMode/);
+  assert.ok(exerciseCatalogPageSource.includes("exercise-quick-materials"));
+  assert.ok(exerciseCatalogPageSource.includes("exercise-quick-videos"));
+  assert.ok(exerciseCatalogPageSource.includes('presentation="page"'));
+  assert.ok(exerciseEditorSource.includes("<EditorShell"));
+  assert.ok(exerciseEditorSource.includes("exercise-editor-save-button"));
+  assert.ok(exerciseEditorSource.includes("EXERCISE_PARAMETER_GROUPS"));
+  assert.ok(exerciseEditorSource.includes("SpeechToTextButton"));
+  assert.ok(exerciseEditorSource.includes("Übungen derselben Kategorie"));
+  assert.ok(exerciseEditorSource.includes("In der Planung"));
+  assert.ok(exerciseEditorSource.includes(">Optional</button>"));
+  assert.ok(exerciseEditorSource.includes(">Pflicht</button>"));
+  for (const accessibleLabel of ["Standardwert", "Minimum", "Maximum", "Schrittweite"]) {
+    assert.ok(
+      exerciseEditorSource.includes(`aria-label="${accessibleLabel}"`),
+      `Zugänglicher Parameterfeldname fehlt: ${accessibleLabel}`,
+    );
+  }
+  assert.ok(
+    exerciseEditorSource.includes('selected ? `${option.label} gewählt` : `+ ${option.label}`'),
+    "Parameterauswahl muss Auswahlzeile und konfigurierten Parametertext eindeutig unterscheiden.",
+  );
+  assert.ok(
+    exerciseEditorSource.includes('aria-label={`${option.label} ${selected ? "abwählen" : "hinzufügen"}`}'),
+    "Parameterauswahl braucht eindeutige zugängliche Aktionen.",
+  );
+  assert.ok(speechToTextSource.includes('recognition.lang = "de-AT"'));
   assert.ok(exerciseCatalogCssSource.includes("position: sticky"));
   assert.ok(exerciseCatalogCssSource.includes("var(--app-bottom-sticky-offset)"));
   assert.ok(uiDesignSystemSource.includes("--ui-radius-lg"));

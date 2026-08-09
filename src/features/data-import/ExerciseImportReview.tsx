@@ -122,6 +122,7 @@ function augmentedCatalog(rows: ImportPreviewRow<ExerciseImportDraft>[], catalog
           unit: parameter.unit,
           inputType: parameter.inputType || "text",
           stepValue: parameter.stepValue,
+          parameterGroup: "execution",
           sortOrder: 9990 + rowIndex + parameterIndex,
           isActive: true,
         });

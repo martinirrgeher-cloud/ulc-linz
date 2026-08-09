@@ -1,5 +1,6 @@
 import { callJsonRpc } from "@/lib/supabase-rpc";
 import { isRecord, numberOrNull } from "@/lib/json-value";
+import { parseExerciseParameterGroup } from "@/features/exercise-catalog/parameter-groups";
 import type {
   DropdownListKey,
   DropdownSettingInput,
@@ -19,6 +20,7 @@ function parseOptions(value: unknown): DropdownSettingOption[] {
       unit: typeof item.unit === "string" ? item.unit : "",
       inputType,
       stepValue: numberOrNull(item.step_value),
+      parameterGroup: parseExerciseParameterGroup(item.parameter_group),
       sortOrder: typeof item.sort_order === "number" ? item.sort_order : 100,
       isActive: item.is_active !== false,
       usageCount: typeof item.usage_count === "number" ? item.usage_count : 0,
@@ -61,6 +63,7 @@ export async function saveDropdownSetting(
     p_input_type: listKey === "planning_parameter" ? values.inputType : "text",
     p_step_value: listKey === "planning_parameter" && values.inputType === "number" ? stepValue : null,
     p_sort_order: sortOrder,
+    p_parameter_group: listKey === "planning_parameter" ? values.parameterGroup : "execution",
   });
 }
 

@@ -2,5 +2,4 @@
 @media screen and (max-width: 760px) {
   .dropdown-settings-heading { margin-bottom: 2px; }
   .dropdown-settings-heading h1 { line-height: 1.1; }
-  .dropdown-setting-editor-backdrop { padding-bottom: env(safe-area-inset-bottom); }
 }

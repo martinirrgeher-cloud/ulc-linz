@@ -5,8 +5,6 @@ import {
   ChevronUp,
   ExternalLink,
   Filter,
-  Grid2X2,
-  LayoutList,
   Pencil,
   ListTree,
   Plus,
@@ -46,7 +44,6 @@ import "@/styles/exercise-catalog.css";
 import "@/styles/exercise-catalog-mobile.css";
 type ActivityFilter = "active" | "inactive" | "all";
 type VideoFilter = "all" | "yes" | "no";
-type ViewMode = "list" | "grid";
 
 const EXERCISE_REALTIME_TABLES = ["exercises"] as const;
 
@@ -97,7 +94,6 @@ export function ExerciseCatalogPage() {
   const [difficultyFilter, setDifficultyFilter] = useState("all");
   const [groupFilter, setGroupFilter] = useState("all");
   const [videoFilter, setVideoFilter] = useState<VideoFilter>("all");
-  const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [expandedExerciseId, setExpandedExerciseId] = useState<string | null>(null);
   const [usageExercise, setUsageExercise] = useState<Exercise | null>(null);
   const [editorExercise, setEditorExercise] = useState<Exercise | null | undefined>(undefined);
@@ -360,11 +356,48 @@ export function ExerciseCatalogPage() {
     }
   }
 
+  if (editorExercise !== undefined) {
+    return (
+      <section className="exercise-catalog-page ui-page-shell exercise-catalog-editor-active">
+        {error && <div className="alert error">{error}</div>}
+        {success && <div className="alert success">{success}</div>}
+        <RemoteChangeNotice
+          visible={remoteChangePending}
+          busy={busy || remoteSyncBusy}
+          onLoadServer={() => applyRemoteServerState(false)}
+          onKeepDraft={() => applyRemoteServerState(true)}
+        />
+        <ExerciseEditor
+          key={editorExercise?.id ?? "new-exercise"}
+          exercise={editorExercise}
+          catalogExercises={data.exercises}
+          categories={data.categories}
+          subcategories={data.subcategories}
+          materials={data.materials}
+          difficulties={data.difficulties}
+          parameterOptions={data.parameterOptions}
+          groups={data.groups}
+          organizationId={organizationId ?? ""}
+          initialSection={editorInitialSection}
+          canEdit={editorCanEdit}
+          busy={busy}
+          lockNotice={editorExercise?.id ? <EditLockNotice lock={exerciseLock} /> : null}
+          presentation="page"
+          onCancel={closeEditor}
+          onSubmit={handleSave}
+          onDirtyChange={setEditorDirty}
+          onVideosChanged={(videos) => {
+            if (editorExercise?.id) handleVideosChanged(editorExercise.id, videos);
+          }}
+        />
+      </section>
+    );
+  }
+
   return (
     <section className="exercise-catalog-page ui-page-shell">
       <div className="exercise-catalog-heading ui-page-heading">
-        <div>
-          <p className="eyebrow">Trainingsplanung</p>
+        <div className="exercise-catalog-title">
           <h1>Übungskatalog</h1>
           <p>Übungen schnell finden, vergleichen und für die Planung vorbereiten.</p>
         </div>
@@ -429,10 +462,6 @@ export function ExerciseCatalogPage() {
               <button type="button" className="text-button" onClick={resetFilters}>Zurücksetzen</button>
             </header>
 
-            <div className="ui-segmented" aria-label="Darstellung wählen">
-              <button type="button" className={viewMode === "list" ? "active" : ""} onClick={() => setViewMode("list")}><LayoutList aria-hidden="true" />Liste</button>
-              <button type="button" className={viewMode === "grid" ? "active" : ""} onClick={() => setViewMode("grid")}><Grid2X2 aria-hidden="true" />Raster</button>
-            </div>
 
             <div className="exercise-filter-grid">
               <label><span>Kategorie</span><select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}><option value="all">Alle Kategorien</option>{data.categories.map((category) => <option value={category.key} key={category.key}>{category.title}</option>)}</select></label>
@@ -471,19 +500,17 @@ export function ExerciseCatalogPage() {
           {canEdit && data.exercises.length === 0 && <button type="button" className="primary-button" onClick={() => openEditor(null)}><Plus aria-hidden="true" />Erste Übung anlegen</button>}
         </div>
       ) : (
-        <div className={`exercise-list ${viewMode === "grid" ? "exercise-list-grid" : "exercise-list-compact"}`}>
+        <div className="exercise-list exercise-list-compact">
           {filteredExercises.map((exercise) => {
             const expanded = expandedExerciseId === exercise.id;
             const visibleParameters = [...exercise.parameters].sort((left, right) => left.sortOrder - right.sortOrder).slice(0, 4);
-            const videoCount = exercise.videos.length + (exercise.videoUrl ? 1 : 0);
             return (
               <article className={`exercise-card exercise-list-item ${exercise.isActive ? "" : "inactive"} ${expanded ? "expanded" : ""}`} key={exercise.id} data-testid="exercise-card" data-exercise-id={exercise.id}>
                 <div className="exercise-list-summary">
                   <button type="button" className="exercise-list-primary" data-testid="exercise-primary" onClick={() => setExpandedExerciseId(expanded ? null : exercise.id)} aria-expanded={expanded}>
-                    <span className="exercise-category-mark"><BookOpen aria-hidden="true" /></span>
                     <span className="exercise-list-title">
                       <strong>{exercise.name}</strong>
-                      <small>{exercise.categoryTitle}{exercise.subcategory ? ` · ${exercise.subcategory}` : ""}{exercise.difficultyLabel ? ` · ${exercise.difficultyLabel}` : ""}</small>
+                      <small>{exercise.categoryTitle}{exercise.subcategory ? ` · ${exercise.subcategory}` : ""}{exercise.difficultyLabel ? ` · ${exercise.difficultyLabel}` : ""}{exercise.isActive ? "" : " · Archiv"}</small>
                     </span>
                   </button>
 
@@ -491,26 +518,35 @@ export function ExerciseCatalogPage() {
                     <button type="button" className={`exercise-favorite-button ${exercise.isFavorite ? "active" : ""}`} onClick={() => void handleFavorite(exercise)} aria-label={exercise.isFavorite ? `${exercise.name} aus Favoriten entfernen` : `${exercise.name} zu Favoriten hinzufügen`} title={exercise.isFavorite ? "Aus Favoriten entfernen" : "Favorit"}>
                       <Star aria-hidden="true" fill={exercise.isFavorite ? "currentColor" : "none"} />
                     </button>
-                    {exercise.videos.length > 0 ? (
-                      <button type="button" className="exercise-action-link" onClick={() => openEditor(exercise, "videos")} aria-label={`Videos zu ${exercise.name} öffnen`} title={`${exercise.videos.length} Video${exercise.videos.length === 1 ? "" : "s"}`}><Video aria-hidden="true" /><span className="exercise-video-count">{exercise.videos.length}</span></button>
-                    ) : exercise.videoUrl ? (
-                      <a className="exercise-action-link" href={exercise.videoUrl} target="_blank" rel="noreferrer" aria-label={`Video oder Link zu ${exercise.name} öffnen`} title="Video oder Link öffnen"><Video aria-hidden="true" /><ExternalLink aria-hidden="true" /></a>
-                    ) : null}
                     <button type="button" className="exercise-edit-button" data-testid="exercise-edit" onClick={() => openEditor(exercise)} aria-label={`${exercise.name} ${canEdit ? "bearbeiten" : "anzeigen"}`} title={canEdit ? "Bearbeiten" : "Anzeigen"}>{canEdit ? <Pencil aria-hidden="true" /> : <BookOpen aria-hidden="true" />}</button>
                     <button type="button" className="exercise-expand-button" data-testid="exercise-expand" onClick={() => setExpandedExerciseId(expanded ? null : exercise.id)} aria-label={expanded ? `${exercise.name} einklappen` : `${exercise.name} Schnellinfos anzeigen`} title={expanded ? "Einklappen" : "Schnellinfos"}>{expanded ? <ChevronUp aria-hidden="true" /> : <ChevronDown aria-hidden="true" />}</button>
                   </div>
                 </div>
 
-                <div className="exercise-list-tags">
-                  {exercise.equipment.slice(0, 2).map((item) => <span className="ui-meta-chip" key={item}>{item}</span>)}
-                  {exercise.equipment.length > 2 && <span className="ui-meta-chip">+{exercise.equipment.length - 2} Material</span>}
-                  {videoCount > 0 && <span className="ui-meta-chip"><Video aria-hidden="true" />{videoCount}</span>}
-                  {!exercise.isActive && <span className="ui-meta-chip muted">Archiv</span>}
-                </div>
 
                 {expanded && (
                   <div className="exercise-quick-info">
                     {exercise.goal && <p className="exercise-quick-goal">{exercise.goal}</p>}
+                    {exercise.equipment.length > 0 && (
+                      <div className="exercise-quick-materials">
+                        <small>Material</small>
+                        <div>{exercise.equipment.map((item) => <span className="ui-meta-chip" key={item}>{item}</span>)}</div>
+                      </div>
+                    )}
+                    {hasVideo(exercise) && (
+                      <div className="exercise-quick-videos">
+                        <small>Video</small>
+                        {exercise.videos.length > 0 ? (
+                          <button type="button" onClick={() => openEditor(exercise, "videos")} aria-label={`Videos zu ${exercise.name} öffnen`}>
+                            <Video aria-hidden="true" />{exercise.videos.length} Video{exercise.videos.length === 1 ? "" : "s"}
+                          </button>
+                        ) : (
+                          <a href={exercise.videoUrl ?? undefined} target="_blank" rel="noreferrer" aria-label={`Video oder Link zu ${exercise.name} öffnen`}>
+                            <Video aria-hidden="true" />Video oder Link öffnen<ExternalLink aria-hidden="true" />
+                          </a>
+                        )}
+                      </div>
+                    )}
                     <div className="exercise-quick-parameters">
                       {visibleParameters.length > 0 ? visibleParameters.map((parameter) => (
                         <div className="exercise-quick-parameter" key={parameter.key}>
@@ -535,30 +571,6 @@ export function ExerciseCatalogPage() {
 
       {usageExercise && <ExerciseUsageDialog organizationId={organizationId ?? ""} exercise={usageExercise} onClose={() => setUsageExercise(null)} />}
 
-      {editorExercise !== undefined && (
-        <ExerciseEditor
-          key={editorExercise?.id ?? "new-exercise"}
-          exercise={editorExercise}
-          catalogExercises={data.exercises}
-          categories={data.categories}
-          subcategories={data.subcategories}
-          materials={data.materials}
-          difficulties={data.difficulties}
-          parameterOptions={data.parameterOptions}
-          groups={data.groups}
-          organizationId={organizationId ?? ""}
-          initialSection={editorInitialSection}
-          canEdit={editorCanEdit}
-          busy={busy}
-          lockNotice={editorExercise?.id ? <EditLockNotice lock={exerciseLock} /> : null}
-          onCancel={closeEditor}
-          onSubmit={handleSave}
-          onDirtyChange={setEditorDirty}
-          onVideosChanged={(videos) => {
-            if (editorExercise?.id) handleVideosChanged(editorExercise.id, videos);
-          }}
-        />
-      )}
     </section>
   );
 }

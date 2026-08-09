@@ -1,0 +1,123 @@
+.editor-shell {
+  min-width: 0;
+  position: relative;
+  overflow: visible;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow: 0 8px 24px rgba(8, 36, 22, .06);
+}
+
+.editor-shell-header {
+  position: sticky;
+  z-index: 9;
+  top: 76px;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 11px 13px;
+  background: rgba(255, 255, 255, .97);
+  border-bottom: 1px solid var(--border);
+  border-radius: 18px 18px 0 0;
+  box-shadow: 0 7px 18px rgba(15, 62, 38, .07);
+  backdrop-filter: blur(10px);
+}
+
+.editor-shell-copy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.editor-shell-copy .eyebrow,
+.editor-shell-copy h2,
+.editor-shell-meta,
+.editor-shell-meta > * {
+  margin: 0;
+}
+
+.editor-shell-copy h2 {
+  overflow: hidden;
+  color: var(--green-950);
+  font-size: 1.08rem;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.editor-shell-meta {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: .8rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.editor-shell-actions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.editor-shell-actions .icon-button {
+  width: 42px;
+  height: 42px;
+}
+
+.editor-shell-save {
+  color: #fff;
+  background: var(--green-700);
+  border-color: var(--green-700);
+}
+
+.editor-shell-save:hover:not(:disabled),
+.editor-shell-save:focus-visible {
+  background: var(--green-800);
+}
+
+.editor-shell-save:disabled {
+  color: #7b9285;
+  background: #edf2ef;
+  border-color: var(--border);
+}
+
+.editor-shell-body {
+  min-width: 0;
+}
+
+@media (max-width: 760px) {
+  .editor-shell {
+    border-right: 0;
+    border-left: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .editor-shell-header {
+    top: 66px;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: 0;
+  }
+
+  .editor-shell-copy h2 {
+    font-size: 1rem;
+  }
+
+  .editor-shell-copy .eyebrow,
+  .editor-shell-meta {
+    display: none;
+  }
+
+  .editor-shell-actions {
+    gap: 4px;
+  }
+
+  .editor-shell-actions .icon-button {
+    width: 40px;
+    height: 40px;
+  }
+}

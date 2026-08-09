@@ -111,6 +111,27 @@ test("zentrales Stammdatenmodul rendert ohne React-Laufzeitfehler", { tag: "@pr"
   await expectRuntimeHealthy(page, problems, unhandled);
 });
 
+test("Auswahllisten bearbeiten unterhalb der globalen Kopfzeile", async ({ page }) => {
+  const problems = collectRuntimeProblems(page);
+  await installAuthenticatedSession(page);
+  const unhandled = await installSupabaseMock(page);
+
+  await expectAuthenticatedHeading(page, "/module/dropdown_settings", "Auswahllisten");
+  await page.getByRole("button", { name: "Sprint bearbeiten", exact: true }).click();
+  const editor = page.getByRole("region", { name: "Kategorie bearbeiten", exact: true });
+  await expect(editor).toBeVisible();
+  await expect(page.locator(".app-header")).toBeVisible();
+  await expect(page.getByTestId("dropdown-setting-save")).toBeVisible();
+  const appHeaderBox = await page.locator(".app-header").boundingBox();
+  const editorHeaderBox = await editor.locator(".editor-shell-header").boundingBox();
+  expect(appHeaderBox).not.toBeNull();
+  expect(editorHeaderBox).not.toBeNull();
+  expect(editorHeaderBox.y).toBeGreaterThanOrEqual(appHeaderBox.y + appHeaderBox.height - 2);
+  await page.getByRole("button", { name: "Bearbeitung schließen", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Auswahllisten", exact: true })).toBeVisible();
+  await expectRuntimeHealthy(page, problems, unhandled);
+});
+
 test("D2 Übungskatalog zeigt kompakte Liste, Schnellinfos und Filter-Sheet", { tag: "@pr" }, async ({ page }) => {
   const problems = collectRuntimeProblems(page);
   await installAuthenticatedSession(page);
@@ -135,11 +156,23 @@ test("D2 Übungskatalog zeigt kompakte Liste, Schnellinfos und Filter-Sheet", { 
   await firstExercise.locator(".exercise-list-primary").click();
   await expect(firstExercise.locator(".exercise-quick-info")).toBeVisible();
   await expect(firstExercise.locator(".exercise-usage-summary")).toBeVisible();
+  await expect(firstExercise.locator(".exercise-quick-videos")).toBeVisible();
+  await expect(firstExercise.getByTestId("exercise-actions").locator("a")).toHaveCount(0);
+
+  await firstExercise.getByTestId("exercise-edit").click();
+  await expect(page.locator(".app-header")).toBeVisible();
+  await expect(page.locator(".exercise-editor-page")).toBeVisible();
+  await expect(page.getByTestId("exercise-editor-save")).toBeVisible();
+  const appHeaderBox = await page.locator(".app-header").boundingBox();
+  const editorHeaderBox = await page.locator(".editor-shell-header").boundingBox();
+  expect(appHeaderBox).not.toBeNull();
+  expect(editorHeaderBox).not.toBeNull();
+  expect(editorHeaderBox.y).toBeGreaterThanOrEqual(appHeaderBox.y + appHeaderBox.height - 2);
+  await page.getByRole("button", { name: "Bearbeitung schließen", exact: true }).click();
 
   await page.getByRole("button", { name: "Filtermenü öffnen", exact: true }).click();
   await expect(page.getByRole("region", { name: "Übungskatalog filtern" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Liste", exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Raster", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Raster", exact: true })).toHaveCount(0);
   await page.getByRole("button", { name: "Anwenden", exact: true }).click();
   await expect(page.getByRole("region", { name: "Übungskatalog filtern" })).toHaveCount(0);
 

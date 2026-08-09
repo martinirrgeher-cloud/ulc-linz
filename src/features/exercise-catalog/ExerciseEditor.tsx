@@ -1,4 +1,5 @@
 import { useMemo, useState, type ReactNode } from "react";
+import { EditorShell } from "@/components/ui/EditorShell";
 import { useDraftDirtyState } from "@/features/collaboration/useDraftDirtyState";
 import {
   Check,
@@ -8,10 +9,12 @@ import {
   ListChecks,
   Save,
   Settings2,
+  Trash2,
   Video,
   X,
 } from "lucide-react";
 import { findExerciseNameCandidates } from "@/features/exercise-catalog/name-similarity";
+import { EXERCISE_PARAMETER_GROUPS } from "@/features/exercise-catalog/parameter-groups";
 import {
   createEmptyExerciseInput,
   createParameterDefinition,
@@ -27,6 +30,7 @@ import {
   type ExerciseTrainingGroup,
 } from "@/features/exercise-catalog/types";
 import { ExerciseVideoPanel } from "@/features/exercise-catalog/ExerciseVideoPanel";
+import { SpeechToTextButton } from "@/features/exercise-catalog/SpeechToTextButton";
 
 export type EditorSection = "basis" | "anleitung" | "relations" | "parameter" | "videos";
 
@@ -58,6 +62,7 @@ export type ExerciseEditorProps = {
   onSubmit: (values: ExerciseInput) => Promise<void>;
   onVideosChanged?: (videos: Exercise["videos"]) => void;
   onDirtyChange?: (dirty: boolean) => void;
+  presentation?: "dialog" | "page";
 };
 
 function nullableNumber(value: string): number | null {
@@ -98,6 +103,7 @@ export function ExerciseEditor({
   onSubmit,
   onVideosChanged,
   onDirtyChange,
+  presentation = "dialog",
 }: ExerciseEditorProps) {
   const defaultCategoryKey = categories.find((category) => category.isActive !== false)?.key
     ?? categories[0]?.key
@@ -131,22 +137,35 @@ export function ExerciseEditor({
   );
   const exactDuplicate = duplicateCandidates.find((candidate) => candidate.exactNormalized) ?? null;
 
+  const selectedRelations = useMemo(() => (
+    values.similarExerciseIds
+      .map((id) => catalogExercises.find((candidate) => candidate.id === id))
+      .filter((candidate): candidate is Exercise => Boolean(candidate))
+      .sort((left, right) => left.name.localeCompare(right.name, "de", { sensitivity: "base" }))
+  ), [catalogExercises, values.similarExerciseIds]);
+
   const relationOptions = useMemo(() => {
     const search = relationSearch.trim().toLocaleLowerCase("de");
     return catalogExercises
       .filter((candidate) => candidate.id !== exercise?.id)
+      .filter((candidate) => candidate.categoryKey === values.categoryKey)
+      .filter((candidate) => !values.similarExerciseIds.includes(candidate.id))
       .filter((candidate) => !search || [
         candidate.name,
-        candidate.categoryTitle,
         candidate.subcategory ?? "",
         candidate.goal ?? "",
       ].some((value) => value.toLocaleLowerCase("de").includes(search)))
       .sort((left, right) => left.name.localeCompare(right.name, "de", { sensitivity: "base" }));
-  }, [catalogExercises, exercise?.id, relationSearch]);
+  }, [catalogExercises, exercise?.id, relationSearch, values.categoryKey, values.similarExerciseIds]);
 
   function update<K extends keyof ExerciseInput>(key: K, value: ExerciseInput[K]) {
     setValues((current) => ({ ...current, [key]: value }));
     setValidationError(null);
+  }
+
+  function appendSpeech(key: "description" | "coachingCues" | "commonMistakes", transcript: string) {
+    const currentValue = values[key].trim();
+    update(key, currentValue ? `${currentValue} ${transcript}` : transcript);
   }
 
   function toggleGroup(groupId: string) {
@@ -199,6 +218,7 @@ export function ExerciseEditor({
               stepValue: null,
               sortOrder: 100,
               isActive: true,
+              parameterGroup: "execution",
             },
             current.parameters.length + 1,
           ),
@@ -265,34 +285,13 @@ export function ExerciseEditor({
     await onSubmit(values);
   }
 
-  return (
-    <div className="exercise-editor-backdrop" role="presentation">
-      <section
-        className="exercise-editor"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="exercise-editor-title"
-      >
-        <header className="exercise-editor-header">
-          <div>
-            <p className="eyebrow">{headerEyebrow}</p>
-            <h2 id="exercise-editor-title">{headerTitle ?? (exercise ? exercise.name : "Übung anlegen")}</h2>
-            {headerMeta}
-            {!canEdit && <small>Nur-Lese-Ansicht</small>}
-          </div>
-          <button
-            type="button"
-            className="icon-button"
-            onClick={onCancel}
-            disabled={busy || videoBusy}
-            aria-label="Dialog schließen"
-            title="Schließen"
-          >
-            <X aria-hidden="true" />
-          </button>
-        </header>
+  const useFooterActions = Boolean(footerExtra || cancelLabel || submitLabel !== "Speichern");
 
-        <nav className="exercise-editor-tabs" aria-label="Übungsbereiche">
+  const resolvedTitle = headerTitle ?? (exercise ? exercise.name : "Übung anlegen");
+  const canSave = !videoBusy && !exactDuplicate;
+  const editorContent = (
+    <>
+      <nav className="exercise-editor-tabs" aria-label="Übungsbereiche">
           <button type="button" className={section === "basis" ? "active" : ""} onClick={() => setSection("basis")}>
             <Dumbbell aria-hidden="true" />Basis
           </button>
@@ -401,29 +400,31 @@ export function ExerciseEditor({
                     />
                   </label>
 
-                  <div className="exercise-field exercise-field-wide">
-                    <span>Material (Mehrfachauswahl)</span>
-                    <details className="exercise-multi-select">
-                      <summary>{values.equipment.length > 0 ? values.equipment.join(", ") : "Material auswählen"}</summary>
-                      <div className="exercise-multi-select-options">
-                        {materials
-                          .filter((option) => option.isActive || values.equipment.includes(option.label))
-                          .map((option) => (
-                            <label key={option.key}>
-                              <input type="checkbox" checked={values.equipment.includes(option.label)} onChange={() => toggleMaterial(option.label)} />
+                  <div className="exercise-field exercise-field-wide exercise-material-field">
+                    <span>Material</span>
+                    <div className="exercise-choice-list exercise-material-list" role="group" aria-label="Material auswählen">
+                      {materials
+                        .filter((option) => option.isActive || values.equipment.includes(option.label))
+                        .map((option) => {
+                          const checked = values.equipment.includes(option.label);
+                          return (
+                            <label className={checked ? "selected" : ""} key={option.key}>
+                              <input type="checkbox" checked={checked} onChange={() => toggleMaterial(option.label)} />
+                              <span className="exercise-choice-check" aria-hidden="true">{checked && <Check />}</span>
                               <span>{option.label}</span>
                             </label>
-                          ))}
-                        {values.equipment
-                          .filter((material) => !materials.some((option) => option.label === material))
-                          .map((material) => (
-                            <label key={material}>
-                              <input type="checkbox" checked onChange={() => toggleMaterial(material)} />
-                              <span>{material} (bestehend)</span>
-                            </label>
-                          ))}
-                      </div>
-                    </details>
+                          );
+                        })}
+                      {values.equipment
+                        .filter((material) => !materials.some((option) => option.label === material))
+                        .map((material) => (
+                          <label className="selected" key={material}>
+                            <input type="checkbox" checked onChange={() => toggleMaterial(material)} />
+                            <span className="exercise-choice-check" aria-hidden="true"><Check /></span>
+                            <span>{material} (bestehend)</span>
+                          </label>
+                        ))}
+                    </div>
                   </div>
                 </div>
 
@@ -452,9 +453,18 @@ export function ExerciseEditor({
 
             {section === "anleitung" && (
               <div className="exercise-editor-panel">
-                <label className="exercise-field"><span>Durchführung</span><textarea value={values.description} onChange={(event) => update("description", event.target.value)} rows={5} placeholder="Kurze, klare Beschreibung der Durchführung" /></label>
-                <label className="exercise-field"><span>Trainerhinweise</span><textarea value={values.coachingCues} onChange={(event) => update("coachingCues", event.target.value)} rows={4} placeholder="Worauf soll besonders geachtet werden?" /></label>
-                <label className="exercise-field"><span>Typische Fehler</span><textarea value={values.commonMistakes} onChange={(event) => update("commonMistakes", event.target.value)} rows={4} placeholder="Häufige Fehler und mögliche Korrekturen" /></label>
+                <div className="exercise-field exercise-speech-field">
+                  <div className="exercise-field-heading"><label htmlFor="exercise-description">Durchführung</label><SpeechToTextButton label="Durchführung" disabled={!canEdit || busy || videoBusy} onTranscript={(transcript) => appendSpeech("description", transcript)} /></div>
+                  <textarea id="exercise-description" value={values.description} onChange={(event) => update("description", event.target.value)} rows={5} placeholder="Kurze, klare Beschreibung der Durchführung" />
+                </div>
+                <div className="exercise-field exercise-speech-field">
+                  <div className="exercise-field-heading"><label htmlFor="exercise-coaching-cues">Trainerhinweise</label><SpeechToTextButton label="Trainerhinweise" disabled={!canEdit || busy || videoBusy} onTranscript={(transcript) => appendSpeech("coachingCues", transcript)} /></div>
+                  <textarea id="exercise-coaching-cues" value={values.coachingCues} onChange={(event) => update("coachingCues", event.target.value)} rows={4} placeholder="Worauf soll besonders geachtet werden?" />
+                </div>
+                <div className="exercise-field exercise-speech-field">
+                  <div className="exercise-field-heading"><label htmlFor="exercise-common-mistakes">Typische Fehler</label><SpeechToTextButton label="Typische Fehler" disabled={!canEdit || busy || videoBusy} onTranscript={(transcript) => appendSpeech("commonMistakes", transcript)} /></div>
+                  <textarea id="exercise-common-mistakes" value={values.commonMistakes} onChange={(event) => update("commonMistakes", event.target.value)} rows={4} placeholder="Häufige Fehler und mögliche Korrekturen" />
+                </div>
                 <label className="exercise-field"><span>Video- oder Weblink</span><input type="url" inputMode="url" value={values.videoUrl} onChange={(event) => update("videoUrl", event.target.value)} placeholder="https://…" /></label>
               </div>
             )}
@@ -464,20 +474,44 @@ export function ExerciseEditor({
                 <div className="parameter-picker-heading">
                   <div>
                     <h3>Ähnliche Übungen</h3>
-                    <p>Verknüpfe Varianten und methodisch verwandte Übungen. Die Verbindung gilt in beide Richtungen.</p>
+                    <p>Neue Verknüpfungen werden nur aus derselben Kategorie angeboten. Ausgewählte Übungen bleiben oben sichtbar.</p>
                   </div>
                 </div>
+
+                {selectedRelations.length > 0 && (
+                  <div className="exercise-relation-group">
+                    <strong>Ausgewählt</strong>
+                    <div className="exercise-choice-list exercise-relation-list">
+                      {selectedRelations.map((candidate) => (
+                        <label className="selected" key={candidate.id}>
+                          <input type="checkbox" checked onChange={() => toggleSimilarExercise(candidate.id)} />
+                          <span className="exercise-choice-check" aria-hidden="true"><Check /></span>
+                          <span><strong>{candidate.name}</strong><small>{candidate.categoryTitle}{candidate.subcategory ? ` · ${candidate.subcategory}` : ""}{candidate.isActive ? "" : " · archiviert"}</small></span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <label className="exercise-field">
-                  <span>Übung suchen</span>
-                  <input type="search" value={relationSearch} onChange={(event) => setRelationSearch(event.target.value)} placeholder="Name, Kategorie oder Ziel" />
+                  <span>In {categories.find((category) => category.key === values.categoryKey)?.title ?? "dieser Kategorie"} suchen</span>
+                  <input type="search" value={relationSearch} onChange={(event) => setRelationSearch(event.target.value)} placeholder="Übungsname oder Trainingsziel" />
                 </label>
-                <div className="exercise-multi-select-options">
-                  {relationOptions.map((candidate) => (
-                    <label key={candidate.id}>
-                      <input type="checkbox" checked={values.similarExerciseIds.includes(candidate.id)} onChange={() => toggleSimilarExercise(candidate.id)} />
-                      <span>{candidate.name} · {candidate.categoryTitle}{candidate.isActive ? "" : " · archiviert"}</span>
-                    </label>
-                  ))}
+                <div className="exercise-relation-group">
+                  <strong>Übungen derselben Kategorie</strong>
+                  {relationOptions.length > 0 ? (
+                    <div className="exercise-choice-list exercise-relation-list">
+                      {relationOptions.map((candidate) => (
+                        <label key={candidate.id}>
+                          <input type="checkbox" checked={false} onChange={() => toggleSimilarExercise(candidate.id)} />
+                          <span className="exercise-choice-check" aria-hidden="true" />
+                          <span><strong>{candidate.name}</strong><small>{candidate.subcategory || candidate.goal || "Keine weitere Beschreibung"}{candidate.isActive ? "" : " · archiviert"}</small></span>
+                        </label>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="exercise-relation-empty">Keine weiteren passenden Übungen in dieser Kategorie.</p>
+                  )}
                 </div>
               </div>
             )}
@@ -502,14 +536,43 @@ export function ExerciseEditor({
 
             {section === "parameter" && (
               <div className="exercise-editor-panel">
-                <div className="parameter-picker-heading"><div><h3>Planungsparameter</h3><p>Nur ausgewählte Parameter erscheinen später in der Trainingsplanung.</p></div></div>
-                <div className="parameter-picker">
-                  {parameterOptions.filter((option) => option.isActive || selectedParameterKeys.has(option.key)).map((option) => {
-                    const selected = selectedParameterKeys.has(option.key);
+                <div className="parameter-picker-heading">
+                  <div>
+                    <h3>Planungsparameter</h3>
+                    <p>Wähle zuerst die benötigten Werte. Einstellungen erscheinen nur für ausgewählte Parameter.</p>
+                  </div>
+                </div>
+
+                <div className="parameter-group-list">
+                  {EXERCISE_PARAMETER_GROUPS.map((group) => {
+                    const options = parameterOptions.filter((option) => (
+                      option.parameterGroup === group.key
+                      && (option.isActive || selectedParameterKeys.has(option.key))
+                    ));
+                    if (options.length === 0) return null;
                     return (
-                      <button type="button" className={selected ? "selected" : ""} onClick={() => toggleParameter(option.key)} key={option.key}>
-                        {selected && <Check aria-hidden="true" />}{option.label}{option.unit && <small>{option.unit}</small>}
-                      </button>
+                      <section className="parameter-option-group" key={group.key} aria-label={group.label}>
+                        <h4>{group.label}</h4>
+                        <div className="parameter-picker">
+                          {options.map((option) => {
+                            const selected = selectedParameterKeys.has(option.key);
+                            return (
+                              <button
+                                type="button"
+                                className={selected ? "selected" : ""}
+                                onClick={() => toggleParameter(option.key)}
+                                key={option.key}
+                                aria-pressed={selected}
+                                aria-label={`${option.label} ${selected ? "abwählen" : "hinzufügen"}`}
+                              >
+                                {selected && <Check aria-hidden="true" />}
+                                <span>{selected ? `${option.label} gewählt` : `+ ${option.label}`}</span>
+                                {option.unit && <small>{option.unit}</small>}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </section>
                     );
                   })}
                 </div>
@@ -517,45 +580,109 @@ export function ExerciseEditor({
                 {values.parameters.length === 0 ? (
                   <div className="exercise-parameter-empty"><ListChecks aria-hidden="true" /><p>Diese Übung besitzt noch keine Planungsparameter.</p></div>
                 ) : (
-                  <div className="exercise-parameter-list">
-                    {[...values.parameters].sort((left, right) => left.sortOrder - right.sortOrder).map((parameter) => (
-                      <article className="exercise-parameter-card" key={parameter.key}>
-                        <header>
-                          <div><strong>{parameter.label}</strong><small>{parameter.unit || parameter.inputType}</small></div>
-                          <button type="button" className="text-button danger-text" onClick={() => toggleParameter(parameter.key)}>Entfernen</button>
-                        </header>
-                        <div className="parameter-detail-grid">
-                          <label className="exercise-field"><span>Standardwert</span><input type={parameter.inputType === "number" ? "number" : "text"} inputMode={parameter.inputType === "number" ? "decimal" : undefined} step={parameter.stepValue ?? undefined} value={parameter.defaultValue} onChange={(event) => updateParameter(parameter.key, { defaultValue: event.target.value })} /></label>
-                          {parameter.inputType === "number" && (
-                            <>
-                              <label className="exercise-field"><span>Minimum</span><input type="number" inputMode="decimal" step="any" value={numberInputValue(parameter.minValue)} onChange={(event) => updateParameter(parameter.key, { minValue: nullableNumber(event.target.value) })} /></label>
-                              <label className="exercise-field"><span>Maximum</span><input type="number" inputMode="decimal" step="any" value={numberInputValue(parameter.maxValue)} onChange={(event) => updateParameter(parameter.key, { maxValue: nullableNumber(event.target.value) })} /></label>
-                              <label className="exercise-field"><span>Schrittweite</span><input type="number" inputMode="decimal" step="any" value={numberInputValue(parameter.stepValue)} onChange={(event) => updateParameter(parameter.key, { stepValue: nullableNumber(event.target.value) })} /></label>
-                            </>
-                          )}
-                        </div>
-                        <label className="exercise-parameter-required">
-                          <input type="checkbox" checked={parameter.isRequired} onChange={(event) => updateParameter(parameter.key, { isRequired: event.target.checked })} />
-                          Bei der Trainingsplanung als Pflichtfeld behandeln
-                        </label>
-                      </article>
-                    ))}
+                  <div className="exercise-parameter-groups-selected">
+                    {EXERCISE_PARAMETER_GROUPS.map((group) => {
+                      const parameters = [...values.parameters]
+                        .filter((parameter) => (parameterOptions.find((option) => option.key === parameter.key)?.parameterGroup ?? "execution") === group.key)
+                        .sort((left, right) => left.sortOrder - right.sortOrder);
+                      if (parameters.length === 0) return null;
+                      return (
+                        <section className="exercise-selected-parameter-group" key={group.key}>
+                          <h4>{group.label}</h4>
+                          <div className="exercise-parameter-list">
+                            {parameters.map((parameter) => (
+                              <article className="exercise-parameter-card" key={parameter.key}>
+                                <header>
+                                  <div><strong>{parameter.label}</strong><small>{parameter.unit || (parameter.inputType === "number" ? "Zahl" : "Text")}</small></div>
+                                  <button type="button" className="exercise-parameter-delete" onClick={() => toggleParameter(parameter.key)} aria-label={`${parameter.label} entfernen`} title="Parameter entfernen"><Trash2 aria-hidden="true" /></button>
+                                </header>
+                                <div className="parameter-detail-grid">
+                                  <label><span>Standard</span><input aria-label="Standardwert" type={parameter.inputType === "number" ? "number" : "text"} inputMode={parameter.inputType === "number" ? "decimal" : undefined} step={parameter.stepValue ?? undefined} value={parameter.defaultValue} onChange={(event) => updateParameter(parameter.key, { defaultValue: event.target.value })} /></label>
+                                  {parameter.inputType === "number" && (
+                                    <>
+                                      <label><span>Min</span><input aria-label="Minimum" type="number" inputMode="decimal" step="any" value={numberInputValue(parameter.minValue)} onChange={(event) => updateParameter(parameter.key, { minValue: nullableNumber(event.target.value) })} /></label>
+                                      <label><span>Max</span><input aria-label="Maximum" type="number" inputMode="decimal" step="any" value={numberInputValue(parameter.maxValue)} onChange={(event) => updateParameter(parameter.key, { maxValue: nullableNumber(event.target.value) })} /></label>
+                                      <label><span>Schritt</span><input aria-label="Schrittweite" type="number" inputMode="decimal" step="any" value={numberInputValue(parameter.stepValue)} onChange={(event) => updateParameter(parameter.key, { stepValue: nullableNumber(event.target.value) })} /></label>
+                                    </>
+                                  )}
+                                </div>
+                                <div className="exercise-parameter-requirement" role="group" aria-label={`${parameter.label}: Verwendung in der Planung`}>
+                                  <span>In der Planung</span>
+                                  <div>
+                                    <button type="button" className={!parameter.isRequired ? "active" : ""} aria-pressed={!parameter.isRequired} onClick={() => updateParameter(parameter.key, { isRequired: false })}>Optional</button>
+                                    <button type="button" className={parameter.isRequired ? "active" : ""} aria-pressed={parameter.isRequired} onClick={() => updateParameter(parameter.key, { isRequired: true })}>Pflicht</button>
+                                  </div>
+                                </div>
+                              </article>
+                            ))}
+                          </div>
+                        </section>
+                      );
+                    })}
                   </div>
                 )}
               </div>
             )}
           </fieldset>
 
-          <footer className="exercise-editor-actions">
-            <button type="button" className="secondary-button" onClick={onCancel} disabled={busy || videoBusy}>{cancelLabel ?? (canEdit ? "Abbrechen" : "Schließen")}</button>
-            {footerExtra}
-            {canEdit && (
-              <button type="button" className="primary-button" onClick={() => void handleSave()} disabled={busy || videoBusy || Boolean(exactDuplicate)}>
-                <Save aria-hidden="true" />{busy ? "Wird verarbeitet …" : submitLabel}
+          {useFooterActions && (
+            <footer className="exercise-editor-actions">
+              <button type="button" className="secondary-button" onClick={onCancel} disabled={busy || videoBusy}>{cancelLabel ?? (canEdit ? "Abbrechen" : "Schließen")}</button>
+              {footerExtra}
+              {canEdit && (
+                <button type="button" className="primary-button" onClick={() => void handleSave()} disabled={busy || videoBusy || Boolean(exactDuplicate)}>
+                  <Save aria-hidden="true" />{busy ? "Wird verarbeitet …" : submitLabel}
+                </button>
+              )}
+            </footer>
+          )}
+        </div>
+    </>
+  );
+
+  if (presentation === "page") {
+    return (
+      <EditorShell
+        eyebrow={headerEyebrow}
+        title={resolvedTitle}
+        meta={headerMeta ?? (!canEdit ? <small>Nur-Lese-Ansicht</small> : null)}
+        canEdit={canEdit && !useFooterActions}
+        busy={busy || videoBusy}
+        canSave={canSave}
+        saveLabel="Übung speichern"
+        saveTestId="exercise-editor-save"
+        closeLabel="Bearbeitung schließen"
+        onSave={() => void handleSave()}
+        onClose={onCancel}
+        className="exercise-editor-page"
+      >
+        {editorContent}
+      </EditorShell>
+    );
+  }
+
+  return (
+    <div className="exercise-editor-backdrop" role="presentation">
+      <section className="exercise-editor" role="dialog" aria-modal="true" aria-labelledby="exercise-editor-title">
+        <header className="exercise-editor-header">
+          <div>
+            <p className="eyebrow">{headerEyebrow}</p>
+            <h2 id="exercise-editor-title">{resolvedTitle}</h2>
+            {headerMeta}
+            {!canEdit && <small>Nur-Lese-Ansicht</small>}
+          </div>
+          <div className="exercise-editor-header-actions">
+            {canEdit && !useFooterActions && (
+              <button type="button" className="icon-button exercise-editor-save-button" onClick={() => void handleSave()} disabled={busy || videoBusy || Boolean(exactDuplicate)} aria-label={busy ? "Wird gespeichert" : "Übung speichern"} title="Speichern">
+                <Save aria-hidden="true" />
               </button>
             )}
-          </footer>
-        </div>
+            <button type="button" className="icon-button" onClick={onCancel} disabled={busy || videoBusy} aria-label="Dialog schließen" title="Schließen">
+              <X aria-hidden="true" />
+            </button>
+          </div>
+        </header>
+        {editorContent}
       </section>
     </div>
   );

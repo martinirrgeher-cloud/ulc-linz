@@ -1,5 +1,9 @@
+import type { ExerciseParameterGroupKey } from "@/features/exercise-catalog/parameter-groups";
+
 export type ExerciseParameterKey = string;
 export type ExerciseParameterInputType = "number" | "text";
+
+export type { ExerciseParameterGroupKey } from "@/features/exercise-catalog/parameter-groups";
 
 export type ExerciseDifficulty = {
   key: string;
@@ -38,6 +42,7 @@ export type ExerciseParameterOption = ExerciseListOption & {
   unit: string;
   inputType: ExerciseParameterInputType;
   stepValue: number | null;
+  parameterGroup: ExerciseParameterGroupKey;
 };
 
 export type ExerciseCategory = {

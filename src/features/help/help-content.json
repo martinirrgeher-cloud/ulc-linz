@@ -536,10 +536,10 @@
           "id": "edit",
           "title": "Übung bearbeiten",
           "bullets": [
-            "Name, Ziel, Beschreibung und Trainerhinweise.",
-            "Kategorien, Material, Gruppen und Schwierigkeit.",
-            "Planungsparameter mit Standard-, Mindest-, Höchst- und Schrittwerten.",
-            "Ähnliche Übungen und Dublettenhinweis."
+            "Name, Ziel, Beschreibung und Trainerhinweise; Durchführung, Trainerhinweise und typische Fehler unterstützen bei kompatiblen Browsern Spracheingabe.",
+            "Kategorien, Material, Gruppen und Schwierigkeit; Material bleibt im Basisbereich direkt sichtbar.",
+            "Planungsparameter mit kompakten Standard-, Mindest-, Höchst- und Schrittwerten sowie einem Schalter für Pflichtwerte in der Planung.",
+            "Ähnliche Übungen werden als Liste aus derselben Kategorie angeboten; ausgewählte Verknüpfungen bleiben separat sichtbar."
           ]
         },
         {
@@ -856,7 +856,7 @@
             "Auswahlliste im kompakten Auswahlfeld wählen; die Zahl daneben zeigt die aktiven Einträge.",
             "Mit + Neu die gewünschte Listenart auswählen oder einen vorhandenen Eintrag über den Stift öffnen.",
             "Bezeichnung, Sortierung und gegebenenfalls Einheit oder Eingabetyp erfassen. Aktiv/Inaktiv wird direkt im Bearbeitungsdialog gesetzt.",
-            "Mit der Diskette speichern; X schließt den Dialog."
+            "Mit der Diskette oben rechts speichern; X schließt den Dialog. Die Speicheraktion bleibt auch beim Bearbeiten bestehender Einträge sichtbar."
           ],
           "warning": "Bereits verwendete Werte nicht unüberlegt löschen oder umdeuten."
         },
