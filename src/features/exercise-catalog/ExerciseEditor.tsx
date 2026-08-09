@@ -606,9 +606,9 @@ export function ExerciseEditor({
                                     </>
                                   )}
                                 </div>
-                                <div className="exercise-parameter-requirement ui-segmented" role="group" aria-label={`${parameter.label}: Verwendung in der Planung`}>
+                                <div className="exercise-parameter-requirement">
                                   <span>In der Planung</span>
-                                  <div>
+                                  <div className="ui-segmented" role="group" aria-label={`${parameter.label}: Verwendung in der Planung`}>
                                     <button type="button" className={!parameter.isRequired ? "active" : ""} aria-pressed={!parameter.isRequired} onClick={() => updateParameter(parameter.key, { isRequired: false })}>Optional</button>
                                     <button type="button" className={parameter.isRequired ? "active" : ""} aria-pressed={parameter.isRequired} onClick={() => updateParameter(parameter.key, { isRequired: true })}>Pflicht</button>
                                   </div>

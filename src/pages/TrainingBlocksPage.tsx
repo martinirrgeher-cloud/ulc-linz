@@ -287,6 +287,7 @@ export function TrainingBlocksPage() {
     setRemoteChangePending(false);
     setError(null);
     setSuccess(null);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function closeEditor() {
@@ -425,6 +426,32 @@ export function TrainingBlocksPage() {
     .map((blockId) => data.blocks.find((block) => block.id === blockId))
     .filter((block): block is TrainingBlock => Boolean(block));
 
+  if (editorBlock !== undefined) {
+    return (
+      <section className="training-blocks-page ui-page-shell training-blocks-editor-page">
+        {error && <div className="alert error">{error}</div>}
+        {success && <div className="alert success">{success}</div>}
+        <RemoteChangeNotice
+          visible={remoteChangePending}
+          busy={busy || remoteSyncBusy}
+          onLoadServer={() => applyRemoteServerState(false)}
+          onKeepDraft={() => applyRemoteServerState(true)}
+        />
+        <TrainingBlockEditor
+          key={editorBlock?.id ?? "new-training-block"}
+          block={editorBlock}
+          organizationId={organizationId ?? ""}
+          groups={data.groups}
+          exercises={data.exercises}
+          canEdit={editorCanEdit}
+          busy={busy}
+          lockNotice={editorBlock?.id ? <EditLockNotice lock={blockLock} /> : null}
+          onCancel={closeEditor}
+          onSubmit={handleSave}
+        />
+      </section>
+    );
+  }
 
   return (
     <section className="training-blocks-page ui-page-shell">
@@ -576,7 +603,7 @@ export function TrainingBlocksPage() {
                           <button type="button" className="icon-button" onClick={() => void handleVariant(block)} disabled={busyBlockId === block.id} aria-label={`Neue Variante von ${block.name} erstellen`} title="Neue Variante erstellen"><GitBranchPlus aria-hidden="true" /></button>
                           {block.usageCount === 0 && <button type="button" className="icon-button icon-button--danger" onClick={() => void handleDelete(block)} disabled={busyBlockId === block.id} aria-label={`${block.name} löschen`} title="Endgültig löschen"><Trash2 aria-hidden="true" /></button>}
                         </>}
-                        <button type="button" className="icon-button" onClick={() => openEditor(block)} aria-label={`${block.name} ${canEdit ? "bearbeiten" : "anzeigen"}`} title={canEdit ? "Bearbeiten" : "Anzeigen"}>{canEdit ? <Pencil aria-hidden="true" /> : <ClipboardCheck aria-hidden="true" />}</button>
+                        <button type="button" className="icon-button" onClick={() => openEditor(block)} aria-label={`${block.name} ${canEdit ? "bearbeiten" : "anzeigen"}`} title={canEdit ? "Bearbeiten" : "Anzeigen"} data-testid="training-block-edit">{canEdit ? <Pencil aria-hidden="true" /> : <ClipboardCheck aria-hidden="true" />}</button>
                       </div>
                     </div>
                     <div className="training-block-card-groups">
@@ -637,10 +664,6 @@ export function TrainingBlocksPage() {
           groups={data.groups}
           onClose={() => setCompareOpen(false)}
         />
-      )}
-
-      {editorBlock !== undefined && (
-        <TrainingBlockEditor key={editorBlock?.id ?? "new-training-block"} block={editorBlock} organizationId={organizationId ?? ""} groups={data.groups} exercises={data.exercises} canEdit={editorCanEdit} busy={busy} lockNotice={editorBlock?.id ? <EditLockNotice lock={blockLock} /> : null} onCancel={() => setEditorBlock(undefined)} onSubmit={handleSave} />
       )}
 
       {infoExercise && (

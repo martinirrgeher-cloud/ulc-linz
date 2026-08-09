@@ -194,6 +194,48 @@ test("D2 Übungskatalog zeigt kompakte Liste, Schnellinfos und Filter-Sheet", { 
   await expectRuntimeHealthy(page, problems, unhandled);
 });
 
+test("Seiteneditoren nutzen appweit denselben sichtbaren Aktionsheader", async ({ page }) => {
+  const problems = collectRuntimeProblems(page);
+  await installAuthenticatedSession(page);
+  const unhandled = await installSupabaseMock(page);
+
+  async function expectEditorStandard(editor, saveButton) {
+    await expect(editor).toBeVisible();
+    await expect(page.locator(".app-header")).toBeVisible();
+    await expect(editor.locator(".editor-action-header")).toBeVisible();
+    await expect(saveButton).toBeVisible();
+    await expect(saveButton).toHaveCSS("background-color", "rgb(22, 128, 74)");
+    await expect(saveButton).toHaveCSS("color", "rgb(255, 255, 255)");
+    await expect(saveButton).toHaveCSS("width", "40px");
+    await expect(saveButton).toHaveCSS("height", "40px");
+    const appHeaderBox = await page.locator(".app-header").boundingBox();
+    const editorHeaderBox = await editor.locator(".editor-action-header").boundingBox();
+    expect(appHeaderBox).not.toBeNull();
+    expect(editorHeaderBox).not.toBeNull();
+    expect(editorHeaderBox.y).toBeGreaterThanOrEqual(appHeaderBox.y + appHeaderBox.height - 2);
+  }
+
+  await expectAuthenticatedHeading(page, "/module/athletes", "Athleten, Trainer & Gruppen");
+  await page.getByTestId("masterdata-athlete-edit").first().click();
+  await expectEditorStandard(page.getByTestId("masterdata-athlete-editor"), page.getByTestId("editor-save"));
+  await page.getByTestId("editor-close").click();
+
+  await expectAuthenticatedHeading(page, "/module/user_management", "Benutzerverwaltung");
+  await page.getByTestId("user-member-edit").first().click();
+  await expectEditorStandard(page.getByTestId("user-member-editor"), page.getByTestId("user-member-editor-save"));
+  await page.getByTestId("user-member-editor-close").click();
+
+  await expectAuthenticatedHeading(page, "/module/training_blocks", "Trainingsblöcke");
+  const createTrainingBlock = page.getByTestId("training-block-create");
+  await expect(createTrainingBlock).toBeVisible();
+  await expect(createTrainingBlock).toBeEnabled();
+  await createTrainingBlock.click();
+  await expectEditorStandard(page.locator(".training-block-editor-shell"), page.getByTestId("training-block-editor-save"));
+  await page.getByTestId("training-block-editor-close").click();
+
+  await expectRuntimeHealthy(page, problems, unhandled);
+});
+
 test("D3 Kernmodule nutzen das gemeinsame, lesbarere Designsystem", async ({ page }) => {
   const problems = collectRuntimeProblems(page);
   await installAuthenticatedSession(page);

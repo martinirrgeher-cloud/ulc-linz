@@ -3,10 +3,12 @@ import { access, readFile } from "node:fs/promises";
 import path from "node:path";
 
 const projectRoot = path.resolve(".");
-const sharedHeaderPath = path.join(projectRoot, "src", "components", "ui", "StickyEditorActions.tsx");
+const actionHeaderPath = path.join(projectRoot, "src", "components", "ui", "EditorActionHeader.tsx");
+const stickyHeaderPath = path.join(projectRoot, "src", "components", "ui", "StickyEditorActions.tsx");
+const editorShellPath = path.join(projectRoot, "src", "components", "ui", "EditorShell.tsx");
 const legacyHeaderPath = path.join(projectRoot, "src", "features", "athletes", "StickyEditorActions.tsx");
 
-await access(sharedHeaderPath);
+for (const requiredPath of [actionHeaderPath, stickyHeaderPath, editorShellPath]) await access(requiredPath);
 
 try {
   await access(legacyHeaderPath);
@@ -15,14 +17,33 @@ try {
   if (error?.code !== "ENOENT") throw error;
 }
 
-const sharedHeader = await readFile(sharedHeaderPath, "utf8");
+const actionHeader = await readFile(actionHeaderPath, "utf8");
+for (const marker of [
+  'className="icon-button icon-button--save"',
+  'className="icon-button"',
+  "Hilfe für diese Seite",
+  "saveTestId",
+  "closeTestId",
+]) {
+  assert.ok(actionHeader.includes(marker), `Gemeinsamer EditorActionHeader verliert Vertragsmarker: ${marker}`);
+}
+
+for (const [label, relative] of [
+  ["StickyEditorActions", "src/components/ui/StickyEditorActions.tsx"],
+  ["EditorShell", "src/components/ui/EditorShell.tsx"],
+]) {
+  const source = await readFile(path.join(projectRoot, relative), "utf8");
+  assert.ok(source.includes('from "@/components/ui/EditorActionHeader"'), `${label} muss den gemeinsamen EditorActionHeader verwenden.`);
+  assert.ok(source.includes("<EditorActionHeader"), `${label} muss den gemeinsamen EditorActionHeader rendern.`);
+}
+
+const stickyHeader = await readFile(stickyHeaderPath, "utf8");
 for (const marker of [
   'className="management-editor-sticky-header"',
-  'data-testid="editor-save"',
-  'data-testid="editor-close"',
-  'icon-button--save',
+  'saveTestId="editor-save"',
+  'closeTestId="editor-close"',
 ]) {
-  assert.ok(sharedHeader.includes(marker), `Gemeinsame Editor-Aktionsleiste verliert Vertragsmarker: ${marker}`);
+  assert.ok(stickyHeader.includes(marker), `Gemeinsame Stammdaten-Aktionsleiste verliert Vertragsmarker: ${marker}`);
 }
 
 for (const relative of [
@@ -42,4 +63,4 @@ for (const relative of [
   );
 }
 
-console.log("UI-Skalierungsbasis erfolgreich: gemeinsame Editor-Aktionsleiste liegt zentral unter components/ui.");
+console.log("UI-Skalierungsbasis erfolgreich: EditorActionHeader ist gemeinsamer Kern fuer Seiteneditoren und Stammdaten-Aktionsleisten.");

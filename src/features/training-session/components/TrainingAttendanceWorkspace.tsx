@@ -93,7 +93,7 @@ export function TrainingAttendanceWorkspace({
 
         <div className="attendance-list-tools">
           <div className="attendance-sort-row">
-            <div className="name-sort-toggle" aria-label="Namenssortierung">
+            <div className="name-sort-toggle ui-segmented" aria-label="Namenssortierung">
               <button
                 type="button"
                 className={sortMode === "firstName" ? "active" : ""}

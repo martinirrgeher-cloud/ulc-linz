@@ -245,7 +245,7 @@ export function TrainingOverviewPage() {
           </select>
         </label>
 
-        <div className="training-overview-athlete-filter" role="group" aria-label="Athleten nach Anmeldung filtern">
+        <div className="training-overview-athlete-filter ui-segmented" role="group" aria-label="Athleten nach Anmeldung filtern">
           {(["all", "coming", "maybe"] as const).map((filter) => (
             <button
               type="button"

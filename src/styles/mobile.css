@@ -24,8 +24,7 @@ textarea {
   .primary-button,
   .secondary-button,
   .icon-button,
-  .status-filter button,
-  .back-link {
+  .status-filter button {
     min-height: var(--ui-control-height);
   }
   .icon-button {
@@ -76,8 +75,7 @@ textarea {
   .form-stack input,
   .form-grid input,
   .form-grid select,
-  .search-field input,
-  .toolbar-select,
+  .ui-search-field input,
   .full-width-field textarea {
     min-height: var(--ui-control-height);
         font-size: 16px;
@@ -125,10 +123,6 @@ textarea {
   .page-heading p {
     margin-bottom: 0;
   }
-  .back-link {
-    width: fit-content;
-        padding: 4px 2px;
-  }
   .primary-button,
   .secondary-button {
     min-height: var(--ui-control-height);
@@ -161,15 +155,6 @@ textarea {
   .placeholder-card {
     padding: 30px 16px;
         border-radius: 16px;
-  }
-  .button-row {
-    align-items: stretch;
-        flex-direction: column;
-  }
-  .button-row .primary-button,
-  .button-row .secondary-button,
-  .button-row .link-button {
-    width: 100%;
   }
   .status-filter {
     flex-wrap: nowrap;
@@ -263,12 +248,6 @@ textarea {
         animation-duration: 0.01ms !important;
         animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;
-  }
-}
-@media (max-width: 760px) {
-  .sticky-editor-actions {
-    margin-right: -14px;
-        margin-left: -14px;
   }
 }
 @media (max-width: 760px) {

@@ -31,13 +31,18 @@ const requiredFiles = [
   "scripts/check-test-layering.mjs",
   "scripts/check-training-module-architecture.mjs",
   "scripts/check-css-ownership.mjs",
-  ".github/workflows/mobile-patch.yml",
   ".devcontainer/devcontainer.json",
-  "MOBILE-ENTWICKLUNG.md",
 ];
 for (const file of requiredFiles) assert.ok(existsSync(file), `Release-Infrastruktur fehlt: ${file}`);
 
 const pkg = JSON.parse(readFileSync("package.json", "utf8"));
+const expectedNodeVersion = "22.20.0";
+const expectedNpmVersion = "10.9.3";
+assert.equal(readFileSync(".nvmrc", "utf8").trim(), expectedNodeVersion, ".nvmrc muss die verbindliche Node-Version pinnen.");
+assert.equal(readFileSync(".node-version", "utf8").trim(), expectedNodeVersion, ".node-version muss dieselbe Node-Version pinnen.");
+assert.equal(pkg.packageManager, `npm@${expectedNpmVersion}`, "packageManager muss die verbindliche npm-Version pinnen.");
+assert.equal(pkg.engines?.node, expectedNodeVersion, "package.json engines.node muss exakt gepinnt sein.");
+assert.equal(pkg.engines?.npm, expectedNpmVersion, "package.json engines.npm muss exakt gepinnt sein.");
 for (const script of [
   "test:runtime",
   "test:runtime:ci",
@@ -73,6 +78,8 @@ const cssArchitectureCheck = readFileSync("scripts/check-css-architecture.mjs", 
 assert.match(cssArchitectureCheck, /check-css-ownership\.mjs/, "CSS-Architekturcheck muss die S3b-Ownership-Pruefung einschliessen.");
 
 const lock = JSON.parse(readFileSync("package-lock.json", "utf8"));
+assert.equal(lock.packages?.[""]?.engines?.node, expectedNodeVersion, "package-lock engines.node muss exakt zum Toolchain-Pin passen.");
+assert.equal(lock.packages?.[""]?.engines?.npm, expectedNpmVersion, "package-lock engines.npm muss exakt zum Toolchain-Pin passen.");
 assert.equal(lock.packages?.[""]?.devDependencies?.["@playwright/test"], "1.62.1", "package-lock muss Playwright exakt am Root pinnen.");
 assert.equal(lock.packages?.["node_modules/@playwright/test"]?.version, "1.62.1", "package-lock muss Playwright Test 1.62.1 enthalten.");
 assert.equal(lock.packages?.["node_modules/playwright"]?.version, "1.62.1", "package-lock muss Playwright 1.62.1 enthalten.");
@@ -110,17 +117,9 @@ assert.match(writingConfig, /workers:\s*process\.env\.CI\s*\?\s*2\s*:\s*1/, "Wri
 assert.doesNotMatch(writingConfig, /fullyParallel:\s*true/, "Globale Writing-Parallelisierung ist ohne Domaenenisolation verboten.");
 
 
-
-const mobileWorkflow = readFileSync(".github/workflows/mobile-patch.yml", "utf8");
-assert.match(mobileWorkflow, /mobile-patch\/\*\*/, "Mobile-Workflow muss auf mobile-patch-Branches begrenzt bleiben.");
-assert.match(mobileWorkflow, /npm run ci:preview/, "Mobiler Patch muss das schnelle Preview-Gate verwenden.");
-assert.doesNotMatch(mobileWorkflow, /npm run ci:quality/, "Mobiler Patch soll die teure Vollpruefung nicht vor jeder Preview doppelt ausfuehren.");
-assert.match(mobileWorkflow, /Vercel-Preview/, "Mobile-Workflow muss den Preview-Schritt sichtbar erklaeren.");
-assert.match(mobileWorkflow, /Produktion bleibt/, "Mobile-Workflow muss die Produktionsgrenze sichtbar machen.");
-assert.match(mobileWorkflow, /actions\/checkout@v6/, "Mobile-Workflow muss Checkout v6 verwenden.");
-assert.match(mobileWorkflow, /actions\/setup-node@v6/, "Mobile-Workflow muss Setup-Node v6 verwenden.");
-assert.match(mobileWorkflow, /actions\/upload-artifact@v7/, "Mobile-Workflow muss Upload-Artifact v7 verwenden.");
-assert.match(mobileWorkflow, /actions\/download-artifact@v7/, "Mobile-Workflow muss Download-Artifact v7 verwenden.");
+for (const retiredFile of [".github/workflows/mobile-patch.yml", "MOBILE-ENTWICKLUNG.md"]) {
+  assert.equal(existsSync(retiredFile), false, `Veralteter Mobile-Patch-Workflow darf nicht zurueckkehren: ${retiredFile}`);
+}
 
 const devcontainer = JSON.parse(readFileSync(".devcontainer/devcontainer.json", "utf8"));
 assert.match(devcontainer.image ?? "", /javascript-node:1-22-bookworm/, "Codespaces muss Node 22 verwenden.");

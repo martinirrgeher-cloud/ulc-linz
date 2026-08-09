@@ -1636,7 +1636,7 @@
 
 .training-plan-section-code-toggle {
   min-width: 0;
-  min-height: 36px;
+  min-height: var(--ui-control-height-compact);
   display: inline-flex;
   align-items: center;
   gap: 4px;

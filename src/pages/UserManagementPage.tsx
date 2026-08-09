@@ -530,6 +530,35 @@ export function UserManagementPage() {
     }
   }
 
+  if (editorMode) {
+    return (
+      <section className="user-management-page user-management-editor-page">
+        {error && <div className="alert error">{error}</div>}
+        {success && <div className="alert success">{success}</div>}
+        <RemoteChangeNotice
+          visible={remoteChangePending && Boolean(editedMember)}
+          busy={busy || remoteSyncBusy}
+          onLoadServer={() => applyRemoteServerState(false)}
+          onKeepDraft={() => applyRemoteServerState(true)}
+        />
+        {editedMember && <EditLockNotice lock={memberLock} />}
+        <MemberEditor
+          key={`${editorMode.type}-${editorMode.type === "edit" ? editorMode.member.membershipId : "new"}-${editorRevision}`}
+          mode={editorMode}
+          modules={modules}
+          linkOptions={linkOptions}
+          auditEntries={auditEntries}
+          auditLoading={auditLoading}
+          busy={busy}
+          canEdit={editorMode.type === "invite" || memberLock.isEditable}
+          onDirtyChange={setEditorDirty}
+          onCancel={closeEditor}
+          onSubmit={handleEditorSubmit}
+        />
+      </section>
+    );
+  }
+
   return (
     <section className="user-management-page">
       <div className="management-page-heading user-management-heading">
@@ -545,6 +574,7 @@ export function UserManagementPage() {
             setEditorDirty(false);
             setEditorRevision((value) => value + 1);
             setEditorMode({ type: "invite" });
+            window.scrollTo({ top: 0, behavior: "smooth" });
           }}
           disabled={loading || busy}
         >
@@ -554,30 +584,6 @@ export function UserManagementPage() {
 
       {error && <div className="alert error">{error}</div>}
       {success && <div className="alert success">{success}</div>}
-
-      <RemoteChangeNotice
-        visible={remoteChangePending && Boolean(editedMember)}
-        busy={busy || remoteSyncBusy}
-        onLoadServer={() => applyRemoteServerState(false)}
-        onKeepDraft={() => applyRemoteServerState(true)}
-      />
-      {editedMember && <EditLockNotice lock={memberLock} />}
-
-      {editorMode && (
-        <MemberEditor
-          key={`${editorMode.type}-${editorMode.type === "edit" ? editorMode.member.membershipId : "new"}-${editorRevision}`}
-          mode={editorMode}
-          modules={modules}
-          linkOptions={linkOptions}
-          auditEntries={auditEntries}
-          auditLoading={auditLoading}
-          busy={busy}
-          canEdit={editorMode.type === "invite" || memberLock.isEditable}
-          onDirtyChange={setEditorDirty}
-          onCancel={closeEditor}
-          onSubmit={handleEditorSubmit}
-        />
-      )}
 
       {detailMember && (
         <MemberDetailDialog
@@ -593,7 +599,7 @@ export function UserManagementPage() {
 
       <div className="user-management-search-shell">
         <div className="user-management-search-row">
-          <label className="search-field">
+          <label className="ui-search-field">
             <Search aria-hidden="true" />
             <input
               type="search"

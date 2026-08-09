@@ -71,12 +71,12 @@ Referenzstand S3d:
 
 ### Laufzeit-/Tooling-Vorgaben
 
-`package.json` verlangt:
+Die reproduzierbare Projekt-Toolchain ist exakt gepinnt:
 
-- Node.js `>=22.12.0 <23`
-- npm `>=10.9.0 <11`
+- Node.js `22.20.0` (`.nvmrc`, `.node-version`, `package.json`)
+- npm `10.9.3` (`packageManager`, `package.json`, `package-lock.json`)
 
-Die Git-Projekt-ZIP dokumentiert die tatsächlich verwendeten Versionen in `ULC-SOURCE-METADATA.json`.
+GitHub Actions verwendet `.nvmrc`; die Git-Projekt-ZIP dokumentiert die tatsächlich verwendeten Versionen zusätzlich in `ULC-SOURCE-METADATA.json`. `scripts/check-release-infrastructure.mjs` verhindert ein unbemerktes Auseinanderlaufen dieser Pins.
 
 Playwright ist **fest im Projekt** gepinnt:
 
@@ -297,15 +297,16 @@ Feature- und Routen-CSS soll lazy über die jeweilige Route geladen werden.
 
 Referenzmessung:
 
-- 33 CSS-Dateien
-- 340.547 Bytes / 14.018 Zeilen gesamt – Beobachtungswert
-- 3 globale Dateien / 28.290 Bytes
-- 36 routebezogene CSS-Imports – Beobachtungswert
-- größter Route-CSS-Import: 42.146 Bytes
-- größte CSS-Datei: `training-planning.css` mit 36.613 Bytes / 1.892 Zeilen
-- Selektor-Duplikationsquote: 9,13 %
-- 36 `!important`
-- 25 featurebezogene Selektorvorkommen in `global.css`
+- 34 CSS-Dateien
+- 323.252 Bytes / 13.268 Zeilen gesamt – Beobachtungswert
+- 3 globale Dateien / 33.223 Bytes
+- 38 routebezogene CSS-Imports – Beobachtungswert
+- größter Route-CSS-Import: 40.012 Bytes
+- größte CSS-Datei: `training-planning.css` mit 35.598 Bytes / 1.831 Zeilen
+- Selektor-Duplikationsquote: 7,84 %
+- 33 `!important`
+- 50 Legacy-Media-Query-Vorkommen
+- 14 featurebezogene Selektorvorkommen in `global.css`
 
 ### Harte Gates
 
@@ -347,6 +348,7 @@ Zentrale Semantik:
 - `.icon-button--inline` – feldinterne Iconaktion
 - `.ui-tabs` – gemeinsamer Tabcontainer
 - `.ui-segmented` – kompakte exklusive Auswahl
+- `.ui-search-field` – einziges Standard-Suchfeld
 - `.ui-choice-row` – anklickbare Checkbox-/Mehrfachauswahlzeile
 - `.ui-switch` / `.ui-switch-control` – echter Ein/Aus-Zustand
 - `.ui-labeled-field` – normales beschriftetes Formularfeld als gemeinsamer Rahmen
@@ -355,7 +357,9 @@ Zentrale Semantik:
 
 Normale beschriftete Textfelder, Selects, Zahlen-/Datumsfelder und Textareas verwenden dieses integrierte Feldmuster appweit. Suchfelder, Checkboxen/Switches, kompakte Inline-Parameter in Tabellen und fachliche Spezialcontrols bleiben bewusst eigene Controltypen. Ein Placeholder ersetzt keine Feldbezeichnung.
 
-`EditorShell` und `StickyEditorActions` greifen auf dieselben semantischen Varianten zurück. Feature-CSS darf normale Save-/Close-/Edit-/Info-/Delete-Controls nicht über eigene Farben und Größen neu definieren. `final-ui-v1.css` darf die Semantik generischer `.icon-button` ebenfalls nicht überschreiben.
+`EditorActionHeader` ist der gemeinsame Kern aller Seiteneditor-Kopfzeilen. `EditorShell` und `StickyEditorActions` verwenden ausschließlich diesen Kern. Echte CRUD-Editoren bleiben unter der globalen App-Kopfzeile sichtbar; Speichern erfolgt oben über die grüne Diskette, Schließen über X, kontextbezogene Hilfe über ?. Ein zusätzlicher Speichern-/Abbrechen-Footer ist nicht vorgesehen. Nur echte Bestätigungs-, Info-, Auswahl- oder Importdialoge dürfen modal bleiben.
+
+Feature-CSS darf normale Save-/Close-/Edit-/Info-/Delete-Controls nicht über eigene Farben und Größen neu definieren. `final-ui-v1.css` darf die Semantik generischer `.icon-button` ebenfalls nicht überschreiben. Für kompakte Standardbuttons ist ausschließlich `.compact-button` zulässig; die generische Klasse `.compact` darf dafür nicht verwendet werden. Neutrale segmentierte Auswahlen verwenden `.ui-segmented`; Feature-CSS darf dort nur fachlich begründete Zustandsfarben ergänzen.
 
 Fachliche Statuscontrols dürfen eigene Zustandsfarben behalten, müssen aber zur gemeinsamen Größen-, Fokus- und Radiusfamilie passen.
 
@@ -1045,3 +1049,8 @@ Wichtige ergänzende Dokumente:
 - `E5-UEBUNGSKATALOG-TRAININGSBLOECKE.md`
 
 Die ausführbaren Skripte und der aktuelle Git-Stand haben bei technischen Details Vorrang vor älteren Markdown-Notizen.
+
+
+### Entfernte Altinfrastruktur
+
+Der frühere `mobile-patch/**`-GitHub-Workflow und `MOBILE-ENTWICKLUNG.md` sind dauerhaft entfernt. Der sechs-CMD-Workflow ist der einzige normale Updateweg.

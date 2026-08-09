@@ -142,7 +142,7 @@ export function GroupTrainingStatisticsPage({ definition }: GroupTrainingStatist
           <h1>{title}</h1>
         </div>
         <Link
-          className="secondary-button link-button compact-button statistics-back-button"
+          className="icon-button link-button statistics-back-button"
           to={trainingRoute}
           aria-label="Zurück zum Training"
           title="Zurück zum Training"

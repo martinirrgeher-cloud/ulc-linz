@@ -39,8 +39,7 @@
   .training-doc-exercise-info-parameters small {
     font-size: .76rem;
   }
-  .training-doc-quick-status button,
-  .training-doc-segmented button {
+  .training-doc-quick-status button {
     min-height: 40px;
         padding: 6px 5px;
         font-size: .76rem;
@@ -56,8 +55,7 @@
 }
 @media (pointer: coarse) {
   .training-doc-tabs button,
-  .training-doc-quick-status button,
-  .training-doc-segmented button {
+  .training-doc-quick-status button {
     min-height: var(--ui-touch-target);
   }
 }
