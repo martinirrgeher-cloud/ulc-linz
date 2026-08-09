@@ -58,7 +58,7 @@ Verbindliche Grundprinzipien:
 
 Referenzstand S3d:
 
-- 38 Migrationen
+- 39 Migrationen
 - 47 RLS-geschützte Tabellen
 - 158 in den generierten Datenbanktypen erfasste Funktionen
 
@@ -255,6 +255,8 @@ Neue Datenbankänderungen werden als neue Migration ausgeliefert. Bereits produk
 Nach jedem Push auf `main` startet `.github/workflows/production-database.yml`. Der Workflow verwendet ausschließlich das Repository-Secret `SUPABASE_DB_URL`, führt zuerst `supabase db push --dry-run`, anschließend `supabase db push` aus und vergleicht danach die Versionsliste unter `supabase/migrations` exakt mit `supabase_migrations.schema_migrations` der Produktionsdatenbank. Es werden **keine** Seeds eingespielt, keine Datenbank resettet und keine abweichende Migrationshistorie automatisch per `migration repair` korrigiert.
 
 Nur wenn Repo und Produktion exakt übereinstimmen, wird der leichte Git-Tag `database-verified-<Git-Commit>` erzeugt. `scripts/release/mark-production.mjs` verlangt diesen Tag für exakt `origin/main`, bevor ein `production-*`-Tag angelegt werden darf. Dadurch bleibt der Benutzerworkflow bei sechs CMD-Dateien, ein Frontendstand mit fehlenden produktiven Migrationen kann aber nicht mehr als stabil markiert werden.
+
+Für den einmalig festgestellten historischen Sonderfall einer **leeren** `supabase_migrations.schema_migrations` bei bereits bestehendem Produktionsschema existiert zusätzlich `.github/workflows/production-database-baseline-recovery.yml`. Diese Recovery ist kein normaler Releaseweg. Sie ist manuell, auf `main` beschränkt, verlangt die exakte Bestätigung `BASELINE-REPARIEREN` und ist fest auf die verifizierte Baseline `202608080039` sowie die danach einzige offene Migration `202608090040` begrenzt. Vor dem Eintragen historischer Versionsnummern vergleicht sie das Produktionsschema gegen die Baseline und prüft zusätzliche Storage-/Realtime-/Stammdaten-Invarianten. Bei jeder bereits nichtleeren Remote-Historie bricht sie ab. Die Recovery erzeugt keinen `database-verified-*`-Tag; danach muss der normale Workflow `Produktionsdatenbank migrieren` für denselben `main`-Commit erneut erfolgreich laufen und allein den regulären Verifikations-Tag erzeugen. Der normale Produktionsworkflow bleibt weiterhin frei von automatischer Historienreparatur.
 
 Manuelle Schemaänderungen im Supabase-Dashboard sind kein normaler Releaseweg. Produktive Schemaänderungen müssen immer zuerst als neue Migration im Repository vorliegen.
 

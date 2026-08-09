@@ -34,6 +34,8 @@ const requiredFiles = [
   "scripts/check-css-ownership.mjs",
   "scripts/check-route-css-ownership.mjs",
   ".github/workflows/production-database.yml",
+  ".github/workflows/production-database-baseline-recovery.yml",
+  "scripts/ci/recover-production-migration-baseline.sh",
   ".devcontainer/devcontainer.json",
 ];
 for (const file of requiredFiles) assert.ok(existsSync(file), `Release-Infrastruktur fehlt: ${file}`);
@@ -97,6 +99,8 @@ const qualityWorkflow = readFileSync(".github/workflows/quality-check.yml", "utf
 const readonlyWorkflow = readFileSync(".github/workflows/e2e-readonly.yml", "utf8");
 const writingWorkflow = readFileSync(".github/workflows/e2e-writing.yml", "utf8");
 const productionDatabaseWorkflow = readFileSync(".github/workflows/production-database.yml", "utf8");
+const productionDatabaseRecoveryWorkflow = readFileSync(".github/workflows/production-database-baseline-recovery.yml", "utf8");
+const productionDatabaseRecoveryScript = readFileSync("scripts/ci/recover-production-migration-baseline.sh", "utf8");
 for (const [label, workflow] of [["Quality", qualityWorkflow], ["Read-only E2E", readonlyWorkflow], ["Writing E2E", writingWorkflow]]) {
   assert.match(workflow, /actions\/checkout@v6/, `${label} muss Checkout v6 verwenden.`);
   assert.match(workflow, /actions\/setup-node@v6/, `${label} muss Setup-Node v6 verwenden.`);
@@ -130,6 +134,23 @@ assert.match(productionDatabaseWorkflow, /permissions:[\s\S]*contents:\s*write/,
 assert.doesNotMatch(productionDatabaseWorkflow, /migration\s+repair/, "Produktionsworkflow darf Migrationshistorie nie automatisch reparieren.");
 assert.doesNotMatch(productionDatabaseWorkflow, /db\s+reset/, "Produktionsworkflow darf die Produktionsdatenbank nie resetten.");
 assert.doesNotMatch(productionDatabaseWorkflow, /seed/i, "Produktionsworkflow darf keine Seed-Daten nach Produktion schreiben.");
+
+assert.match(productionDatabaseRecoveryWorkflow, /workflow_dispatch:/, "Baseline-Recovery darf nur manuell gestartet werden.");
+assert.match(productionDatabaseRecoveryWorkflow, /BASELINE-REPARIEREN/, "Baseline-Recovery muss eine explizite Bestaetigung verlangen.");
+assert.match(productionDatabaseRecoveryWorkflow, /refs\/heads\/main/, "Baseline-Recovery darf ausschliesslich auf main laufen.");
+assert.match(productionDatabaseRecoveryWorkflow, /recover-production-migration-baseline\.sh/, "Baseline-Recovery muss den zentralen Recovery-Guard verwenden.");
+assert.match(productionDatabaseRecoveryWorkflow, /permissions:[\s\S]*contents:\s*read/, "Baseline-Recovery darf keine Schreibrechte auf Repository-Inhalte besitzen.");
+assert.doesNotMatch(productionDatabaseRecoveryWorkflow, /database-verified-|git\s+tag|git\s+push/, "Baseline-Recovery darf den regulaeren DB-Verifikations-Tag nicht selbst erzeugen.");
+assert.doesNotMatch(productionDatabaseRecoveryWorkflow, /db\s+reset/, "Baseline-Recovery darf die Produktionsdatenbank nie resetten.");
+assert.doesNotMatch(productionDatabaseRecoveryWorkflow, /include-seed|seed\s+buckets/i, "Baseline-Recovery darf keine Seed-Daten schreiben.");
+assert.match(productionDatabaseRecoveryScript, /BASELINE_VERSION="202608080039"/, "Recovery muss den einmalig verifizierten Baseline-Cutoff fest pinnen.");
+assert.match(productionDatabaseRecoveryScript, /FIRST_PENDING_VERSION="202608090040"/, "Recovery muss Migration 040 als einzige offene Migration fest pinnen.");
+assert.match(productionDatabaseRecoveryScript, /vollstaendig leere Remote-Migrationshistorie/, "Recovery muss bei bereits vorhandener Remote-Historie abbrechen.");
+assert.match(productionDatabaseRecoveryScript, /supabase db diff[\s\S]*--schema public/, "Recovery muss das Produktionsschema vor dem Baseline-Eintrag vergleichen.");
+assert.match(productionDatabaseRecoveryScript, /migration repair[\s\S]*--status applied/, "Recovery darf die Historie erst nach dem Baseline-Vergleich als angewandt markieren.");
+assert.match(productionDatabaseRecoveryScript, /supabase db push[\s\S]*--dry-run[\s\S]*supabase db push/, "Recovery muss vor Migration 040 einen Dry-Run ausfuehren.");
+assert.doesNotMatch(productionDatabaseRecoveryScript, /db\s+reset/, "Recovery-Skript darf die Produktionsdatenbank nie resetten.");
+assert.doesNotMatch(productionDatabaseRecoveryScript, /include-seed|seed\s+buckets/i, "Recovery-Skript darf keine Seed-Daten schreiben.");
 
 const writingPreparation = readFileSync("scripts/ci/prepare-writing-e2e.sh", "utf8");
 assert.match(writingPreparation, /supabase start[\s\S]*&/, "Writing-Vorbereitung muss Supabase im Hintergrund starten.");
