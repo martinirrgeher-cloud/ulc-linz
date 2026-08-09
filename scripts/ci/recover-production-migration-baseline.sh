@@ -1,75 +1,24 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-BASELINE_VERSION="202608080039"
-FIRST_PENDING_VERSION="202608090040"
-EXPECTED_BASELINE_COUNT=38
-EXPECTED_TOTAL_COUNT=39
+EXPECTED_MAIN_SHA="${EXPECTED_MAIN_SHA:-9b11be2dc1234b38742d20262b41317947d9baed}"
+EXPECTED_BRANCH="${EXPECTED_BRANCH:-feature/db-diagnose-fast}"
+EXPECTED_MIGRATION_COUNT=39
+EXPECTED_LAST_VERSION="202608090040"
 DB_URL="${SUPABASE_DB_URL:-${1:-}}"
 ROOT="$(pwd)"
-REPORT_DIR="${ULC_DB_BASELINE_REPORT_DIR:-$ROOT/ulc-db-baseline-diagnostic}"
+REPORT_DIR="${ULC_DB_RESET_REPORT_DIR:-$ROOT/ulc-db-reset-artifact}"
 
 rm -rf "$REPORT_DIR"
 mkdir -p "$REPORT_DIR"
-: > "$REPORT_DIR/DIAGNOSTIC-ERRORS.txt"
+: > "$REPORT_DIR/ERRORS.txt"
 
-if [[ -z "$DB_URL" ]]; then
-  echo "FEHLER: SUPABASE_DB_URL fehlt." | tee -a "$REPORT_DIR/DIAGNOSTIC-ERRORS.txt" >&2
+fail() {
+  printf 'FEHLER: %s\n' "$1" | tee -a "$REPORT_DIR/ERRORS.txt" >&2
   exit 1
-fi
-if ! command -v supabase >/dev/null 2>&1; then
-  echo "FEHLER: Supabase CLI ist nicht verfuegbar." >&2
-  exit 1
-fi
-if ! command -v docker >/dev/null 2>&1; then
-  echo "FEHLER: Docker ist nicht verfuegbar." >&2
-  exit 1
-fi
-
-mapfile -t ALL_VERSIONS < <(
-  find supabase/migrations -maxdepth 1 -type f -name '*.sql' -printf '%f\n' \
-    | sed -E 's/^([0-9]+)_.*/\1/' \
-    | sort -u
-)
-mapfile -t BASELINE_VERSIONS < <(printf '%s\n' "${ALL_VERSIONS[@]}" | awk -v max="$BASELINE_VERSION" '$1 <= max')
-mapfile -t PENDING_VERSIONS < <(printf '%s\n' "${ALL_VERSIONS[@]}" | awk -v max="$BASELINE_VERSION" '$1 > max')
-
-if [[ "${#ALL_VERSIONS[@]}" -ne "$EXPECTED_TOTAL_COUNT" ]]; then
-  echo "FEHLER: Fuer die Diagnose werden exakt ${EXPECTED_TOTAL_COUNT} Repository-Migrationen erwartet; gefunden: ${#ALL_VERSIONS[@]}." >&2
-  exit 1
-fi
-if [[ "${#BASELINE_VERSIONS[@]}" -ne "$EXPECTED_BASELINE_COUNT" ]]; then
-  echo "FEHLER: Baseline bis ${BASELINE_VERSION} ist unerwartet: ${#BASELINE_VERSIONS[@]} statt ${EXPECTED_BASELINE_COUNT} Migrationen." >&2
-  exit 1
-fi
-if [[ "${#PENDING_VERSIONS[@]}" -ne 1 || "${PENDING_VERSIONS[0]}" != "$FIRST_PENDING_VERSION" ]]; then
-  echo "FEHLER: Nach der Baseline darf fuer diese einmalige Diagnose ausschliesslich ${FIRST_PENDING_VERSION} offen sein." >&2
-  printf 'Gefunden: %s\n' "${PENDING_VERSIONS[*]:-(keine)}" >&2
-  exit 1
-fi
-
-psql_query() {
-  docker run --rm postgres:17-alpine \
-    psql "$DB_URL" -X -v ON_ERROR_STOP=1 -Atqc "$1"
 }
 
-remote_history_exists="$(psql_query "select case when to_regclass('supabase_migrations.schema_migrations') is null then '0' else '1' end;")"
-if [[ "$remote_history_exists" == "1" ]]; then
-  mapfile -t REMOTE_VERSIONS < <(psql_query "select version from supabase_migrations.schema_migrations order by version;")
-else
-  REMOTE_VERSIONS=()
-fi
-
-if [[ "${#REMOTE_VERSIONS[@]}" -ne 0 ]]; then
-  echo "FEHLER: Diese historische Diagnose ist nur fuer die noch vollstaendig leere Remote-Migrationshistorie erlaubt." >&2
-  printf 'Remote vorhanden: %s\n' "${REMOTE_VERSIONS[*]}" >&2
-  exit 1
-fi
-
-printf '%s\n' "${ALL_VERSIONS[@]}" > "$REPORT_DIR/repository-migrations.txt"
-: > "$REPORT_DIR/remote-migrations.txt"
-
-sanitize_report_file() {
+sanitize_file() {
   local file="$1"
   [[ -f "$file" ]] || return 0
   REPORT_FILE="$file" DB_URL_SECRET="$DB_URL" node - <<'NODE'
@@ -82,202 +31,226 @@ fs.writeFileSync(file, text, "utf8");
 NODE
 }
 
-DIAGNOSTIC_ERROR_COUNT=0
-
-record_diagnostic_error() {
-  local label="$1"
-  local output="$2"
-  DIAGNOSTIC_ERROR_COUNT=$((DIAGNOSTIC_ERROR_COUNT + 1))
-  {
-    printf '[%s] %s\n' "$DIAGNOSTIC_ERROR_COUNT" "$label"
-    printf '%s\n\n' "$output"
-  } >> "$REPORT_DIR/DIAGNOSTIC-ERRORS.txt"
-}
-
-diagnostic_query() {
-  local label="$1"
-  local sql="$2"
-  local output
-  if output="$(psql_query "$sql" 2>&1)"; then
-    printf '%s\n' "$output"
-    return 0
-  fi
-  record_diagnostic_error "$label" "$output"
-  printf 'DIAGNOSEFEHLER: %s (Details in DIAGNOSTIC-ERRORS.txt)\n' "$label"
-  return 0
-}
-
-TEMP_ROOT="$(mktemp -d)"
-trap 'rm -rf "$TEMP_ROOT"' EXIT
-mkdir -p "$TEMP_ROOT/project"
-cp -a supabase "$TEMP_ROOT/project/supabase"
-find "$TEMP_ROOT/project/supabase/migrations" -maxdepth 1 -type f -name '*.sql' -print0 \
-  | while IFS= read -r -d '' file; do
-      version="$(basename "$file" | sed -E 's/^([0-9]+)_.*/\1/')"
-      if [[ "$version" > "$BASELINE_VERSION" ]]; then
-        rm -f "$file"
-      fi
-    done
-
-echo "Erzeuge Schema-Diff Repository-Baseline 001-039 -> Produktion..."
-FORWARD_SQL="$REPORT_DIR/baseline-001-039-to-production.sql"
-FORWARD_LOG="$REPORT_DIR/baseline-001-039-to-production.log"
-DIFF_STATUS="ok"
-if ! (
-  cd "$TEMP_ROOT/project"
-  # Supabase CLI 2.109.1 schreibt den Diff auf stdout. Neuere Richtungs- und
-  # Output-Flags werden in dieser gepinnten CLI-Version bewusst nicht verwendet.
-  supabase db diff --db-url "$DB_URL" --schema public --use-migra > "$FORWARD_SQL" 2> "$FORWARD_LOG"
-); then
-  DIFF_STATUS="failed"
-  record_diagnostic_error "schema-diff" "$(cat "$FORWARD_LOG" 2>/dev/null || true)"
-  echo "WARNUNG: Schema-Diff ist fehlgeschlagen; weitere Diagnose wird trotzdem gesammelt." >&2
+if [[ -z "$DB_URL" ]]; then
+  fail "SUPABASE_DB_URL fehlt."
 fi
-touch "$FORWARD_SQL" "$FORWARD_LOG"
-sanitize_report_file "$FORWARD_LOG"
+command -v supabase >/dev/null 2>&1 || fail "Supabase CLI ist nicht verfuegbar."
+command -v docker >/dev/null 2>&1 || fail "Docker ist nicht verfuegbar."
+command -v git >/dev/null 2>&1 || fail "Git ist nicht verfuegbar."
 
-echo "Erzeuge schema-only Dump der produktiven public-Schemaobjekte..."
-DUMP_STATUS="ok"
-if ! supabase db dump \
-  --db-url "$DB_URL" \
-  --schema public \
-  --file "$REPORT_DIR/production-public-schema.sql" \
-  > "$REPORT_DIR/production-public-schema.log" 2>&1; then
-  DUMP_STATUS="failed"
-  record_diagnostic_error "schema-dump" "$(cat "$REPORT_DIR/production-public-schema.log" 2>/dev/null || true)"
-  echo "WARNUNG: Schema-Dump ist fehlgeschlagen; weitere Diagnose wird trotzdem gesammelt." >&2
+if [[ "${GITHUB_REF:-}" != "refs/heads/${EXPECTED_BRANCH}" ]]; then
+  fail "Neuaufbau ist nur auf ${EXPECTED_BRANCH} erlaubt."
 fi
-touch "$REPORT_DIR/production-public-schema.sql" "$REPORT_DIR/production-public-schema.log"
-sanitize_report_file "$REPORT_DIR/production-public-schema.log"
 
-echo "Erzeuge gezielte, nicht personenbezogene Produktions-Invarianten..."
-{
-  echo "# ULC Linz App – Produktionsdatenbank Baseline-Diagnose"
-  echo "baseline_version=${BASELINE_VERSION}"
-  echo "first_pending_version=${FIRST_PENDING_VERSION}"
-  echo "repository_migration_count=${#ALL_VERSIONS[@]}"
-  echo "remote_migration_count=${#REMOTE_VERSIONS[@]}"
-  echo
+mapfile -t ALL_VERSIONS < <(
+  find supabase/migrations -maxdepth 1 -type f -name '*.sql' -printf '%f\n' \
+    | sed -E 's/^([0-9]+)_.*/\1/' \
+    | sort -u
+)
+if [[ "${#ALL_VERSIONS[@]}" -ne "$EXPECTED_MIGRATION_COUNT" ]]; then
+  fail "Es werden exakt ${EXPECTED_MIGRATION_COUNT} Repository-Migrationen erwartet; gefunden: ${#ALL_VERSIONS[@]}."
+fi
+if [[ "${ALL_VERSIONS[-1]}" != "$EXPECTED_LAST_VERSION" ]]; then
+  fail "Letzte erwartete Migration ist ${EXPECTED_LAST_VERSION}; gefunden: ${ALL_VERSIONS[-1]}."
+fi
+printf '%s\n' "${ALL_VERSIONS[@]}" > "$REPORT_DIR/repository-migrations.txt"
 
-  echo "## Kernobjekte"
-  diagnostic_query "invariant-01" "select 'training_blocks.usage_count=' || case when exists (select 1 from information_schema.columns where table_schema='public' and table_name='training_blocks' and column_name='usage_count') then 'present' else 'missing' end;"
-  diagnostic_query "invariant-02" "select 'organization_dropdown_options.parameter_group=' || case when exists (select 1 from information_schema.columns where table_schema='public' and table_name='organization_dropdown_options' and column_name='parameter_group') then 'present' else 'missing' end;"
-  diagnostic_query "invariant-03" "select 'kindertraining_statistics_overview.signatures=' || coalesce(string_agg(pg_get_function_identity_arguments(p.oid), ' | ' order by pg_get_function_identity_arguments(p.oid)), '(none)') from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='kindertraining_statistics_overview';"
-  diagnostic_query "invariant-04" "select 'training_module_statistics_overview.signatures=' || coalesce(string_agg(pg_get_function_identity_arguments(p.oid), ' | ' order by pg_get_function_identity_arguments(p.oid)), '(none)') from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='training_module_statistics_overview';"
-  diagnostic_query "invariant-05" "select 'apply_exercise_import_v2.signatures=' || coalesce(string_agg(pg_get_function_identity_arguments(p.oid), ' | ' order by pg_get_function_identity_arguments(p.oid)), '(none)') from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='apply_exercise_import_v2';"
-  diagnostic_query "invariant-06" "select 'save_dropdown_setting.signatures=' || coalesce(string_agg(pg_get_function_identity_arguments(p.oid), ' | ' order by pg_get_function_identity_arguments(p.oid)), '(none)') from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='save_dropdown_setting';"
-  echo
+# Die Fast-Lane ist absichtlich nur fuer den bereits diagnostizierten Altzustand
+# mit leerer Remote-Migrationshistorie erlaubt. So kann sie spaeter nicht
+# versehentlich als normaler Produktions-Reset wiederverwendet werden.
+remote_history_exists="$(docker run --rm postgres:17-alpine psql "$DB_URL" -X -v ON_ERROR_STOP=1 -Atqc "select case when to_regclass('supabase_migrations.schema_migrations') is null then '0' else '1' end;")"
+if [[ "$remote_history_exists" == "1" ]]; then
+  mapfile -t REMOTE_BEFORE < <(
+    docker run --rm postgres:17-alpine psql "$DB_URL" -X -v ON_ERROR_STOP=1 -Atqc \
+      "select version from supabase_migrations.schema_migrations order by version;"
+  )
+else
+  REMOTE_BEFORE=()
+fi
+printf '%s\n' "${REMOTE_BEFORE[@]:-}" | sed '/^[[:space:]]*$/d' > "$REPORT_DIR/remote-migrations-before.txt"
+if [[ "${#REMOTE_BEFORE[@]}" -ne 0 ]]; then
+  fail "Die einmalige Recovery erwartet weiterhin eine vollstaendig leere Remote-Migrationshistorie."
+fi
 
-  echo "## App-Module"
-  diagnostic_query "invariant-07" "select key || E'\\t' || is_active::text from public.app_modules order by key;"
-  echo
+# Vor dem destruktiven Schritt sichern wir das benutzerdefinierte public-Schema
+# und dessen Daten. Auth-/Storage-Verwaltungsschemas werden bewusst nicht als
+# Restore-Quelle benutzt; das Artefakt ist nur ein kurzfristiges Notfallnetz.
+echo "Sichere public-Schema vor dem Neuaufbau..."
+if ! supabase db dump --db-url "$DB_URL" --schema public --file "$REPORT_DIR/pre-reset-public-schema.sql" > "$REPORT_DIR/pre-reset-schema.log" 2>&1; then
+  sanitize_file "$REPORT_DIR/pre-reset-schema.log"
+  fail "Public-Schema-Backup vor dem Reset ist fehlgeschlagen."
+fi
+sanitize_file "$REPORT_DIR/pre-reset-schema.log"
 
-  echo "## Storage-Buckets"
-  diagnostic_query "invariant-08" "select id || E'\\tpublic=' || public::text || E'\\tlimit=' || coalesce(file_size_limit::text,'null') || E'\\tmimes=' || coalesce(array_to_string(allowed_mime_types,','),'null') from storage.buckets where id in ('exercise-videos','training-documentation-media') order by id;"
-  echo
+echo "Sichere public-Daten vor dem Neuaufbau..."
+if ! supabase db dump --db-url "$DB_URL" --schema public --data-only --use-copy --file "$REPORT_DIR/pre-reset-public-data.sql" > "$REPORT_DIR/pre-reset-data.log" 2>&1; then
+  sanitize_file "$REPORT_DIR/pre-reset-data.log"
+  fail "Public-Datenbackup vor dem Reset ist fehlgeschlagen."
+fi
+sanitize_file "$REPORT_DIR/pre-reset-data.log"
 
-  echo "## Storage-Policies"
-  diagnostic_query "invariant-09" "select policyname from pg_policies where schemaname='storage' and tablename='objects' and policyname in ('exercise_videos_storage_select','exercise_videos_storage_insert','exercise_videos_storage_update','exercise_videos_storage_delete','training_documentation_media_storage_select','training_documentation_media_storage_insert','training_documentation_media_storage_update','training_documentation_media_storage_delete') order by policyname;"
-  echo
+# Nicht-personenbezogene Vorher-Zaehlung fuer Nachvollziehbarkeit.
+docker run --rm postgres:17-alpine psql "$DB_URL" -X -v ON_ERROR_STOP=1 -Atqc \
+  "select 'auth_users=' || count(*)::text from auth.users;\n   select 'organizations=' || count(*)::text from public.organizations;\n   select 'athletes=' || count(*)::text from public.athletes;\n   select 'exercises=' || count(*)::text from public.exercises;\n   select 'training_blocks=' || count(*)::text from public.training_blocks;\n   select 'storage_objects=' || count(*)::text from storage.objects;" \
+  > "$REPORT_DIR/pre-reset-counts.txt"
 
-  echo "## Auth-Trigger"
-  diagnostic_query "invariant-10" "select t.tgname || E'\\t' || pn.nspname || '.' || p.proname from pg_trigger t join pg_class c on c.oid=t.tgrelid join pg_namespace n on n.oid=c.relnamespace join pg_proc p on p.oid=t.tgfoid join pg_namespace pn on pn.oid=p.pronamespace where n.nspname='auth' and c.relname='users' and t.tgname='on_auth_user_created' and not t.tgisinternal;"
-  echo
+# Vor dem ersten und einzigen destruktiven Befehl pruefen wir die von der
+# gepinnten CLI angebotenen Flags. --no-seed ist zwingend, weil seed.sql nur
+# fuer lokale E2E-Umgebungen bestimmt ist.
+supabase --help > "$REPORT_DIR/supabase-help.txt" 2>&1
+sanitize_file "$REPORT_DIR/supabase-help.txt"
+grep -q -- '--yes' "$REPORT_DIR/supabase-help.txt" || fail "Supabase CLI bietet keinen globalen --yes-Schalter fuer CI."
 
-  echo "## Realtime"
-  diagnostic_query "invariant-11" "select p.tablename || E'\\treplident=' || c.relreplident::text from pg_publication_tables p join pg_class c on c.oid=to_regclass(format('%I.%I',p.schemaname,p.tablename)) where p.pubname='supabase_realtime' and p.schemaname='public' and p.tablename in ('athletes','training_groups','trainers','exercises','training_blocks','athlete_training_plans','athlete_training_sessions','training_block_user_favorites','organization_members','audit_log') order by p.tablename;"
-  echo
+supabase db reset --help > "$REPORT_DIR/db-reset-help.txt" 2>&1
+sanitize_file "$REPORT_DIR/db-reset-help.txt"
+grep -q -- '--db-url' "$REPORT_DIR/db-reset-help.txt" || fail "Supabase CLI bietet fuer db reset kein --db-url."
+grep -q -- '--no-seed' "$REPORT_DIR/db-reset-help.txt" || fail "Supabase CLI bietet fuer db reset kein --no-seed."
 
-  echo "## Statistikrechte"
-  diagnostic_query "invariant-12" "select key || E'\\t' || is_active::text from public.app_modules where key in ('kindertraining_statistics','u12_statistics','u14_statistics') order by key;"
-  echo
+cat > "$REPORT_DIR/RESET-AUTHORIZATION.txt" <<EOF
+branch=${EXPECTED_BRANCH}
+workflow_sha=${GITHUB_SHA:-unknown}
+target_main_sha=${EXPECTED_MAIN_SHA}
+confirmation=PRODUKTION-NEU-AUFBAUEN
+migration_count=${#ALL_VERSIONS[@]}
+last_migration=${EXPECTED_LAST_VERSION}
+seed=DISABLED
+EOF
 
-  echo "## Planning-Parameter (nur technische Keys/Gruppe)"
-  parameter_group_present="$(psql_query "select case when exists (select 1 from information_schema.columns where table_schema='public' and table_name='organization_dropdown_options' and column_name='parameter_group') then '1' else '0' end;" 2>/dev/null || printf 'unknown')"
-  if [[ "$parameter_group_present" == "1" ]]; then
-    diagnostic_query "planning-parameter-with-group" "select option_key || E'\\t' || parameter_group from public.organization_dropdown_options where list_key='planning_parameter' group by option_key, parameter_group order by option_key, parameter_group;"
-  elif [[ "$parameter_group_present" == "0" ]]; then
-    diagnostic_query "planning-parameter-without-group" "select option_key from public.organization_dropdown_options where list_key='planning_parameter' group by option_key order by option_key;"
-  else
-    record_diagnostic_error "planning-parameter-column-check" "Spaltenpruefung organization_dropdown_options.parameter_group ist fehlgeschlagen."
-    echo "DIAGNOSEFEHLER: planning-parameter-column-check (Details in DIAGNOSTIC-ERRORS.txt)"
-  fi
-} > "$REPORT_DIR/production-invariants.txt"
+echo "ACHTUNG: Starte jetzt den einmaligen destruktiven Neuaufbau der Produktionsdatenbank."
+if ! supabase --yes db reset --db-url "$DB_URL" --no-seed > "$REPORT_DIR/db-reset.log" 2>&1; then
+  sanitize_file "$REPORT_DIR/db-reset.log"
+  fail "supabase db reset ist fehlgeschlagen. Siehe db-reset.log im Artefakt."
+fi
+sanitize_file "$REPORT_DIR/db-reset.log"
 
-normalize_diff() {
-  local input="$1"
-  local output="$2"
-  sed -E \
-    -e '/^[[:space:]]*$/d' \
-    -e '/^[[:space:]]*--/d' \
-    -e '/^[[:space:]]*set[[:space:]]+check_function_bodies[[:space:]]*=[[:space:]]*off;?[[:space:]]*$/Id' \
-    "$input" > "$output"
-}
-normalize_diff "$FORWARD_SQL" "$REPORT_DIR/baseline-001-039-to-production.substantive.sql"
+# Remote reset laesst Supabase-verwaltete Auth-Benutzer typischerweise bestehen.
+# Bereits vorhandene Benutzer erhalten den bei einem Neuregistrierungs-Trigger
+# normalerweise erzeugten public.profiles-Datensatz erneut. Das stellt keine
+# alten Vereins-/Trainingsdaten wieder her.
+echo "Synchronisiere Profile fuer eventuell bestehende Auth-Benutzer..."
+docker run --rm postgres:17-alpine psql "$DB_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
+insert into public.profiles (id, display_name)
+select
+  auth_user.id,
+  coalesce(
+    nullif(trim(auth_user.raw_user_meta_data ->> 'display_name'), ''),
+    split_part(coalesce(auth_user.email, ''), '@', 1),
+    ''
+  )
+from auth.users auth_user
+on conflict (id) do nothing;
+SQL
 
-FORWARD_LINES="$(wc -l < "$REPORT_DIR/baseline-001-039-to-production.substantive.sql" | tr -d ' ')"
-FORWARD_SHA="$(sha256sum "$FORWARD_SQL" | awk '{print $1}')"
-DUMP_SHA="$(sha256sum "$REPORT_DIR/production-public-schema.sql" | awk '{print $1}')"
+# Exakte Migrationshistorie pruefen.
+find supabase/migrations -maxdepth 1 -type f -name '*.sql' -printf '%f\n' \
+  | sed -E 's/^([0-9]+)_.*/\1/' \
+  | sort -u > "$REPORT_DIR/local-migrations-after.txt"
 
-cat > "$REPORT_DIR/README.txt" <<EOF_README
-ULC Linz App – Produktionsdatenbank Baseline-Diagnose
+docker run --rm postgres:17-alpine psql "$DB_URL" -X -v ON_ERROR_STOP=1 -Atqc \
+  "select version from supabase_migrations.schema_migrations order by version;" \
+  | tr -d '\r' | sed '/^[[:space:]]*$/d' | sort -u > "$REPORT_DIR/remote-migrations-after.txt"
 
-Diese Diagnose ist strikt READ-ONLY. Sie fuehrt weder migration repair noch db push,
-DB-Reset, Seeds oder sonstige schreibende SQL-Befehle gegen Produktion aus.
+if ! diff -u "$REPORT_DIR/local-migrations-after.txt" "$REPORT_DIR/remote-migrations-after.txt" > "$REPORT_DIR/migration-history.diff"; then
+  fail "Nach dem Reset stimmt die Remote-Migrationshistorie nicht exakt mit dem Repository ueberein."
+fi
 
-Dateien:
-- baseline-001-039-to-production.sql
-  Supabase-CLI-2.109.1-Diff vom durch Migrationen 001-039 rekonstruierten
-  Repository-Stand zum aktuellen Produktionsstand. Der Diff wird direkt aus
-  stdout erfasst; es werden keine in dieser CLI-Version unbekannten neueren
-  Richtungs- oder Output-Flags verwendet.
-- baseline-001-039-to-production.substantive.sql
-  Gleicher Diff ohne Leer-/Kommentarzeilen und technische SET-Zeilen.
-- production-public-schema.sql
-  Schema-only Dump von public, ohne Tabellendaten.
-- production-invariants.txt
-  Nicht personenbezogene technische Invarianten fuer Auth/Storage/Realtime/Module.
-- repository-migrations.txt / remote-migrations.txt
-  Erwartete Repository-Versionen und die vor Diagnose gelesene Remote-Historie.
-- *.log
-  Supabase-CLI-Diagnoselog ohne absichtlich ausgegebene DB-URL.
+# Kritische fachliche/technische Postconditions, inklusive des urspruenglichen
+# Auswahllistenfehlers durch die fehlende Migration 040.
+POSTCHECK_SQL=$(cat <<'SQL'
+select case when exists (
+  select 1 from information_schema.columns
+  where table_schema='public' and table_name='organization_dropdown_options' and column_name='parameter_group'
+) then 'parameter_group=ok' else 'parameter_group=missing' end;
 
-WICHTIG: Der SQL-Diff ist ein Diagnoseartefakt und darf NICHT manuell gegen
-Produktion ausgefuehrt werden. Zusammen mit dem Produktions-Schema-Dump und
-den Invarianten wird daraus erst nach fachlicher Pruefung die einmalige,
-konkret passende Recovery abgeleitet.
-EOF_README
+select case when exists (
+  select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+  where n.nspname='public' and p.proname='save_dropdown_setting'
+    and pg_get_function_identity_arguments(p.oid) like '%p_parameter_group text%'
+) then 'save_dropdown_setting_v10=ok' else 'save_dropdown_setting_v10=missing' end;
 
-# Auch Fehlerdateien koennen CLI-Ausgaben enthalten; vor dem Upload alle
-# Textartefakte nochmals gegen die geheime Connection-URL bereinigen.
-while IFS= read -r -d '' report_file; do
-  sanitize_report_file "$report_file"
+select case when exists (
+  select 1 from information_schema.columns
+  where table_schema='public' and table_name='training_blocks' and column_name='usage_count'
+) then 'training_blocks_usage_count=ok' else 'training_blocks_usage_count=missing' end;
+
+select 'storage_buckets=' || count(*)::text
+from storage.buckets where id in ('exercise-videos','training-documentation-media');
+
+select 'realtime_tables=' || count(*)::text
+from pg_publication_tables
+where pubname='supabase_realtime' and schemaname='public'
+  and tablename in ('athletes','training_groups','trainers','exercises','training_blocks','athlete_training_plans','athlete_training_sessions','training_block_user_favorites','organization_members','audit_log');
+
+select 'disabled_statistics_modules=' || count(*)::text
+from public.app_modules
+where key in ('kindertraining_statistics','u12_statistics','u14_statistics') and is_active=false;
+SQL
+)
+docker run --rm postgres:17-alpine psql "$DB_URL" -X -v ON_ERROR_STOP=1 -Atqc "$POSTCHECK_SQL" > "$REPORT_DIR/postconditions.txt"
+
+grep -qx 'parameter_group=ok' "$REPORT_DIR/postconditions.txt" || fail "Migration-040-Spalte parameter_group fehlt nach Reset."
+grep -qx 'save_dropdown_setting_v10=ok' "$REPORT_DIR/postconditions.txt" || fail "Neue save_dropdown_setting-Signatur fehlt nach Reset."
+grep -qx 'training_blocks_usage_count=ok' "$REPORT_DIR/postconditions.txt" || fail "training_blocks.usage_count fehlt nach Reset."
+grep -qx 'storage_buckets=2' "$REPORT_DIR/postconditions.txt" || fail "Erwartete Storage-Buckets fehlen nach Reset."
+grep -qx 'realtime_tables=10' "$REPORT_DIR/postconditions.txt" || fail "Realtime-Publication ist nach Reset nicht vollstaendig."
+grep -qx 'disabled_statistics_modules=3' "$REPORT_DIR/postconditions.txt" || fail "Statistikrechte-Konsolidierung ist nach Reset nicht vollstaendig."
+
+# Schema-Drift nach frischem Aufbau muss fuer public verschwunden sein.
+echo "Pruefe public-Schema gegen alle 39 Repository-Migrationen..."
+if ! supabase db diff --db-url "$DB_URL" --schema public --use-migra > "$REPORT_DIR/post-reset-schema-diff.sql" 2> "$REPORT_DIR/post-reset-schema-diff.log"; then
+  sanitize_file "$REPORT_DIR/post-reset-schema-diff.log"
+  fail "Schema-Diff nach Reset ist technisch fehlgeschlagen."
+fi
+sanitize_file "$REPORT_DIR/post-reset-schema-diff.log"
+sed -E \
+  -e '/^[[:space:]]*$/d' \
+  -e '/^[[:space:]]*--/d' \
+  -e '/^[[:space:]]*set[[:space:]]+check_function_bodies[[:space:]]*=[[:space:]]*off;?[[:space:]]*$/Id' \
+  "$REPORT_DIR/post-reset-schema-diff.sql" > "$REPORT_DIR/post-reset-schema-diff.substantive.sql"
+if [[ -s "$REPORT_DIR/post-reset-schema-diff.substantive.sql" ]]; then
+  fail "Nach dem frischen Neuaufbau besteht weiterhin public-Schema-Drift."
+fi
+
+# Der einmalige Recovery-Branch hat dieselben Migrationen wie der gepinnte
+# aktuelle main. Deshalb darf nach vollstaendiger DB-Verifikation der regulare
+# database-verified-Nachweis direkt fuer GENAU diesen main-Commit gesetzt werden.
+# Das ist die einzige bewusste Ausnahme; der normale main-Workflow bleibt unveraendert.
+remote_main="$(git rev-parse origin/main)"
+if [[ "$remote_main" != "$EXPECTED_MAIN_SHA" ]]; then
+  fail "origin/main hat sich waehrend des Neuaufbaus geaendert; kein Verifikations-Tag wird gesetzt."
+fi
+if ! git diff --quiet origin/main HEAD -- supabase/migrations; then
+  fail "Migrationen des Recovery-Branches unterscheiden sich nach dem Reset von origin/main; kein Verifikations-Tag wird gesetzt."
+fi
+
+TAG="database-verified-${EXPECTED_MAIN_SHA}"
+existing="$(git ls-remote --tags origin "refs/tags/${TAG}" | awk '{print $1}')"
+if [[ -n "$existing" && "$existing" != "$EXPECTED_MAIN_SHA" ]]; then
+  fail "Vorhandener Verifikations-Tag ${TAG} zeigt auf einen unerwarteten Commit: ${existing}."
+fi
+if [[ -z "$existing" ]]; then
+  git tag "$TAG" "$EXPECTED_MAIN_SHA"
+  git push origin "refs/tags/${TAG}"
+fi
+
+cat > "$REPORT_DIR/SUMMARY.txt" <<EOF
+status=SUCCESS
+reset=COMPLETED
+seed=DISABLED
+repository_migrations=${#ALL_VERSIONS[@]}
+remote_migrations_after=$(wc -l < "$REPORT_DIR/remote-migrations-after.txt" | tr -d ' ')
+last_migration=${EXPECTED_LAST_VERSION}
+target_main_sha=${EXPECTED_MAIN_SHA}
+database_verification_tag=${TAG}
+public_schema_drift=NONE
+existing_auth_profiles_rehydrated=YES
+EOF
+
+# Letzte Redaction-Runde fuer alle Textartefakte.
+while IFS= read -r -d '' file; do
+  sanitize_file "$file"
 done < <(find "$REPORT_DIR" -type f -print0)
 
-cat > "$REPORT_DIR/SUMMARY.txt" <<EOF_SUMMARY
-baseline_version=${BASELINE_VERSION}
-first_pending_version=${FIRST_PENDING_VERSION}
-repository_migrations=${#ALL_VERSIONS[@]}
-remote_migrations=${#REMOTE_VERSIONS[@]}
-baseline_to_production_substantive_lines=${FORWARD_LINES}
-baseline_to_production_sha256=${FORWARD_SHA}
-production_public_schema_sha256=${DUMP_SHA}
-diff_status=${DIFF_STATUS}
-dump_status=${DUMP_STATUS}
-diagnostic_query_errors=${DIAGNOSTIC_ERROR_COUNT}
-supabase_cli_expected=2.109.1
-write_operations=NONE
-EOF_SUMMARY
-
-printf 'Diagnose abgeschlossen. Baseline 001-039 -> Produktion: %s substantive Zeilen.\n' "$FORWARD_LINES"
-printf 'Diff SHA-256: %s\n' "$FORWARD_SHA"
-printf 'Diagnoseabfrage-Fehler: %s\n' "$DIAGNOSTIC_ERROR_COUNT"
-echo "Es wurden KEINE Aenderungen an der Produktionsdatenbank vorgenommen."
-echo "Das GitHub-Artefakt muss vor jeder Reparatur ausgewertet werden."
-
-# Ein roter Lauf bleibt sichtbar, aber erst NACHDEM der vollstaendige Bericht
-# erzeugt wurde. upload-artifact laeuft im Workflow mit if: always().
-if [[ "$DIFF_STATUS" != "ok" || "$DUMP_STATUS" != "ok" || "$DIAGNOSTIC_ERROR_COUNT" -gt 0 ]]; then
-  echo "FEHLER: Die Diagnose hat Teilfehler gesammelt. Das Artefakt wurde trotzdem vollstaendig vorbereitet." >&2
-  exit 1
-fi
+echo "ERFOLG: Produktionsdatenbank wurde frisch aus allen 39 Migrationen aufgebaut."
+echo "ERFOLG: Verifikations-Tag ${TAG} ist gesetzt."
+echo "Vorhandene Vereins-/Trainingsdaten wurden absichtlich nicht wiederhergestellt."

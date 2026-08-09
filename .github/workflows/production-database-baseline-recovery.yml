@@ -1,56 +1,65 @@
-name: Produktionsdatenbank Baseline-Diagnose
+name: Produktionsdatenbank Neuaufbau
 
 on:
   workflow_dispatch:
     inputs:
       confirmation:
-        description: "Zur einmaligen READ-ONLY-Diagnose exakt BASELINE-DIAGNOSE eingeben"
+        description: "Destruktiven Neuaufbau bestaetigen: exakt PRODUKTION-NEU-AUFBAUEN eingeben"
         required: true
         type: string
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: production-database
   cancel-in-progress: false
 
 jobs:
-  diagnose:
-    name: Produktionsstand gegen Migrationen 001-039 analysieren
+  rebuild:
+    name: Produktionsdatenbank kontrolliert neu aufbauen
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 35
     env:
       SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      EXPECTED_MAIN_SHA: 9b11be2dc1234b38742d20262b41317947d9baed
+      EXPECTED_BRANCH: feature/db-diagnose-fast
     steps:
       - name: Repository auschecken
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
-      - name: Diagnose-Kontext strikt pruefen
+      - name: Recovery-Kontext strikt pruefen
         shell: bash
         run: |
           set -euo pipefail
-          if [ "${{ github.event.inputs.confirmation }}" != "BASELINE-DIAGNOSE" ]; then
+          if [ "${{ github.event.inputs.confirmation }}" != "PRODUKTION-NEU-AUFBAUEN" ]; then
             echo "FEHLER: Bestaetigung stimmt nicht exakt." >&2
             exit 1
           fi
-          case "${GITHUB_REF}" in
-            refs/heads/main|refs/heads/feature/db-diagnose-*)
-              ;;
-            *)
-              echo "FEHLER: Baseline-Diagnose ist nur auf main oder feature/db-diagnose-* erlaubt." >&2
-              exit 1
-              ;;
-          esac
-          branch="${GITHUB_REF#refs/heads/}"
-          git fetch origin "refs/heads/$branch:refs/remotes/origin/$branch" --prune
-          remote_head="$(git rev-parse "origin/$branch")"
-          if [ "$remote_head" != "$GITHUB_SHA" ]; then
+          if [ "${GITHUB_REF}" != "refs/heads/${EXPECTED_BRANCH}" ]; then
+            echo "FEHLER: Dieser einmalige Neuaufbau ist ausschliesslich auf ${EXPECTED_BRANCH} erlaubt." >&2
+            exit 1
+          fi
+          git fetch origin main "refs/heads/${EXPECTED_BRANCH}:refs/remotes/origin/${EXPECTED_BRANCH}" --tags --prune
+          remote_branch="$(git rev-parse "origin/${EXPECTED_BRANCH}")"
+          remote_main="$(git rev-parse origin/main)"
+          if [ "$remote_branch" != "$GITHUB_SHA" ]; then
             echo "FEHLER: Workflow-Commit ist nicht der aktuelle Remote-Branch-Stand." >&2
             echo "Workflow: $GITHUB_SHA" >&2
-            echo "origin/$branch: $remote_head" >&2
+            echo "origin/${EXPECTED_BRANCH}: $remote_branch" >&2
+            exit 1
+          fi
+          if [ "$remote_main" != "$EXPECTED_MAIN_SHA" ]; then
+            echo "FEHLER: origin/main hat sich seit der Freigabe geaendert." >&2
+            echo "Erwartet: $EXPECTED_MAIN_SHA" >&2
+            echo "Ist:      $remote_main" >&2
+            exit 1
+          fi
+          if ! git diff --quiet origin/main HEAD -- supabase/migrations; then
+            echo "FEHLER: Der Recovery-Branch enthaelt andere Migrationen als origin/main." >&2
+            git diff --stat origin/main HEAD -- supabase/migrations >&2 || true
             exit 1
           fi
           if [ -z "${SUPABASE_DB_URL:-}" ]; then
@@ -66,15 +75,15 @@ jobs:
       - name: Docker-Umgebung pruefen
         run: docker info
 
-      - name: Read-only Baseline-Diagnose ausfuehren
+      - name: Einmaligen Neuaufbau ausfuehren
         shell: bash
         run: bash scripts/ci/recover-production-migration-baseline.sh
 
-      - name: Diagnose-Artefakt sichern
+      - name: Recovery-Artefakt sichern
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: produktionsdatenbank-baseline-diagnose-${{ github.sha }}
-          path: ulc-db-baseline-diagnostic/
+          name: produktionsdatenbank-neuaufbau-${{ github.sha }}
+          path: ulc-db-reset-artifact/
           if-no-files-found: error
           retention-days: 7

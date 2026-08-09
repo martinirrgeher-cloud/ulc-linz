@@ -135,24 +135,28 @@ assert.doesNotMatch(productionDatabaseWorkflow, /migration\s+repair/, "Produktio
 assert.doesNotMatch(productionDatabaseWorkflow, /db\s+reset/, "Produktionsworkflow darf die Produktionsdatenbank nie resetten.");
 assert.doesNotMatch(productionDatabaseWorkflow, /seed/i, "Produktionsworkflow darf keine Seed-Daten nach Produktion schreiben.");
 
-assert.match(productionDatabaseRecoveryWorkflow, /workflow_dispatch:/, "Baseline-Diagnose darf nur manuell gestartet werden.");
-assert.match(productionDatabaseRecoveryWorkflow, /BASELINE-DIAGNOSE/, "Baseline-Diagnose muss eine explizite Bestaetigung verlangen.");
-assert.match(productionDatabaseRecoveryWorkflow, /refs\/heads\/main/, "Baseline-Diagnose darf ausschliesslich auf main laufen.");
-assert.match(productionDatabaseRecoveryWorkflow, /recover-production-migration-baseline\.sh/, "Baseline-Diagnose muss den zentralen Diagnose-Guard verwenden.");
-assert.match(productionDatabaseRecoveryWorkflow, /actions\/upload-artifact@v7/, "Baseline-Diagnose muss den vollstaendigen Diagnosebericht als Artefakt sichern.");
-assert.match(productionDatabaseRecoveryWorkflow, /permissions:[\s\S]*contents:\s*read/, "Baseline-Diagnose darf keine Schreibrechte auf Repository-Inhalte besitzen.");
-assert.doesNotMatch(productionDatabaseRecoveryWorkflow, /database-verified-|git\s+tag|git\s+push/, "Baseline-Diagnose darf den regulaeren DB-Verifikations-Tag nicht selbst erzeugen.");
-assert.doesNotMatch(productionDatabaseRecoveryWorkflow, /supabase\s+db\s+reset|supabase\s+migration\s+repair|supabase\s+db\s+push/, "Baseline-Diagnose darf weder DB-Reset, Historienreparatur noch DB-Push ausfuehren.");
-assert.doesNotMatch(productionDatabaseRecoveryWorkflow, /include-seed|seed\s+buckets/i, "Baseline-Diagnose darf keine Seed-Daten schreiben.");
-assert.match(productionDatabaseRecoveryScript, /BASELINE_VERSION="202608080039"/, "Diagnose muss den historischen Baseline-Cutoff fest pinnen.");
-assert.match(productionDatabaseRecoveryScript, /FIRST_PENDING_VERSION="202608090040"/, "Diagnose muss Migration 040 als erste noch nicht baselinede Migration fest pinnen.");
-assert.match(productionDatabaseRecoveryScript, /vollstaendig leere Remote-Migrationshistorie/, "Diagnose muss bei bereits vorhandener Remote-Historie abbrechen.");
-assert.match(productionDatabaseRecoveryScript, /supabase db diff --db-url "\$DB_URL" --schema public --use-migra > "\$FORWARD_SQL"/, "Diagnose muss den Baseline-zu-Produktion-Diff mit der gepinnten Supabase CLI 2.109.1 direkt aus stdout erfassen.");
-assert.match(productionDatabaseRecoveryScript, /baseline-001-039-to-production\.sql/, "Diagnose muss die Diff-Richtung Baseline 001-039 zu Produktion eindeutig benennen.");
-assert.match(productionDatabaseRecoveryScript, /supabase db dump[\s\S]*--schema public/, "Diagnose muss einen schema-only public-Dump fuer die spaetere Bewertung sichern.");
-assert.doesNotMatch(productionDatabaseRecoveryScript, /--from\b|--to\b|--output\b/, "Diagnose darf keine mit Supabase CLI 2.109.1 inkompatiblen db-diff-Flags verwenden.");
-assert.doesNotMatch(productionDatabaseRecoveryScript, /supabase\s+migration\s+repair|supabase\s+db\s+push|supabase\s+db\s+reset/, "Diagnose-Skript muss strikt read-only bleiben.");
-assert.doesNotMatch(productionDatabaseRecoveryScript, /include-seed|seed\s+buckets/i, "Diagnose-Skript darf keine Seed-Daten schreiben.");
+assert.match(productionDatabaseRecoveryWorkflow, /workflow_dispatch:/, "Produktions-Neuaufbau darf nur manuell gestartet werden.");
+assert.match(productionDatabaseRecoveryWorkflow, /PRODUKTION-NEU-AUFBAUEN/, "Produktions-Neuaufbau muss eine explizite destruktive Bestaetigung verlangen.");
+assert.match(productionDatabaseRecoveryWorkflow, /feature\/db-diagnose-fast/, "Produktions-Neuaufbau muss auf den einmaligen Recovery-Branch fest begrenzt sein.");
+assert.match(productionDatabaseRecoveryWorkflow, /EXPECTED_MAIN_SHA:\s*9b11be2dc1234b38742d20262b41317947d9baed/, "Produktions-Neuaufbau muss den freigegebenen main-Commit exakt pinnen.");
+assert.match(productionDatabaseRecoveryWorkflow, /recover-production-migration-baseline\.sh/, "Produktions-Neuaufbau muss das zentrale Recovery-Skript verwenden.");
+assert.match(productionDatabaseRecoveryWorkflow, /actions\/upload-artifact@v7/, "Produktions-Neuaufbau muss Backup und Recovery-Bericht als Artefakt sichern.");
+assert.match(productionDatabaseRecoveryWorkflow, /permissions:[\s\S]*contents:\s*write/, "Produktions-Neuaufbau braucht Schreibrecht ausschliesslich fuer den einmaligen DB-Verifikations-Tag.");
+
+assert.match(productionDatabaseRecoveryScript, /EXPECTED_MIGRATION_COUNT=39/, "Recovery muss exakt 39 Repository-Migrationen erwarten.");
+assert.match(productionDatabaseRecoveryScript, /EXPECTED_LAST_VERSION="202608090040"/, "Recovery muss Migration 040 als letzten erwarteten Stand pinnen.");
+assert.match(productionDatabaseRecoveryScript, /vollstaendig leere Remote-Migrationshistorie/, "Recovery muss vor dem Reset weiterhin die diagnostizierte leere Remote-Historie verlangen.");
+assert.match(productionDatabaseRecoveryScript, /supabase db dump[\s\S]*--schema public[\s\S]*pre-reset-public-schema\.sql/, "Recovery muss vor dem Reset ein public-Schema-Backup sichern.");
+assert.match(productionDatabaseRecoveryScript, /supabase db dump[\s\S]*--schema public[\s\S]*--data-only[\s\S]*pre-reset-public-data\.sql/, "Recovery muss vor dem Reset ein public-Datenbackup sichern.");
+assert.match(productionDatabaseRecoveryScript, /supabase --yes db reset --db-url "\$DB_URL" --no-seed/, "Recovery muss die Produktionsdatenbank ausschliesslich ueber den gepinnten Remote-Reset ohne Seeds neu aufbauen.");
+assert.doesNotMatch(productionDatabaseRecoveryScript, /supabase\s+migration\s+repair/, "Recovery darf keine historische Baseline mehr reparieren.");
+assert.doesNotMatch(productionDatabaseRecoveryScript, /supabase\s+db\s+push/, "Recovery darf nach dem Reset keinen zweiten unkontrollierten db push ausfuehren.");
+assert.match(productionDatabaseRecoveryScript, /parameter_group=ok/, "Recovery muss die Migration-040-Spalte verifizieren.");
+assert.match(productionDatabaseRecoveryScript, /save_dropdown_setting_v10=ok/, "Recovery muss die neue Auswahllisten-RPC-Signatur verifizieren.");
+assert.match(productionDatabaseRecoveryScript, /realtime_tables=10/, "Recovery muss die Realtime-Konfiguration verifizieren.");
+assert.match(productionDatabaseRecoveryScript, /database-verified-\$\{EXPECTED_MAIN_SHA\}/, "Recovery darf den einmaligen DB-Verifikationsnachweis nur fuer den fest gepinnten main-Commit erzeugen.");
+assert.match(productionDatabaseRecoveryScript, /git diff --quiet origin\/main HEAD -- supabase\/migrations/, "Recovery muss beweisen, dass Branch und main dieselben Migrationen enthalten.");
+assert.doesNotMatch(productionDatabaseRecoveryScript, /--include-seed|supabase\s+seed/, "Recovery darf keine Seed-Daten ausfuehren.");
 
 const writingPreparation = readFileSync("scripts/ci/prepare-writing-e2e.sh", "utf8");
 assert.match(writingPreparation, /supabase start[\s\S]*&/, "Writing-Vorbereitung muss Supabase im Hintergrund starten.");
