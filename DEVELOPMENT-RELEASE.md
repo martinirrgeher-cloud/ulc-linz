@@ -682,6 +682,23 @@ Nach dem Squash-Merge auf `main` führt `.github/workflows/production-database.y
 
 Nur ein erfolgreicher Lauf erzeugt `database-verified-<commit>`. `ULC-PRODUKTION-MARKIEREN.cmd` verlangt diesen Tag zusätzlich zum bestätigten Vercel-Commit und `origin/main`. Der normale sechs-CMD-Benutzerworkflow bleibt damit unverändert.
 
+### Einmalige historische Baseline-Recovery
+
+Für den im August 2026 festgestellten Altbestand gilt genau eine kontrollierte Ausnahme: Die produktive Datenbank enthielt die fachlichen Schemaänderungen bis `202608080039`, ihre Tabelle `supabase_migrations.schema_migrations` war jedoch leer. Deshalb konnte der normale Produktionsworkflow die Historie nicht von einem frischen Projekt unterscheiden.
+
+`.github/workflows/production-database-baseline-recovery.yml` ist ausschließlich für diesen Altbestand vorgesehen und nur manuell mit der exakten Bestätigung `BASELINE-REPARIEREN` auf `main` startbar. Vor jedem `migration repair` muss `scripts/ci/recover-production-migration-baseline.sh`:
+
+1. eine vollständig leere Remote-Migrationshistorie feststellen,
+2. das produktive Schema über `supabase db diff` gegen die Repository-Baseline bis `202608080039` vergleichen,
+3. Storage-Buckets, Realtime-Publication/Replica-Identity und zentrale Modul-Stammdaten zusätzlich prüfen,
+4. erst danach die 38 historischen Versionsnummern als `applied` eintragen,
+5. anschließend ausschließlich die echte offene Migration `202608090040` per Dry-Run und `db push` anwenden,
+6. Repo- und Produktionshistorie 1:1 vergleichen und die Postconditions der Migration 040 prüfen.
+
+Die Recovery erzeugt **bewusst keinen** `database-verified-*`-Tag. Nach erfolgreicher Recovery muss der zuvor fehlgeschlagene normale Workflow **`Produktionsdatenbank migrieren`** für denselben `main`-Commit erneut gestartet werden. Erst dieser normale Workflow darf den Verifikations-Tag erzeugen. So bleibt der reguläre Produktionsnachweis auch nach der einmaligen Reparatur unverändert.
+
+Der normale `.github/workflows/production-database.yml` bleibt ausdrücklich unverändert streng und führt **niemals** automatisch `migration repair` aus. Die Recovery darf nach erfolgreicher Baseline nicht erneut laufen, weil sie bei jeder nichtleeren Remote-Historie abbricht.
+
 ### UI-/CSS-Hardening
 
 Semantische Iconzustände werden zentral modelliert: Favoriten verwenden `icon-button--favorite` + `aria-pressed`, Auswahlen `icon-button--selected` + `aria-pressed`, destruktive Aktionen `icon-button--danger`. Route-CSS darf diese Semantik nicht durch generische Hover-/Focus-Regeln überschreiben. Shared-Komponenten besitzen ihr CSS selbst; `check:route-css-ownership` verhindert Abhängigkeiten von zuvor besuchten lazy Routen. Zentrale CRUD-Editoren und persistente Favoritenzustände müssen in Writing-E2E einen echten Save/Reload/Read-back durchlaufen.
