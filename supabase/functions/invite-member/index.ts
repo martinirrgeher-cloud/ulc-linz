@@ -117,9 +117,11 @@ function normalizePermissions(permissions: PermissionInput[]): Array<{
 }
 
 function invitationRedirect(origin: string | null, allowedOrigins: string[]): string {
+  const requestRedirect = origin && allowedOrigins.includes(origin)
+    ? `${origin}/passwort-neu`
+    : undefined;
   const configuredRedirect = Deno.env.get("APP_INVITE_REDIRECT_URL")?.trim();
-  const fallbackRedirect = origin ? `${origin}/passwort-neu` : undefined;
-  const redirectTo = configuredRedirect || fallbackRedirect;
+  const redirectTo = requestRedirect || configuredRedirect;
 
   if (!redirectTo) {
     throw new Error(

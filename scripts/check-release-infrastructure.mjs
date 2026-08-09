@@ -34,8 +34,8 @@ const requiredFiles = [
   "scripts/check-css-ownership.mjs",
   "scripts/check-route-css-ownership.mjs",
   ".github/workflows/production-database.yml",
-  ".github/workflows/production-database-baseline-recovery.yml",
-  "scripts/ci/recover-production-migration-baseline.sh",
+  "scripts/ci/verify-production-database.sh",
+  "scripts/check-dependency-security.mjs",
   ".devcontainer/devcontainer.json",
 ];
 for (const file of requiredFiles) assert.ok(existsSync(file), `Release-Infrastruktur fehlt: ${file}`);
@@ -65,8 +65,12 @@ for (const script of [
   "check:test-layering",
   "ci:preview",
   "check:route-css-ownership",
+  "check:dependency-security",
 ]) assert.ok(pkg.scripts?.[script], `package.json Script fehlt: ${script}`);
 assert.equal(pkg.devDependencies?.["@playwright/test"], "1.62.1", "Playwright Test muss exakt im Projekt gepinnt sein.");
+assert.equal(pkg.dependencies?.["react-router-dom"], "7.18.2", "React Router DOM muss auf der sicherheitsbereinigten Version 7.18.2 gepinnt sein.");
+assert.equal(pkg.overrides?.postcss, "8.5.23", "PostCSS muss mindestens auf dem gepatchten 8.5.23-Stand erzwungen werden.");
+assert.equal(pkg.overrides?.nanoid, "3.3.17", "Nano ID muss auf dem gepatchten 3.3.17-Stand erzwungen werden.");
 assert.match(pkg.scripts["ci:quality"], /test:release-approval/, "CI muss die Freigaberoutine testen.");
 assert.match(pkg.scripts["ci:quality"], /test:release-verification/, "CI muss die Wiederverwendung von Pruefnachweisen testen.");
 assert.match(pkg.scripts["ci:quality"], /test:start-change/, "CI muss den Start eines Entwicklungszyklus testen.");
@@ -81,6 +85,8 @@ assert.match(pkg.scripts["ci:preview"], /check:route-css-ownership/, "Preview-Ga
 assert.match(pkg.scripts["ci:quality"], /check:test-layering/, "CI muss die Testschichten absichern.");
 assert.match(pkg.scripts["ci:preview"], /check:test-layering/, "Preview-Gate muss die Testschichten absichern.");
 assert.match(pkg.scripts["ci:preview"], /check:test-interactions/, "Preview-Gate muss die stabilen Test-Interaktionsanker pruefen.");
+assert.match(pkg.scripts["ci:quality"], /check:dependency-security/, "CI muss npm-High/Critical-Vulnerabilities blockieren.");
+assert.match(pkg.scripts["ci:preview"], /check:dependency-security/, "Preview-Gate muss npm-High/Critical-Vulnerabilities blockieren.");
 assert.equal(pkg.scripts["release:check"], pkg.scripts["release:check:ci"], "Lokale und CI-Release-Pruefung muessen denselben Einstieg verwenden.");
 const apiFoundationCheck = readFileSync("scripts/check-api-foundation.mjs", "utf8");
 assert.match(apiFoundationCheck, /check-training-module-architecture\.mjs/, "API-Foundation muss die S3c-Trainingsmodulgrenzen einschliessen.");
@@ -94,13 +100,17 @@ assert.equal(lock.packages?.[""]?.devDependencies?.["@playwright/test"], "1.62.1
 assert.equal(lock.packages?.["node_modules/@playwright/test"]?.version, "1.62.1", "package-lock muss Playwright Test 1.62.1 enthalten.");
 assert.equal(lock.packages?.["node_modules/playwright"]?.version, "1.62.1", "package-lock muss Playwright 1.62.1 enthalten.");
 assert.equal(lock.packages?.["node_modules/playwright-core"]?.version, "1.62.1", "package-lock muss Playwright Core 1.62.1 enthalten.");
+assert.equal(lock.packages?.["node_modules/react-router-dom"]?.version, "7.18.2", "package-lock muss React Router DOM 7.18.2 enthalten.");
+assert.equal(lock.packages?.["node_modules/react-router"]?.version, "7.18.2", "package-lock muss React Router 7.18.2 enthalten.");
+assert.equal(lock.packages?.["node_modules/postcss"]?.version, "8.5.23", "package-lock muss PostCSS 8.5.23 enthalten.");
+assert.equal(lock.packages?.["node_modules/nanoid"]?.version, "3.3.17", "package-lock muss Nano ID 3.3.17 enthalten.");
 
 const qualityWorkflow = readFileSync(".github/workflows/quality-check.yml", "utf8");
 const readonlyWorkflow = readFileSync(".github/workflows/e2e-readonly.yml", "utf8");
 const writingWorkflow = readFileSync(".github/workflows/e2e-writing.yml", "utf8");
 const productionDatabaseWorkflow = readFileSync(".github/workflows/production-database.yml", "utf8");
-const productionDatabaseRecoveryWorkflow = readFileSync(".github/workflows/production-database-baseline-recovery.yml", "utf8");
-const productionDatabaseRecoveryScript = readFileSync("scripts/ci/recover-production-migration-baseline.sh", "utf8");
+const productionDatabaseVerificationScript = readFileSync("scripts/ci/verify-production-database.sh", "utf8");
+const dependencySecurityCheck = readFileSync("scripts/check-dependency-security.mjs", "utf8");
 for (const [label, workflow] of [["Quality", qualityWorkflow], ["Read-only E2E", readonlyWorkflow], ["Writing E2E", writingWorkflow]]) {
   assert.match(workflow, /actions\/checkout@v6/, `${label} muss Checkout v6 verwenden.`);
   assert.match(workflow, /actions\/setup-node@v6/, `${label} muss Setup-Node v6 verwenden.`);
@@ -123,36 +133,35 @@ for (const marker of [
   "branches:",
   "main",
   "SUPABASE_DB_URL",
+  "SUPABASE_ACCESS_TOKEN",
+  "SUPABASE_PROJECT_REF",
   "supabase db push --db-url",
   "--dry-run",
-  "supabase_migrations.schema_migrations",
-  "database-verified-${GITHUB_SHA}",
+  "verify-production-database.sh",
+  "functions deploy invite-member",
+  "functions list",
+  "backend-verified-${GITHUB_SHA}",
 ]) {
-  assert.ok(productionDatabaseWorkflow.includes(marker), `Produktionsdatenbank-Workflow fehlt: ${marker}`);
+  assert.ok(productionDatabaseWorkflow.includes(marker), `Produktionsbackend-Workflow fehlt: ${marker}`);
 }
-assert.match(productionDatabaseWorkflow, /permissions:[\s\S]*contents:\s*write/, "Produktionsdatenbank-Workflow braucht Schreibrecht nur fuer den Verifikations-Tag.");
+assert.match(productionDatabaseWorkflow, /permissions:[\s\S]*contents:\s*write/, "Produktionsbackend-Workflow braucht Schreibrecht nur fuer den Verifikations-Tag.");
 assert.doesNotMatch(productionDatabaseWorkflow, /migration\s+repair/, "Produktionsworkflow darf Migrationshistorie nie automatisch reparieren.");
 assert.doesNotMatch(productionDatabaseWorkflow, /db\s+reset/, "Produktionsworkflow darf die Produktionsdatenbank nie resetten.");
-assert.doesNotMatch(productionDatabaseWorkflow, /seed/i, "Produktionsworkflow darf keine Seed-Daten nach Produktion schreiben.");
+assert.doesNotMatch(productionDatabaseWorkflow, /include-seed|seed\s+buckets/i, "Produktionsworkflow darf keine Seed-Daten nach Produktion schreiben.");
 
-assert.match(productionDatabaseRecoveryWorkflow, /workflow_dispatch:/, "Baseline-Diagnose darf nur manuell gestartet werden.");
-assert.match(productionDatabaseRecoveryWorkflow, /BASELINE-DIAGNOSE/, "Baseline-Diagnose muss eine explizite Bestaetigung verlangen.");
-assert.match(productionDatabaseRecoveryWorkflow, /refs\/heads\/main/, "Baseline-Diagnose darf ausschliesslich auf main laufen.");
-assert.match(productionDatabaseRecoveryWorkflow, /recover-production-migration-baseline\.sh/, "Baseline-Diagnose muss den zentralen Diagnose-Guard verwenden.");
-assert.match(productionDatabaseRecoveryWorkflow, /actions\/upload-artifact@v7/, "Baseline-Diagnose muss den vollstaendigen Diagnosebericht als Artefakt sichern.");
-assert.match(productionDatabaseRecoveryWorkflow, /permissions:[\s\S]*contents:\s*read/, "Baseline-Diagnose darf keine Schreibrechte auf Repository-Inhalte besitzen.");
-assert.doesNotMatch(productionDatabaseRecoveryWorkflow, /database-verified-|git\s+tag|git\s+push/, "Baseline-Diagnose darf den regulaeren DB-Verifikations-Tag nicht selbst erzeugen.");
-assert.doesNotMatch(productionDatabaseRecoveryWorkflow, /supabase\s+db\s+reset|supabase\s+migration\s+repair|supabase\s+db\s+push/, "Baseline-Diagnose darf weder DB-Reset, Historienreparatur noch DB-Push ausfuehren.");
-assert.doesNotMatch(productionDatabaseRecoveryWorkflow, /include-seed|seed\s+buckets/i, "Baseline-Diagnose darf keine Seed-Daten schreiben.");
-assert.match(productionDatabaseRecoveryScript, /BASELINE_VERSION="202608080039"/, "Diagnose muss den historischen Baseline-Cutoff fest pinnen.");
-assert.match(productionDatabaseRecoveryScript, /FIRST_PENDING_VERSION="202608090040"/, "Diagnose muss Migration 040 als erste noch nicht baselinede Migration fest pinnen.");
-assert.match(productionDatabaseRecoveryScript, /vollstaendig leere Remote-Migrationshistorie/, "Diagnose muss bei bereits vorhandener Remote-Historie abbrechen.");
-assert.match(productionDatabaseRecoveryScript, /supabase db diff --db-url "\$DB_URL" --schema public --use-migra > "\$FORWARD_SQL"/, "Diagnose muss den Baseline-zu-Produktion-Diff mit der gepinnten Supabase CLI 2.109.1 direkt aus stdout erfassen.");
-assert.match(productionDatabaseRecoveryScript, /baseline-001-039-to-production\.sql/, "Diagnose muss die Diff-Richtung Baseline 001-039 zu Produktion eindeutig benennen.");
-assert.match(productionDatabaseRecoveryScript, /supabase db dump[\s\S]*--schema public/, "Diagnose muss einen schema-only public-Dump fuer die spaetere Bewertung sichern.");
-assert.doesNotMatch(productionDatabaseRecoveryScript, /--from\b|--to\b|--output\b/, "Diagnose darf keine mit Supabase CLI 2.109.1 inkompatiblen db-diff-Flags verwenden.");
-assert.doesNotMatch(productionDatabaseRecoveryScript, /supabase\s+migration\s+repair|supabase\s+db\s+push|supabase\s+db\s+reset/, "Diagnose-Skript muss strikt read-only bleiben.");
-assert.doesNotMatch(productionDatabaseRecoveryScript, /include-seed|seed\s+buckets/i, "Diagnose-Skript darf keine Seed-Daten schreiben.");
+for (const marker of [
+  "supabase_migrations.schema_migrations",
+  "supabase db diff --db-url",
+  "--schema public",
+  "storage.buckets",
+  "supabase_realtime",
+  "relreplident='f'",
+]) {
+  assert.ok(productionDatabaseVerificationScript.includes(marker), `Produktionsdatenbank-Verifikation fehlt: ${marker}`);
+}
+assert.doesNotMatch(productionDatabaseVerificationScript, /migration\s+repair|db\s+reset/, "Produktionsdatenbank-Verifikation darf weder Historienreparatur noch Reset ausfuehren.");
+assert.match(dependencySecurityCheck, /critical[\s\S]*high/, "Dependency-Security-Gate muss Critical und High auswerten.");
+assert.match(dependencySecurityCheck, /npm[\s\S]*audit[\s\S]*--json/, "Dependency-Security-Gate muss npm audit maschinenlesbar ausfuehren.");
 
 const writingPreparation = readFileSync("scripts/ci/prepare-writing-e2e.sh", "utf8");
 assert.match(writingPreparation, /supabase start[\s\S]*&/, "Writing-Vorbereitung muss Supabase im Hintergrund starten.");
@@ -166,7 +175,7 @@ assert.match(writingConfig, /workers:\s*process\.env\.CI\s*\?\s*2\s*:\s*1/, "Wri
 assert.doesNotMatch(writingConfig, /fullyParallel:\s*true/, "Globale Writing-Parallelisierung ist ohne Domaenenisolation verboten.");
 
 
-for (const retiredFile of [".github/workflows/mobile-patch.yml", "MOBILE-ENTWICKLUNG.md"]) {
+for (const retiredFile of [".github/workflows/mobile-patch.yml", "MOBILE-ENTWICKLUNG.md", ".github/workflows/production-database-baseline-recovery.yml", "scripts/ci/recover-production-migration-baseline.sh"]) {
   assert.equal(existsSync(retiredFile), false, `Veralteter Mobile-Patch-Workflow darf nicht zurueckkehren: ${retiredFile}`);
 }
 
@@ -239,15 +248,16 @@ assert.match(productionMarker, /git[\s\S]*switch[\s\S]*main/, "Produktionsmarkie
 assert.match(productionMarker, /merge[\s\S]*--ff-only[\s\S]*origin\/main/, "Produktionsmarkierung muss main ausschliesslich per Fast-Forward synchronisieren.");
 assert.doesNotMatch(productionMarker, /reset[\s\S]*--hard/, "Produktionsmarkierung darf den lokalen Stand nicht hart zuruecksetzen.");
 assert.match(productionMarker, /resolved !== remoteMain/, "Nur der aktuelle origin/main darf als Produktion bestaetigt werden.");
-assert.match(productionMarker, /database-verified-\$\{resolved\}/, "Produktionsmarkierung muss den DB-Verifikations-Tag des exakten Commits verlangen.");
-assert.match(productionMarker, /Produktionsdatenbank migrieren/, "Produktionsmarkierung muss bei fehlendem DB-Nachweis auf den GitHub-Workflow verweisen.");
+assert.match(productionMarker, /backend-verified-\$\{resolved\}/, "Produktionsmarkierung muss den Backend-Verifikations-Tag des exakten Commits verlangen.");
+assert.match(productionMarker, /Produktionsbackend verifizieren/, "Produktionsmarkierung muss bei fehlendem Backend-Nachweis auf den GitHub-Workflow verweisen.");
 
 const releaseDocs = readFileSync("DEVELOPMENT-RELEASE.md", "utf8");
 for (const marker of ["ULC-UPDATE-INSTALLIEREN.cmd", "Manifestformat v2", "existing-pr", "ULC-SOURCE-METADATA.json", "Prüfnachweis wiederverwenden"]) {
   assert.match(releaseDocs, new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")), `Release-Dokumentation fehlt: ${marker}`);
 }
 assert.match(releaseDocs, /Fast-Forward[\s\S]*main/, "Release-Dokumentation muss die sichere main-Synchronisierung nach Produktion festhalten.");
-assert.match(releaseDocs, /Produktionsdatenbank migrieren[\s\S]*database-verified-<commit>/, "Release-Dokumentation muss das Produktionsdatenbank-Gate vor der Produktionsmarkierung festhalten.");
+assert.match(releaseDocs, /Produktionsbackend verifizieren[\s\S]*backend-verified-<commit>/, "Release-Dokumentation muss das vollstaendige Backend-Gate vor der Produktionsmarkierung festhalten.");
+assert.match(releaseDocs, /Expand-Deploy-Contract/, "Release-Dokumentation muss kompatible Datenbank-Rollouts verbindlich festhalten.");
 
 const releaseCheck = readFileSync("scripts/release/run-release-check.mjs", "utf8");
 assert.match(releaseCheck, /run-runtime-smoke\.mjs/, "Release-Check muss den isolierten Runtime-Build ausfuehren.");
@@ -278,7 +288,7 @@ assert.match(runtimeTest, /pageerror/, "Runtime-Test muss pageerror ueberwachen.
 assert.match(runtimeTest, /console\.error/, "Runtime-Test muss console.error ueberwachen.");
 assert.match(runtimeTest, /app-error-boundary/, "Runtime-Test muss den React Error Boundary pruefen.");
 assert.match(runtimeTest, /\/module\/athletes/, "Runtime-Test muss mindestens eine authentifizierte Modulroute oeffnen.");
-assert.equal((runtimeTest.match(/tag:\s*"@pr"/g) ?? []).length, 7, "Runtime-Suite muss exakt sieben kritische PR-Tests markieren.");
+assert.equal((runtimeTest.match(/tag:\s*"@pr"/g) ?? []).length, 8, "Runtime-Suite muss exakt acht kritische PR-Tests markieren.");
 
 const appSource = readFileSync("src/app/App.tsx", "utf8");
 if (/\bBrowserRouter\b/.test(appSource)) {

@@ -60,7 +60,7 @@ Referenzstand S3d:
 
 - 39 Migrationen
 - 47 RLS-geschützte Tabellen
-- 158 in den generierten Datenbanktypen erfasste Funktionen
+- 159 in den generierten Datenbanktypen erfasste Funktionen
 
 ### Hosting und Repository
 
@@ -252,11 +252,19 @@ Neue Datenbankänderungen werden als neue Migration ausgeliefert. Bereits produk
 
 ### 6.2.1 Automatische Produktionsmigration und Verifikationsnachweis
 
-Nach jedem Push auf `main` startet `.github/workflows/production-database.yml`. Der Workflow verwendet ausschließlich das Repository-Secret `SUPABASE_DB_URL`, führt zuerst `supabase db push --dry-run`, anschließend `supabase db push` aus und vergleicht danach die Versionsliste unter `supabase/migrations` exakt mit `supabase_migrations.schema_migrations` der Produktionsdatenbank. Es werden **keine** Seeds eingespielt, keine Datenbank resettet und keine abweichende Migrationshistorie automatisch per `migration repair` korrigiert.
+Nach jedem Push auf `main` startet `.github/workflows/production-database.yml`. Der Workflow verwendet `SUPABASE_DB_URL` für die Datenbank und `SUPABASE_ACCESS_TOKEN` für das Edge-Function-Deployment; die feste Projekt-Referenz ist `xddbuldehewyrezhrhej`. Er führt zuerst `supabase db push --dry-run`, anschließend `supabase db push` aus und vergleicht danach die Versionsliste unter `supabase/migrations` exakt mit `supabase_migrations.schema_migrations` der Produktionsdatenbank. Es werden **keine** Seeds eingespielt, keine Datenbank resettet und keine abweichende Migrationshistorie automatisch per `migration repair` korrigiert.
 
-Nur wenn Repo und Produktion exakt übereinstimmen, wird der leichte Git-Tag `database-verified-<Git-Commit>` erzeugt. `scripts/release/mark-production.mjs` verlangt diesen Tag für exakt `origin/main`, bevor ein `production-*`-Tag angelegt werden darf. Dadurch bleibt der Benutzerworkflow bei sechs CMD-Dateien, ein Frontendstand mit fehlenden produktiven Migrationen kann aber nicht mehr als stabil markiert werden.
+Nur wenn Repo und Produktion exakt übereinstimmen, wird der leichte Git-Tag `backend-verified-<Git-Commit>` erzeugt. `scripts/release/mark-production.mjs` verlangt diesen Tag für exakt `origin/main`, bevor ein `production-*`-Tag angelegt werden darf. Dadurch bleibt der Benutzerworkflow bei sechs CMD-Dateien, ein Frontendstand mit fehlenden produktiven Migrationen kann aber nicht mehr als stabil markiert werden.
 
-Für den einmalig festgestellten historischen Sonderfall einer **leeren** `supabase_migrations.schema_migrations` bei bereits bestehendem Produktionsschema existiert zusätzlich `.github/workflows/production-database-baseline-recovery.yml`. Nach dem ersten sicheren Recovery-Abbruch am 2026-08-09 ist dieser Workflow bis zur vollständigen Bestandsklärung bewusst eine **strikt read-only Baseline-Diagnose**: manuell, nur auf `main`, Bestätigung `BASELINE-DIAGNOSE`, fest auf Baseline `202608080039` und die danach erste offene Migration `202608090040`. Er erzeugt mit der gepinnten Supabase CLI `2.109.1` den eindeutig gerichteten Diff `001-039 → Produktion`, erfasst ihn direkt aus stdout und sichert zusätzlich einen schema-only Dump von `public` sowie nicht personenbezogene Auth-/Storage-/Realtime-/Modul-Invarianten als GitHub-Artefakt. In dieser Phase sind `migration repair`, `db push`, DB-Reset und Seeds ausdrücklich verboten. Erst nach Auswertung dieses Artefakts darf eine konkret auf den nachgewiesenen Produktionszustand zugeschnittene einmalige Recovery erstellt werden. Der normale Produktionsworkflow bleibt weiterhin frei von automatischer Historienreparatur und allein zuständig für den späteren `database-verified-*`-Tag.
+Zum vollständigen Backend-Nachweis gehören zusätzlich:
+- ein leerer `public`-Schema-Diff zwischen Repository-Migrationen und Produktion,
+- die separat geprüften Storage-/Realtime-Postconditions,
+- ein erfolgreiches Deployment der Edge Function `invite-member` aus exakt demselben Commit.
+
+Datenbankänderungen folgen verbindlich dem **Expand-Deploy-Contract-Prinzip**: Ein normaler Release muss während des Deployfensters sowohl mit dem unmittelbar vorherigen als auch mit dem neuen Frontend kompatibel sein. Neue Spalten/RPCs werden zuerst additiv eingeführt; Entfernen oder inkompatibles Umbenennen alter Verträge erfolgt frühestens in einem späteren Release.
+
+
+Destruktive Produktions-Recovery ist **kein regulärer Releaseweg**. Sie darf nur nach expliziter Freigabe, mit aktuellem Backup und einem eigens für den konkreten Fehler gebauten Recovery-Plan erfolgen. Historische Einmal-Workflows werden nach Abschluss wieder aus `main` entfernt.
 
 Manuelle Schemaänderungen im Supabase-Dashboard sind kein normaler Releaseweg. Produktive Schemaänderungen müssen immer zuerst als neue Migration im Repository vorliegen.
 

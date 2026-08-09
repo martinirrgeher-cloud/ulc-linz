@@ -21,7 +21,7 @@ for (const marker of [
 }
 
 const smokeTestCount = (smoke.match(/\btest\("/g) ?? []).length;
-assert.equal(smokeTestCount, 61, "S2c erwartet 61 fokussierte App-Smoke-Tests nach Auslagerung der zwei Release-Infrastrukturchecks.");
+assert.equal(smokeTestCount, 63, "S2c erwartet 63 fokussierte App-Smoke-Tests nach Auslagerung der zwei Release-Infrastrukturchecks und den finalen Auth-/Invite-Regressionschecks.");
 
 const pkg = JSON.parse(readFileSync("package.json", "utf8"));
 assert.match(pkg.scripts?.["ci:quality"] ?? "", /check:test-layering/, "CI muss die Testschichten absichern.");

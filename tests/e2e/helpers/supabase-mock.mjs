@@ -557,8 +557,9 @@ export async function installAuthenticatedSession(page) {
   }, { key: STORAGE_KEY, value: session });
 }
 
-export async function installSupabaseMock(page) {
+export async function installSupabaseMock(page, options = {}) {
   const unhandled = [];
+  const { authUserMissing = false } = options;
 
   // The read-only suite uses an intentionally fake Supabase host. Intercept
   // Realtime WebSockets so Chromium does not perform a real DNS lookup.
@@ -574,6 +575,17 @@ export async function installSupabaseMock(page) {
     }
 
     if (url.pathname === "/auth/v1/user") {
+      if (authUserMissing) {
+        await route.fulfill({
+          status: 401,
+          headers: corsHeaders(),
+          body: JSON.stringify({
+            code: "user_not_found",
+            message: "User from sub claim in JWT does not exist",
+          }),
+        });
+        return;
+      }
       await route.fulfill({ status: 200, headers: corsHeaders(), body: JSON.stringify(user) });
       return;
     }

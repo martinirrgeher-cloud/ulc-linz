@@ -102,6 +102,27 @@ test("authentifiziertes App-Layout rendert ohne React-Laufzeitfehler", { tag: "@
   await expectRuntimeHealthy(page, problems, unhandled);
 });
 
+test("gespeicherte Sitzung ohne Remote-Benutzer wird verworfen", { tag: "@pr" }, async ({ page }) => {
+  const problems = collectRuntimeProblems(page);
+  await installAuthenticatedSession(page);
+  const unhandled = await installSupabaseMock(page, { authUserMissing: true });
+
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: "Anmelden", exact: true })).toBeVisible();
+  const storedAuthSession = await page.evaluate(() => window.localStorage.getItem("sb-e2e-auth-token"));
+  expect(storedAuthSession).toBeNull();
+
+  // Der Test provoziert absichtlich einen 401 von /auth/v1/user, damit die App
+  // eine serverseitig ungueltige gespeicherte Sitzung verwirft. Chromium meldet
+  // diesen erwarteten HTTP-Fehler als console.error. Genau dieser eine 401 muss
+  // auftreten; jeder weitere Console-/Page-/Unhandled-Fehler bleibt verboten.
+  const expectedAuthRejection =
+    "console.error: Failed to load resource: the server responded with a status of 401 (Unauthorized)";
+  expect(problems.filter((problem) => problem === expectedAuthRejection)).toHaveLength(1);
+  const unexpectedProblems = problems.filter((problem) => problem !== expectedAuthRejection);
+  await expectRuntimeHealthy(page, unexpectedProblems, unhandled);
+});
+
 test("zentrales Stammdatenmodul rendert ohne React-Laufzeitfehler", { tag: "@pr" }, async ({ page }) => {
   const problems = collectRuntimeProblems(page);
   await installAuthenticatedSession(page);
@@ -270,10 +291,6 @@ test("D3 Kernmodule nutzen das gemeinsame, lesbarere Designsystem", async ({ pag
 
 
 test("Final UI v4 rendert alle Hauptseiten mit konsistenter Typografie und Bediengroesse", async ({ page }) => {
-  const problems = collectRuntimeProblems(page);
-  await installAuthenticatedSession(page);
-  const unhandled = await installSupabaseMock(page);
-
   const routes = [
     ["/", "Willkommen, E2E Administrator"],
     ["/module/kindertraining", "Kindertraining"],
@@ -296,21 +313,29 @@ test("Final UI v4 rendert alle Hauptseiten mit konsistenter Typografie und Bedie
   ];
 
   for (const [route, heading] of routes) {
-    await expectAuthenticatedHeading(page, route, heading);
-    await expect(page.locator(".app-shell.final-ui-v1")).toBeVisible();
-    const tinyButtons = await page.locator(".app-content button:visible").evaluateAll((buttons) => buttons
-      .filter((button) => button.textContent?.trim() && Number.parseFloat(getComputedStyle(button).fontSize) < 13.5)
-      .map((button) => `${button.textContent?.trim()}: ${getComputedStyle(button).fontSize}`));
-    const tinySmallText = await page.locator(".app-content small:visible").evaluateAll((elements) => elements
-      .filter((element) => Number.parseFloat(getComputedStyle(element).fontSize) < 13.5)
-      .map((element) => `${element.textContent?.trim()}: ${getComputedStyle(element).fontSize}`));
-    expect(tinyButtons, `Zu kleine Button-Schrift auf ${route}`).toEqual([]);
-    expect(tinySmallText, `Zu kleine Meta-Schrift auf ${route}`).toEqual([]);
-  }
+    const routePage = await page.context().newPage();
+    const problems = collectRuntimeProblems(routePage);
+    await installAuthenticatedSession(routePage);
+    const unhandled = await installSupabaseMock(routePage);
 
-  const rootFontSize = await page.locator("html").evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize));
-  expect(rootFontSize).toBeGreaterThanOrEqual(18);
-  await expectRuntimeHealthy(page, problems, unhandled);
+    try {
+      await expectAuthenticatedHeading(routePage, route, heading);
+      await expect(routePage.locator(".app-shell.final-ui-v1")).toBeVisible();
+      const tinyButtons = await routePage.locator(".app-content button:visible").evaluateAll((buttons) => buttons
+        .filter((button) => button.textContent?.trim() && Number.parseFloat(getComputedStyle(button).fontSize) < 13.5)
+        .map((button) => `${button.textContent?.trim()}: ${getComputedStyle(button).fontSize}`));
+      const tinySmallText = await routePage.locator(".app-content small:visible").evaluateAll((elements) => elements
+        .filter((element) => Number.parseFloat(getComputedStyle(element).fontSize) < 13.5)
+        .map((element) => `${element.textContent?.trim()}: ${getComputedStyle(element).fontSize}`));
+      expect(tinyButtons, `Zu kleine Button-Schrift auf ${route}`).toEqual([]);
+      expect(tinySmallText, `Zu kleine Meta-Schrift auf ${route}`).toEqual([]);
+      const rootFontSize = await routePage.locator("html").evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize));
+      expect(rootFontSize).toBeGreaterThanOrEqual(18);
+      await expectRuntimeHealthy(routePage, problems, unhandled);
+    } finally {
+      await routePage.close();
+    }
+  }
 });
 
 

@@ -72,8 +72,9 @@ Normaler Ablauf:
 12. Danach `ULC-FREIGEBEN.cmd`; erst hier Commit und Push.
 13. GitHub PR, alle erforderlichen Checks grün.
 14. Manuell **Squash and merge**.
-15. Nach dem Squash-Merge müssen **Vercel-Produktion und der GitHub-Workflow `Produktionsdatenbank migrieren`** erfolgreich sein. Dieser Workflow wendet fehlende Repo-Migrationen mit `supabase db push` an, vergleicht anschließend die komplette Produktions-Migrationshistorie exakt mit `supabase/migrations` und erzeugt nur bei Übereinstimmung den Tag `database-verified-<commit>`.
-16. `ULC-PRODUKTION-MARKIEREN.cmd`: Produktionscommit muss exakt `origin/main` sein **und der passende `database-verified-<commit>`-Tag muss vorhanden sein**. Lokaler main wird nur per Fast-Forward synchronisiert und erst danach ein annotierter `production-*`-Tag gepusht.
+15. Nach dem Squash-Merge müssen **Vercel-Produktion und der GitHub-Workflow `Produktionsbackend verifizieren`** erfolgreich sein. Dieser Workflow wendet fehlende Repo-Migrationen mit `supabase db push` an, verifiziert Migrationshistorie, `public`-Schema, Storage/Realtime, deployt `invite-member` aus exakt demselben Commit und erzeugt erst danach den Tag `backend-verified-<commit>`.
+16. `ULC-PRODUKTION-MARKIEREN.cmd`: Produktionscommit muss exakt `origin/main` sein **und der passende `backend-verified-<commit>`-Tag muss vorhanden sein**. Lokaler main wird nur per Fast-Forward synchronisiert und erst danach ein annotierter `production-*`-Tag gepusht.
+17. Datenbank-Rollouts folgen **Expand-Deploy-Contract**: neue Verträge additiv einführen, altes und neues Frontend parallel kompatibel halten, inkompatible Entfernung erst in einem späteren Release.
 17. Erst danach nächste Änderung.
 
 ## Was du bei einem normalen Update liefern sollst
@@ -331,7 +332,7 @@ Datenbank:
 - generierte DB-Typen konsistent halten
 - Produktion erhält Migrationen ausschließlich aus `supabase/migrations`; keine manuellen Dashboard-Schemaänderungen als normaler Releaseweg
 - `.github/workflows/production-database.yml` wendet Migrationen nach Merge auf `main` an und verifiziert die vollständige Historie; keine automatische `migration repair`, kein DB-Reset, keine Seeds auf Produktion
-- `ULC-PRODUKTION-MARKIEREN.cmd` verlangt den exakten `database-verified-<origin/main>`-Nachweis und verhindert damit einen als stabil markierten Frontend/DB-Schemamismatch
+- `ULC-PRODUKTION-MARKIEREN.cmd` verlangt den exakten `backend-verified-<origin/main>`-Nachweis und verhindert damit einen als stabil markierten Frontend/DB-Schemamismatch
 
 Im Browser nur Supabase Publishable Key; keine Server-Secrets.
 
@@ -363,8 +364,8 @@ Pflichtcheckgruppen:
 - GitHub bleibt unabhängiges zweites Gate.
 - Rote Checks nicht durch Lockerung von Tests umgehen.
 - PR manuell per Squash Merge.
-- Danach Vercel-Produktion **und** den Workflow `Produktionsdatenbank migrieren` prüfen.
-- `ULC-PRODUKTION-MARKIEREN.cmd` darf nur den tatsächlich laufenden Commit akzeptieren, wenn er exakt `origin/main` ist und ein exakter `database-verified-<commit>`-Tag die vollständig migrierte Produktionsdatenbank bestätigt.
+- Danach Vercel-Produktion **und** den Workflow `Produktionsbackend verifizieren` prüfen.
+- `ULC-PRODUKTION-MARKIEREN.cmd` darf nur den tatsächlich laufenden Commit akzeptieren, wenn er exakt `origin/main` ist und ein exakter `backend-verified-<commit>`-Tag die vollständig migrierte Produktionsdatenbank bestätigt.
 - Nur Fast-Forward, kein Hard Reset.
 - Neuer Entwicklungszyklus erst nach `production-*`-Tag.
 

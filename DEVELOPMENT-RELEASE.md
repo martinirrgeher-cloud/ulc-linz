@@ -300,12 +300,16 @@ Je nach Änderung laufen zusätzlich:
 
 Der Merge erfolgt ausschließlich manuell und als `Squash and merge`.
 
+### Datenbank-Rollouts: Expand-Deploy-Contract
+
+Datenbankänderungen müssen während des Deployfensters mit dem unmittelbar vorherigen **und** dem neuen Frontend kompatibel bleiben. Neue Spalten, RPCs und Verträge werden zuerst additiv eingeführt (**Expand**), anschließend werden Backend und Frontend ausgerollt (**Deploy**). Inkompatible Entfernung oder Umbenennung alter Verträge erfolgt frühestens in einem späteren Release (**Contract**), nachdem der alte Client sicher nicht mehr produktiv ist.
+
 ## 8. Vercel, Produktionsdatenbank und Produktion markieren
 
 Nach erfolgreichem Merge müssen **zwei unabhängige Produktionsgates** grün sein:
 
 1. das Vercel-Produktionsdeployment läuft auf dem gemergten `origin/main`-Commit,
-2. GitHub Workflow **`Produktionsdatenbank migrieren`** hat für exakt denselben Commit alle Repo-Migrationen auf die Produktionsdatenbank angewendet, die vollständige Migrationshistorie verifiziert und den Tag `database-verified-<commit>` erzeugt.
+2. GitHub Workflow **`Produktionsbackend verifizieren`** hat für exakt denselben Commit alle Repo-Migrationen angewendet, Migrationshistorie und `public`-Schema gegen das Repository verifiziert, Storage/Realtime-Postconditions geprüft, `invite-member` deployt und erst danach den Tag `backend-verified-<commit>` erzeugt.
 
 Erst danach:
 
@@ -313,7 +317,7 @@ Erst danach:
 ULC-PRODUKTION-MARKIEREN.cmd
 ```
 
-Die Routine verlangt, dass der bestätigte Deployment-Commit exakt `origin/main` entspricht **und** der passende `database-verified-<commit>`-Tag auf genau diesem Commit vorhanden ist. Danach:
+Die Routine verlangt, dass der bestätigte Deployment-Commit exakt `origin/main` entspricht **und** der passende `backend-verified-<commit>`-Tag auf genau diesem Commit vorhanden ist. Danach:
 
 - Wechsel auf lokalen `main`,
 - ausschließlich Fast-Forward auf `origin/main`,
@@ -352,8 +356,8 @@ Squash and merge
     ↓
 Vercel Produktion prüfen
     ↓
-GitHub: Produktionsdatenbank migrieren
-+ database-verified-<commit>
+GitHub: Produktionsbackend verifizieren
++ backend-verified-<commit>
     ↓
 ULC-PRODUKTION-MARKIEREN.cmd
     ↓
@@ -678,24 +682,14 @@ Bedingungskaskaden im gemeinsamen UI-Kern.
 
 ## Produktionsdatenbank als verbindliches Release-Gate (2026-08-09)
 
-Nach dem Squash-Merge auf `main` führt `.github/workflows/production-database.yml` die fehlenden Migrationen aus `supabase/migrations` automatisch gegen die Produktionsdatenbank aus. Vor dem Schreiben erfolgt ein Dry-Run, danach wird die komplette Versionshistorie des Repositories exakt mit `supabase_migrations.schema_migrations` verglichen. Abweichende Historien werden nicht automatisch repariert. Seeds und DB-Reset sind auf Produktion verboten.
+Nach dem Squash-Merge auf `main` führt `.github/workflows/production-database.yml` die fehlenden Migrationen aus `supabase/migrations` automatisch gegen die Produktionsdatenbank aus. Vor dem Schreiben erfolgt ein Dry-Run. Danach werden Migrationshistorie, `public`-Schema, Storage-Buckets und Realtime-Postconditions verifiziert und die Edge Function `invite-member` aus exakt demselben Commit deployt. Abweichende Historien werden nicht automatisch repariert. Seeds und DB-Reset sind auf Produktion verboten. Für das Edge-Function-Deployment muss das GitHub-Secret `SUPABASE_ACCESS_TOKEN` gesetzt sein; die Projekt-Referenz ist fest auf `xddbuldehewyrezhrhej` gebunden.
 
-Nur ein erfolgreicher Lauf erzeugt `database-verified-<commit>`. `ULC-PRODUKTION-MARKIEREN.cmd` verlangt diesen Tag zusätzlich zum bestätigten Vercel-Commit und `origin/main`. Der normale sechs-CMD-Benutzerworkflow bleibt damit unverändert.
+Nur ein erfolgreicher Lauf erzeugt `backend-verified-<commit>`. `ULC-PRODUKTION-MARKIEREN.cmd` verlangt diesen Tag zusätzlich zum bestätigten Vercel-Commit und `origin/main`. Der normale sechs-CMD-Benutzerworkflow bleibt damit unverändert.
 
-### Einmalige historische Baseline-Diagnose und anschließende Recovery
+### Destruktive Produktions-Recovery
 
-Der erste sichere Recovery-Versuch am 2026-08-09 hat gezeigt, dass die produktive Datenbank bei leerer `supabase_migrations.schema_migrations` **nicht exakt** dem Repository-Stand 001-039 entspricht. Deshalb ist der frühere direkte Weg „Schema vergleichen → 001-039 als `applied` markieren → 040 pushen“ gesperrt.
+Eine destruktive Recovery ist kein permanenter Workflow. Sie benötigt immer eine ausdrückliche Freigabe, ein aktuelles Backup und einen konkret für den nachgewiesenen Fehler erstellten Recovery-Plan. Temporäre Diagnose-/Reset-Workflows werden nach Abschluss wieder aus `main` entfernt. Der normale Produktionsworkflow führt weder `migration repair` noch `db reset` aus.
 
-`.github/workflows/production-database-baseline-recovery.yml` ist bis zur abgeschlossenen Bestandsklärung bewusst eine **strikt read-only Diagnose**. Sie:
-
-1. darf nur manuell auf `main` mit der exakten Bestätigung `BASELINE-DIAGNOSE` laufen,
-2. verlangt weiterhin eine vollständig leere Remote-Migrationshistorie,
-3. erzeugt mit der im Projekt gepinnten Supabase CLI `2.109.1` einen eindeutig gerichteten Diff `001-039 → Produktion` und erfasst dessen SQL direkt aus stdout,
-4. sichert zusätzlich einen schema-only Dump von `public` sowie nicht personenbezogene technische Invarianten für Auth, Storage, Realtime, App-Module und die zuletzt relevanten DB-Objekte,
-5. lädt alles als GitHub-Artefakt `produktionsdatenbank-baseline-diagnose-<commit>` hoch,
-6. führt **keinen** `migration repair`, `db push`, DB-Reset oder Seed aus.
-
-Die Diagnose-SQL-Dateien sind ausdrücklich **keine ausführbaren Reparaturskripte**. Erst nach fachlicher Prüfung des Artefakts wird eine einmalige, konkret auf den nachgewiesenen Produktionszustand zugeschnittene Recovery gebaut. Der normale `.github/workflows/production-database.yml` bleibt weiterhin unverändert streng und führt niemals automatisch `migration repair` aus. Der reguläre Tag `database-verified-<commit>` darf weiterhin ausschließlich nach einem normalen erfolgreichen Produktionsdatenbank-Lauf entstehen.
 
 ### UI-/CSS-Hardening
 

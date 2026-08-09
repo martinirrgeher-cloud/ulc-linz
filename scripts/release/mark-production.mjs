@@ -22,24 +22,24 @@ try {
     );
   }
 
-  const databaseVerificationTag = `database-verified-${resolved}`;
-  const databaseTagExists = run("git", ["show-ref", "--verify", "--quiet", `refs/tags/${databaseVerificationTag}`], {
+  const backendVerificationTag = `backend-verified-${resolved}`;
+  const backendTagExists = run("git", ["show-ref", "--verify", "--quiet", `refs/tags/${backendVerificationTag}`], {
     cwd: root,
     quiet: true,
     allowFailure: true,
   }).status === 0;
-  if (!databaseTagExists) {
+  if (!backendTagExists) {
     throw new Error(
-      `Die Produktionsdatenbank ist fuer diesen Commit noch nicht verifiziert.\n` +
-      `Erwarteter Nachweis: ${databaseVerificationTag}\n` +
-      "Warte, bis der GitHub-Workflow 'Produktionsdatenbank migrieren' fuer origin/main erfolgreich abgeschlossen ist, und starte die Produktionsmarkierung danach erneut.",
+      `Das Produktionsbackend ist fuer diesen Commit noch nicht verifiziert.\n` +
+      `Erwarteter Nachweis: ${backendVerificationTag}\n` +
+      "Warte, bis der GitHub-Workflow 'Produktionsbackend verifizieren' fuer origin/main erfolgreich abgeschlossen ist, und starte die Produktionsmarkierung danach erneut.",
     );
   }
-  const databaseVerifiedCommit = gitText(["rev-parse", `refs/tags/${databaseVerificationTag}^{commit}`], { cwd: root });
-  if (databaseVerifiedCommit !== resolved) {
+  const backendVerifiedCommit = gitText(["rev-parse", `refs/tags/${backendVerificationTag}^{commit}`], { cwd: root });
+  if (backendVerifiedCommit !== resolved) {
     throw new Error(
-      `Der Datenbank-Verifikationsnachweis zeigt auf einen unerwarteten Commit.\n` +
-      `Nachweis: ${databaseVerifiedCommit}\nProduktion: ${resolved}`,
+      `Der Backend-Verifikationsnachweis zeigt auf einen unerwarteten Commit.\n` +
+      `Nachweis: ${backendVerifiedCommit}\nProduktion: ${resolved}`,
     );
   }
 
