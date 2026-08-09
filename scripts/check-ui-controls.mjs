@@ -22,6 +22,11 @@ const trainingGroupEditor = await read("src/features/athletes/TrainingGroupEdito
 const publicHelpButton = await read("src/features/help/PublicHelpButton.tsx");
 const specialTrainingPicker = await read("src/features/training-session/components/SpecialTrainingPicker.tsx");
 const trainingDateControls = await read("src/features/training-session/components/TrainingDateControls.tsx");
+const exerciseCatalogPage = await read("src/pages/ExerciseCatalogPage.tsx");
+const trainingBlocksPage = await read("src/pages/TrainingBlocksPage.tsx");
+const performanceCss = await read("src/styles/performance-registration.css");
+const trainingDocumentationCss = await read("src/styles/training-documentation.css");
+const appLayoutCss = await read("src/styles/app-layout.css");
 
 for (const marker of [
   "--ui-control-height: 42px",
@@ -30,6 +35,9 @@ for (const marker of [
   "--ui-control-radius: 10px",
   ".icon-button--save",
   ".icon-button--danger",
+  ".icon-button--favorite",
+  ".icon-button--selected",
+  ".icon-button--toggle",
   ".ui-tabs",
   ".ui-segmented",
   ".ui-choice-row",
@@ -76,6 +84,58 @@ assert.ok(publicHelpButton.includes("icon-button public-help-button"), "Oeffentl
 assert.ok(specialTrainingPicker.includes("icon-button icon-button--save"), "Sondertraining-Speichern muss die gemeinsame Save-Variante verwenden.");
 assert.ok(trainingDateControls.includes("icon-button icon-button--danger special-training-action"), "Sondertraining-Loeschen muss die gemeinsame Danger-Variante verwenden.");
 
+for (const [label, source] of [["Uebungskatalog", exerciseCatalogPage], ["Trainingsbloecke", trainingBlocksPage]]) {
+  assert.ok(source.includes("icon-button--favorite"), `${label} muss den semantischen Favoritenbutton verwenden.`);
+  assert.ok(source.includes("aria-pressed="), `${label} muss Favoritenzustand zugaenglich mit aria-pressed abbilden.`);
+  assert.doesNotMatch(source, /icon-button[^"'`]*\$\{[^}]*\?\s*["']active/, `${label} darf Icon-Zustaende nicht mehr ueber generisches active steuern.`);
+}
+assert.ok(trainingBlocksPage.includes("icon-button icon-button--selected"), "Trainingsblock-Vergleich muss die semantische Selected-Variante verwenden.");
+for (const [path, marker] of [
+  ["src/components/layout/AppLayout.tsx", "icon-button icon-button--toggle app-user-menu-toggle"],
+  ["src/features/athletes/ManagementFilterPanel.tsx", "icon-button icon-button--toggle masterdata-filter-toggle"],
+  ["src/pages/UserManagementPage.tsx", "icon-button icon-button--toggle user-management-filter-toggle"],
+]) {
+  const source = await read(path);
+  assert.ok(source.includes(marker), `${path}: aufklappbare Iconaktion muss icon-button--toggle verwenden.`);
+  assert.ok(source.includes("aria-expanded="), `${path}: aufklappbare Iconaktion muss aria-expanded verwenden.`);
+}
+for (const [path, forbidden, required] of [
+  ["src/pages/ExerciseCatalogPage.tsx", /exercise-filter-toggle[^\n]*active/, "aria-expanded={filtersOpen}"],
+  ["src/pages/TrainingBlocksPage.tsx", /training-block-filter-toggle[^\n]*active/, "aria-expanded={filtersOpen}"],
+  ["src/features/athletes/ManagementCreateMenu.tsx", /masterdata-create-menu-toggle[^\n]*active/, "aria-expanded={open}"],
+  ["src/features/athletes/TrainingGroupEditor.tsx", /ui-switch[^\n]*active/, "aria-checked="],
+]) {
+  const source = await read(path);
+  assert.doesNotMatch(source, forbidden, `${path}: semantischer Zustand darf nicht ueber generisches active gesteuert werden.`);
+  assert.ok(source.includes(required), `${path}: semantisches Zustandsattribut fehlt: ${required}`);
+}
+assert.ok(mobileFoundationCss.includes('.ui-switch[aria-checked="true"]'), "Switch-Zustand muss ueber aria-checked gestylt werden.");
+assert.doesNotMatch(mobileFoundationCss, /\.ui-switch\.active/, "Switch-Zustand darf nicht ueber generisches active gestylt werden.");
+
+for (const marker of [
+  '.icon-button--favorite[aria-pressed="true"]',
+  '.icon-button--favorite[aria-pressed="true"]:hover',
+  '.icon-button--favorite[aria-pressed="true"]:disabled',
+  '.icon-button--danger:hover:not(:disabled)',
+  '.icon-button--selected[aria-pressed="true"]',
+  '.icon-button--toggle[aria-expanded="true"]',
+]) {
+  assert.ok(globalCss.includes(marker), `Semantischer Interaktionszustand fehlt: ${marker}`);
+}
+
+for (const [label, css, selector] of [
+  ["Performance-Matrix", performanceCss, ".performance-matrix-status"],
+  ["Dokumentationskommentar", trainingDocumentationCss, ".training-doc-set-comment"],
+  ["Simulation beenden", appLayoutCss, ".app-simulation-exit"],
+]) {
+  const pattern = new RegExp(`${selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*\\{`);
+  const match = pattern.exec(css);
+  assert.ok(match, `${label}: Control-Selektor fehlt.`);
+  const start = match.index;
+  const block = css.slice(start, css.indexOf("}", start) + 1);
+  assert.match(block, /var\(--ui-control-height-compact\)/, `${label}: bedienbares Compact-Control muss mindestens 38px hoch sein.`);
+}
+
 const tabContracts = [
   ["src/pages/AthleteManagementPage.tsx", "management-tabs three-tabs ui-tabs"],
   ["src/pages/PerformanceRegistrationPage.tsx", "performance-mode-tabs performance-mode-tabs-v2 ui-tabs"],
@@ -116,9 +176,10 @@ for (const path of tsxFiles) {
   const source = await read(path);
   assert.doesNotMatch(source, /className=["'][^"']*(?:^|\s)search-field(?:\s|["'])/, `${path}: veraltetes search-field darf nicht zurueckkehren.`);
   assert.doesNotMatch(source, /className=["'][^"']*(?:primary-button|secondary-button)[^"']*\scompact(?:\s|["'])/, `${path}: Buttons muessen compact-button statt compact verwenden.`);
+  assert.doesNotMatch(source, /className=\{`[^`]*icon-button[^`]*\$\{[^}]*active/, `${path}: Iconbutton-Zustaende duerfen nicht ueber generisches active modelliert werden.`);
 }
 
-for (const legacySelector of [".back-link", ".button-row", ".control-field", ".danger-icon-button", ".danger-text-button", ".record-status", ".sticky-editor-actions", ".toolbar-select", ".user-management-toolbar", ".user-meta", ".management-editor-heading", ".management-actions", ".search-field"]) {
+for (const legacySelector of [".back-link", ".button-row", ".control-field", ".danger-icon-button", ".danger-text-button", ".danger-text", ".record-status", ".sticky-editor-actions", ".toolbar-select", ".user-management-toolbar", ".user-meta", ".management-editor-heading", ".management-actions", ".search-field"]) {
   assert.equal(globalCss.includes(legacySelector), false, `global.css enthaelt veralteten UI-Selektor: ${legacySelector}`);
 }
 

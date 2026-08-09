@@ -5,6 +5,7 @@ import { loadTrainingBlockExerciseVideos } from "@/features/training-blocks/api"
 import type { TrainingBlockExercise } from "@/features/training-blocks/types";
 
 import { diagnosticErrorMessage } from "@/lib/diagnostics";
+import "@/styles/exercise-info-dialog.css";
 type TrainingBlockExerciseInfoDialogProps = {
   organizationId: string;
   exercise: TrainingBlockExercise;

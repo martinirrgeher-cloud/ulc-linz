@@ -6,8 +6,32 @@ const SCENARIO = WRITING_SCENARIOS.catalog;
 
 test.describe("Schreibende Übungs- und Trainingsblocktests", () => {
   test("Administrator legt eine Übung und einen Trainingsblock an", { tag: "@pr" }, async ({ page }) => {
-    test.setTimeout(90_000);
+    test.setTimeout(120_000);
     await login(page, "admin");
+
+    // CRUD-Regressionsvertrag fuer zentrale Auswahllisten: vorhandenen Eintrag
+    // wirklich speichern und nach einem Reload wieder lesen. Danach wird der
+    // Seedwert sofort wiederhergestellt, damit die Domaene deterministisch bleibt.
+    await page.goto("/module/dropdown_settings");
+    await expect(page.getByRole("heading", { name: "Auswahllisten", exact: true })).toBeVisible();
+    const categoryCard = page.getByTestId("dropdown-setting-card").filter({ hasText: "Beschleunigung" }).first();
+    await expect(categoryCard).toBeVisible();
+    await categoryCard.getByTestId("dropdown-setting-edit").click();
+    let dropdownEditor = page.getByRole("region", { name: "Kategorie bearbeiten", exact: true });
+    await dropdownEditor.getByLabel("Bezeichnung *").fill("Beschleunigung E2E");
+    await page.getByTestId("dropdown-setting-save").click();
+    await expect(page.getByText("Der Eintrag wurde gespeichert.", { exact: true })).toBeVisible();
+    await page.reload();
+    const changedCategoryCard = page.getByTestId("dropdown-setting-card").filter({ hasText: "Beschleunigung E2E" }).first();
+    await expect(changedCategoryCard).toBeVisible();
+    await changedCategoryCard.getByTestId("dropdown-setting-edit").click();
+    dropdownEditor = page.getByRole("region", { name: "Kategorie bearbeiten", exact: true });
+    await dropdownEditor.getByLabel("Bezeichnung *").fill("Beschleunigung");
+    await page.getByTestId("dropdown-setting-save").click();
+    await expect(page.getByText("Der Eintrag wurde gespeichert.", { exact: true })).toBeVisible();
+    await page.reload();
+    await expect(page.getByTestId("dropdown-setting-card").filter({ hasText: "Beschleunigung" }).first()).toBeVisible();
+
     await page.goto("/module/exercise_catalog");
     await expect(page.getByRole("heading", { name: "Übungskatalog" })).toBeVisible();
 
@@ -46,8 +70,16 @@ test.describe("Schreibende Übungs- und Trainingsblocktests", () => {
 
     const createdBlockCard = page.locator(".training-block-card").filter({ hasText: SCENARIO.blockName });
     await createdBlockCard.locator(".training-block-card-summary").click();
-    await createdBlockCard.getByRole("button", { name: `${SCENARIO.blockName} zu Favoriten hinzufügen` }).click();
-    await createdBlockCard.getByRole("button", { name: `Neue Variante von ${SCENARIO.blockName} erstellen` }).click();
+    const blockFavorite = createdBlockCard.locator("button.icon-button--favorite");
+    await expect(blockFavorite).toHaveAttribute("aria-pressed", "false");
+    await blockFavorite.click();
+    await expect(blockFavorite).toHaveAttribute("aria-pressed", "true");
+    await page.reload();
+    const persistedBlockCard = page.locator(".training-block-card").filter({ hasText: SCENARIO.blockName }).first();
+    await expect(persistedBlockCard).toBeVisible();
+    await persistedBlockCard.locator(".training-block-card-summary").click();
+    await expect(persistedBlockCard.locator("button.icon-button--favorite")).toHaveAttribute("aria-pressed", "true");
+    await persistedBlockCard.getByRole("button", { name: `Neue Variante von ${SCENARIO.blockName} erstellen` }).click();
 
     const variantEditor = page.getByRole("region", { name: `${SCENARIO.blockName} – Variante 2` });
     await expect(variantEditor).toBeVisible({ timeout: 15_000 });
@@ -69,8 +101,15 @@ test.describe("Schreibende Übungs- und Trainingsblocktests", () => {
     await compareDialog.getByRole("button", { name: "Schließen", exact: true }).click();
 
     await page.goto("/module/exercise_catalog");
-    const exerciseCard = page.locator(".exercise-card").filter({ hasText: SCENARIO.exerciseName });
+    let exerciseCard = page.locator(".exercise-card").filter({ hasText: SCENARIO.exerciseName });
     await expect(exerciseCard.getByText(/Mittel/)).toBeVisible();
+    const exerciseFavorite = exerciseCard.locator("button.icon-button--favorite");
+    await expect(exerciseFavorite).toHaveAttribute("aria-pressed", "false");
+    await exerciseFavorite.click();
+    await expect(exerciseFavorite).toHaveAttribute("aria-pressed", "true");
+    await page.reload();
+    exerciseCard = page.locator(".exercise-card").filter({ hasText: SCENARIO.exerciseName });
+    await expect(exerciseCard.locator("button.icon-button--favorite")).toHaveAttribute("aria-pressed", "true");
     await exerciseCard.getByTestId("exercise-primary").click();
     await exerciseCard.getByTestId("exercise-usage").click();
     const usageDialog = page.getByRole("dialog", { name: SCENARIO.exerciseName });

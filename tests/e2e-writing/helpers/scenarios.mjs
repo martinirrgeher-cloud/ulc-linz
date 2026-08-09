@@ -34,6 +34,7 @@ export const WRITING_SCENARIOS = Object.freeze({
     writeKeys: Object.freeze([
       "exercises:new:E2E UI Sprintlauf",
       "training_blocks:new:E2E UI Sprintblock",
+      "organization_exercise_categories:category:acceleration",
     ]),
   }),
   registration: Object.freeze({

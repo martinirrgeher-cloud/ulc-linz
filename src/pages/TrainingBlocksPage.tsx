@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   BarChart3,
@@ -120,6 +120,8 @@ export function TrainingBlocksPage() {
   const [editorDirty, setEditorDirty] = useState(false);
   const [remoteChangePending, setRemoteChangePending] = useState(false);
   const [remoteSyncBusy, setRemoteSyncBusy] = useState(false);
+  const favoriteBusyRef = useRef<Set<string>>(new Set());
+  const [favoriteBusyIds, setFavoriteBusyIds] = useState<Set<string>>(() => new Set());
 
   const blockLock = useEditLock({
     organizationId,
@@ -396,7 +398,9 @@ export function TrainingBlocksPage() {
   }
 
   async function handleFavorite(block: TrainingBlock) {
-    if (!organizationId || busyBlockId) return;
+    if (!organizationId || busyBlockId || favoriteBusyRef.current.has(block.id)) return;
+    favoriteBusyRef.current.add(block.id);
+    setFavoriteBusyIds((current) => new Set(current).add(block.id));
     const nextFavorite = !block.isFavorite;
     setData((current) => ({
       ...current,
@@ -410,6 +414,13 @@ export function TrainingBlocksPage() {
         blocks: current.blocks.map((item) => item.id === block.id ? { ...item, isFavorite: block.isFavorite } : item),
       }));
       setError(errorMessage(favoriteError));
+    } finally {
+      favoriteBusyRef.current.delete(block.id);
+      setFavoriteBusyIds((current) => {
+        const next = new Set(current);
+        next.delete(block.id);
+        return next;
+      });
     }
   }
 
@@ -485,7 +496,7 @@ export function TrainingBlocksPage() {
         </label>
         <button
           type="button"
-          className={`secondary-button training-block-filter-toggle ui-icon-action ${filtersOpen ? "active" : ""}`}
+          className="secondary-button training-block-filter-toggle ui-icon-action"
           onClick={() => setFiltersOpen((current) => !current)}
           aria-expanded={filtersOpen}
           aria-label={filtersOpen ? "Filtermenü schließen" : "Filtermenü öffnen"}
@@ -498,7 +509,7 @@ export function TrainingBlocksPage() {
         </button>
         <button
           type="button"
-          className={`secondary-button training-block-compare-button ${compareBlockIds.length > 0 ? "active" : ""}`}
+          className="secondary-button training-block-compare-button"
           onClick={() => {
             if (compareBlocks.length === 2) setCompareOpen(true);
             else setSuccess("Wähle bei zwei Blöcken das Vergleichssymbol aus.");
@@ -512,7 +523,7 @@ export function TrainingBlocksPage() {
       </div>
 
       {filtersOpen && (
-        <section className="training-block-filter-panel ui-filter-sheet" aria-label="Trainingsblöcke filtern">
+        <section className="training-block-filter-panel" aria-label="Trainingsblöcke filtern">
           <div className="training-block-filter-grid">
             <label className="ui-labeled-field"><span className="ui-field-label">Leistungsgruppe</span><select className="ui-field-control" value={groupFilter} onChange={(event) => setGroupFilter(event.target.value)}><option value="all">Alle Gruppen</option><option value="club">Vereinsweit</option>{data.groups.map((group) => <option value={group.id} key={group.id}>{group.shortName || group.name}</option>)}</select></label>
             <label className="ui-labeled-field"><span className="ui-field-label">Kategorie</span><select className="ui-field-control" value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}><option value="all">Alle Kategorien</option>{categories.map(([key, title]) => <option value={key} key={key}>{title}</option>)}</select></label>
@@ -524,12 +535,12 @@ export function TrainingBlocksPage() {
             <label className="ui-labeled-field"><span className="ui-field-label">Sortierung</span><select className="ui-field-control" value={sortMode} onChange={(event) => setSortMode(event.target.value as SortMode)}><option value="name">Alphabetisch</option><option value="usage">Am häufigsten verwendet</option><option value="updated">Zuletzt bearbeitet</option><option value="last_used">Zuletzt verwendet</option></select></label>
           </div>
           <div className="training-block-filter-footer">
-            <div className="status-filter" aria-label="Status der Trainingsblöcke filtern">
+            <div className="ui-status-filter" aria-label="Status der Trainingsblöcke filtern">
               <button type="button" className={activityFilter === "active" ? "active" : ""} onClick={() => setActivityFilter("active")}>Aktiv <span>{counts.active}</span></button>
               <button type="button" className={activityFilter === "inactive" ? "active" : ""} onClick={() => setActivityFilter("inactive")}>Inaktiv <span>{counts.inactive}</span></button>
               <button type="button" className={activityFilter === "all" ? "active" : ""} onClick={() => setActivityFilter("all")}>Alle <span>{data.blocks.length}</span></button>
             </div>
-            <button type="button" className={`favorite-filter ${favoritesOnly ? "active" : ""}`} onClick={() => setFavoritesOnly((current) => !current)}>
+            <button type="button" className="ui-favorite-filter" aria-pressed={favoritesOnly} onClick={() => setFavoritesOnly((current) => !current)}>
               <Star aria-hidden="true" fill={favoritesOnly ? "currentColor" : "none"} />
               Favoriten <span>{counts.favorites}</span>
             </button>
@@ -583,7 +594,10 @@ export function TrainingBlocksPage() {
                       <div className="training-block-card-actions">
                         <button
                           type="button"
-                          className={`icon-button ${block.isFavorite ? "active" : ""}`}
+                          className="icon-button icon-button--favorite"
+                          aria-pressed={block.isFavorite}
+                          aria-busy={favoriteBusyIds.has(block.id)}
+                          disabled={favoriteBusyIds.has(block.id)}
                           onClick={() => void handleFavorite(block)}
                           aria-label={block.isFavorite ? `${block.name} aus Favoriten entfernen` : `${block.name} zu Favoriten hinzufügen`}
                           title={block.isFavorite ? "Aus Favoriten entfernen" : "Favorit"}
@@ -592,7 +606,8 @@ export function TrainingBlocksPage() {
                         </button>
                         <button
                           type="button"
-                          className={`icon-button ${compareBlockIds.includes(block.id) ? "active" : ""}`}
+                          className="icon-button icon-button--selected"
+                          aria-pressed={compareBlockIds.includes(block.id)}
                           onClick={() => toggleCompare(block.id)}
                           aria-label={`${block.name} für Vergleich ${compareBlockIds.includes(block.id) ? "abwählen" : "auswählen"}`}
                           title="Für Vergleich auswählen"

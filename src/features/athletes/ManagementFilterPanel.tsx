@@ -51,7 +51,7 @@ export function ManagementFilterPanel({
         </button>
         <button
           type="button"
-          className={`icon-button masterdata-filter-toggle ${open ? "active" : ""}`}
+          className="icon-button icon-button--toggle masterdata-filter-toggle"
           onClick={onToggle}
           aria-expanded={open}
           aria-label={open ? "Filtermenü schließen" : "Filtermenü öffnen"}

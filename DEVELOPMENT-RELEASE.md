@@ -300,15 +300,20 @@ Je nach Änderung laufen zusätzlich:
 
 Der Merge erfolgt ausschließlich manuell und als `Squash and merge`.
 
-## 8. Vercel und Produktion markieren
+## 8. Vercel, Produktionsdatenbank und Produktion markieren
 
-Nach erfolgreichem Merge und geprüftem Vercel-Produktionsdeployment:
+Nach erfolgreichem Merge müssen **zwei unabhängige Produktionsgates** grün sein:
+
+1. das Vercel-Produktionsdeployment läuft auf dem gemergten `origin/main`-Commit,
+2. GitHub Workflow **`Produktionsdatenbank migrieren`** hat für exakt denselben Commit alle Repo-Migrationen auf die Produktionsdatenbank angewendet, die vollständige Migrationshistorie verifiziert und den Tag `database-verified-<commit>` erzeugt.
+
+Erst danach:
 
 ```text
 ULC-PRODUKTION-MARKIEREN.cmd
 ```
 
-Die Routine verlangt, dass der bestätigte Deployment-Commit exakt `origin/main` entspricht. Danach:
+Die Routine verlangt, dass der bestätigte Deployment-Commit exakt `origin/main` entspricht **und** der passende `database-verified-<commit>`-Tag auf genau diesem Commit vorhanden ist. Danach:
 
 - Wechsel auf lokalen `main`,
 - ausschließlich Fast-Forward auf `origin/main`,
@@ -346,6 +351,9 @@ GitHub Pull Request / alle erforderlichen Checks grün
 Squash and merge
     ↓
 Vercel Produktion prüfen
+    ↓
+GitHub: Produktionsdatenbank migrieren
++ database-verified-<commit>
     ↓
 ULC-PRODUKTION-MARKIEREN.cmd
     ↓
@@ -666,3 +674,14 @@ Fachliche Abweichungen sollen künftig bevorzugt in modulbezogene
 Unterkomponenten oder Adapter ausgelagert werden, nicht durch neue
 Bedingungskaskaden im gemeinsamen UI-Kern.
 
+
+
+## Produktionsdatenbank als verbindliches Release-Gate (2026-08-09)
+
+Nach dem Squash-Merge auf `main` führt `.github/workflows/production-database.yml` die fehlenden Migrationen aus `supabase/migrations` automatisch gegen die Produktionsdatenbank aus. Vor dem Schreiben erfolgt ein Dry-Run, danach wird die komplette Versionshistorie des Repositories exakt mit `supabase_migrations.schema_migrations` verglichen. Abweichende Historien werden nicht automatisch repariert. Seeds und DB-Reset sind auf Produktion verboten.
+
+Nur ein erfolgreicher Lauf erzeugt `database-verified-<commit>`. `ULC-PRODUKTION-MARKIEREN.cmd` verlangt diesen Tag zusätzlich zum bestätigten Vercel-Commit und `origin/main`. Der normale sechs-CMD-Benutzerworkflow bleibt damit unverändert.
+
+### UI-/CSS-Hardening
+
+Semantische Iconzustände werden zentral modelliert: Favoriten verwenden `icon-button--favorite` + `aria-pressed`, Auswahlen `icon-button--selected` + `aria-pressed`, destruktive Aktionen `icon-button--danger`. Route-CSS darf diese Semantik nicht durch generische Hover-/Focus-Regeln überschreiben. Shared-Komponenten besitzen ihr CSS selbst; `check:route-css-ownership` verhindert Abhängigkeiten von zuvor besuchten lazy Routen. Zentrale CRUD-Editoren und persistente Favoritenzustände müssen in Writing-E2E einen echten Save/Reload/Read-back durchlaufen.

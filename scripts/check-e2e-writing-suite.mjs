@@ -71,6 +71,7 @@ const allTests = [...testSources.values()].join("\n");
 for (const marker of [
   "/module/athletes",
   "/module/exercise_catalog",
+  "/module/dropdown_settings",
   "/module/training_blocks",
   "/module/performance_registration",
   "/module/training_planning",
@@ -97,9 +98,13 @@ for (const marker of [
   'getByTestId("editor-save")',
   'getByTestId("editor-close")',
   'getByTestId("exercise-card")',
+  'getByTestId("dropdown-setting-card")',
+  'getByTestId("dropdown-setting-edit")',
+  'getByTestId("dropdown-setting-save")',
   'getByTestId("exercise-create")',
   'getByTestId("training-block-create")',
   'getByTestId("exercise-usage")',
+  'toHaveAttribute("aria-pressed", "true")',
   "editMember(page, SCENARIO.parentDisplayName)",
   "openMemberInfo(page, SCENARIO.parentDisplayName)",
 ]) {

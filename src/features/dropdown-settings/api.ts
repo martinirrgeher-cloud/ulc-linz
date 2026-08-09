@@ -1,4 +1,4 @@
-import { callJsonRpc } from "@/lib/supabase-rpc";
+import { callJsonRpc, isSupabaseRpcErrorCode } from "@/lib/supabase-rpc";
 import { isRecord, numberOrNull } from "@/lib/json-value";
 import { parseExerciseParameterGroup } from "@/features/exercise-catalog/parameter-groups";
 import type {
@@ -53,7 +53,7 @@ export async function saveDropdownSetting(
   }
   if (!Number.isFinite(sortOrder)) throw new Error("Die Sortierung ist ungültig.");
 
-  await callJsonRpc("save_dropdown_setting", {
+  const baseArgs = {
     p_organization_id: organizationId,
     p_list_key: listKey,
     p_option_id: option?.id ?? null,
@@ -63,8 +63,22 @@ export async function saveDropdownSetting(
     p_input_type: listKey === "planning_parameter" ? values.inputType : "text",
     p_step_value: listKey === "planning_parameter" && values.inputType === "number" ? stepValue : null,
     p_sort_order: sortOrder,
-    p_parameter_group: listKey === "planning_parameter" ? values.parameterGroup : "execution",
-  });
+  };
+
+  try {
+    await callJsonRpc("save_dropdown_setting", {
+      ...baseArgs,
+      p_parameter_group: listKey === "planning_parameter" ? values.parameterGroup : "execution",
+    });
+  } catch (error) {
+    // Rollout-Kompatibilität: Solange Produktion eine neue Migration noch nicht
+    // übernommen hat, kennt PostgREST die 10-Argument-Signatur nicht. Normale
+    // Listen benötigen die neue Parametergruppe fachlich nicht und dürfen in
+    // diesem kurzen Deployment-Fenster sicher über die alte Signatur speichern.
+    // Planungsparameter werden dagegen niemals still ohne ihre Gruppe gespeichert.
+    if (!isSupabaseRpcErrorCode(error, "PGRST202") || listKey === "planning_parameter") throw error;
+    await callJsonRpc("save_dropdown_setting", baseArgs);
+  }
 }
 
 export async function setDropdownSettingActive(

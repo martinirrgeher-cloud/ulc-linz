@@ -8,7 +8,6 @@
 .user-management-search-shell { display: grid; gap: 7px; }
 .user-management-search-row { display: grid; grid-template-columns: minmax(0, 1fr) 42px; gap: 7px; }
 .user-management-filter-toggle { position: relative; }
-.user-management-filter-toggle.active { color: var(--green-800); border-color: var(--green-700); background: var(--green-50); }
 .user-management-filter-toggle > span { position: absolute; top: 1px; right: 1px; min-width: 16px; padding: 1px 4px; color: #fff; background: var(--green-700); border-radius: 999px; font-size: .76rem; line-height: 1.2; }
 .user-management-filter-panel { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding: 10px; background: #f8fbf9; border: 1px solid var(--border); border-radius: 12px; }
 .user-management-filter-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 8px; }

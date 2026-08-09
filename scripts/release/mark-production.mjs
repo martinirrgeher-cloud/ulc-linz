@@ -22,6 +22,27 @@ try {
     );
   }
 
+  const databaseVerificationTag = `database-verified-${resolved}`;
+  const databaseTagExists = run("git", ["show-ref", "--verify", "--quiet", `refs/tags/${databaseVerificationTag}`], {
+    cwd: root,
+    quiet: true,
+    allowFailure: true,
+  }).status === 0;
+  if (!databaseTagExists) {
+    throw new Error(
+      `Die Produktionsdatenbank ist fuer diesen Commit noch nicht verifiziert.\n` +
+      `Erwarteter Nachweis: ${databaseVerificationTag}\n` +
+      "Warte, bis der GitHub-Workflow 'Produktionsdatenbank migrieren' fuer origin/main erfolgreich abgeschlossen ist, und starte die Produktionsmarkierung danach erneut.",
+    );
+  }
+  const databaseVerifiedCommit = gitText(["rev-parse", `refs/tags/${databaseVerificationTag}^{commit}`], { cwd: root });
+  if (databaseVerifiedCommit !== resolved) {
+    throw new Error(
+      `Der Datenbank-Verifikationsnachweis zeigt auf einen unerwarteten Commit.\n` +
+      `Nachweis: ${databaseVerifiedCommit}\nProduktion: ${resolved}`,
+    );
+  }
+
   // Nach einem Squash-&-Merge darf der PC nicht auf dem alten Feature-Branch
   // stehen bleiben. Der bestaetigte Produktionscommit wird deshalb vor der
   // Markierung sicher als lokaler main synchronisiert. Es wird niemals hart

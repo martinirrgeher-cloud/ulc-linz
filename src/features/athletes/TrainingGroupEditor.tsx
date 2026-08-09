@@ -5,6 +5,7 @@ import { useSwipeTabs } from "@/features/athletes/useSwipeTabs";
 import { useDraftDirtyState } from "@/features/collaboration/useDraftDirtyState";
 import type { TrainingGroup, TrainingGroupInput } from "@/features/athletes/types";
 import { diagnosticErrorMessage } from "@/lib/diagnostics";
+import "@/styles/performance-group-settings.css";
 
 export type TrainingGroupEditorMode =
   | { type: "create" }
@@ -264,7 +265,7 @@ export function TrainingGroupEditor({
 
               <button
                 type="button"
-                className={`ui-switch performance-feature-switch ${values.isPerformanceGroup ? "active" : ""}`}
+                className="ui-switch performance-feature-switch"
                 role="switch"
                 aria-checked={values.isPerformanceGroup}
                 onClick={() => setValues((current) => ({ ...current, isPerformanceGroup: !current.isPerformanceGroup }))}
@@ -320,7 +321,7 @@ export function TrainingGroupEditor({
 
                   <button
                     type="button"
-                    className={`ui-switch performance-setting-row performance-inline-switch ${values.allowLateRegistration ? "active" : ""}`}
+                    className="ui-switch performance-setting-row performance-inline-switch"
                     role="switch"
                     aria-checked={values.allowLateRegistration}
                     onClick={() => setValues((current) => ({ ...current, allowLateRegistration: !current.allowLateRegistration }))}

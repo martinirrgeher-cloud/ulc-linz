@@ -29,6 +29,10 @@ for (const symbol of ["isRecord", "numberOrNull", "parseStringArray"]) {
 assert.match(rpcHelper, /export async function callJsonRpc\b/, "Gemeinsamer RPC-Helper callJsonRpc fehlt.");
 assert.match(rpcHelper, /export async function callJsonRpcRawError\b/, "RPC-Rohfehlermodus fehlt.");
 assert.match(rpcHelper, /supabase\.rpc\.bind\(supabase\)/, "RPC-Zugriff muss zentral typisiert bleiben.");
+assert.match(rpcHelper, /export class SupabaseRpcError extends Error/, "RPC-Fehler muessen technische PostgREST-Metadaten erhalten.");
+assert.match(rpcHelper, /readonly code: string \| null/, "RPC-Fehler muessen den Supabase/PostgREST-Code erhalten.");
+assert.match(rpcHelper, /readonly status: number \| null/, "RPC-Fehler muessen den HTTP-Status erhalten.");
+assert.match(rpcHelper, /export function isSupabaseRpcErrorCode/, "RPC-APIs brauchen einen zentralen Code-Pruefhelper.");
 
 const forbiddenDefinitions = [
   /function\s+isRecord\s*\(/,

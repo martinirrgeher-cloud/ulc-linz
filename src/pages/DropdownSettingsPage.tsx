@@ -330,7 +330,7 @@ export function DropdownSettingsPage() {
           ) : (
             <div className="dropdown-settings-list">
               {sortedOptions.map((option) => (
-                <article className={`dropdown-setting-card ${option.isActive ? "" : "inactive"}`} key={`${activeList}-${option.key}`}>
+                <article className={`dropdown-setting-card ${option.isActive ? "" : "inactive"}`} data-testid="dropdown-setting-card" key={`${activeList}-${option.key}`}>
                   <div>
                     <strong>{option.label}</strong>
                     <small>
@@ -340,7 +340,7 @@ export function DropdownSettingsPage() {
                     </small>
                   </div>
                   {canEdit && (
-                    <button className="icon-button dropdown-setting-edit-button" type="button" onClick={() => startEdit(option)} disabled={busy} aria-label={`${option.label} bearbeiten`} title="Bearbeiten">
+                    <button className="icon-button dropdown-setting-edit-button" data-testid="dropdown-setting-edit" type="button" onClick={() => startEdit(option)} disabled={busy} aria-label={`${option.label} bearbeiten`} title="Bearbeiten">
                       <Pencil aria-hidden="true" />
                     </button>
                   )}

@@ -331,6 +331,8 @@ const trainerGroupLockMigrationSource = await readFile(
 const userManagementSource = await readFile(new URL("../src/pages/UserManagementPage.tsx", import.meta.url), "utf8");
 const dropdownSettingsSource = await readFile(new URL("../src/pages/DropdownSettingsPage.tsx", import.meta.url), "utf8");
 const dropdownSettingsCssSource = await readFile(new URL("../src/styles/dropdown-settings.css", import.meta.url), "utf8");
+const dropdownSettingsApiSource = await readFile(new URL("../src/features/dropdown-settings/api.ts", import.meta.url), "utf8");
+const supabaseRpcFoundationSource = await readFile(new URL("../src/lib/supabase-rpc.ts", import.meta.url), "utf8");
 const userManagementE5cCssSource = await readFile(new URL("../src/styles/user-management-e5c.css", import.meta.url), "utf8");
 const stickyEditorActionsSource = await readFile(new URL("../src/components/ui/StickyEditorActions.tsx", import.meta.url), "utf8");
 const exerciseCatalogPageSource = await readFile(new URL("../src/pages/ExerciseCatalogPage.tsx", import.meta.url), "utf8");
@@ -389,6 +391,15 @@ test("Auswahllisten und Benutzerverwaltung nutzen die kompakte Mobile-UX", () =>
   assert.ok(dropdownSettingsSource.includes("EXERCISE_PARAMETER_GROUPS"));
   assert.ok(dropdownSettingsSource.includes("Parametergruppe"));
   assert.ok(dropdownSettingsSource.includes("dropdown-setting-active-toggle"));
+  assert.ok(dropdownSettingsSource.includes('data-testid="dropdown-setting-card"'));
+  assert.ok(dropdownSettingsSource.includes('data-testid="dropdown-setting-edit"'));
+  assert.ok(dropdownSettingsApiSource.includes('isSupabaseRpcErrorCode(error, "PGRST202")'), "Auswahllisten brauchen eine sichere Rollout-Kompatibilitaet fuer normale Listen.");
+  assert.ok(dropdownSettingsApiSource.includes('await callJsonRpc("save_dropdown_setting", baseArgs);'), "Der PGRST202-Fallback muss gezielt die alte RPC-Signatur verwenden.");
+  assert.ok(dropdownSettingsApiSource.includes('listKey === "planning_parameter"'), "Planungsparameter duerfen nicht still ohne Parametergruppe gespeichert werden.");
+  assert.doesNotMatch(supabaseMockSource, /Object\.prototype\.hasOwnProperty\.call\(args, "p_parameter_group"\)/, "Runtime-Browser-Smoke darf den Rollout-Fallback nicht durch eine absichtlich alte save_dropdown_setting-Signatur simulieren.");
+  assert.ok(supabaseMockSource.includes('if (functionName === "save_dropdown_setting")'), "Runtime-Mock fuer save_dropdown_setting fehlt.");
+  assert.ok(supabaseRpcFoundationSource.includes("export class SupabaseRpcError extends Error"));
+  assert.ok(supabaseRpcFoundationSource.includes("readonly code: string | null"));
   assert.ok(dropdownSettingsCssSource.includes(".dropdown-settings-selector-row"));
   assert.ok(userManagementSource.includes('className="primary-button user-management-create-button"'));
   assert.ok(userManagementSource.includes("user-management-filter-toggle"));
@@ -885,6 +896,11 @@ test("E5b ergänzt Varianten, Versionen, Favoriten und Blockvergleich", () => {
   assert.ok(e5TrainingBlockPageSource.includes("Letzte Nutzung"));
   assert.ok(e5TrainingBlockPageSource.includes("TrainingBlockVersionHistory"));
   assert.ok(e5TrainingBlockPageSource.includes("Tatsächlich verwendet von"));
+  assert.ok(e5ExercisePageSource.includes("icon-button--favorite"));
+  assert.ok(e5ExercisePageSource.includes("favoriteBusyRef"));
+  assert.ok(e5TrainingBlockPageSource.includes("icon-button--favorite"));
+  assert.ok(e5TrainingBlockPageSource.includes("icon-button--selected"));
+  assert.ok(e5TrainingBlockPageSource.includes("favoriteBusyRef"));
 });
 
 test("E5b warnt vor inaktiven Übungen ohne historische Verwendungen zu verändern", () => {

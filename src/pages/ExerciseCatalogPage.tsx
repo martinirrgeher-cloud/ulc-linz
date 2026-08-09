@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   BookOpen,
   ChevronDown,
@@ -101,6 +101,8 @@ export function ExerciseCatalogPage() {
   const [editorDirty, setEditorDirty] = useState(false);
   const [remoteChangePending, setRemoteChangePending] = useState(false);
   const [remoteSyncBusy, setRemoteSyncBusy] = useState(false);
+  const favoriteBusyRef = useRef<Set<string>>(new Set());
+  const [favoriteBusyIds, setFavoriteBusyIds] = useState<Set<string>>(() => new Set());
 
   const exerciseLock = useEditLock({
     organizationId,
@@ -334,7 +336,9 @@ export function ExerciseCatalogPage() {
   }
 
   async function handleFavorite(exercise: Exercise) {
-    if (!organizationId || busy) return;
+    if (!organizationId || busy || favoriteBusyRef.current.has(exercise.id)) return;
+    favoriteBusyRef.current.add(exercise.id);
+    setFavoriteBusyIds((current) => new Set(current).add(exercise.id));
     const nextFavorite = !exercise.isFavorite;
     setData((current) => ({
       ...current,
@@ -353,6 +357,13 @@ export function ExerciseCatalogPage() {
         ),
       }));
       setError(errorMessage(favoriteError));
+    } finally {
+      favoriteBusyRef.current.delete(exercise.id);
+      setFavoriteBusyIds((current) => {
+        const next = new Set(current);
+        next.delete(exercise.id);
+        return next;
+      });
     }
   }
 
@@ -440,7 +451,7 @@ export function ExerciseCatalogPage() {
           </label>
           <button
             type="button"
-            className={`secondary-button exercise-filter-toggle ui-icon-action ${filtersOpen ? "active" : ""}`}
+            className="secondary-button exercise-filter-toggle ui-icon-action"
             onClick={() => setFiltersOpen((current) => !current)}
             aria-expanded={filtersOpen}
             aria-label={filtersOpen ? "Filtermenü schließen" : "Filtermenü öffnen"}
@@ -456,7 +467,7 @@ export function ExerciseCatalogPage() {
       {filtersOpen && (
         <>
           <button type="button" className="exercise-filter-scrim" aria-label="Filtermenü schließen" onClick={() => setFiltersOpen(false)} />
-          <section className="exercise-filter-panel ui-filter-sheet" aria-label="Übungskatalog filtern">
+          <section className="exercise-filter-panel" aria-label="Übungskatalog filtern">
             <header className="exercise-filter-heading">
               <div><strong>Filtern & Sortieren</strong><small>{filteredExercises.length} Übungen sichtbar</small></div>
               <button type="button" className="text-button" onClick={resetFilters}>Zurücksetzen</button>
@@ -474,7 +485,7 @@ export function ExerciseCatalogPage() {
             </div>
 
             <div className="exercise-filter-panel-footer">
-              <button type="button" className={`favorite-filter ${favoritesOnly ? "active" : ""}`} onClick={() => setFavoritesOnly((current) => !current)}>
+              <button type="button" className="ui-favorite-filter" aria-pressed={favoritesOnly} onClick={() => setFavoritesOnly((current) => !current)}>
                 <Star aria-hidden="true" fill={favoritesOnly ? "currentColor" : "none"} />Favoriten <span>{counts.favorites}</span>
               </button>
               <button type="button" className="primary-button exercise-filter-apply" onClick={() => setFiltersOpen(false)}>Anwenden</button>
@@ -515,7 +526,7 @@ export function ExerciseCatalogPage() {
                   </button>
 
                   <div className="exercise-card-actions" data-testid="exercise-actions">
-                    <button type="button" className={`icon-button exercise-favorite-button ${exercise.isFavorite ? "active" : ""}`} onClick={() => void handleFavorite(exercise)} aria-label={exercise.isFavorite ? `${exercise.name} aus Favoriten entfernen` : `${exercise.name} zu Favoriten hinzufügen`} title={exercise.isFavorite ? "Aus Favoriten entfernen" : "Favorit"}>
+                    <button type="button" className="icon-button icon-button--favorite exercise-favorite-button" aria-pressed={exercise.isFavorite} aria-busy={favoriteBusyIds.has(exercise.id)} disabled={favoriteBusyIds.has(exercise.id)} onClick={() => void handleFavorite(exercise)} aria-label={exercise.isFavorite ? `${exercise.name} aus Favoriten entfernen` : `${exercise.name} zu Favoriten hinzufügen`} title={exercise.isFavorite ? "Aus Favoriten entfernen" : "Favorit"}>
                       <Star aria-hidden="true" fill={exercise.isFavorite ? "currentColor" : "none"} />
                     </button>
                     <button type="button" className="icon-button exercise-edit-button" data-testid="exercise-edit" onClick={() => openEditor(exercise)} aria-label={`${exercise.name} ${canEdit ? "bearbeiten" : "anzeigen"}`} title={canEdit ? "Bearbeiten" : "Anzeigen"}>{canEdit ? <Pencil aria-hidden="true" /> : <BookOpen aria-hidden="true" />}</button>

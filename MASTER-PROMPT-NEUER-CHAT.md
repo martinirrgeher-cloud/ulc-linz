@@ -72,8 +72,8 @@ Normaler Ablauf:
 12. Danach `ULC-FREIGEBEN.cmd`; erst hier Commit und Push.
 13. GitHub PR, alle erforderlichen Checks grün.
 14. Manuell **Squash and merge**.
-15. Vercel-Produktion prüfen.
-16. `ULC-PRODUKTION-MARKIEREN.cmd`: Produktionscommit muss exakt `origin/main` sein, lokaler main wird nur per Fast-Forward synchronisiert und ein annotierter `production-*`-Tag wird gepusht.
+15. Nach dem Squash-Merge müssen **Vercel-Produktion und der GitHub-Workflow `Produktionsdatenbank migrieren`** erfolgreich sein. Dieser Workflow wendet fehlende Repo-Migrationen mit `supabase db push` an, vergleicht anschließend die komplette Produktions-Migrationshistorie exakt mit `supabase/migrations` und erzeugt nur bei Übereinstimmung den Tag `database-verified-<commit>`.
+16. `ULC-PRODUKTION-MARKIEREN.cmd`: Produktionscommit muss exakt `origin/main` sein **und der passende `database-verified-<commit>`-Tag muss vorhanden sein**. Lokaler main wird nur per Fast-Forward synchronisiert und erst danach ein annotierter `production-*`-Tag gepusht.
 17. Erst danach nächste Änderung.
 
 ## Was du bei einem normalen Update liefern sollst
@@ -232,7 +232,7 @@ Writing-E2E:
 - jede Domäne deklariert schreibbare Ressourcen
 - keine Parallelisierung einführen, wenn Testdaten kollidieren
 
-Browsertests sollen gemeinsame Helper unter `tests/helpers` und gezielte stabile `data-testid` verwenden, statt Bedienabläufe mehrfach über CSS-Klassen oder sichtbare Icon-Texte nachzubauen.
+Browsertests sollen gemeinsame Helper unter `tests/helpers` und gezielte stabile `data-testid` verwenden, statt Bedienabläufe mehrfach über CSS-Klassen oder sichtbare Icon-Texte nachzubauen. **Ein zentraler schreibender CRUD-Editor gilt nicht als ausreichend getestet, wenn nur Rendern/Buttons geprüft werden:** mindestens ein Writing-E2E muss einen vorhandenen Datensatz wirklich ändern, speichern und nach Reload/Read-back verifizieren. Persistente Toggle-Zustände wie Favoriten werden ebenfalls nach Reload geprüft.
 
 ## CSS-Regeln
 
@@ -242,7 +242,7 @@ Global nur:
 - `mobile.css`
 - `mobile-foundation.css`
 
-Neue Feature-/Routenregeln bevorzugt routebezogen lazy laden.
+Neue Feature-/Routenregeln bevorzugt routebezogen lazy laden. **Eine Route oder Shared-Komponente darf nicht davon abhängen, dass zuvor eine andere Route besucht und deren CSS bereits geladen wurde.** Shared-Komponenten importieren ihr eigenes gemeinsames Stylesheet oder verwenden eine globale UI-Utility. `scripts/check-route-css-ownership.mjs` schützt diesen Vertrag.
 
 Harte CSS-Gates nicht reflexartig erhöhen. Aktuelle Architektur schützt insbesondere:
 
@@ -276,7 +276,10 @@ Semantische Varianten:
 
 - Speichern: `icon-button icon-button--save` – immer grüne Fläche mit weißem Diskettensymbol
 - Schließen/Hilfe/Bearbeiten/Info: neutraler `icon-button`
-- Löschen: `icon-button icon-button--danger` – hellrote Fläche mit rotem Löschsymbol
+- Löschen: `icon-button icon-button--danger` – hellrote Fläche mit rotem Löschsymbol; Hover/Focus bleiben destruktiv rot und dürfen nie auf den neutralen grünen Hoverzustand zurückfallen
+- Favorit: `icon-button icon-button--favorite` + `aria-pressed`; aktiv immer goldene Fläche + gefüllter goldener Stern, auch bei Hover/Focus niemals grün
+- auswählbare Iconaktion: `icon-button icon-button--selected` + `aria-pressed`; kein generisches `.active` für Icon-Zustände
+- aufklappbare Iconaktion: `icon-button icon-button--toggle` + `aria-expanded`; kein generisches `.active` für offen/geschlossen
 - feldinterne Iconaktion: `icon-button icon-button--inline`
 - Tabs: gemeinsame `ui-tabs`-Darstellung nach dem Stammdateneditor-Muster
 - kompakte exklusive Auswahl: `ui-segmented`
@@ -284,7 +287,7 @@ Semantische Varianten:
 - kompakte normale Buttons: ausschließlich `compact-button`; nicht `.compact`
 - Feature-CSS darf bei `ui-segmented` nur fachlich begründete Zustandsfarben ergänzen, nicht Geometrie/Grunddesign neu definieren
 - Checkbox-/Mehrfachauswahlzeile: `ui-choice-row`, ganze Zeile anklickbar
-- echter Ein/Aus-Zustand: `ui-switch`; Switches nicht für normale Mehrfachauswahl missbrauchen
+- echter Ein/Aus-Zustand: `ui-switch` mit `role="switch"` + `aria-checked`; kein generisches `.active` für den Schaltzustand; Switches nicht für normale Mehrfachauswahl missbrauchen
 
 Editoren:
 
@@ -326,6 +329,9 @@ Datenbank:
 - RLS erhalten
 - `SECURITY DEFINER` sicher halten
 - generierte DB-Typen konsistent halten
+- Produktion erhält Migrationen ausschließlich aus `supabase/migrations`; keine manuellen Dashboard-Schemaänderungen als normaler Releaseweg
+- `.github/workflows/production-database.yml` wendet Migrationen nach Merge auf `main` an und verifiziert die vollständige Historie; keine automatische `migration repair`, kein DB-Reset, keine Seeds auf Produktion
+- `ULC-PRODUKTION-MARKIEREN.cmd` verlangt den exakten `database-verified-<origin/main>`-Nachweis und verhindert damit einen als stabil markierten Frontend/DB-Schemamismatch
 
 Im Browser nur Supabase Publishable Key; keine Server-Secrets.
 
@@ -357,8 +363,8 @@ Pflichtcheckgruppen:
 - GitHub bleibt unabhängiges zweites Gate.
 - Rote Checks nicht durch Lockerung von Tests umgehen.
 - PR manuell per Squash Merge.
-- Danach Vercel-Produktion prüfen.
-- `ULC-PRODUKTION-MARKIEREN.cmd` darf nur den tatsächlich laufenden Commit akzeptieren, wenn er exakt `origin/main` ist.
+- Danach Vercel-Produktion **und** den Workflow `Produktionsdatenbank migrieren` prüfen.
+- `ULC-PRODUKTION-MARKIEREN.cmd` darf nur den tatsächlich laufenden Commit akzeptieren, wenn er exakt `origin/main` ist und ein exakter `database-verified-<commit>`-Tag die vollständig migrierte Produktionsdatenbank bestätigt.
 - Nur Fast-Forward, kein Hard Reset.
 - Neuer Entwicklungszyklus erst nach `production-*`-Tag.
 

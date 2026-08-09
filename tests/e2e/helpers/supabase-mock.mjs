@@ -585,6 +585,14 @@ export async function installSupabaseMock(page) {
 
     if (url.pathname.startsWith("/rest/v1/rpc/")) {
       const functionName = decodeURIComponent(url.pathname.slice("/rest/v1/rpc/".length));
+      if (functionName === "save_dropdown_setting") {
+        // Runtime-Browser-Smoke bildet den Sollzustand nach erfolgreichem
+        // Produktions-DB-Deployment ab. Der separate Kompatibilitätscheck für
+        // PGRST202 prüft den Übergang zur alten RPC-Signatur ohne absichtlich
+        // einen HTTP-404 in die Browserkonsole zu schreiben.
+        await route.fulfill({ status: 200, headers: corsHeaders(), body: "null" });
+        return;
+      }
       if (!rpcPayloads.has(functionName)) {
         unhandled.push(`${request.method()} ${url.pathname}`);
         await route.fulfill({
