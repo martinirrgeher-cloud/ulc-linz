@@ -174,12 +174,21 @@ const catalogParameters = [
   { ...parameter, parameter_key: "rest", label: "Pause", unit: "s", default_value: "45", sort_order: 50 },
 ];
 
+const parameterGroupByKey = {
+  distance: "distance_geometry",
+  repetitions: "volume",
+  sets: "volume",
+  intensity: "load",
+  rest: "time_recovery",
+};
+
 const catalogParameterOptions = catalogParameters.map((item) => ({
   key: item.parameter_key,
   label: item.label,
   unit: item.unit,
   input_type: item.input_type,
   step_value: item.step_value,
+  parameter_group: parameterGroupByKey[item.parameter_key] ?? "execution",
   sort_order: item.sort_order,
   is_active: true,
 }));

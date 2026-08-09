@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, Info, ListPlus, Pencil, Plus, Save, X } from "lucide-react";
+import { ChevronDown, Info, ListPlus, Pencil, Plus } from "lucide-react";
+import { EditorShell } from "@/components/ui/EditorShell";
 import { useAuth } from "@/features/auth/AuthContext";
 import {
   loadDropdownSettings,
@@ -14,7 +15,10 @@ import {
   type DropdownSettingOption,
   type DropdownSettingsData,
 } from "@/features/dropdown-settings/types";
-
+import {
+  EXERCISE_PARAMETER_GROUPS,
+  exerciseParameterGroupLabel,
+} from "@/features/exercise-catalog/parameter-groups";
 import { diagnosticErrorMessage } from "@/lib/diagnostics";
 import "@/styles/dropdown-settings.css";
 import "@/styles/dropdown-settings-mobile.css";
@@ -175,179 +179,176 @@ export function DropdownSettingsPage() {
   }
 
   const editorTitle = `${LIST_SINGULAR[activeList]} ${editing ? "bearbeiten" : "anlegen"}`;
+  const editorOpen = editing !== undefined;
 
   return (
     <section className="dropdown-settings-page">
-      <div className="dropdown-settings-heading">
-        <div>
-          <p className="eyebrow">Stammdaten</p>
-          <h1>Auswahllisten</h1>
-        </div>
-        {canEdit && (
-          <details className="dropdown-create-menu" ref={createMenuRef}>
-            <summary
-              className="primary-button dropdown-create-menu-toggle"
-              aria-label="Neuen Auswahllisteneintrag anlegen"
-              aria-disabled={loading || busy}
-              onClick={(event) => { if (loading || busy) event.preventDefault(); }}
+      {editorOpen ? (
+        <EditorShell
+          eyebrow="Auswahllisten"
+          title={editorTitle}
+          canEdit={canEdit}
+          busy={busy}
+          canSave={!exactDuplicate && values.label.trim().length >= 2}
+          saveLabel="Speichern"
+          saveTestId="dropdown-setting-save"
+          closeLabel="Bearbeitung schließen"
+          onSave={() => void handleSave()}
+          onClose={closeEditor}
+        >
+          <div className="dropdown-setting-editor-form">
+            {editorError && <div className="alert error dropdown-setting-editor-error">{editorError}</div>}
+            <div className="dropdown-setting-label-field">
+              <label>
+                <span>Bezeichnung *</span>
+                <input
+                  type="text"
+                  value={values.label}
+                  onChange={(event) => update("label", event.target.value)}
+                  maxLength={100}
+                  autoFocus
+                  aria-invalid={Boolean(exactDuplicate)}
+                />
+              </label>
+              {exactDuplicate && (
+                <p className="dropdown-setting-duplicate-warning" role="alert">
+                  Der Eintrag „{exactDuplicate.label}“ ist bereits vorhanden.
+                </p>
+              )}
+              {matchingOptions.length > 0 && (
+                <div className="dropdown-setting-suggestions" aria-live="polite">
+                  <small>Bereits vorhandene Einträge:</small>
+                  <div>
+                    {matchingOptions.map((option) => (
+                      <span className={option.isActive ? "" : "inactive"} key={`${option.key}-${option.id ?? "base"}`}>
+                        <strong>{option.label}</strong>
+                        <small>{option.isActive ? "Aktiv" : "Inaktiv"}</small>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {activeList === "planning_parameter" && (
+              <>
+                <label>
+                  <span>Parametergruppe</span>
+                  <select value={values.parameterGroup} onChange={(event) => update("parameterGroup", event.target.value as DropdownSettingInput["parameterGroup"])}>
+                    {EXERCISE_PARAMETER_GROUPS.map((group) => <option value={group.key} key={group.key}>{group.label}</option>)}
+                  </select>
+                  <small>Die Gruppe steuert die übersichtliche Anordnung im Übungseditor.</small>
+                </label>
+                <label>
+                  <span>Eingabetyp</span>
+                  <select
+                    value={values.inputType}
+                    onChange={(event) => update("inputType", event.target.value as "number" | "text")}
+                    disabled={Boolean(editing?.usageCount)}
+                  >
+                    <option value="number">Zahl</option>
+                    <option value="text">Text</option>
+                  </select>
+                  {Boolean(editing?.usageCount) && <small>Der Eingabetyp bleibt bei bereits verwendeten Parametern unverändert.</small>}
+                </label>
+                <label><span>Einheit</span><input type="text" value={values.unit} onChange={(event) => update("unit", event.target.value)} maxLength={20} placeholder="z. B. m, kg, s" /></label>
+                {values.inputType === "number" && <label><span>Standard-Schrittweite</span><input type="number" min="0.01" step="any" value={values.stepValue} onChange={(event) => update("stepValue", event.target.value)} /></label>}
+              </>
+            )}
+
+            <label><span>Sortierung</span><input type="number" step="1" value={values.sortOrder} onChange={(event) => update("sortOrder", event.target.value)} /></label>
+            {editing && (
+              <label className="dropdown-setting-active-toggle">
+                <input type="checkbox" checked={editorActive} onChange={(event) => setEditorActive(event.target.checked)} />
+                <span><strong>Aktiv</strong><small>Inaktive Einträge bleiben bei bestehenden Daten erhalten.</small></span>
+              </label>
+            )}
+          </div>
+        </EditorShell>
+      ) : (
+        <>
+          <div className="dropdown-settings-heading">
+            <div>
+              <p className="eyebrow">Stammdaten</p>
+              <h1>Auswahllisten</h1>
+            </div>
+            {canEdit && (
+              <details className="dropdown-create-menu" ref={createMenuRef}>
+                <summary
+                  className="primary-button dropdown-create-menu-toggle"
+                  aria-label="Neuen Auswahllisteneintrag anlegen"
+                  aria-disabled={loading || busy}
+                  onClick={(event) => { if (loading || busy) event.preventDefault(); }}
+                >
+                  <Plus aria-hidden="true" /> Neu <ChevronDown aria-hidden="true" />
+                </summary>
+                <div className="dropdown-create-menu-panel" role="menu" aria-label="Auswahlliste auswählen">
+                  {DROPDOWN_LISTS.map((list) => (
+                    <button type="button" role="menuitem" onClick={() => startCreate(list.key)} key={list.key}>
+                      <Plus aria-hidden="true" />
+                      <span>{LIST_SINGULAR[list.key]} anlegen</span>
+                    </button>
+                  ))}
+                </div>
+              </details>
+            )}
+          </div>
+
+          {error && <div className="alert error">{error}</div>}
+          {success && <div className="alert success">{success}</div>}
+
+          <div className="dropdown-settings-selector-row">
+            <label className="dropdown-settings-selector">
+              <span className="sr-only">Auswahlliste</span>
+              <select value={activeList} onChange={(event) => selectList(event.target.value as DropdownListKey)} aria-label="Auswahlliste auswählen">
+                {DROPDOWN_LISTS.map((list) => <option value={list.key} key={list.key}>{list.title} · {activeCount(list.key)}</option>)}
+              </select>
+            </label>
+            <button
+              type="button"
+              className="dropdown-settings-info-button"
+              onClick={() => setIntroOpen((current) => !current)}
+              aria-expanded={introOpen}
+              aria-label={introOpen ? "Erklärung schließen" : `Erklärung zu ${listDefinition.title} öffnen`}
+              title="Information"
             >
-              <Plus aria-hidden="true" /> Neu <ChevronDown aria-hidden="true" />
-            </summary>
-            <div className="dropdown-create-menu-panel" role="menu" aria-label="Auswahlliste auswählen">
-              {DROPDOWN_LISTS.map((list) => (
-                <button type="button" role="menuitem" onClick={() => startCreate(list.key)} key={list.key}>
-                  <Plus aria-hidden="true" />
-                  <span>{LIST_SINGULAR[list.key]} anlegen</span>
-                </button>
+              <Info aria-hidden="true" />
+            </button>
+          </div>
+
+          {introOpen && (
+            <div className="dropdown-settings-intro-copy">
+              <p>{listDefinition.description}</p>
+              <small>Deaktivierte Einträge bleiben bei bestehenden Übungen erhalten, können aber nicht mehr neu ausgewählt werden.</small>
+            </div>
+          )}
+
+          {loading ? (
+            <div className="management-loading"><div className="spinner" aria-hidden="true" />Auswahllisten werden geladen …</div>
+          ) : data[activeList].length === 0 ? (
+            <div className="empty-state"><ListPlus aria-hidden="true" /><h2>Noch keine Einträge</h2><p>Lege den ersten Eintrag für diese Auswahlliste an.</p></div>
+          ) : (
+            <div className="dropdown-settings-list">
+              {sortedOptions.map((option) => (
+                <article className={`dropdown-setting-card ${option.isActive ? "" : "inactive"}`} key={`${activeList}-${option.key}`}>
+                  <div>
+                    <strong>{option.label}</strong>
+                    <small>
+                      {activeList === "planning_parameter"
+                        ? `${exerciseParameterGroupLabel(option.parameterGroup)} · ${option.inputType === "number" ? "Zahl" : "Text"}${option.unit ? ` · ${option.unit}` : ""}${option.stepValue ? ` · Schritt ${option.stepValue}` : ""} · ${option.usageCount}-mal verwendet`
+                        : `${option.usageCount}-mal verwendet`}
+                    </small>
+                  </div>
+                  {canEdit && (
+                    <button className="dropdown-setting-edit-button" type="button" onClick={() => startEdit(option)} disabled={busy} aria-label={`${option.label} bearbeiten`} title="Bearbeiten">
+                      <Pencil aria-hidden="true" />
+                    </button>
+                  )}
+                </article>
               ))}
             </div>
-          </details>
-        )}
-      </div>
-
-      {error && <div className="alert error">{error}</div>}
-      {success && <div className="alert success">{success}</div>}
-
-      <div className="dropdown-settings-selector-row">
-        <label className="dropdown-settings-selector">
-          <span className="sr-only">Auswahlliste</span>
-          <select
-            value={activeList}
-            onChange={(event) => selectList(event.target.value as DropdownListKey)}
-            aria-label="Auswahlliste auswählen"
-          >
-            {DROPDOWN_LISTS.map((list) => (
-              <option value={list.key} key={list.key}>{list.title} · {activeCount(list.key)}</option>
-            ))}
-          </select>
-        </label>
-        <button
-          type="button"
-          className="dropdown-settings-info-button"
-          onClick={() => setIntroOpen((current) => !current)}
-          aria-expanded={introOpen}
-          aria-label={introOpen ? "Erklärung schließen" : `Erklärung zu ${listDefinition.title} öffnen`}
-          title="Information"
-        >
-          <Info aria-hidden="true" />
-        </button>
-      </div>
-
-      {introOpen && (
-        <div className="dropdown-settings-intro-copy">
-          <p>{listDefinition.description}</p>
-          <small>Deaktivierte Einträge bleiben bei bestehenden Übungen erhalten, können aber nicht mehr neu ausgewählt werden.</small>
-        </div>
-      )}
-
-      {loading ? (
-        <div className="management-loading"><div className="spinner" aria-hidden="true" />Auswahllisten werden geladen …</div>
-      ) : data[activeList].length === 0 ? (
-        <div className="empty-state"><ListPlus aria-hidden="true" /><h2>Noch keine Einträge</h2><p>Lege den ersten Eintrag für diese Auswahlliste an.</p></div>
-      ) : (
-        <div className="dropdown-settings-list">
-          {sortedOptions.map((option) => (
-            <article className={`dropdown-setting-card ${option.isActive ? "" : "inactive"}`} key={`${activeList}-${option.key}`}>
-              <div>
-                <strong>{option.label}</strong>
-                <small>
-                  {activeList === "planning_parameter"
-                    ? `${option.inputType === "number" ? "Zahl" : "Text"}${option.unit ? ` · ${option.unit}` : ""}${option.stepValue ? ` · Schritt ${option.stepValue}` : ""} · ${option.usageCount}-mal verwendet`
-                    : `${option.usageCount}-mal verwendet`}
-                </small>
-              </div>
-              {canEdit && (
-                <button className="dropdown-setting-edit-button" type="button" onClick={() => startEdit(option)} disabled={busy} aria-label={`${option.label} bearbeiten`} title="Bearbeiten">
-                  <Pencil aria-hidden="true" />
-                </button>
-              )}
-            </article>
-          ))}
-        </div>
-      )}
-
-      {editing !== undefined && (
-        <div className="dropdown-setting-editor-backdrop" role="presentation">
-          <section className="dropdown-setting-editor" role="dialog" aria-modal="true" aria-labelledby="dropdown-setting-editor-title">
-            <header>
-              <h2 id="dropdown-setting-editor-title">{editorTitle}</h2>
-              <div className="dropdown-setting-editor-actions">
-                <button
-                  type="button"
-                  className="icon-button dropdown-setting-save-button"
-                  onClick={() => void handleSave()}
-                  disabled={busy || Boolean(exactDuplicate) || values.label.trim().length < 2}
-                  aria-label={busy ? "Wird gespeichert" : "Speichern"}
-                  title="Speichern"
-                >
-                  <Save aria-hidden="true" />
-                </button>
-                <button type="button" className="icon-button" onClick={closeEditor} disabled={busy} aria-label="Dialog schließen" title="Schließen">
-                  <X aria-hidden="true" />
-                </button>
-              </div>
-            </header>
-            <div className="dropdown-setting-editor-form">
-              {editorError && <div className="alert error dropdown-setting-editor-error">{editorError}</div>}
-              <div className="dropdown-setting-label-field">
-                <label>
-                  <span>Bezeichnung *</span>
-                  <input
-                    type="text"
-                    value={values.label}
-                    onChange={(event) => update("label", event.target.value)}
-                    maxLength={100}
-                    autoFocus
-                    aria-invalid={Boolean(exactDuplicate)}
-                  />
-                </label>
-                {exactDuplicate && (
-                  <p className="dropdown-setting-duplicate-warning" role="alert">
-                    Der Eintrag „{exactDuplicate.label}“ ist bereits vorhanden.
-                  </p>
-                )}
-                {matchingOptions.length > 0 && (
-                  <div className="dropdown-setting-suggestions" aria-live="polite">
-                    <small>Bereits vorhandene Einträge:</small>
-                    <div>
-                      {matchingOptions.map((option) => (
-                        <span className={option.isActive ? "" : "inactive"} key={`${option.key}-${option.id ?? "base"}`}>
-                          <strong>{option.label}</strong>
-                          <small>{option.isActive ? "Aktiv" : "Inaktiv"}</small>
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-              {activeList === "planning_parameter" && (
-                <>
-                  <label>
-                    <span>Eingabetyp</span>
-                    <select
-                      value={values.inputType}
-                      onChange={(event) => update("inputType", event.target.value as "number" | "text")}
-                      disabled={Boolean(editing?.usageCount)}
-                    >
-                      <option value="number">Zahl</option>
-                      <option value="text">Text</option>
-                    </select>
-                    {Boolean(editing?.usageCount) && <small>Der Eingabetyp bleibt bei bereits verwendeten Parametern unverändert.</small>}
-                  </label>
-                  <label><span>Einheit</span><input type="text" value={values.unit} onChange={(event) => update("unit", event.target.value)} maxLength={20} placeholder="z. B. m, kg, s" /></label>
-                  {values.inputType === "number" && <label><span>Standard-Schrittweite</span><input type="number" min="0.01" step="any" value={values.stepValue} onChange={(event) => update("stepValue", event.target.value)} /></label>}
-                </>
-              )}
-              <label><span>Sortierung</span><input type="number" step="1" value={values.sortOrder} onChange={(event) => update("sortOrder", event.target.value)} /></label>
-              {editing && (
-                <label className="dropdown-setting-active-toggle">
-                  <input type="checkbox" checked={editorActive} onChange={(event) => setEditorActive(event.target.checked)} />
-                  <span><strong>Aktiv</strong><small>Inaktive Einträge bleiben bei bestehenden Daten erhalten.</small></span>
-                </label>
-              )}
-            </div>
-          </section>
-        </div>
+          )}
+        </>
       )}
     </section>
   );

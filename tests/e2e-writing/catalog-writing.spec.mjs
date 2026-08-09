@@ -12,14 +12,14 @@ test.describe("Schreibende Übungs- und Trainingsblocktests", () => {
     await expect(page.getByRole("heading", { name: "Übungskatalog" })).toBeVisible();
 
     await page.getByTestId("exercise-create").click();
-    const exerciseDialog = page.getByRole("dialog", { name: "Übung anlegen" });
-    await exerciseDialog.getByLabel("Name *").fill(SCENARIO.exerciseName);
-    await exerciseDialog.getByLabel("Schwierigkeitsgrad").selectOption("medium");
-    await exerciseDialog.getByRole("button", { name: "Anleitung", exact: true }).click();
-    await exerciseDialog.getByLabel("Durchführung").fill("Kontrollierter Sprint mit sauberer Beschleunigung.");
-    await exerciseDialog.getByRole("button", { name: /Parameter/ }).click();
-    await exerciseDialog.locator(".parameter-picker").getByRole("button", { name: /Wiederholungen/ }).click();
-    await exerciseDialog.getByRole("button", { name: "Speichern", exact: true }).click();
+    const exerciseEditor = page.getByRole("region", { name: "Übung anlegen" });
+    await exerciseEditor.getByLabel("Name *").fill(SCENARIO.exerciseName);
+    await exerciseEditor.getByLabel("Schwierigkeitsgrad").selectOption("medium");
+    await exerciseEditor.getByRole("button", { name: "Anleitung", exact: true }).click();
+    await exerciseEditor.getByLabel("Durchführung").fill("Kontrollierter Sprint mit sauberer Beschleunigung.");
+    await exerciseEditor.getByRole("button", { name: /Parameter/ }).click();
+    await exerciseEditor.locator(".parameter-picker").getByRole("button", { name: /Wiederholungen/ }).click();
+    await exerciseEditor.getByRole("button", { name: "Übung speichern", exact: true }).click();
     await expect(page.getByText("Die Übung wurde angelegt.", { exact: true })).toBeVisible();
     await expect(page.getByTestId("exercise-card").filter({ hasText: SCENARIO.exerciseName })).toBeVisible();
 

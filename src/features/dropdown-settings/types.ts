@@ -1,5 +1,9 @@
+import type { ExerciseParameterGroupKey } from "@/features/exercise-catalog/parameter-groups";
+
 export type DropdownListKey = "category" | "subcategory" | "material" | "difficulty" | "planning_parameter";
 export type DropdownInputType = "number" | "text";
+
+export type DropdownParameterGroup = ExerciseParameterGroupKey;
 
 export type DropdownSettingOption = {
   id: string | null;
@@ -8,6 +12,7 @@ export type DropdownSettingOption = {
   unit: string;
   inputType: DropdownInputType;
   stepValue: number | null;
+  parameterGroup: DropdownParameterGroup;
   sortOrder: number;
   isActive: boolean;
   usageCount: number;
@@ -20,6 +25,7 @@ export type DropdownSettingInput = {
   unit: string;
   inputType: DropdownInputType;
   stepValue: string;
+  parameterGroup: DropdownParameterGroup;
   sortOrder: string;
 };
 
@@ -41,6 +47,7 @@ export function optionToInput(option: DropdownSettingOption | null): DropdownSet
     unit: option?.unit ?? "",
     inputType: option?.inputType ?? "number",
     stepValue: option?.stepValue?.toString() ?? "1",
+    parameterGroup: option?.parameterGroup ?? "execution",
     sortOrder: option?.sortOrder?.toString() ?? "100",
   };
 }

@@ -275,11 +275,6 @@ async function seed() {
     "Organization exercise categories could not be created",
   );
 
-  const planningOptions = [
-    { option_key: "sets", label: "Saetze", unit: "", input_type: "number", step_value: 1, sort_order: 10 },
-    { option_key: "repetitions", label: "Wiederholungen", unit: "", input_type: "number", step_value: 1, sort_order: 20 },
-    { option_key: "distance_m", label: "Distanz", unit: "m", input_type: "number", step_value: 1, sort_order: 30 },
-  ];
   assertResult(
     await client.from("organization_dropdown_options").insert([
       {
@@ -304,15 +299,29 @@ async function seed() {
         sort_order: 10,
         is_active: true,
       },
-      ...planningOptions.map((option) => ({
-        organization_id: ORGANIZATION_ID,
-        list_key: "planning_parameter",
-        is_active: true,
-        ...option,
-      })),
     ]),
     "E2E dropdown options could not be created",
   );
+
+  const requiredPlanningParameterKeys = ["sets", "repetitions", "distance_m"];
+  const seededPlanningParameters = assertResult(
+    await client
+      .from("organization_dropdown_options")
+      .select("option_key")
+      .eq("organization_id", ORGANIZATION_ID)
+      .eq("list_key", "planning_parameter")
+      .in("option_key", requiredPlanningParameterKeys),
+    "Seeded E2E planning parameters could not be read",
+  );
+  const seededPlanningParameterKeys = new Set(seededPlanningParameters.map((option) => option.option_key));
+  const missingPlanningParameterKeys = requiredPlanningParameterKeys.filter(
+    (optionKey) => !seededPlanningParameterKeys.has(optionKey),
+  );
+  if (missingPlanningParameterKeys.length > 0) {
+    throw new Error(
+      `E2E planning parameters were not seeded for the organization: ${missingPlanningParameterKeys.join(", ")}`,
+    );
+  }
 
   assertResult(
     await client.from("exercises").insert({

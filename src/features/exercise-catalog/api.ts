@@ -19,6 +19,7 @@ import {
   type ExerciseParameterOption,
   type ExerciseVideo,
 } from "@/features/exercise-catalog/types";
+import { parseExerciseParameterGroup } from "@/features/exercise-catalog/parameter-groups";
 import {
   EXERCISE_VIDEO_BUCKET,
   exerciseVideoMimeType,
@@ -122,6 +123,7 @@ function parseParameterOptions(value: unknown): ExerciseParameterOption[] {
       unit: typeof item.unit === "string" ? item.unit : "",
       inputType,
       stepValue: numberOrNull(item.step_value),
+      parameterGroup: parseExerciseParameterGroup(item.parameter_group),
       sortOrder: typeof item.sort_order === "number" ? item.sort_order : 100,
       isActive: item.is_active !== false,
     }];

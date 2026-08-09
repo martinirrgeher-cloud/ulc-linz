@@ -1048,6 +1048,7 @@ export type Database = {
           unit: string;
           input_type: string;
           step_value: number | null;
+          parameter_group: string;
           sort_order: number;
           is_active: boolean;
           created_at: string;
@@ -1062,6 +1063,7 @@ export type Database = {
           unit?: string;
           input_type?: string;
           step_value?: number | null;
+          parameter_group?: string;
           sort_order?: number;
           is_active?: boolean;
           created_at?: string;
@@ -1076,6 +1078,7 @@ export type Database = {
           unit?: string;
           input_type?: string;
           step_value?: number | null;
+          parameter_group?: string;
           sort_order?: number;
           is_active?: boolean;
           created_at?: string;
@@ -1921,6 +1924,10 @@ export type Database = {
         Returns: Json;
       };
       seed_exercise_difficulties_for_organization: {
+        Args: Record<PropertyKey, never>;
+        Returns: unknown;
+      };
+      seed_planning_parameters_for_organization: {
         Args: Record<PropertyKey, never>;
         Returns: unknown;
       };
@@ -2783,6 +2790,7 @@ export type Database = {
           p_input_type?: string;
           p_step_value?: number;
           p_sort_order?: number;
+          p_parameter_group?: string;
         };
         Returns: string;
       };
