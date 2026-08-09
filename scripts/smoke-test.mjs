@@ -213,6 +213,13 @@ const authContextSource = await readFile(new URL("../src/features/auth/AuthConte
 const protectedRouteSource = await readFile(new URL("../src/features/auth/ProtectedRoute.tsx", import.meta.url), "utf8");
 const connectionErrorPageSource = await readFile(new URL("../src/pages/ConnectionErrorPage.tsx", import.meta.url), "utf8");
 
+test("Auth-Restore akzeptiert lokal gespeicherte Sitzungen erst nach Servervalidierung", () => {
+  assert.ok(authContextSource.includes("auth.getUser(data.session.access_token)"));
+  assert.ok(authContextSource.includes('event === "INITIAL_SESSION"'));
+  assert.ok(authContextSource.includes('signOut({ scope: "local" })'));
+  assert.ok(authContextSource.includes("user from sub claim"));
+});
+
 test("Auth-Kontext trennt fehlende Berechtigung von Verbindungsfehlern", () => {
   for (const status of [
     '"ready"',
@@ -997,6 +1004,12 @@ const e5cEdgeSource = await readFile(
   assert.ok(e5cMigrationSource.includes("invitation_last_sent_at"));
   assert.ok(e5cMigrationSource.includes("invitation_send_count"));
   assert.ok(e5cEdgeSource.includes('payload.action === "resend"'));
+});
+
+test("E5c Einladungsredirect bevorzugt die freigegebene aktuelle Browser-Origin", () => {
+  assert.ok(e5cEdgeSource.includes("requestRedirect"));
+  assert.ok(e5cEdgeSource.includes("requestRedirect || configuredRedirect"));
+  assert.ok(e5cEdgeSource.includes("allowedOrigins.includes(origin)"));
 });
 
 test("E5c Rechtevorlagen bleiben individuell anpassbar", () => {

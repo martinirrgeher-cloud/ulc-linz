@@ -81,7 +81,21 @@ function isInvalidSessionError(error: unknown): boolean {
     "refresh token",
     "token has expired",
     "not authenticated",
+    "user from sub claim",
+    "user not found",
+    "user does not exist",
   ].some((fragment) => message.includes(fragment));
+}
+
+function authErrorStatus(error: unknown): number | null {
+  if (!error || typeof error !== "object" || !("status" in error)) return null;
+  const status = (error as { status?: unknown }).status;
+  return typeof status === "number" ? status : null;
+}
+
+function isServerSessionRejected(error: unknown): boolean {
+  const status = authErrorStatus(error);
+  return status === 401 || isInvalidSessionError(error);
 }
 
 function connectionStatus(): Extract<ContextStatus, "offline" | "technical_error"> {
@@ -330,24 +344,76 @@ export function AuthProvider({ children }: PropsWithChildren) {
             if (error) throw error;
             if (!mounted) return;
 
+            if (!data.session) {
+              clearSensitiveSessionData();
+              sessionRef.current = null;
+              setSession(null);
+              setSessionError(null);
+              clearAppData();
+              setLoading(false);
+              return;
+            }
+
+            const {
+              data: verifiedUserData,
+              error: verifiedUserError,
+            } = await withTimeout(
+              authClient.auth.getUser(data.session.access_token),
+              AUTH_INITIALIZATION_TIMEOUT_MS,
+              "Die gespeicherte Anmeldung konnte nicht serverseitig bestätigt werden.",
+            );
+
+            if (verifiedUserError || !verifiedUserData.user) {
+              const rejection = verifiedUserError ?? new Error("Der gespeicherte Benutzer existiert nicht mehr.");
+              if (isServerSessionRejected(rejection)) {
+                try {
+                  await authClient.auth.signOut({ scope: "local" });
+                } catch {
+                  // Die lokale Sitzung wird unten unabhängig von einem Sign-out-Fehler verworfen.
+                }
+                if (!mounted) return;
+                clearSensitiveSessionData();
+                sessionRef.current = null;
+                setSession(null);
+                setSessionError(null);
+                clearAppData();
+                setLoading(false);
+                return;
+              }
+              throw rejection;
+            }
+
+            if (verifiedUserData.user.id !== data.session.user.id) {
+              try {
+                await authClient.auth.signOut({ scope: "local" });
+              } catch {
+                // Die lokale Sitzung wird unten unabhängig von einem Sign-out-Fehler verworfen.
+              }
+              if (!mounted) return;
+              clearSensitiveSessionData();
+              sessionRef.current = null;
+              setSession(null);
+              setSessionError(null);
+              clearAppData();
+              setLoading(false);
+              return;
+            }
+
+            const verifiedSession: Session = {
+              ...data.session,
+              user: verifiedUserData.user,
+            };
             const previousUserId = sessionRef.current?.user.id ?? null;
-            const nextUserId = data.session?.user.id ?? null;
+            const nextUserId = verifiedSession.user.id;
             if (previousUserId && previousUserId !== nextUserId) {
               clearSensitiveSessionData();
               clearAppData();
             }
 
-            if (nextUserId) purgeSensitiveSessionData(nextUserId);
-
-            sessionRef.current = data.session;
-            setSession(data.session);
+            purgeSensitiveSessionData(nextUserId);
+            sessionRef.current = verifiedSession;
+            setSession(verifiedSession);
             setSessionError(null);
-
-            if (!data.session) {
-              clearSensitiveSessionData();
-              clearAppData();
-            }
-
             setLoading(false);
             return;
           } catch (error) {
@@ -380,8 +446,13 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
     void restoreSession(true);
 
-    const { data: subscription } = authClient.auth.onAuthStateChange((_event, nextSession) => {
+    const { data: subscription } = authClient.auth.onAuthStateChange((event, nextSession) => {
       if (!mounted) return;
+
+      // INITIAL_SESSION stammt aus dem lokalen Browser-Speicher und ist noch
+      // nicht serverseitig bestätigt. restoreSession() validiert sie bewusst
+      // mit auth.getUser(), bevor die App sie als Anmeldung akzeptiert.
+      if (event === "INITIAL_SESSION") return;
 
       if (nextSession) {
         const previousUserId = sessionRef.current?.user.id ?? null;

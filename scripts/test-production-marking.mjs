@@ -46,13 +46,13 @@ function setup() {
   return { base, remote, repo, commit, previousCommit };
 }
 
-test("Produktionsmarkierung blockiert einen Commit ohne verifizierte Produktionsdatenbank", () => {
+test("Produktionsmarkierung blockiert einen Commit ohne verifiziertes Produktionsbackend", () => {
   const fixture = setup();
   try {
     const result = run(process.execPath, [markProductionScript, fixture.commit], fixture.repo, true);
     assert.notEqual(result.status, 0);
-    assert.match(`${result.stdout}\n${result.stderr}`, /Produktionsdatenbank ist fuer diesen Commit noch nicht verifiziert/);
-    assert.match(`${result.stdout}\n${result.stderr}`, new RegExp(`database-verified-${fixture.commit}`));
+    assert.match(`${result.stdout}\n${result.stderr}`, /Produktionsbackend ist fuer diesen Commit noch nicht verifiziert/);
+    assert.match(`${result.stdout}\n${result.stderr}`, new RegExp(`backend-verified-${fixture.commit}`));
     const productionTags = run("git", ["tag", "--list", "production-*"], fixture.repo).stdout.trim();
     assert.equal(productionTags, "");
   } finally {
@@ -61,16 +61,16 @@ test("Produktionsmarkierung blockiert einen Commit ohne verifizierte Produktions
 });
 
 
-test("Produktionsmarkierung lehnt einen DB-Verifikations-Tag auf einem anderen Commit ab", () => {
+test("Produktionsmarkierung lehnt einen Backend-Verifikations-Tag auf einem anderen Commit ab", () => {
   const fixture = setup();
   try {
-    const dbTag = `database-verified-${fixture.commit}`;
-    run("git", ["tag", dbTag, fixture.previousCommit], fixture.repo);
-    run("git", ["push", "origin", `refs/tags/${dbTag}`], fixture.repo);
+    const backendTag = `backend-verified-${fixture.commit}`;
+    run("git", ["tag", backendTag, fixture.previousCommit], fixture.repo);
+    run("git", ["push", "origin", `refs/tags/${backendTag}`], fixture.repo);
 
     const result = run(process.execPath, [markProductionScript, fixture.commit], fixture.repo, true);
     assert.notEqual(result.status, 0);
-    assert.match(`${result.stdout}\n${result.stderr}`, /Datenbank-Verifikationsnachweis zeigt auf einen unerwarteten Commit/);
+    assert.match(`${result.stdout}\n${result.stderr}`, /Backend-Verifikationsnachweis zeigt auf einen unerwarteten Commit/);
     const productionTags = run("git", ["tag", "--list", "production-*"], fixture.repo).stdout.trim();
     assert.equal(productionTags, "");
   } finally {
@@ -78,12 +78,12 @@ test("Produktionsmarkierung lehnt einen DB-Verifikations-Tag auf einem anderen C
   }
 });
 
-test("Produktionsmarkierung akzeptiert nur den exakten DB-Verifikations-Tag von origin/main", () => {
+test("Produktionsmarkierung akzeptiert nur den exakten Backend-Verifikations-Tag von origin/main", () => {
   const fixture = setup();
   try {
-    const dbTag = `database-verified-${fixture.commit}`;
-    run("git", ["tag", dbTag, fixture.commit], fixture.repo);
-    run("git", ["push", "origin", `refs/tags/${dbTag}`], fixture.repo);
+    const backendTag = `backend-verified-${fixture.commit}`;
+    run("git", ["tag", backendTag, fixture.commit], fixture.repo);
+    run("git", ["push", "origin", `refs/tags/${backendTag}`], fixture.repo);
 
     const result = run(process.execPath, [markProductionScript, fixture.commit], fixture.repo);
     assert.equal(result.status, 0);

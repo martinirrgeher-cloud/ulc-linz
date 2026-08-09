@@ -33,7 +33,7 @@ sie künftig unabhängig voneinander erweitert werden.
 
 Voraussetzungen:
 
-- Node.js 22.16.0 (mindestens 22.12, kleiner als 23)
+- Node.js 22.20.0 (exakt gepinnt)
 - npm 10.9.x
 - lokale Konfiguration auf Basis von `.env.example`
 

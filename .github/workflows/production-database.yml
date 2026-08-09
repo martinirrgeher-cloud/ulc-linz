@@ -1,4 +1,4 @@
-name: Produktionsdatenbank migrieren
+name: Produktionsbackend verifizieren
 
 on:
   push:
@@ -8,16 +8,18 @@ permissions:
   contents: write
 
 concurrency:
-  group: production-database
+  group: production-backend
   cancel-in-progress: false
 
 jobs:
-  migrate:
-    name: Supabase-Migrationen auf Produktion
+  verify:
+    name: Datenbank migrieren und Edge Function deployen
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     env:
       SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: xddbuldehewyrezhrhej
     steps:
       - name: Repository auschecken
         uses: actions/checkout@v6
@@ -33,12 +35,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [ -z "${SUPABASE_DB_URL:-}" ]; then
-            echo "FEHLER: Repository-Secret SUPABASE_DB_URL fehlt."
-            exit 1
-          fi
+          test -n "${SUPABASE_DB_URL:-}" || { echo "FEHLER: Repository-Secret SUPABASE_DB_URL fehlt."; exit 1; }
+          test -n "${SUPABASE_ACCESS_TOKEN:-}" || { echo "FEHLER: Repository-Secret SUPABASE_ACCESS_TOKEN fehlt."; exit 1; }
 
-      - name: Migrationshistorie vorab pruefen
+      - name: Migrationen vorab pruefen
         shell: bash
         run: |
           set -euo pipefail
@@ -51,34 +51,35 @@ jobs:
           set -euo pipefail
           supabase db push --db-url "$SUPABASE_DB_URL"
 
-      - name: Repo und Produktionshistorie exakt vergleichen
+      - name: Produktionsdatenbank vollstaendig verifizieren
+        shell: bash
+        run: bash scripts/ci/verify-production-database.sh
+
+      - name: invite-member fuer exakt diesen Commit deployen
         shell: bash
         run: |
           set -euo pipefail
-          find supabase/migrations -maxdepth 1 -type f -name '*.sql' -printf '%f\n' \
-            | sed -E 's/^([0-9]+)_.*/\1/' \
-            | sort -u > /tmp/local-migrations.txt
-
-          docker run --rm postgres:17-alpine \
-            psql "$SUPABASE_DB_URL" -At \
-            -c 'select version from supabase_migrations.schema_migrations order by version;' \
-            | tr -d '\r' \
-            | sed '/^[[:space:]]*$/d' \
-            | sort -u > /tmp/remote-migrations.txt
-
-          echo "Lokale Migrationen:  $(wc -l < /tmp/local-migrations.txt)"
-          echo "Produktionshistorie: $(wc -l < /tmp/remote-migrations.txt)"
-          if ! diff -u /tmp/local-migrations.txt /tmp/remote-migrations.txt; then
-            echo "FEHLER: Produktionsdatenbank und Repository besitzen nicht dieselbe Migrationshistorie."
-            echo "Keine automatische Reparatur der Migrationshistorie wird ausgefuehrt."
+          supabase functions deploy invite-member --project-ref "$SUPABASE_PROJECT_REF"
+          supabase functions list --project-ref "$SUPABASE_PROJECT_REF" | tee .ulc-production-backend/functions-list.txt
+          grep -q 'invite-member' .ulc-production-backend/functions-list.txt || {
+            echo "FEHLER: invite-member wurde nach dem Deployment nicht gefunden." >&2
             exit 1
-          fi
+          }
 
-      - name: Produktionsdatenbank fuer Commit bestaetigen
+      - name: Diagnose bei Backend-Fehler sichern
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: produktionsbackend-diagnose-${{ github.sha }}
+          path: .ulc-production-backend/
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Produktionsbackend fuer Commit bestaetigen
         shell: bash
         run: |
           set -euo pipefail
-          tag="database-verified-${GITHUB_SHA}"
+          tag="backend-verified-${GITHUB_SHA}"
           existing="$(git ls-remote --tags origin "refs/tags/${tag}" | awk '{print $1}')"
           if [ -n "$existing" ]; then
             if [ "$existing" != "$GITHUB_SHA" ]; then
@@ -90,4 +91,4 @@ jobs:
           fi
           git tag "$tag" "$GITHUB_SHA"
           git push origin "refs/tags/${tag}"
-          echo "Produktionsdatenbank verifiziert: ${tag}"
+          echo "Produktionsbackend verifiziert: ${tag}"
