@@ -36,16 +36,21 @@ jobs:
             echo "FEHLER: Bestaetigung stimmt nicht exakt." >&2
             exit 1
           fi
-          if [ "${GITHUB_REF}" != "refs/heads/main" ]; then
-            echo "FEHLER: Baseline-Diagnose darf ausschliesslich auf main ausgefuehrt werden." >&2
-            exit 1
-          fi
-          git fetch origin main --prune
-          remote_main="$(git rev-parse origin/main)"
-          if [ "$remote_main" != "$GITHUB_SHA" ]; then
-            echo "FEHLER: Workflow-Commit ist nicht der aktuelle origin/main." >&2
+          case "${GITHUB_REF}" in
+            refs/heads/main|refs/heads/feature/db-diagnose-*)
+              ;;
+            *)
+              echo "FEHLER: Baseline-Diagnose ist nur auf main oder feature/db-diagnose-* erlaubt." >&2
+              exit 1
+              ;;
+          esac
+          branch="${GITHUB_REF#refs/heads/}"
+          git fetch origin "refs/heads/$branch:refs/remotes/origin/$branch" --prune
+          remote_head="$(git rev-parse "origin/$branch")"
+          if [ "$remote_head" != "$GITHUB_SHA" ]; then
+            echo "FEHLER: Workflow-Commit ist nicht der aktuelle Remote-Branch-Stand." >&2
             echo "Workflow: $GITHUB_SHA" >&2
-            echo "origin/main: $remote_main" >&2
+            echo "origin/$branch: $remote_head" >&2
             exit 1
           fi
           if [ -z "${SUPABASE_DB_URL:-}" ]; then
@@ -70,6 +75,6 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: produktionsdatenbank-baseline-diagnose-${{ github.sha }}
-          path: .ulc-db-baseline-diagnostic/
+          path: ulc-db-baseline-diagnostic/
           if-no-files-found: error
           retention-days: 7
