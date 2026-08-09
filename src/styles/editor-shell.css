@@ -1,14 +1,4 @@
-.editor-shell {
-  min-width: 0;
-  position: relative;
-  overflow: visible;
-  background: #fff;
-  border: 1px solid var(--border);
-  border-radius: 18px;
-  box-shadow: 0 8px 24px rgba(8, 36, 22, .06);
-}
-
-.editor-shell-header {
+.editor-action-header {
   position: sticky;
   z-index: 9;
   top: 76px;
@@ -20,25 +10,24 @@
   padding: 11px 13px;
   background: rgba(255, 255, 255, .97);
   border-bottom: 1px solid var(--border);
-  border-radius: 18px 18px 0 0;
   box-shadow: 0 7px 18px rgba(15, 62, 38, .07);
   backdrop-filter: blur(10px);
 }
 
-.editor-shell-copy {
+.editor-action-copy {
   min-width: 0;
   display: grid;
   gap: 2px;
 }
 
-.editor-shell-copy .eyebrow,
-.editor-shell-copy h2,
-.editor-shell-meta,
-.editor-shell-meta > * {
+.editor-action-copy .eyebrow,
+.editor-action-copy h2,
+.editor-action-meta,
+.editor-action-meta > * {
   margin: 0;
 }
 
-.editor-shell-copy h2 {
+.editor-action-copy h2 {
   overflow: hidden;
   color: var(--green-950);
   font-size: 1.08rem;
@@ -47,7 +36,7 @@
   white-space: nowrap;
 }
 
-.editor-shell-meta {
+.editor-action-meta {
   overflow: hidden;
   color: var(--muted);
   font-size: .8rem;
@@ -55,20 +44,55 @@
   white-space: nowrap;
 }
 
-.editor-shell-actions {
+.editor-action-actions {
   flex: 0 0 auto;
   display: flex;
   align-items: center;
   gap: 5px;
 }
 
+.spin-icon {
+  animation: spin 0.9s linear infinite;
+}
 
+.editor-shell {
+  min-width: 0;
+  position: relative;
+  overflow: visible;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow: 0 8px 24px rgba(8, 36, 22, .06);
+}
+
+.editor-shell-header {
+  border-radius: 18px 18px 0 0;
+}
 
 .editor-shell-body {
   min-width: 0;
 }
 
 @media (max-width: 760px) {
+  .editor-action-header {
+    top: 66px;
+    gap: 8px;
+    padding: 8px 10px;
+  }
+
+  .editor-action-copy h2 {
+    font-size: 1rem;
+  }
+
+  .editor-action-copy .eyebrow,
+  .editor-action-meta {
+    display: none;
+  }
+
+  .editor-action-actions {
+    gap: 4px;
+  }
+
   .editor-shell {
     border-right: 0;
     border-left: 0;
@@ -77,23 +101,6 @@
   }
 
   .editor-shell-header {
-    top: 66px;
-    gap: 8px;
-    padding: 8px 10px;
     border-radius: 0;
   }
-
-  .editor-shell-copy h2 {
-    font-size: 1rem;
-  }
-
-  .editor-shell-copy .eyebrow,
-  .editor-shell-meta {
-    display: none;
-  }
-
-  .editor-shell-actions {
-    gap: 4px;
-  }
-
 }

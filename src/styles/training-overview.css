@@ -56,34 +56,8 @@
   border-radius: var(--ui-control-radius);
 }
 
-.training-overview-athlete-filter {
-  min-height: 42px;
-  display: flex;
-  align-items: stretch;
-  padding: 3px;
-  background: #f1f6f3;
-  border: 1px solid #d5e2d9;
-  border-radius: 10px;
-}
-
-.training-overview-athlete-filter button {
-  min-height: 38px;
-  padding: 5px 9px;
-  color: #52665a;
-  background: transparent;
-  border: 0;
-  border-radius: 7px;
-  font-size: .76rem;
-  font-weight: 700;
-  white-space: nowrap;
-  cursor: pointer;
-}
-
-.training-overview-athlete-filter button.active {
-  color: #fff;
-  background: var(--green-700);
-  box-shadow: 0 2px 7px rgba(20, 122, 70, .2);
-}
+.training-overview-athlete-filter { min-width: 0; }
+.training-overview-athlete-filter > button { white-space: nowrap; }
 
 .training-overview-navigation-actions {
   display: flex;
@@ -92,14 +66,14 @@
 }
 
 .training-overview-refresh-button {
-  width: 42px;
-  height: 42px;
-  flex: 0 0 42px;
+  width: var(--ui-icon-button-size);
+  height: var(--ui-icon-button-size);
+  flex: 0 0 var(--ui-icon-button-size);
 }
 
 .training-overview-week-navigation {
   display: grid;
-  grid-template-columns: 42px minmax(150px, auto) 42px;
+  grid-template-columns: var(--ui-icon-button-size) minmax(150px, auto) var(--ui-icon-button-size);
   align-items: center;
   gap: 4px;
 }
@@ -428,7 +402,7 @@
   .training-overview-week-navigation {
     min-width: 0;
     flex: 1;
-    grid-template-columns: 42px minmax(0, 1fr) 42px;
+    grid-template-columns: var(--ui-icon-button-size) minmax(0, 1fr) var(--ui-icon-button-size);
   }
 
   .training-overview-athlete-filter button {

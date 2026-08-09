@@ -29,7 +29,7 @@ export function ManagementFilterPanel({
   return (
     <div className="masterdata-filter-shell">
       <div className="masterdata-filter-toolbar">
-        <label className="search-field masterdata-search-field">
+        <label className="ui-search-field masterdata-search-field">
           <Search aria-hidden="true" />
           <input
             type="search"

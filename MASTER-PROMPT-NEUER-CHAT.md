@@ -12,6 +12,7 @@ Ich lade dir die aktuellste Projekt-ZIP hoch. **Diese ZIP ist die einzige Source
 
 - lokaler Windows-Projektordner: `C:\ULC Linz App`
 - React + Vite + TypeScript
+- verbindliche Toolchain: Node.js `22.20.0`, npm `10.9.3`; `.nvmrc`, `.node-version`, `package.json` und `package-lock.json` müssen dazu konsistent bleiben
 - React Router
 - Supabase PostgreSQL/Auth/Realtime/Storage/RPC
 - GitHub Repository + GitHub Actions
@@ -52,6 +53,8 @@ Es gibt sechs permanente CMD-Dateien im Projekt:
 6. `ULC-PRODUKTION-MARKIEREN.cmd`
 
 **Ändere diesen bewährten Benutzerworkflow nicht ohne meine ausdrückliche Zustimmung.**
+
+Der frühere separate `mobile-patch/**`-Workflow wurde entfernt. `.github/workflows/mobile-patch.yml` und `MOBILE-ENTWICKLUNG.md` dürfen nicht wieder eingeführt oder durch einen anderen Parallel-Updateweg ersetzt werden, außer ich stimme vorher ausdrücklich zu.
 
 Normaler Ablauf:
 
@@ -277,6 +280,9 @@ Semantische Varianten:
 - feldinterne Iconaktion: `icon-button icon-button--inline`
 - Tabs: gemeinsame `ui-tabs`-Darstellung nach dem Stammdateneditor-Muster
 - kompakte exklusive Auswahl: `ui-segmented`
+- Suchfelder: ausschließlich `ui-search-field`; keine lokale `search-field`-Variante
+- kompakte normale Buttons: ausschließlich `compact-button`; nicht `.compact`
+- Feature-CSS darf bei `ui-segmented` nur fachlich begründete Zustandsfarben ergänzen, nicht Geometrie/Grunddesign neu definieren
 - Checkbox-/Mehrfachauswahlzeile: `ui-choice-row`, ganze Zeile anklickbar
 - echter Ein/Aus-Zustand: `ui-switch`; Switches nicht für normale Mehrfachauswahl missbrauchen
 
@@ -284,8 +290,10 @@ Editoren:
 
 - echte Seiteneditoren behalten die globale App-Kopfzeile sichtbar
 - darunter Sticky-Editorheader mit Titel und den semantischen Aktionen Hilfe/Speichern/Schließen
-- `EditorShell` bzw. `StickyEditorActions` verwenden dieselben zentralen Controlvarianten
-- echte Bestätigungs-, Info- oder Importdialoge dürfen modal bleiben
+- `EditorActionHeader` ist der einzige gemeinsame Kern für Hilfe/Speichern/Schließen; `EditorShell` und `StickyEditorActions` verwenden ihn und implementieren diese Aktionen nicht nochmals selbst
+- echte CRUD-Editoren wie Athlet, Trainer, Gruppe, Auswahlliste, Übung, Benutzer und Trainingsblock arbeiten als Seiteneditor unter der globalen App-Kopfzeile
+- kein zusätzlicher Speichern-/Abbrechen-Footer in Seiteneditoren; Speichern oben per Diskette, Schließen oben per X
+- echte Bestätigungs-, Info-, Auswahl- oder Importdialoge dürfen modal bleiben
 
 Formulare:
 

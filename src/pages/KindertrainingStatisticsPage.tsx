@@ -135,7 +135,7 @@ export function KindertrainingStatisticsPage() {
           <h1>Kindertraining</h1>
         </div>
         <Link
-          className="secondary-button link-button compact-button statistics-back-button"
+          className="icon-button link-button statistics-back-button"
           to="/module/kindertraining"
           aria-label="Zurück zum Training"
           title="Zurück zum Training"

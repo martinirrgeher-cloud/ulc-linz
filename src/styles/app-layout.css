@@ -16,8 +16,8 @@
   position: absolute;
   top: 0;
   right: 0;
-  width: 42px;
-  height: 42px;
+  width: var(--ui-icon-button-size);
+  height: var(--ui-icon-button-size);
 }
 
 .app-content > section > :first-child:is(.page-heading, [class$="-heading"], [class*="-heading "]) {
@@ -195,7 +195,6 @@
   .app-simulation-banner { top: 66px; margin: 0 6px 6px; padding: 7px 8px; }
   .app-simulation-exit span { display: none; }
   .app-simulation-exit { width: 34px; padding: 5px; justify-content: center; }
-  .page-context-help-button { width: 40px; height: 40px; }
   .app-content > section > :first-child:is(.page-heading, [class$="-heading"], [class*="-heading "]) { padding-right: 50px; }
   .app-user-menu-panel { top: calc(100% + 7px); }
   .app-shell { --app-bottom-nav-height: 64px; --app-bottom-nav-edge: max(6px, env(safe-area-inset-bottom)); --app-bottom-nav-clearance: calc(var(--app-bottom-nav-height) + var(--app-bottom-nav-edge) + 24px); --app-bottom-sticky-offset: calc(var(--app-bottom-nav-height) + var(--app-bottom-nav-edge) + 8px); }

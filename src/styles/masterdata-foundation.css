@@ -21,7 +21,7 @@
   align-items: stretch;
   gap: 10px;
 }
-.athlete-toolbar .search-field {
+.athlete-toolbar .ui-search-field {
   min-width: 220px;
 }
 .group-selection {
@@ -257,8 +257,7 @@
 @media (max-width: 760px) {
 .athlete-toolbar {
     flex-direction: column;
-  }.athlete-toolbar .search-field,
-  .toolbar-select,
+  }.athlete-toolbar .ui-search-field,
   .athlete-toolbar .secondary-button {
     width: 100%;
     min-width: 0;

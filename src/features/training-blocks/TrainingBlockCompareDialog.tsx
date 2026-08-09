@@ -82,9 +82,9 @@ export function TrainingBlockCompareDialog({ left, right, groups, onClose }: Tra
   const changes = differences(left, right);
 
   return (
-    <div className="training-block-editor-backdrop" role="presentation">
-      <section className="training-block-editor" role="dialog" aria-modal="true" aria-labelledby="block-compare-title">
-        <header className="training-block-editor-header">
+    <div className="training-block-compare-backdrop" role="presentation">
+      <section className="training-block-compare-dialog" role="dialog" aria-modal="true" aria-labelledby="block-compare-title">
+        <header className="training-block-compare-header">
           <div>
             <p className="eyebrow">Trainingsblöcke</p>
             <h2 id="block-compare-title"><GitCompareArrows aria-hidden="true" /> Vergleich</h2>
@@ -92,7 +92,7 @@ export function TrainingBlockCompareDialog({ left, right, groups, onClose }: Tra
           <button type="button" className="icon-button" onClick={onClose} aria-label="Dialog schließen"><X aria-hidden="true" /></button>
         </header>
 
-        <div className="training-block-editor-form">
+        <div className="training-block-compare-body">
           <div className="training-block-editor-panel">
             <div className="training-block-filter-grid">
               {[left, right].map((block) => (
@@ -129,7 +129,7 @@ export function TrainingBlockCompareDialog({ left, right, groups, onClose }: Tra
           </div>
         </div>
 
-        <footer className="training-block-editor-actions">
+        <footer className="training-block-compare-actions">
           <button type="button" className="secondary-button" onClick={onClose}>Schließen</button>
         </footer>
       </section>

@@ -205,14 +205,14 @@
     margin-bottom: 4px !important;
         font-size: .76rem;
   }
-  .primary-button:not(.compact),
-  .secondary-button:not(.compact) {
+  .primary-button:not(.compact-button),
+  .secondary-button:not(.compact-button) {
     min-height: var(--ui-control-height);
         padding: 9px 12px;
         border-radius: var(--ui-radius-compact);
   }
-  .primary-button.compact,
-  .secondary-button.compact {
+  .primary-button.compact-button,
+  .secondary-button.compact-button {
     min-height: var(--ui-control-height-compact);
         padding: 7px 9px;
         font-size: 0.76rem;
@@ -225,8 +225,7 @@
   .form-stack input,
   .form-grid input,
   .form-grid select,
-  .search-field input,
-  .toolbar-select,
+  .ui-search-field input,
   .full-width-field textarea {
     min-height: var(--ui-control-height);
     padding: 8px 10px;
@@ -243,28 +242,6 @@
     padding: 7px 9px;
     font-size: .82rem;
   }
-  .button-row {
-    flex-direction: row;
-        align-items: center;
-        gap: 8px;
-        margin-top: 16px;
-  }
-  .button-row .primary-button,
-  .button-row .secondary-button,
-  .button-row .link-button {
-    width: auto;
-  }
-  .status-card .button-row,
-  .auth-card .button-row {
-    align-items: stretch;
-        flex-direction: column;
-  }
-  .status-card .button-row .primary-button,
-  .status-card .button-row .secondary-button,
-  .auth-card .button-row .primary-button,
-  .auth-card .button-row .secondary-button {
-    width: 100%;
-  }
   .status-filter {
     gap: 4px;
         padding-bottom: 0;
@@ -273,10 +250,6 @@
     min-height: 38px;
         padding: 6px 9px;
         font-size: 0.76rem;
-  }
-  .sticky-editor-actions {
-    gap: 7px;
-        padding-bottom: max(8px, env(safe-area-inset-bottom));
   }
   .dialog-backdrop,
   .contact-dialog-backdrop {
@@ -297,8 +270,8 @@
   }
 }
 @media screen and (max-width: 390px) {
-  .primary-button:not(.compact),
-  .secondary-button:not(.compact) {
+  .primary-button:not(.compact-button),
+  .secondary-button:not(.compact-button) {
     padding-inline: 10px;
         font-size: 0.84rem;
   }

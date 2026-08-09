@@ -254,7 +254,7 @@ function CompletionDialog({ value, onClose, onComplete }: CompletionDialogProps)
           </label>
           <div className="training-doc-pain-field">
             <span>Beschwerden</span>
-            <div className="training-doc-segmented">
+            <div className="training-doc-segmented ui-segmented">
               {PAIN_OPTIONS.map((option) => (
                 <button
                   type="button"
@@ -762,7 +762,7 @@ export function TrainingDocumentationEditor({
 
                             <div className="training-doc-pain-field">
                               <span>Beschwerden</span>
-                              <div className="training-doc-segmented">
+                              <div className="training-doc-segmented ui-segmented">
                                 {PAIN_OPTIONS.map((option) => (
                                   <button
                                     type="button"
@@ -795,7 +795,7 @@ export function TrainingDocumentationEditor({
                                 {value.canEdit && (
                                   <button
                                     type="button"
-                                    className="secondary-button compact"
+                                    className="secondary-button compact-button"
                                     onClick={() => onChange(replaceItem(value, item.id, (current) => ({
                                       ...current,
                                       sets: [...current.sets, setDefaults(current)],
@@ -879,7 +879,7 @@ export function TrainingDocumentationEditor({
                                     />
                                     <button
                                       type="button"
-                                      className="secondary-button compact"
+                                      className="secondary-button compact-button"
                                       onClick={() => {
                                         if (itemUploading) pauseVideoUpload(item.id);
                                         else if (itemRetryable) resumeVideoUpload(item);
@@ -989,7 +989,7 @@ export function TrainingDocumentationEditor({
         </div>
         <div className="training-doc-pain-field">
           <span>Beschwerden</span>
-          <div className="training-doc-segmented">
+          <div className="training-doc-segmented ui-segmented">
             {PAIN_OPTIONS.map((option) => (
               <button
                 type="button"

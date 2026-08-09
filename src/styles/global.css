@@ -237,8 +237,7 @@ textarea:focus-visible {
   font-size: 0.92rem;
 }
 
-.auth-links a,
-.back-link {
+.auth-links a {
   color: var(--green-700);
   font-weight: 700;
   text-decoration: none;
@@ -336,21 +335,18 @@ textarea:focus-visible {
   object-fit: contain;
 }
 
-.brand span,
-.user-meta {
+.brand span {
   display: grid;
   min-width: 0;
 }
 
-.brand strong,
-.user-meta strong {
+.brand strong {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.brand small,
-.user-meta small {
+.brand small {
   color: var(--muted);
 }
 
@@ -361,16 +357,6 @@ textarea:focus-visible {
   min-width: 0;
 }
 
-.user-meta {
-  text-align: right;
-}
-
-.user-meta small {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 4px;
-}
 
 .icon-button {
   width: var(--ui-icon-button-size);
@@ -437,13 +423,6 @@ textarea:focus-visible {
   gap: 24px;
 }
 
-.back-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  width: fit-content;
-}
-
 .permission-badge {
   display: inline-flex;
   margin-top: 14px;
@@ -453,14 +432,6 @@ textarea:focus-visible {
   background: var(--green-100);
   font-size: 0.88rem;
   font-weight: 700;
-}
-
-.button-row {
-  display: flex;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-top: 24px;
 }
 
 
@@ -487,8 +458,7 @@ textarea:focus-visible {
     height: 44px;
   }
 
-  .brand small,
-  .user-meta {
+  .brand small {
     display: none;
   }
 
@@ -506,23 +476,19 @@ textarea:focus-visible {
 
 
 .management-page-heading,
-.management-editor-heading,
-.management-toolbar,
-.management-actions {
+.management-toolbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 18px;
 }
 
-.management-page-heading h1,
-.management-editor-heading h2 {
+.management-page-heading h1 {
   margin: 0;
   color: var(--green-950);
 }
 
-.management-page-heading p:not(.eyebrow),
-.management-editor-heading p:not(.eyebrow) {
+.management-page-heading p:not(.eyebrow) {
   margin: 8px 0 0;
   color: var(--muted);
   line-height: 1.5;
@@ -557,8 +523,7 @@ textarea:focus-visible {
 }
 
 .form-grid input,
-.form-grid select,
-.search-field input {
+.form-grid select {
   width: 100%;
   border: 1px solid #b9cdc0;
   border-radius: var(--ui-control-radius);
@@ -568,8 +533,7 @@ textarea:focus-visible {
 }
 
 .form-grid input:focus,
-.form-grid select:focus,
-.search-field input:focus {
+.form-grid select:focus {
   border-color: var(--green-700);
   outline: 3px solid rgba(20, 122, 70, 0.16);
 }
@@ -587,39 +551,52 @@ textarea:focus-visible {
 }
 
 
-.management-actions {
-  justify-content: flex-end;
-}
-
 .management-toolbar {
   align-items: stretch;
 }
 
-.search-field {
-  flex: 1;
+.ui-search-field {
+  min-width: 0;
+  min-height: var(--ui-control-height);
   display: flex;
   align-items: center;
-  gap: 10px;
-  min-width: 0;
-  padding-left: 13px;
-  background: #fff;
-  border: 1px solid var(--border);
-  border-radius: 12px;
+  gap: 9px;
+  padding: 0 10px;
+  color: var(--ui-control-text);
+  background: #f8faf9;
+  border: 1px solid var(--ui-control-border);
+  border-radius: var(--ui-control-radius);
 }
 
-.search-field > svg {
-  width: 20px;
+.ui-search-field:focus-within {
+  border-color: var(--green-700);
+  box-shadow: 0 0 0 3px var(--ui-control-focus);
+}
+
+.ui-search-field > svg {
+  width: 18px;
+  height: 18px;
   flex: 0 0 auto;
   color: var(--green-700);
 }
 
-.search-field input {
+.ui-search-field > input {
+  width: 100%;
+  min-width: 0;
+  min-height: calc(var(--ui-control-height) - 2px);
+  padding: 0;
+  color: inherit;
+  background: transparent;
   border: 0;
-  padding-left: 0;
+  border-radius: 0;
+  outline: 0;
+  box-shadow: none;
 }
 
-.search-field input:focus {
+.ui-search-field > input:focus {
+  border: 0;
   outline: 0;
+  box-shadow: none;
 }
 
 
@@ -658,7 +635,6 @@ textarea:focus-visible {
 
 @media (max-width: 720px) {
   .management-page-heading,
-  .management-editor-heading,
   .management-toolbar {
     align-items: stretch;
     flex-direction: column;
@@ -669,16 +645,6 @@ textarea:focus-visible {
     width: 100%;
   }
 
-  .management-editor-heading {
-    position: relative;
-    padding-right: 50px;
-  }
-
-  .management-editor-heading .icon-button {
-    position: absolute;
-    top: 0;
-    right: 0;
-  }
 
   .form-grid {
     grid-template-columns: 1fr;
@@ -700,14 +666,6 @@ textarea:focus-visible {
 
   
 
-  .management-actions {
-    flex-direction: column-reverse;
-  }
-
-  .management-actions .primary-button,
-  .management-actions .secondary-button {
-    width: 100%;
-  }
 }
 
 
@@ -769,17 +727,6 @@ textarea:focus-visible {
 }
 
 
-.toolbar-select {
-  min-width: 170px;
-  border: 1px solid #b9cdc0;
-  border-radius: var(--ui-control-radius);
-  padding: 10px 36px 10px 12px;
-  color: var(--green-950);
-  background: #fff;
-  font: inherit;
-}
-
-.toolbar-select:focus,
 .full-width-field textarea:focus {
   border-color: var(--green-700);
   outline: 3px solid rgba(20, 122, 70, 0.16);
@@ -820,24 +767,6 @@ textarea:focus-visible {
   line-height: 1.45;
 }
 
-
-.record-status {
-  display: inline-flex;
-  padding: 5px 8px;
-  border-radius: 999px;
-  font-size: 0.76rem;
-  font-weight: 700;
-}
-
-.record-status.active {
-  color: var(--success);
-  background: var(--success-bg);
-}
-
-.record-status.inactive {
-  color: #59655e;
-  background: #e8edea;
-}
 
 
 @media (max-width: 760px) {
@@ -1003,29 +932,12 @@ textarea:focus-visible {
 }
 
 
-.danger-icon-button,
-.danger-text-button {
-  color: var(--danger) !important;
-}
-
 
 /* Trainer – Gruppenzuordnung */
 
 
 /* Stammdaten kompakt: drei Anlageaktionen statt redundanter Kennzahlen */
 
-
-.sticky-editor-actions {
-  position: sticky;
-  z-index: 5;
-  bottom: 0;
-  margin: 0 -14px;
-  padding: 12px 14px calc(12px + env(safe-area-inset-bottom));
-  background: rgba(255, 255, 255, 0.96);
-  border-top: 1px solid var(--border);
-  box-shadow: 0 -10px 24px rgba(15, 62, 38, 0.08);
-  backdrop-filter: blur(8px);
-}
 
 .danger-button {
   min-height: var(--ui-control-height);
@@ -1061,9 +973,6 @@ textarea:focus-visible {
 
   
 
-  .sticky-editor-actions > button {
-    flex: 1;
-  }
 }
 
 
@@ -1224,12 +1133,6 @@ textarea:focus-visible {
 /* Kompakte Stammdatenfilter */
 
 
-.user-management-toolbar {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(150px, 190px) auto;
-  align-items: end;
-}
-
 /* P2b: kontextbezogene Hilfe in Kopfzeile und öffentlichen Seiten */
 .public-help-button {
   position: fixed;
@@ -1294,7 +1197,6 @@ textarea:focus-visible {
   opacity: 1;
 }
 
-.control-field,
 .app-content input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]):not([type="hidden"]),
 .app-content select,
 .app-content textarea {
@@ -1312,14 +1214,6 @@ textarea:focus-visible {
   min-width: 20px;
   min-height: 20px;
   accent-color: var(--green-700);
-}
-
-.control-field--compact {
-  min-height: var(--ui-control-height-compact);
-}
-
-textarea.control-field--compact {
-  min-height: var(--ui-textarea-height-compact);
 }
 
 .ui-tabs {

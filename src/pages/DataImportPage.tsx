@@ -659,7 +659,7 @@ export function DataImportPage() {
               <h2>{activeKind === "exercises" ? "Übungen exportieren" : "Athleten exportieren"}</h2>
               <p>Der Export entspricht der Importvorlage: ein sichtbares Datenblatt mit Dropdownfeldern und allen Zusatzinformationen.</p>
             </div>
-            <button type="button" className="secondary-button compact" onClick={resetExportFilters} disabled={loading || busy}>
+            <button type="button" className="secondary-button compact-button" onClick={resetExportFilters} disabled={loading || busy}>
               <RotateCcw aria-hidden="true" />Filter zurücksetzen
             </button>
           </div>

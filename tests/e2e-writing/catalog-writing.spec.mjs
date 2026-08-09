@@ -26,20 +26,21 @@ test.describe("Schreibende Übungs- und Trainingsblocktests", () => {
     await page.goto("/module/training_blocks");
     await expect(page.getByRole("heading", { name: "Trainingsblöcke" })).toBeVisible();
     await page.getByTestId("training-block-create").click();
-    const blockDialog = page.getByRole("dialog", { name: "Neuer Trainingsblock" });
-    await blockDialog.getByLabel("Name *").fill(SCENARIO.blockName);
-    await blockDialog.getByLabel("Geschätzte Dauer").fill("18");
-    await blockDialog.getByRole("tab", { name: /Übungen/ }).click();
-    const exerciseSearch = blockDialog.getByLabel("Übung suchen");
+    const blockEditor = page.getByRole("region", { name: "Neuer Trainingsblock" });
+    await expect(blockEditor).toBeVisible();
+    await blockEditor.getByLabel("Name *").fill(SCENARIO.blockName);
+    await blockEditor.getByLabel("Geschätzte Dauer").fill("18");
+    await blockEditor.getByRole("tab", { name: /Übungen/ }).click();
+    const exerciseSearch = blockEditor.getByLabel("Übung suchen");
     await expect(exerciseSearch).toBeVisible({ timeout: 15_000 });
     await exerciseSearch.fill(SCENARIO.exerciseName);
 
-    const exerciseOption = blockDialog
+    const exerciseOption = blockEditor
       .locator(".training-block-picker-add")
       .filter({ hasText: SCENARIO.exerciseName });
     await expect(exerciseOption).toBeVisible({ timeout: 15_000 });
     await exerciseOption.click();
-    await blockDialog.getByRole("button", { name: "Speichern", exact: true }).click();
+    await blockEditor.getByTestId("training-block-editor-save").click();
     await expect(page.getByText("Der Trainingsblock wurde angelegt.", { exact: true })).toBeVisible();
     await expect(page.getByText(SCENARIO.blockName, { exact: true })).toBeVisible();
 
@@ -48,9 +49,9 @@ test.describe("Schreibende Übungs- und Trainingsblocktests", () => {
     await createdBlockCard.getByRole("button", { name: `${SCENARIO.blockName} zu Favoriten hinzufügen` }).click();
     await createdBlockCard.getByRole("button", { name: `Neue Variante von ${SCENARIO.blockName} erstellen` }).click();
 
-    const variantDialog = page.getByRole("dialog", { name: `${SCENARIO.blockName} – Variante 2` });
-    await expect(variantDialog).toBeVisible({ timeout: 15_000 });
-    await variantDialog.getByRole("button", { name: "Trainingsblock schließen" }).click();
+    const variantEditor = page.getByRole("region", { name: `${SCENARIO.blockName} – Variante 2` });
+    await expect(variantEditor).toBeVisible({ timeout: 15_000 });
+    await variantEditor.getByTestId("training-block-editor-close").click();
 
     const refreshedBlockCard = page.locator(".training-block-card").filter({ hasText: SCENARIO.blockName }).first();
     if (!(await refreshedBlockCard.locator(".training-block-card-details").isVisible())) {

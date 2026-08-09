@@ -1341,7 +1341,7 @@ test("Anmeldung und Statistik sind fuer Kindertraining, U12 und U14 kompakt vere
   assert.ok(specialTrainingPicker.includes('className="special-training-picker-row"'));
   assert.ok(specialTrainingPicker.includes('aria-label="Sondertraining speichern"'));
   assert.ok(specialTrainingPicker.includes('aria-label="Sondertraining abbrechen"'));
-  assert.ok(trainingDetailsPanel.includes('segmented-control three-options'));
+  assert.ok(trainingDetailsPanel.includes('segmented-control three-options ui-segmented'));
   assert.ok(trainingDetailsPanel.includes('<legend><UsersRound aria-hidden="true" /> Trainer</legend>'));
   assert.ok(trainingDetailsPanel.includes('className="training-details-header">Notiz</div>'));
   assert.doesNotMatch(trainingDetailsPanel, /<details[\s\S]*className="training-details-panel"/);
@@ -1378,7 +1378,7 @@ test("Anmeldung und Statistik sind fuer Kindertraining, U12 und U14 kompakt vere
   assert.ok(statisticsCss.includes('.statistics-summary-row.paired'));
   assert.ok(statisticsCss.includes('overflow: hidden;'));
   assert.ok(statisticsCss.includes('grid-template-columns: 1fr;'));
-  assert.ok(statisticsCss.includes('.statistics-back-button svg'));
+  assert.ok(statisticsPages.every((source) => source.includes('className="icon-button link-button statistics-back-button"')));
   assert.ok(statisticsCss.includes('.statistics-filter-details > summary'));
   const minimumMigration = await readFile(new URL("../supabase/migrations/202608080039_statistics_minimum_attendance.sql", import.meta.url), "utf8");
   assert.equal((minimumMigration.match(/'min_present'/g) ?? []).length, 2);

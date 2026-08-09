@@ -1,5 +1,6 @@
 import { useMemo, useState, type FormEvent } from "react";
-import { Save, Search, Send, WandSparkles, X } from "lucide-react";
+import { Search, WandSparkles } from "lucide-react";
+import { EditorShell } from "@/components/ui/EditorShell";
 import { useDraftDirtyState } from "@/features/collaboration/useDraftDirtyState";
 import { MemberAuditLog } from "@/features/user-management/MemberAuditLog";
 import { PermissionEditor } from "@/features/user-management/PermissionEditor";
@@ -58,6 +59,8 @@ const statusOptions: Array<{ value: MembershipStatus; label: string }> = [
   { value: "invited", label: "Eingeladen" },
   { value: "disabled", label: "Deaktiviert" },
 ];
+
+const MEMBER_FORM_ID = "user-member-editor-form";
 
 function completePermissions(
   modules: ManagedModule[],
@@ -246,35 +249,29 @@ export function MemberEditor({
   const isCurrentUser = mode.type === "edit" && mode.isCurrentUser;
   const fieldsDisabled = busy || !canEdit;
 
-  return (
-    <section className="management-editor" aria-labelledby="member-editor-title" data-testid="user-member-editor">
-      <div className="management-editor-heading">
-        <div>
-          <p className="eyebrow">Benutzerverwaltung</p>
-          <h2 id="member-editor-title">
-            {mode.type === "invite" ? "Benutzer einladen" : "Benutzer bearbeiten"}
-          </h2>
-          <p>
-            {mode.type === "invite"
-              ? "Die Person erhält eine E-Mail und vergibt über den Link ihr eigenes Passwort."
-              : "Rolle, Rechte und Verknüpfungen werden mit Bearbeitungsschutz gespeichert."}
-          </p>
-        </div>
-        <button
-          type="button"
-          className="icon-button"
-          onClick={onCancel}
-          aria-label="Bearbeitung schließen"
-          title="Schließen"
-          disabled={busy}
-        >
-          <X aria-hidden="true" />
-        </button>
-      </div>
+  const editorTitle = mode.type === "invite" ? "Benutzer einladen" : "Benutzer bearbeiten";
+  const editorMeta = mode.type === "invite"
+    ? "Die Person erhält eine E-Mail und vergibt über den Link ihr eigenes Passwort."
+    : "Rolle, Rechte und Verknüpfungen werden mit Bearbeitungsschutz gespeichert.";
 
+  return (
+    <div data-testid="user-member-editor">
+    <EditorShell
+      eyebrow="Benutzerverwaltung"
+      title={editorTitle}
+      meta={editorMeta}
+      canEdit={canEdit}
+      busy={busy}
+      saveFormId={MEMBER_FORM_ID}
+      saveLabel={mode.type === "invite" ? "Einladung senden" : "Änderungen speichern"}
+      saveTestId="user-member-editor-save"
+      closeTestId="user-member-editor-close"
+      className="user-member-editor-shell"
+      onClose={onCancel}
+    >
       {error && <div className="alert error">{error}</div>}
 
-      <form className="management-form" onSubmit={handleSubmit}>
+        <form id={MEMBER_FORM_ID} className="management-form user-member-editor-form" onSubmit={handleSubmit}>
         <fieldset disabled={fieldsDisabled} className="e5c-editor-fieldset">
           <div className="e5c-template-panel">
             <label className="ui-labeled-field">
@@ -374,7 +371,7 @@ export function MemberEditor({
                   {linkOptions.athletes.length > 6 && (
                     <label className="e5c-athlete-search">
                       <span>Athleten suchen</span>
-                      <span className="search-field">
+                      <span className="ui-search-field">
                         <Search aria-hidden="true" />
                         <input
                           type="search"
@@ -466,20 +463,8 @@ export function MemberEditor({
           <MemberAuditLog entries={auditEntries} loading={auditLoading} />
         )}
 
-        <div className="management-actions">
-          <button type="button" className="secondary-button" onClick={onCancel} disabled={busy}>
-            Abbrechen
-          </button>
-          <button type="submit" className="primary-button" disabled={busy || !canEdit}>
-            {mode.type === "invite" ? <Send aria-hidden="true" /> : <Save aria-hidden="true" />}
-            {busy
-              ? "Wird gespeichert …"
-              : mode.type === "invite"
-                ? "Einladung senden"
-                : "Änderungen speichern"}
-          </button>
-        </div>
-      </form>
-    </section>
+        </form>
+    </EditorShell>
+    </div>
   );
 }

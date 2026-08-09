@@ -2,6 +2,9 @@
 .user-management-page .user-management-heading { align-items: center; }
 .user-management-page .user-management-create-button { min-width: 92px; justify-content: center; }
 
+.user-member-editor-shell .editor-shell-body { padding: 14px 16px 18px; }
+.user-member-editor-form { gap: 14px; margin-top: 0; }
+
 .user-management-search-shell { display: grid; gap: 7px; }
 .user-management-search-row { display: grid; grid-template-columns: minmax(0, 1fr) 42px; gap: 7px; }
 .user-management-filter-toggle { position: relative; }
@@ -93,6 +96,7 @@
 .user-management-page .e5c-simulate-button:disabled { opacity: .48; cursor: not-allowed; }
 
 @media (max-width: 760px) {
+  .user-member-editor-shell .editor-shell-body { padding: 12px; }
   .user-management-page .user-management-heading .eyebrow { display: none; }
   .user-management-page .user-management-heading h1 { margin: 0; }
   .user-management-page .user-management-create-button { min-width: 82px; min-height: 42px; padding-inline: 10px; }

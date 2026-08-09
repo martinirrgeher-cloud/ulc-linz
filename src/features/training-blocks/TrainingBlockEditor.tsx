@@ -1,4 +1,5 @@
 import { useMemo, useState, type ReactNode } from "react";
+import { EditorShell } from "@/components/ui/EditorShell";
 import { useDraftDirtyState } from "@/features/collaboration/useDraftDirtyState";
 import {
   AlertTriangle,
@@ -9,10 +10,8 @@ import {
   Info,
   ListChecks,
   Plus,
-  Save,
   Search,
   Trash2,
-  X,
 } from "lucide-react";
 import type { ExerciseTrainingGroup } from "@/features/exercise-catalog/types";
 import { TrainingBlockExerciseInfoDialog } from "@/features/training-blocks/TrainingBlockExerciseInfoDialog";
@@ -192,30 +191,21 @@ export function TrainingBlockEditor({
   }
 
   return (
-    <div className="training-block-editor-backdrop" role="presentation">
-      <section
-        className="training-block-editor"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="training-block-editor-title"
+    <>
+      <EditorShell
+        eyebrow="Trainingsplanung"
+        title={block ? block.name : "Neuer Trainingsblock"}
+        meta={canEdit ? "Übungen ordnen und Belastungswerte anpassen" : "Trainingsblock ansehen"}
+        canEdit={canEdit}
+        busy={busy}
+        saveLabel="Trainingsblock speichern"
+        saveTestId="training-block-editor-save"
+        closeLabel="Trainingsblock schließen"
+        closeTestId="training-block-editor-close"
+        className="training-block-editor-shell"
+        onSave={() => void handleSave()}
+        onClose={onCancel}
       >
-        <header className="training-block-editor-header">
-          <div>
-            <p className="eyebrow">Trainingsplanung</p>
-            <h2 id="training-block-editor-title">{block ? block.name : "Neuer Trainingsblock"}</h2>
-            <small>{canEdit ? "Übungen ordnen und Belastungswerte anpassen" : "Trainingsblock ansehen"}</small>
-          </div>
-          <button
-            type="button"
-            className="icon-button"
-            onClick={onCancel}
-            disabled={busy}
-            aria-label="Trainingsblock schließen"
-          >
-            <X aria-hidden="true" />
-          </button>
-        </header>
-
         <div className="training-block-editor-tabs ui-tabs" role="tablist" aria-label="Trainingsblock bearbeiten">
           <button
             type="button"
@@ -355,7 +345,7 @@ export function TrainingBlockEditor({
                     {pickerOpen && (
                       <div className="training-block-picker">
                         <div className="training-block-picker-toolbar">
-                          <label>
+                          <label className="ui-search-field">
                             <Search aria-hidden="true" />
                             <input
                               type="search"
@@ -574,18 +564,7 @@ export function TrainingBlockEditor({
           </fieldset>
         </div>
 
-        <footer className="training-block-editor-actions">
-          <button type="button" className="secondary-button" onClick={onCancel} disabled={busy}>
-            {canEdit ? "Abbrechen" : "Schließen"}
-          </button>
-          {canEdit && (
-            <button type="button" className="primary-button" onClick={() => void handleSave()} disabled={busy}>
-              <Save aria-hidden="true" />
-              {busy ? "Wird gespeichert …" : "Speichern"}
-            </button>
-          )}
-        </footer>
-      </section>
+      </EditorShell>
 
       {infoExercise && (
         <TrainingBlockExerciseInfoDialog
@@ -595,6 +574,6 @@ export function TrainingBlockEditor({
           onClose={() => setInfoExercise(null)}
         />
       )}
-    </div>
+    </>
   );
 }

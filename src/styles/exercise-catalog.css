@@ -509,11 +509,7 @@
   display: flex; align-items: center; justify-content: space-between; gap: 9px; margin-top: 9px; padding: 7px 9px;
   color: #5e7066; background: #f8faf9; border-radius: 9px; font-size: .76rem; font-weight: 750;
 }
-.exercise-parameter-requirement > div { display: inline-flex; padding: 2px; background: #e8efeb; border-radius: 9px; }
-.exercise-parameter-requirement button {
-  min-height: 30px; padding: 4px 9px; color: #617268; background: transparent; border: 0; border-radius: 7px; font: inherit; font-size: .76rem; font-weight: 750; cursor: pointer;
-}
-.exercise-parameter-requirement button.active { color: #fff; background: var(--green-700); }
+.exercise-parameter-requirement > .ui-segmented { min-width: 164px; }
 
 .exercise-parameter-empty {
   display: grid;
@@ -918,7 +914,7 @@
   .exercise-catalog-commandbar { top: 66px; gap: 7px; padding: 7px; border-radius: 14px; }
   .exercise-search { grid-column: 1; }
   .exercise-search input { height: var(--ui-control-height); font-size: 16px; }
-  .exercise-filter-toggle { width: 42px; min-width: 42px; min-height: 42px; }
+  .exercise-filter-toggle { width: var(--ui-icon-button-size); min-width: var(--ui-icon-button-size); min-height: var(--ui-icon-button-size); padding: 0; }
 
   .exercise-filter-scrim { position: fixed; z-index: 39; inset: 0; display: block; background: rgba(7, 31, 19, .34); border: 0; }
   .exercise-filter-panel {

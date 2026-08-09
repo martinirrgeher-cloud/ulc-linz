@@ -400,8 +400,7 @@
 
 .training-doc-field { display: grid; gap: 4px; color: var(--green-950); font-size: .77rem; font-weight: 700; }
 .training-doc-field textarea { min-height: var(--ui-textarea-height-compact); resize: vertical; }
-.training-doc-segmented { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 3px; }
-.training-doc-segmented button { min-height: 38px; padding: 4px; color: #4d6256; background: #fff; border: 1px solid #d9e4dd; border-radius: 7px; font-size: .76rem; font-weight: 700; cursor: pointer; }
+.training-doc-segmented { grid-auto-columns: minmax(0, 1fr); }
 .training-doc-segmented button.active.pain-none { color: #116b3a; background: #e6f6eb; border-color: #a9d9b9; }
 .training-doc-segmented button.active.pain-mild { color: #7b5900; background: #fff4cc; border-color: #e8d486; }
 .training-doc-segmented button.active.pain-strong { color: #992d2d; background: #fde9e9; border-color: #e9b3b3; }
@@ -414,8 +413,8 @@
 .training-doc-media > header > div { display: grid; }
 .training-doc-sets small,
 .training-doc-media small { color: var(--muted); font-size: .77rem; }
-.secondary-button.compact { min-height: 38px; padding: 4px 7px; font-size: .76rem; }
-.secondary-button.compact svg { width: 13px; }
+.secondary-button.compact-button { padding: 4px 7px; font-size: .76rem; }
+.secondary-button.compact-button svg { width: 13px; }
 
 .training-doc-set { display: grid; gap: 6px; padding: 7px; background: #fff; border: 1px solid #dce7df; border-radius: 8px; }
 .training-doc-set > header { display: grid; grid-template-columns: minmax(70px, 1fr) minmax(130px, auto) 32px; align-items: center; gap: 5px; }
@@ -541,7 +540,7 @@
   
   
   .training-doc-controls { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px; padding: 8px; }
-  .training-doc-week-navigation { grid-column: 1 / -1; grid-template-columns: 36px minmax(0, 1fr) 36px; }
+  .training-doc-week-navigation { grid-column: 1 / -1; grid-template-columns: var(--ui-icon-button-size) minmax(0, 1fr) var(--ui-icon-button-size); }
   .training-doc-controls > .icon-button { position: absolute; right: 16px; margin-top: 2px; }
   .training-doc-plan-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px; }
   .training-doc-plan-strip > button { padding: 7px; }

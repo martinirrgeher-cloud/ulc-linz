@@ -86,7 +86,7 @@ test.describe("Schreibende Stammdaten- und Benutzerverwaltung", () => {
     await memberEditor.getByText("Änderungsprotokoll", { exact: true }).click();
     await expect(memberEditor.getByText("Rolle, Status oder Rechte geändert", { exact: true })).toBeVisible();
     await expect(memberEditor.getByText("Verknüpfte Athleten geändert", { exact: true })).toBeVisible();
-    await memberEditor.getByRole("button", { name: "Abbrechen", exact: true }).click();
+    await memberEditor.getByTestId("user-member-editor-close").click();
     await expectNoAppError(page);
   });
 });

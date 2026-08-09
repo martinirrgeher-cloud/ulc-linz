@@ -22,21 +22,6 @@
   backdrop-filter: blur(14px);
 }
 
-.ui-search-field {
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  background: #f8faf9;
-  border: 1px solid #d9e5dd;
-  border-radius: 12px;
-}
-
-.ui-search-field:focus-within {
-  border-color: var(--green-700);
-  box-shadow: 0 0 0 3px rgba(20, 122, 70, 0.11);
-}
-
 .ui-icon-action {
   flex: 0 0 auto;
   border: 1px solid #d8e5dc;

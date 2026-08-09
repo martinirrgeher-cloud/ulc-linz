@@ -75,7 +75,7 @@ export function TrainingAthleteDeactivateDialog({
           </span>
         </label>
 
-        <div className="management-actions">
+        <div className="dialog-actions">
           <button
             type="button"
             className="secondary-button"
