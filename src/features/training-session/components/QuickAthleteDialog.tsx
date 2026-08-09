@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { AlertTriangle, Save, UserPlus, X } from "lucide-react";
-import type { QuickAthleteResult } from "@/features/kindertraining/types";
+import type { QuickAthleteResult } from "@/features/training-session/types";
 
 import { diagnosticErrorMessage } from "@/lib/diagnostics";
 type QuickAthleteValues = {
@@ -10,6 +10,8 @@ type QuickAthleteValues = {
 };
 
 type QuickAthleteDialogProps = {
+  contextLabel: string;
+  assignmentTargetLabel: string;
   busy?: boolean;
   onClose: () => void;
   onSubmit: (
@@ -20,6 +22,8 @@ type QuickAthleteDialogProps = {
 };
 
 export function QuickAthleteDialog({
+  contextLabel,
+  assignmentTargetLabel,
   busy: externalBusy = false,
   onClose,
   onSubmit,
@@ -85,7 +89,7 @@ export function QuickAthleteDialog({
       >
         <header>
           <div>
-            <p className="eyebrow">Kindertraining</p>
+            <p className="eyebrow">{contextLabel}</p>
             <h2 id="quick-athlete-title">Kind hinzufügen</h2>
           </div>
           <button
@@ -100,7 +104,7 @@ export function QuickAthleteDialog({
         </header>
 
         <p className="dialog-intro">
-          Das Kind wird aktiv angelegt und automatisch dem Kindertraining zugeordnet.
+          Das Kind wird aktiv angelegt und automatisch {assignmentTargetLabel} zugeordnet.
         </p>
 
         {error && <div className="alert error compact-alert">{error}</div>}
@@ -115,7 +119,7 @@ export function QuickAthleteDialog({
                 {duplicate.athlete.birthYear}
               </p>
               <p>
-                Soll der vorhandene Datensatz aktiviert und dem Kindertraining zugeordnet werden?
+                Soll der vorhandene Datensatz aktiviert und {assignmentTargetLabel} zugeordnet werden?
               </p>
             </div>
             <div className="dialog-actions">

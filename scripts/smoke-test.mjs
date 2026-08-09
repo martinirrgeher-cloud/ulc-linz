@@ -1284,6 +1284,9 @@ test("Anmeldung und Statistik sind fuer Kindertraining, U12 und U14 kompakt vere
     readFile(new URL("../src/pages/GroupTrainingStatisticsPage.tsx", import.meta.url), "utf8"),
   ]);
   const trainingTypes = await readFile(new URL("../src/features/kindertraining/types.ts", import.meta.url), "utf8");
+  const attendanceWorkspace = await readFile(new URL("../src/features/training-session/components/TrainingAttendanceWorkspace.tsx", import.meta.url), "utf8");
+  const specialTrainingPicker = await readFile(new URL("../src/features/training-session/components/SpecialTrainingPicker.tsx", import.meta.url), "utf8");
+  const trainingDetailsPanel = await readFile(new URL("../src/features/training-session/components/TrainingDetailsPanel.tsx", import.meta.url), "utf8");
   const trainingCss = await readFile(new URL("../src/styles/kindertraining.css", import.meta.url), "utf8");
   const statisticsCss = await readFile(new URL("../src/styles/statistics.css", import.meta.url), "utf8");
   const helpSource = await readFile(new URL("../src/features/help/help-content.json", import.meta.url), "utf8");
@@ -1293,21 +1296,24 @@ test("Anmeldung und Statistik sind fuer Kindertraining, U12 und U14 kompakt vere
   for (const source of attendancePages) {
     assert.doesNotMatch(source, /value:\s*"excused"/);
     assert.doesNotMatch(source, /\["mixed",\s*"Gemischt"\]/);
-    assert.ok(source.includes('aria-label={`Status ${status.label} setzen`}'));
-    assert.ok(source.includes('<Check aria-hidden="true" />'));
-    assert.ok(source.includes('<X aria-hidden="true" />'));
-    assert.ok(source.includes('className="status-question-mark"'));
+    assert.ok(source.includes("<TrainingAttendanceWorkspace"));
+    assert.ok(source.includes("<SpecialTrainingPicker"));
+    assert.ok(source.includes("<TrainingDetailsPanel"));
     assert.doesNotMatch(source, /Trainingseinstellungen und Notiz/);
-    assert.ok(source.includes('className="special-training-picker-row"'));
-    assert.ok(source.includes('aria-label="Sondertraining speichern"'));
-    assert.ok(source.includes('aria-label="Sondertraining abbrechen"'));
-    assert.ok(source.includes('segmented-control three-options'));
-    assert.ok(source.includes('<legend><UsersRound aria-hidden="true" /> Trainer</legend>'));
-    assert.ok(source.includes('className="training-details-header">Notiz</div>'));
-    assert.doesNotMatch(source, /<details[\s\S]*className="training-details-panel"/);
-    assert.match(source, /<strong>\{counts\[status\.value\]\}<\/strong>[\s\S]*<span>\{status\.label\}<\/span>/);
-    assert.doesNotMatch(source, /`Jg\. \${participant\.birthYear}`/);
   }
+  assert.ok(attendanceWorkspace.includes('aria-label={`Status ${status.label} setzen`}'));
+  assert.ok(attendanceWorkspace.includes('<Check aria-hidden="true" />'));
+  assert.ok(attendanceWorkspace.includes('<X aria-hidden="true" />'));
+  assert.ok(attendanceWorkspace.includes('className="status-question-mark"'));
+  assert.match(attendanceWorkspace, /<strong>\{counts\[status\.value\]\}<\/strong>[\s\S]*<span>\{status\.label\}<\/span>/);
+  assert.doesNotMatch(attendanceWorkspace, /`Jg\. \${participant\.birthYear}`/);
+  assert.ok(specialTrainingPicker.includes('className="special-training-picker-row"'));
+  assert.ok(specialTrainingPicker.includes('aria-label="Sondertraining speichern"'));
+  assert.ok(specialTrainingPicker.includes('aria-label="Sondertraining abbrechen"'));
+  assert.ok(trainingDetailsPanel.includes('segmented-control three-options'));
+  assert.ok(trainingDetailsPanel.includes('<legend><UsersRound aria-hidden="true" /> Trainer</legend>'));
+  assert.ok(trainingDetailsPanel.includes('className="training-details-header">Notiz</div>'));
+  assert.doesNotMatch(trainingDetailsPanel, /<details[\s\S]*className="training-details-panel"/);
   assert.ok(trainingCss.includes('grid-template-columns: repeat(3, minmax(0, 1fr));'));
   assert.ok(trainingCss.includes('grid-template-columns: repeat(2, minmax(0, 1fr));'));
   assert.ok(trainingCss.includes('.compact-status-actions button.present'));
