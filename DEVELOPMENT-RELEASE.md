@@ -504,3 +504,44 @@ Nach produktiver Absicherung von S3a folgen getrennt:
 
 Diese Schritte erfolgen jeweils ohne fachliche Funktionsänderung und ohne
 Big-Bang-Refactoring.
+
+## S3b – CSS-Ownership und Verkleinerung von global.css
+
+S3b verändert keine sichtbare Oberfläche. Die historisch gewachsene globale
+Stylesheet-Datei wird nach Besitzverantwortung aufgeteilt, damit neue
+Stammdaten- oder Benutzerverwaltungsregeln nicht mehr alle Routen belasten.
+
+Routebezogene Basisdateien:
+
+- `masterdata-foundation.css` enthält die aus `global.css` verschobenen
+  Athleten-, Trainer- und Trainingsgruppenregeln.
+- `user-management-foundation.css` enthält die aus `global.css` verschobenen
+  Benutzerkarten-, Status- und Rechteeditorregeln.
+- `dashboard.css` besitzt wieder den letzten dashboardspezifischen Abstand.
+
+Die Foundation-Dateien werden bewusst vor den bereits vorhandenen
+routebezogenen Override-Dateien importiert. Dadurch bleibt die bisherige
+Kaskadenreihenfolge erhalten: frühere globale Basisregeln zuerst,
+bestehende `management.css`-/E5c-Anpassungen danach.
+
+Nicht mehr verwendete alte Modul-Dashboard-Regeln (`module-section`,
+`module-card`, `module-grid` usw.) wurden entfernt, nachdem im aktuellen
+TypeScript-/TSX-Stand keine Nutzung mehr existiert.
+
+Ergebnis gegenüber S3a:
+
+- `global.css`: ca. 51 KB → unter 20 KB,
+- global geladene CSS-Basis: ca. 60 KB → unter 30 KB,
+- featurebezogene Selektorvorkommen in `global.css`: 269 → unter 30,
+- größte CSS-Datei ist nicht mehr `global.css`,
+- Stammdaten- und Benutzer-CSS wird nur auf den jeweiligen lazy Routen geladen.
+
+`scripts/check-css-ownership.mjs` ist ein zusätzliches hartes Teil-Gate des\n`check:css-architecture`-Laufs. Es verhindert,
+dass die ausgelagerten Benutzer-/Stammdatenselektoren oder das entfernte
+alte Modul-Dashboard-CSS wieder in `global.css` zurückkehren. Gleichzeitig
+wurde das allgemeine CSS-Budget auf den nach S3b tatsächlich erreichten
+Stand verschärft, statt die alten großzügigen Grenzwerte beizubehalten.
+
+S3c kann damit auf einer kleineren globalen CSS-Basis die gemeinsamen
+Trainings-/Statistikbausteine für Kindertraining, U12 und U14 konsolidieren.
+
