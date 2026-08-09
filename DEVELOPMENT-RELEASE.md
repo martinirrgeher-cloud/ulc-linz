@@ -2,6 +2,10 @@
 
 Stand: 2026-08-08
 
+> **Kanonische Gesamtübersicht nach Abschluss S1–S3:**  
+> `TECHNISCHE-GRUNDLAGE-UND-UPDATEPROZESS.md`  
+> Für die Übergabe in einen neuen Chat: `MASTER-PROMPT-NEUER-CHAT.md`.
+
 ## Ziel
 
 Jede Änderung startet von einem eindeutig bestätigten Produktionsstand und endet wieder auf einem sauberen, markierten `main`. Updates werden als vollständige Datei-Overlays ausgeliefert, vor der Installation anhand von Git-Zustand und SHA-256-Dateihashes geprüft, vollständig getestet und bei Fehlern transaktional zurückgerollt.

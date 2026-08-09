@@ -3,6 +3,17 @@
 Mobile-First-Vereins-App des ULC Linz Oberbank auf Basis von React, TypeScript,
 Supabase Auth und PostgreSQL.
 
+## Verbindliche technische Dokumentation
+
+Die kanonische technische Grundlage für Architektur, Tests, Patch-/Updateprozess,
+Rollback, GitHub und Produktion steht in:
+
+- `TECHNISCHE-GRUNDLAGE-UND-UPDATEPROZESS.md`
+- `MASTER-PROMPT-NEUER-CHAT.md` – kopierfertige Übergabe für einen neuen Chat
+
+Bei technischen Änderungen zuerst diese Dokumente und anschließend den aktuellen
+Git-Code als Source of Truth verwenden.
+
 ## Funktionsbereiche
 
 - Anmeldung und Anwesenheit: Kindertraining, U12, U14 und Leistungsgruppen
