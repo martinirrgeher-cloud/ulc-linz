@@ -17,8 +17,20 @@ const required = [
   "src/pages/U14TrainingPage.tsx",
   "src/pages/U12TrainingStatisticsPage.tsx",
   "src/pages/U14TrainingStatisticsPage.tsx",
+  "src/features/training-session/components/TrainingDateControls.tsx",
+  "src/features/training-session/components/SpecialTrainingPicker.tsx",
+  "src/features/training-session/components/TrainingAttendanceWorkspace.tsx",
+  "src/features/training-session/components/TrainingDetailsPanel.tsx",
+  "src/features/training-session/components/TrainingAutosaveStatus.tsx",
+  "src/features/training-session/components/TrainingAthleteDeactivateDialog.tsx",
+  "src/features/training-session/components/TrainingContactDialog.tsx",
+  "src/features/training-session/components/QuickAthleteDialog.tsx",
 ];
 for (const relative of required) await access(path.join(root, relative));
+await assert.rejects(
+  access(path.join(root, "src/features/kindertraining/QuickAthleteDialog.tsx")),
+  "Der gemeinsame Schnellanlage-Dialog darf nicht wieder im Kindertraining-Feature liegen.",
+);
 
 const core = await read("src/features/training-session/core.ts");
 const apiParsers = await read("src/features/training-session/api-parsers.ts");
@@ -145,6 +157,70 @@ const groupStatsPage = await read("src/pages/GroupTrainingStatisticsPage.tsx");
 assert.match(groupPage, /GroupTrainingModuleDefinition/, "Gemeinsame U12/U14-Seite braucht einen expliziten Modulvertrag.");
 assert.match(groupStatsPage, /GroupTrainingModuleDefinition/, "Gemeinsame U12/U14-Statistik braucht einen expliziten Modulvertrag.");
 assert.doesNotMatch(groupPage, /features\/kindertraining\/types/, "U12/U14 dürfen nicht mehr von Kindertraining-Typen abhängen.");
+assert.doesNotMatch(groupPage, /features\/kindertraining\//, "U12/U14 dürfen nicht von Kindertraining-UI oder Kindertraining-Services abhängen.");
 assert.doesNotMatch(groupStatsPage, /kindertraining-statistics\/types/, "U12/U14-Statistik darf nicht mehr von Kindertraining-Typen abhängen.");
+
+
+
+const sharedTrainingComponents = [
+  "src/features/training-session/components/TrainingDateControls.tsx",
+  "src/features/training-session/components/SpecialTrainingPicker.tsx",
+  "src/features/training-session/components/TrainingAttendanceWorkspace.tsx",
+  "src/features/training-session/components/TrainingDetailsPanel.tsx",
+  "src/features/training-session/components/TrainingAutosaveStatus.tsx",
+  "src/features/training-session/components/TrainingAthleteDeactivateDialog.tsx",
+  "src/features/training-session/components/TrainingContactDialog.tsx",
+  "src/features/training-session/components/QuickAthleteDialog.tsx",
+];
+
+for (const relative of sharedTrainingComponents) {
+  const source = await read(relative);
+  assert.doesNotMatch(
+    source,
+    /features\/(?:kindertraining|group-training)|Kindertraining|\bU12\b|\bU14\b|moduleKey|canViewModule|canEditModule|supabase|\.rpc\(/,
+    `${relative} muss fachlich neutral bleiben und darf keine konkrete Trainingsgruppe, Rechtepruefung oder API kennen.`,
+  );
+  assert.doesNotMatch(
+    source,
+    /pages\/(?:KindertrainingDraftPage|GroupTrainingPage)/,
+    `${relative} darf nicht von einer konkreten Trainingsseite abhaengen.`,
+  );
+}
+
+for (const relative of [
+  "src/pages/KindertrainingDraftPage.tsx",
+  "src/pages/GroupTrainingPage.tsx",
+]) {
+  const source = await read(relative);
+  const lineCount = source.split(/\r?\n/).length;
+  assert.ok(
+    lineCount <= 1050,
+    `${relative} ist wieder zu einem Monolithen angewachsen (${lineCount} Zeilen; Ziel <= 1050). Fachliche Abweichungen gehoeren in modul- oder featureeigene Unterkomponenten.`,
+  );
+  for (const component of [
+    "TrainingDateControls",
+    "TrainingAttendanceWorkspace",
+    "TrainingDetailsPanel",
+    "TrainingAutosaveStatus",
+    "TrainingAthleteDeactivateDialog",
+    "TrainingContactDialog",
+  ]) {
+    assert.ok(
+      source.includes(component),
+      `${relative} soll den neutralen S3d-Baustein ${component} verwenden, solange keine fachliche Abweichung einen eigenen Modulbaustein erfordert.`,
+    );
+  }
+}
+
+assert.ok(
+  (await read("src/pages/KindertrainingDraftPage.tsx")).includes("createKindertrainingAthlete"),
+  "Kindertraining behaelt seine eigene Orchestrierung und seinen API-Adapter.",
+);
+assert.ok(
+  (await read("src/pages/GroupTrainingPage.tsx")).includes("createGroupTrainingAthlete"),
+  "U12/U14-Basis behaelt ihre eigene Orchestrierung und ihren API-Adapter.",
+);
+
+console.log("S3d-Seitenzerlegung erfolgreich: neutrale Praesentationsbausteine, getrennte Orchestrierung und freie modulbezogene Escape-Hatches.");
 
 console.log("Trainingsmodul-Architektur erfolgreich: gemeinsamer technischer Kern, getrennte Adapter und explizite U12/U14-Escape-Hatches.");

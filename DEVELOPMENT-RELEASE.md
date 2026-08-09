@@ -603,3 +603,62 @@ wechseln, ohne Routing oder das jeweils andere Modul umzubauen.
 gemeinsame Parser dürfen nicht wieder in den konkreten APIs kopiert werden,
 der gemeinsame Kern darf keine konkrete Trainingsgruppe fest verdrahten und
 das App-Routing darf U12/U14 nicht direkt an die gemeinsame Implementierung koppeln.
+
+## S3d – Zerlegte Trainingsseiten mit neutralen UI-Bausteinen
+
+S3d reduziert die beiden großen Orchestrierungsseiten
+`KindertrainingDraftPage.tsx` und `GroupTrainingPage.tsx`, ohne daraus wieder
+eine gemeinsame fachliche Monolith-Seite zu machen.
+
+Die Seiten behalten weiterhin selbst:
+
+- Auth-/Rechteprüfung,
+- Modul- und API-Auswahl,
+- Laden/Speichern,
+- Autosave-Queue und Konfliktbehandlung,
+- Sonderterminlogik,
+- modulbezogene Erfolgs-/Fehlermeldungen,
+- Navigation und fachliche Erweiterungspunkte.
+
+Nur die heute identische Darstellung liegt in kleinen, fachlich neutralen
+Bausteinen unter `src/features/training-session/components`:
+
+- `TrainingDateControls`
+- `SpecialTrainingPicker`
+- `TrainingAttendanceWorkspace`
+- `TrainingDetailsPanel`
+- `TrainingAutosaveStatus`
+- `TrainingAthleteDeactivateDialog`
+- `TrainingContactDialog`
+- `QuickAthleteDialog`
+
+Diese Komponenten kennen weder `kindertraining`, `u12` noch `u14`, greifen nicht
+auf Supabase zu und führen keine Modul-/Rechteprüfung aus. Sie erhalten Daten,
+Texte und Callbacks ausschließlich über Props.
+
+Damit bleiben spätere fachliche Abweichungen ausdrücklich möglich:
+Benötigt z. B. U12 eine andere Anwesenheitsdarstellung oder U14 eine andere
+Trainersektion, kann die jeweilige Route einen eigenen Unterbaustein verwenden,
+ohne Kindertraining oder das andere Modul ändern zu müssen. Die gemeinsame
+Komponente ist keine verpflichtende Fachlogik, sondern nur die heutige neutrale
+Darstellung.
+
+Auch der Schnellanlage-Dialog liegt nicht mehr im Kindertraining-Feature.
+U12/U14 hängen damit auf UI-Ebene nicht mehr von
+`features/kindertraining/*` ab. Die heute sichtbaren Texte bleiben unverändert;
+die Modultexte werden nun vom aufrufenden Modul geliefert und können später
+getrennt weiterentwickelt werden.
+
+`scripts/check-training-module-architecture.mjs` schützt zusätzlich:
+
+- keine konkrete Trainingsgruppe in den neutralen UI-Bausteinen,
+- kein Supabase-/Rechtezugriff in diesen Bausteinen,
+- keine Rückkopplung von Shared-Komponenten zu konkreten Pages,
+- keine direkte Kindertraining-Feature-Abhängigkeit der U12/U14-Seite,
+- die beiden Orchestrierungsseiten dürfen nicht wieder unkontrolliert zu
+  vierstelligen Monolithen anwachsen.
+
+Fachliche Abweichungen sollen künftig bevorzugt in modulbezogene
+Unterkomponenten oder Adapter ausgelagert werden, nicht durch neue
+Bedingungskaskaden im gemeinsamen UI-Kern.
+

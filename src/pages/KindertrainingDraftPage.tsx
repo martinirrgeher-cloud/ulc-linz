@@ -1,29 +1,20 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  AlertTriangle,
-  BarChart3,
-  CalendarPlus,
-  Check,
-  CheckCheck,
-  ChevronLeft,
-  ChevronRight,
-  Clock3,
-  CloudCheck,
-  MapPin,
-  MoreVertical,
-  Phone,
-  RefreshCw,
-  Search,
-  Save,
-  Settings2,
-  Trash2,
-  UserMinus,
-  UserPlus,
-  UsersRound,
-  X,
-} from "lucide-react";
+import { BarChart3, RefreshCw, Settings2, UsersRound } from "lucide-react";
 import { Link, Navigate } from "react-router-dom";
 import { useNavigationGuard } from "@/components/layout/NavigationGuardContext";
+import { SpecialTrainingPicker } from "@/features/training-session/components/SpecialTrainingPicker";
+import { TrainingAthleteDeactivateDialog } from "@/features/training-session/components/TrainingAthleteDeactivateDialog";
+import { TrainingAttendanceWorkspace } from "@/features/training-session/components/TrainingAttendanceWorkspace";
+import {
+  TrainingAutosaveStatus,
+  type TrainingAutoSaveState,
+} from "@/features/training-session/components/TrainingAutosaveStatus";
+import {
+  TrainingContactDialog,
+  type TrainingContactSelection,
+} from "@/features/training-session/components/TrainingContactDialog";
+import { TrainingDateControls } from "@/features/training-session/components/TrainingDateControls";
+import { TrainingDetailsPanel } from "@/features/training-session/components/TrainingDetailsPanel";
 import {
   createKindertrainingAthlete,
   deleteKindertrainingSpecialSession,
@@ -31,9 +22,8 @@ import {
   loadKindertrainingSession,
   saveKindertrainingSession,
 } from "@/features/kindertraining/api";
-import { QuickAthleteDialog } from "@/features/kindertraining/QuickAthleteDialog";
+import { QuickAthleteDialog } from "@/features/training-session/components/QuickAthleteDialog";
 import type {
-  AthleteEmergencyContact,
   AthleteNameSort,
   AttendanceStatus,
   KindertrainingConfiguration,
@@ -51,7 +41,6 @@ import {
   draftSignature,
   findTrainingDate,
   formatLongDate,
-  formatSavedAt,
   isRegularDate,
   isoDate,
   makeDraft,
@@ -60,21 +49,6 @@ import {
 } from "@/features/training-session/core";
 import { diagnosticErrorMessage } from "@/lib/diagnostics";
 import "@/styles/kindertraining.css";
-const STATUS_OPTIONS: Array<{
-  value: AttendanceStatus;
-  label: string;
-}> = [
-  { value: "open", label: "Offen" },
-  { value: "present", label: "Da" },
-  { value: "absent", label: "Fehlt" },
-];
-
-function attendanceStatusIcon(status: AttendanceStatus) {
-  if (status === "present") return <Check aria-hidden="true" />;
-  if (status === "absent") return <X aria-hidden="true" />;
-  return <span className="status-question-mark" aria-hidden="true">?</span>;
-}
-
 const SORT_STORAGE_KEY = "ulc-kindertraining-name-sort";
 
 function errorMessage(error: unknown): string {
@@ -97,8 +71,6 @@ function errorMessage(error: unknown): string {
     "kindertraining",
   );
 }
-
-type AutoSaveState = "idle" | "pending" | "saving" | "saved" | "error";
 
 type SaveSnapshot = {
   organizationId: string;
@@ -145,13 +117,10 @@ export function KindertrainingDraftPage() {
   const [configurationLoading, setConfigurationLoading] = useState(true);
   const [sessionLoading, setSessionLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [autoSaveState, setAutoSaveState] = useState<AutoSaveState>("idle");
+  const [autoSaveState, setAutoSaveState] = useState<TrainingAutoSaveState>("idle");
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [selectedContacts, setSelectedContacts] = useState<{
-    athleteName: string;
-    contacts: AthleteEmergencyContact[];
-  } | null>(null);
+  const [selectedContacts, setSelectedContacts] = useState<TrainingContactSelection | null>(null);
   const [athleteToDeactivate, setAthleteToDeactivate] = useState<KindertrainingParticipant | null>(null);
   const [deactivationConfirmed, setDeactivationConfirmed] = useState(false);
   const [deactivatingAthlete, setDeactivatingAthlete] = useState(false);
@@ -704,41 +673,6 @@ export function KindertrainingDraftPage() {
     }
   }
 
-  function autosaveLabel() {
-    if (autoSaveState === "error") {
-      return (
-        <>
-          <AlertTriangle aria-hidden="true" /> Fehler
-        </>
-      );
-    }
-
-    if (autoSaveState === "saving") {
-      return (
-        <>
-          <RefreshCw className="spin-icon" aria-hidden="true" /> Speichert …
-        </>
-      );
-    }
-
-    if (autoSaveState === "pending" || dirty || forceCreateSpecial) {
-      return (
-        <>
-          <Clock3 aria-hidden="true" /> Wird gespeichert …
-        </>
-      );
-    }
-
-    if (session?.updatedAt) {
-      return (
-        <>
-          <CloudCheck aria-hidden="true" /> {formatSavedAt(session.updatedAt)}
-        </>
-      );
-    }
-
-    return <>Bereit</>;
-  }
 
   if (!canView) return <Navigate to="/kein-zugriff" replace />;
 
@@ -826,104 +760,31 @@ export function KindertrainingDraftPage() {
         </div>
       ) : (
         <>
-          <section className="training-control-card compact" aria-label="Trainingstag auswählen">
-            <div className="training-date-control compact">
-              <div className="training-date-buttons">
-                <button
-                  type="button"
-                  className="icon-button"
-                  disabled={sessionLoading}
-                  onClick={() => moveDate(-1)}
-                  aria-label="Vorheriger Trainingstag"
-                >
-                  <ChevronLeft aria-hidden="true" />
-                </button>
-                <div className="training-date-display">
-                  <strong>{formatLongDate(selectedDate)}</strong>
-                  {!selectedDateIsRegular && <span>Sondertraining</span>}
-                </div>
-                <button
-                  type="button"
-                  className="icon-button"
-                  disabled={sessionLoading}
-                  onClick={() => moveDate(1)}
-                  aria-label="Nächster Trainingstag"
-                >
-                  <ChevronRight aria-hidden="true" />
-                </button>
-                {group.allowSpecialTraining && canEdit && (
-                  <button
-                    type="button"
-                    className="icon-button special-training-action"
-                    disabled={sessionLoading}
-                    onClick={() => {
-                      setSpecialDateInput(today);
-                      setShowSpecialDatePicker(true);
-                    }}
-                    aria-label="Sondertraining anlegen"
-                    title="Sondertraining anlegen"
-                  >
-                    <CalendarPlus aria-hidden="true" />
-                  </button>
-                )}
-                {session?.isSpecial && session.id && canEdit && (
-                  <button
-                    type="button"
-                    className="icon-button special-training-action danger"
-                    disabled={sessionLoading || deletingSpecial}
-                    onClick={() => void deleteSpecialTraining()}
-                    aria-label="Sondertraining löschen"
-                    title="Sondertraining löschen"
-                  >
-                    <Trash2 aria-hidden="true" />
-                  </button>
-                )}
-              </div>
-
-              {todayIsVisible && selectedDate !== today && (
-                <div className="training-date-shortcuts">
-                  <button
-                    type="button"
-                    className="text-button"
-                    disabled={sessionLoading}
-                    onClick={() => void changeDate(today)}
-                  >
-                    Heute
-                  </button>
-                </div>
-              )}
-            </div>
-          </section>
+          <TrainingDateControls
+            selectedDateLabel={formatLongDate(selectedDate)}
+            selectedDateIsRegular={selectedDateIsRegular}
+            sessionLoading={sessionLoading}
+            allowSpecialTraining={group.allowSpecialTraining}
+            canEdit={canEdit}
+            canDeleteSpecialTraining={Boolean(session?.isSpecial && session.id)}
+            deletingSpecial={deletingSpecial}
+            showTodayShortcut={todayIsVisible && selectedDate !== today}
+            onMoveDate={moveDate}
+            onOpenSpecialTraining={() => {
+              setSpecialDateInput(today);
+              setShowSpecialDatePicker(true);
+            }}
+            onDeleteSpecialTraining={() => void deleteSpecialTraining()}
+            onGoToToday={() => void changeDate(today)}
+          />
 
           {showSpecialDatePicker && (
-            <section className="special-training-picker" role="dialog" aria-modal="true">
-              <strong>Sondertraining auswählen</strong>
-              <div className="special-training-picker-row">
-                <input
-                  type="date"
-                  value={specialDateInput}
-                  onChange={(event) => setSpecialDateInput(event.target.value)}
-                />
-                <button
-                  type="button"
-                  className="icon-button special-training-save"
-                  onClick={confirmSpecialDate}
-                  aria-label="Sondertraining speichern"
-                  title="Sondertraining speichern"
-                >
-                  <Save aria-hidden="true" />
-                </button>
-                <button
-                  type="button"
-                  className="icon-button special-training-cancel"
-                  onClick={() => setShowSpecialDatePicker(false)}
-                  aria-label="Sondertraining abbrechen"
-                  title="Sondertraining abbrechen"
-                >
-                  <X aria-hidden="true" />
-                </button>
-              </div>
-            </section>
+            <SpecialTrainingPicker
+              value={specialDateInput}
+              onChange={setSpecialDateInput}
+              onSave={confirmSpecialDate}
+              onCancel={() => setShowSpecialDatePicker(false)}
+            />
           )}
 
           {sessionLoading ? (
@@ -933,303 +794,66 @@ export function KindertrainingDraftPage() {
             </div>
           ) : baseline ? (
             <>
-              <section className="attendance-workspace compact">
-                <div className="attendance-toolbar">
-                  <div className="attendance-category-tabs" role="tablist" aria-label="Status">
-                    {STATUS_OPTIONS.map((status) => (
-                      <button
-                        type="button"
-                        role="tab"
-                        aria-selected={activeCategory === status.value}
-                        className={`${status.value} ${activeCategory === status.value ? "active" : ""}`}
-                        onClick={() => setActiveCategory(status.value)}
-                        key={status.value}
-                      >
-                        <strong>{counts[status.value]}</strong>
-                        <span>{status.label}</span>
-                      </button>
-                    ))}
-                  </div>
+              <TrainingAttendanceWorkspace
+                activeCategory={activeCategory}
+                counts={counts}
+                sortMode={sortMode}
+                canEdit={canEdit}
+                sessionLoading={sessionLoading}
+                searchTerm={searchTerm}
+                participants={participants}
+                categoryParticipants={categoryParticipants}
+                draft={draft}
+                onCategoryChange={setActiveCategory}
+                onSortModeChange={setSortMode}
+                onAddAthlete={() => void openQuickAthlete()}
+                onSearchTermChange={setSearchTerm}
+                onMarkAllOpenAbsent={markAllOpenAbsent}
+                onShowContacts={(participant) => setSelectedContacts({
+                  athleteName: athleteDisplayName(participant, sortMode),
+                  contacts: participant.contacts,
+                })}
+                onManageAthlete={(participant) => {
+                  setDeactivationConfirmed(false);
+                  setAthleteToDeactivate(participant);
+                }}
+                onSetAttendance={setAttendance}
+              />
 
-                  <div className="attendance-list-tools">
-                    <div className="attendance-sort-row">
-                      <div className="name-sort-toggle" aria-label="Namenssortierung">
-                        <button
-                          type="button"
-                          className={sortMode === "firstName" ? "active" : ""}
-                          onClick={() => setSortMode("firstName")}
-                        >
-                          Vorname
-                        </button>
-                        <button
-                          type="button"
-                          className={sortMode === "lastName" ? "active" : ""}
-                          onClick={() => setSortMode("lastName")}
-                        >
-                          Nachname
-                        </button>
-                      </div>
-                      {canEdit && (
-                        <button
-                          type="button"
-                          className="icon-button add-child-icon-button"
-                          onClick={() => void openQuickAthlete()}
-                          disabled={sessionLoading}
-                          title="Kind hinzufügen"
-                          aria-label="Kind hinzufügen"
-                        >
-                          <UserPlus aria-hidden="true" />
-                        </button>
-                      )}
-                    </div>
-
-                    <label className="attendance-search compact">
-                      <Search aria-hidden="true" />
-                      <input
-                        type="search"
-                        value={searchTerm}
-                        onChange={(event) => setSearchTerm(event.target.value)}
-                        placeholder="Name suchen"
-                      />
-                    </label>
-                  </div>
-
-                  <div className="attendance-progress-row">
-                    <span>
-                      <CheckCheck aria-hidden="true" />
-                      {participants.length - counts.open} von {participants.length} erfasst
-                    </span>
-                    {canEdit && counts.open > 0 && draft.state !== "cancelled" && (
-                      <button type="button" className="text-button" onClick={markAllOpenAbsent}>
-                        Alle offenen auf Fehlt
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {draft.state === "cancelled" ? (
-                  <div className="training-cancelled-state">
-                    <AlertTriangle aria-hidden="true" />
-                    <div>
-                      <strong>Training abgesagt</strong>
-                      <p>Die Anwesenheitsauswahl ist gesperrt, bis die Absage aufgehoben wird.</p>
-                    </div>
-                  </div>
-                ) : categoryParticipants.length === 0 ? (
-                  <div className="inline-empty-state attendance-empty">
-                    {searchTerm
-                      ? "Keine passenden Kinder in dieser Kategorie."
-                      : activeCategory === "open"
-                        ? "Alle Kinder wurden bereits zugeordnet."
-                        : "In dieser Kategorie befinden sich noch keine Kinder."}
-                  </div>
-                ) : (
-                  <div className="compact-attendance-list">
-                    {categoryParticipants.map((participant) => {
-                      const currentStatus = draft.attendance[participant.athleteId] ?? "open";
-                      return (
-                        <article className="compact-attendance-row" key={participant.athleteId}>
-                          <div className="compact-athlete-name">
-                            <strong>{athleteDisplayName(participant, sortMode)}</strong>
-                          </div>
-
-                          <div className="compact-athlete-actions">
-                            {participant.contacts.length > 0 ? (
-                              <button
-                                type="button"
-                                className="icon-button contact-button"
-                                onClick={() => setSelectedContacts({
-                                  athleteName: athleteDisplayName(participant, sortMode),
-                                  contacts: participant.contacts,
-                                })}
-                                aria-label={`Kontaktdaten von ${athleteDisplayName(participant, sortMode)} anzeigen`}
-                                title="Notfallkontakte"
-                              >
-                                <Phone aria-hidden="true" />
-                              </button>
-                            ) : (
-                              <span className="contact-button-placeholder" aria-hidden="true" />
-                            )}
-                            {canEdit && participant.isActive && (
-                              <button
-                                type="button"
-                                className="icon-button athlete-more-button"
-                                onClick={() => {
-                                  setDeactivationConfirmed(false);
-                                  setAthleteToDeactivate(participant);
-                                }}
-                                aria-label={`${athleteDisplayName(participant, sortMode)} verwalten`}
-                                title="Athlet verwalten"
-                              >
-                                <MoreVertical aria-hidden="true" />
-                              </button>
-                            )}
-                          </div>
-
-                          <div className="compact-status-actions" aria-label="Status wählen">
-                            {STATUS_OPTIONS.filter((status) => status.value !== currentStatus).map(
-                              (status) => (
-                                <button
-                                  type="button"
-                                  className={status.value}
-                                  onClick={() => setAttendance(participant.athleteId, status.value)}
-                                  disabled={!canEdit}
-                                  aria-label={`Status ${status.label} setzen`}
-                                  title={status.label}
-                                  key={status.value}
-                                >
-                                  {attendanceStatusIcon(status.value)}
-                                </button>
-                              ),
-                            )}
-                          </div>
-                        </article>
-                      );
-                    })}
-                  </div>
-                )}
-              </section>
-
-              <section className="training-details-panel">
-                <div className="training-details-header">Notiz</div>
-                <div className="training-details-content">
-                  <fieldset className="training-environment-field">
-                    <legend><MapPin aria-hidden="true" /> Trainingsort</legend>
-                    <div className="segmented-control three-options">
-                      {([
-                        [null, "Offen"],
-                        ["indoor", "Indoor"],
-                        ["outdoor", "Outdoor"],
-                      ] as const).map(([value, label]) => (
-                        <button
-                          type="button"
-                          className={draft.environment === value ? "active" : ""}
-                          onClick={() => setEnvironment(value)}
-                          disabled={!canEdit}
-                          key={label}
-                        >
-                          {label}
-                        </button>
-                      ))}
-                    </div>
-                  </fieldset>
-
-                  <fieldset className="training-trainer-field">
-                    <div className="trainer-field-heading">
-                      <legend><UsersRound aria-hidden="true" /> Trainer</legend>
-                      {(session?.availableTrainers ?? []).length > 0 && (
-                        <button
-                          type="button"
-                          className="text-button"
-                          onClick={() => setShowAllTrainers((current) => !current)}
-                        >
-                          {showAllTrainers ? "Nur Gruppentrainer" : `Alle Trainer anzeigen${hiddenTrainerCount > 0 ? ` (${hiddenTrainerCount})` : ""}`}
-                        </button>
-                      )}
-                    </div>
-                    {(session?.availableTrainers ?? []).length === 0 ? (
-                      <div className="inline-empty-state compact-empty-state">
-                        Noch keine Trainer angelegt.
-                        <Link to="/module/athletes?tab=trainers">Trainer verwalten</Link>
-                      </div>
-                    ) : visibleTrainers.length === 0 ? (
-                      <div className="inline-empty-state compact-empty-state">
-                        Der Kindertrainingsgruppe ist noch kein Trainer zugeordnet.
-                        <button type="button" className="text-button" onClick={() => setShowAllTrainers(true)}>Alle Trainer anzeigen</button>
-                      </div>
-                    ) : (
-                      <div className="trainer-checkbox-grid">
-                        {visibleTrainers.map((trainer) => {
-                          const isGroupTrainer = groupTrainerIds.includes(trainer.id);
-                          return (
-                            <label className="trainer-checkbox" key={trainer.id}>
-                              <input
-                                type="checkbox"
-                                checked={draft.trainerIds.includes(trainer.id)}
-                                onChange={(event) => toggleTrainer(trainer.id, event.target.checked)}
-                                disabled={!canEdit}
-                              />
-                              <span>
-                                <strong>{trainer.firstName} {trainer.lastName}</strong>
-                                <small>{!trainer.isActive ? "Inaktiv" : isGroupTrainer ? "Gruppentrainer" : "Aushilfe"}</small>
-                              </span>
-                            </label>
-                          );
-                        })}
-                      </div>
-                    )}
-                    {session?.usesDefaults && !session?.id && draft.trainerIds.length > 0 && (
-                      <small>Gruppentrainer aus dem letzten Training vorgeschlagen.</small>
-                    )}
-                  </fieldset>
-
-                  <label className="cancel-training-toggle">
-                    <input
-                      type="checkbox"
-                      checked={draft.state === "cancelled"}
-                      disabled={!canEdit}
-                      onChange={(event) =>
-                        updateDraft((current) => ({
-                          ...current,
-                          state: event.target.checked ? "cancelled" : "scheduled",
-                        }))
-                      }
-                    />
-                    <span>
-                      <strong>Training absagen</strong>
-                      <small>Die Teilnehmerstände bleiben gespeichert.</small>
-                    </span>
-                  </label>
-
-                  <label className="training-note-field">
-                    Tagesnotiz
-                    <textarea
-                      value={draft.note}
-                      disabled={!canEdit}
-                      onChange={(event) =>
-                        updateDraft((current) => ({ ...current, note: event.target.value }))
-                      }
-                      maxLength={3000}
-                      rows={3}
-                      placeholder="Optional"
-                    />
-                    <small>{draft.note.length} / 3000 Zeichen</small>
-                  </label>
-                </div>
-              </section>
+              <TrainingDetailsPanel
+                draft={draft}
+                canEdit={canEdit}
+                availableTrainers={session?.availableTrainers ?? []}
+                visibleTrainers={visibleTrainers}
+                groupTrainerIds={groupTrainerIds}
+                showAllTrainers={showAllTrainers}
+                hiddenTrainerCount={hiddenTrainerCount}
+                usesDefaults={session?.usesDefaults === true}
+                hasPersistedSession={Boolean(session?.id)}
+                noGroupTrainerMessage="Der Kindertrainingsgruppe ist noch kein Trainer zugeordnet."
+                onEnvironmentChange={setEnvironment}
+                onToggleShowAllTrainers={() => setShowAllTrainers((current) => !current)}
+                onShowAllTrainers={() => setShowAllTrainers(true)}
+                onToggleTrainer={toggleTrainer}
+                onCancelledChange={(cancelled) =>
+                  updateDraft((current) => ({
+                    ...current,
+                    state: cancelled ? "cancelled" : "scheduled",
+                  }))
+                }
+                onNoteChange={(note) =>
+                  updateDraft((current) => ({ ...current, note }))
+                }
+              />
 
               {canEdit && (
-                <div className={`training-autosave-status ${autoSaveState}`} aria-live="polite">
-                  {autoSaveState === "error" ? (
-                    <>
-                      <AlertTriangle aria-hidden="true" />
-                      <span>Speichern fehlgeschlagen</span>
-                      <button type="button" className="text-button" onClick={() => void retrySave()}>
-                        Erneut versuchen
-                      </button>
-                    </>
-                  ) : autoSaveState === "saving" ? (
-                    <>
-                      <RefreshCw className="spin-icon" aria-hidden="true" />
-                      <span>Wird gespeichert …</span>
-                    </>
-                  ) : autoSaveState === "pending" || dirty || forceCreateSpecial ? (
-                    <>
-                      <Clock3 aria-hidden="true" />
-                      <span>Wird gleich gespeichert …</span>
-                    </>
-                  ) : session?.updatedAt ? (
-                    <>
-                      <CloudCheck aria-hidden="true" />
-                      <span>Gespeichert {formatSavedAt(session.updatedAt)}</span>
-                    </>
-                  ) : (
-                    <>
-                      <CloudCheck aria-hidden="true" />
-                      <span>Automatisches Speichern ist aktiv</span>
-                    </>
-                  )}
-                </div>
+                <TrainingAutosaveStatus
+                  state={autoSaveState}
+                  dirty={dirty}
+                  forceCreateSpecial={forceCreateSpecial}
+                  updatedAt={session?.updatedAt ?? null}
+                  onRetry={() => void retrySave()}
+                />
               )}
             </>
           ) : null}
@@ -1237,126 +861,31 @@ export function KindertrainingDraftPage() {
       )}
 
       {athleteToDeactivate && (
-        <div
-          className="contact-dialog-backdrop"
-          role="presentation"
-          onMouseDown={() => {
-            if (!deactivatingAthlete) {
-              setAthleteToDeactivate(null);
-              setDeactivationConfirmed(false);
-            }
+        <TrainingAthleteDeactivateDialog
+          participant={athleteToDeactivate}
+          sortMode={sortMode}
+          confirmed={deactivationConfirmed}
+          deactivating={deactivatingAthlete}
+          onClose={() => {
+            setAthleteToDeactivate(null);
+            setDeactivationConfirmed(false);
           }}
-        >
-          <section
-            className="contact-dialog athlete-deactivate-dialog"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="athlete-deactivate-title"
-            onMouseDown={(event) => event.stopPropagation()}
-          >
-            <div className="contact-dialog-heading">
-              <div>
-                <p className="eyebrow">Athlet verwalten</p>
-                <h2 id="athlete-deactivate-title">
-                  {athleteDisplayName(athleteToDeactivate, sortMode)}
-                </h2>
-              </div>
-              <button
-                type="button"
-                className="icon-button"
-                onClick={() => {
-                  setAthleteToDeactivate(null);
-                  setDeactivationConfirmed(false);
-                }}
-                disabled={deactivatingAthlete}
-                aria-label="Dialog schließen"
-              >
-                <X aria-hidden="true" />
-              </button>
-            </div>
-
-            <div className="alert warning compact-alert">
-              Das Kind wird ab sofort inaktiv und aus allen aktiven Gruppen entfernt.
-              Vergangene Trainings und Statistiken bleiben erhalten.
-            </div>
-
-            <label className="deactivation-confirmation">
-              <input
-                type="checkbox"
-                checked={deactivationConfirmed}
-                onChange={(event) => setDeactivationConfirmed(event.target.checked)}
-                disabled={deactivatingAthlete}
-              />
-              <span>
-                <strong>Wirklich inaktiv setzen</strong>
-                <small>Diese zusätzliche Bestätigung verhindert versehentliche Änderungen.</small>
-              </span>
-            </label>
-
-            <div className="management-actions">
-              <button
-                type="button"
-                className="secondary-button"
-                onClick={() => {
-                  setAthleteToDeactivate(null);
-                  setDeactivationConfirmed(false);
-                }}
-                disabled={deactivatingAthlete}
-              >
-                Abbrechen
-              </button>
-              <button
-                type="button"
-                className="danger-button"
-                onClick={() => void deactivateSelectedAthlete()}
-                disabled={!deactivationConfirmed || deactivatingAthlete}
-              >
-                <UserMinus aria-hidden="true" />
-                {deactivatingAthlete ? "Wird deaktiviert …" : "Athlet inaktiv setzen"}
-              </button>
-            </div>
-          </section>
-        </div>
+          onConfirmedChange={setDeactivationConfirmed}
+          onDeactivate={() => void deactivateSelectedAthlete()}
+        />
       )}
 
       {selectedContacts && (
-        <div className="contact-dialog-backdrop" role="presentation" onMouseDown={() => setSelectedContacts(null)}>
-          <section
-            className="contact-dialog"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="contact-dialog-title"
-            onMouseDown={(event) => event.stopPropagation()}
-          >
-            <div className="contact-dialog-heading">
-              <div>
-                <p className="eyebrow">Kontakt</p>
-                <h2 id="contact-dialog-title">{selectedContacts.athleteName}</h2>
-              </div>
-              <button type="button" className="icon-button" onClick={() => setSelectedContacts(null)} aria-label="Kontakte schließen">
-                <X aria-hidden="true" />
-              </button>
-            </div>
-            <div className="contact-dialog-list">
-              {selectedContacts.contacts.map((contact) => (
-                <article key={contact.id}>
-                  <div>
-                    <strong>{contact.contactName}</strong>
-                    <small>{[contact.relationship, contact.isEmergency ? "Notfallkontakt" : null].filter(Boolean).join(" · ")}</small>
-                  </div>
-                  <a className="primary-button link-button" href={`tel:${contact.phone}`}>
-                    <Phone aria-hidden="true" /> {contact.phone}
-                  </a>
-                  {contact.notes && <p>{contact.notes}</p>}
-                </article>
-              ))}
-            </div>
-          </section>
-        </div>
+        <TrainingContactDialog
+          selection={selectedContacts}
+          onClose={() => setSelectedContacts(null)}
+        />
       )}
 
       {showQuickAthlete && (
         <QuickAthleteDialog
+          contextLabel="Kindertraining"
+          assignmentTargetLabel="dem Kindertraining"
           onClose={() => setShowQuickAthlete(false)}
           onSubmit={handleQuickAthlete}
           onCompleted={(result) => void completeQuickAthlete(result)}
