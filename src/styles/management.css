@@ -279,7 +279,7 @@
   transition: transform 160ms ease;
 }
 
-.masterdata-create-menu-toggle.active > svg:last-child {
+.masterdata-create-menu-toggle[aria-expanded="true"] > svg:last-child {
   transform: rotate(180deg);
 }
 
@@ -350,12 +350,6 @@
 
 .masterdata-filter-toggle {
   position: relative;
-}
-
-.masterdata-filter-toggle.active {
-  color: var(--green-800);
-  border-color: var(--green-700);
-  background: var(--green-50);
 }
 
 .masterdata-filter-toggle > span {

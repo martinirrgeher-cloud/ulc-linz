@@ -17,6 +17,7 @@ const requiredFiles = [
   "scripts/test-release-approval.mjs",
   "scripts/test-release-verification.mjs",
   "scripts/test-start-change.mjs",
+  "scripts/test-production-marking.mjs",
   "ULC-AENDERUNG-STARTEN.cmd",
   "ULC-UPDATE-INSTALLIEREN.cmd",
   "ULC-PRUEFEN.cmd",
@@ -31,6 +32,8 @@ const requiredFiles = [
   "scripts/check-test-layering.mjs",
   "scripts/check-training-module-architecture.mjs",
   "scripts/check-css-ownership.mjs",
+  "scripts/check-route-css-ownership.mjs",
+  ".github/workflows/production-database.yml",
   ".devcontainer/devcontainer.json",
 ];
 for (const file of requiredFiles) assert.ok(existsSync(file), `Release-Infrastruktur fehlt: ${file}`);
@@ -51,6 +54,7 @@ for (const script of [
   "test:release-approval",
   "test:release-verification",
   "test:start-change",
+  "test:production-marking",
   "test:e2e:readonly:pr",
   "test:e2e:writing:pr",
   "check:test-interactions",
@@ -58,16 +62,20 @@ for (const script of [
   "test:writing-test-isolation",
   "check:test-layering",
   "ci:preview",
+  "check:route-css-ownership",
 ]) assert.ok(pkg.scripts?.[script], `package.json Script fehlt: ${script}`);
 assert.equal(pkg.devDependencies?.["@playwright/test"], "1.62.1", "Playwright Test muss exakt im Projekt gepinnt sein.");
 assert.match(pkg.scripts["ci:quality"], /test:release-approval/, "CI muss die Freigaberoutine testen.");
 assert.match(pkg.scripts["ci:quality"], /test:release-verification/, "CI muss die Wiederverwendung von Pruefnachweisen testen.");
 assert.match(pkg.scripts["ci:quality"], /test:start-change/, "CI muss den Start eines Entwicklungszyklus testen.");
+assert.match(pkg.scripts["ci:quality"], /test:production-marking/, "CI muss den DB-Nachweis vor der Produktionsmarkierung testen.");
 assert.match(pkg.scripts["ci:quality"], /check:simulation-safety/, "CI muss den Simulations-Schreibschutz pruefen.");
 assert.match(pkg.scripts["ci:quality"], /check:test-interactions/, "CI muss die stabilen Test-Interaktionsanker pruefen.");
 assert.match(pkg.scripts["ci:quality"], /check:writing-test-isolation/, "CI muss die isolierten Writing-Testdomaenen pruefen.");
 assert.match(pkg.scripts["ci:quality"], /test:writing-test-isolation/, "CI muss die Writing-Isolationslogik mit echten Unit-Tests pruefen.");
 assert.match(pkg.scripts["ci:preview"], /check:writing-test-isolation/, "Preview-Gate muss die Writing-Testisolation statisch pruefen.");
+assert.match(pkg.scripts["ci:quality"], /check:route-css-ownership/, "CI muss routeunabhaengige CSS-Ownership pruefen.");
+assert.match(pkg.scripts["ci:preview"], /check:route-css-ownership/, "Preview-Gate muss routeunabhaengige CSS-Ownership pruefen.");
 assert.match(pkg.scripts["ci:quality"], /check:test-layering/, "CI muss die Testschichten absichern.");
 assert.match(pkg.scripts["ci:preview"], /check:test-layering/, "Preview-Gate muss die Testschichten absichern.");
 assert.match(pkg.scripts["ci:preview"], /check:test-interactions/, "Preview-Gate muss die stabilen Test-Interaktionsanker pruefen.");
@@ -88,6 +96,7 @@ assert.equal(lock.packages?.["node_modules/playwright-core"]?.version, "1.62.1",
 const qualityWorkflow = readFileSync(".github/workflows/quality-check.yml", "utf8");
 const readonlyWorkflow = readFileSync(".github/workflows/e2e-readonly.yml", "utf8");
 const writingWorkflow = readFileSync(".github/workflows/e2e-writing.yml", "utf8");
+const productionDatabaseWorkflow = readFileSync(".github/workflows/production-database.yml", "utf8");
 for (const [label, workflow] of [["Quality", qualityWorkflow], ["Read-only E2E", readonlyWorkflow], ["Writing E2E", writingWorkflow]]) {
   assert.match(workflow, /actions\/checkout@v6/, `${label} muss Checkout v6 verwenden.`);
   assert.match(workflow, /actions\/setup-node@v6/, `${label} muss Setup-Node v6 verwenden.`);
@@ -104,6 +113,23 @@ assert.match(writingWorkflow, /supabase\/setup-cli@v2/, "Writing E2E muss die ak
 assert.match(writingWorkflow, /scripts\/ci\/prepare-writing-e2e\.sh/, "Writing E2E muss Supabase und Chromium ueber den parallelen Vorbereitungsblock starten.");
 assert.doesNotMatch(writingWorkflow, /- name: Isolierte lokale Supabase-Umgebung starten/, "Der alte serielle Supabase-Start darf nicht mehr im Workflow stehen.");
 assert.doesNotMatch(writingWorkflow, /- name: Chromium und Systemabhaengigkeiten installieren/, "Die alte serielle Chromium-Installation darf nicht mehr im Workflow stehen.");
+
+for (const marker of [
+  "push:",
+  "branches:",
+  "main",
+  "SUPABASE_DB_URL",
+  "supabase db push --db-url",
+  "--dry-run",
+  "supabase_migrations.schema_migrations",
+  "database-verified-${GITHUB_SHA}",
+]) {
+  assert.ok(productionDatabaseWorkflow.includes(marker), `Produktionsdatenbank-Workflow fehlt: ${marker}`);
+}
+assert.match(productionDatabaseWorkflow, /permissions:[\s\S]*contents:\s*write/, "Produktionsdatenbank-Workflow braucht Schreibrecht nur fuer den Verifikations-Tag.");
+assert.doesNotMatch(productionDatabaseWorkflow, /migration\s+repair/, "Produktionsworkflow darf Migrationshistorie nie automatisch reparieren.");
+assert.doesNotMatch(productionDatabaseWorkflow, /db\s+reset/, "Produktionsworkflow darf die Produktionsdatenbank nie resetten.");
+assert.doesNotMatch(productionDatabaseWorkflow, /seed/i, "Produktionsworkflow darf keine Seed-Daten nach Produktion schreiben.");
 
 const writingPreparation = readFileSync("scripts/ci/prepare-writing-e2e.sh", "utf8");
 assert.match(writingPreparation, /supabase start[\s\S]*&/, "Writing-Vorbereitung muss Supabase im Hintergrund starten.");
@@ -190,12 +216,15 @@ assert.match(productionMarker, /git[\s\S]*switch[\s\S]*main/, "Produktionsmarkie
 assert.match(productionMarker, /merge[\s\S]*--ff-only[\s\S]*origin\/main/, "Produktionsmarkierung muss main ausschliesslich per Fast-Forward synchronisieren.");
 assert.doesNotMatch(productionMarker, /reset[\s\S]*--hard/, "Produktionsmarkierung darf den lokalen Stand nicht hart zuruecksetzen.");
 assert.match(productionMarker, /resolved !== remoteMain/, "Nur der aktuelle origin/main darf als Produktion bestaetigt werden.");
+assert.match(productionMarker, /database-verified-\$\{resolved\}/, "Produktionsmarkierung muss den DB-Verifikations-Tag des exakten Commits verlangen.");
+assert.match(productionMarker, /Produktionsdatenbank migrieren/, "Produktionsmarkierung muss bei fehlendem DB-Nachweis auf den GitHub-Workflow verweisen.");
 
 const releaseDocs = readFileSync("DEVELOPMENT-RELEASE.md", "utf8");
 for (const marker of ["ULC-UPDATE-INSTALLIEREN.cmd", "Manifestformat v2", "existing-pr", "ULC-SOURCE-METADATA.json", "Prüfnachweis wiederverwenden"]) {
   assert.match(releaseDocs, new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")), `Release-Dokumentation fehlt: ${marker}`);
 }
 assert.match(releaseDocs, /Fast-Forward[\s\S]*main/, "Release-Dokumentation muss die sichere main-Synchronisierung nach Produktion festhalten.");
+assert.match(releaseDocs, /Produktionsdatenbank migrieren[\s\S]*database-verified-<commit>/, "Release-Dokumentation muss das Produktionsdatenbank-Gate vor der Produktionsmarkierung festhalten.");
 
 const releaseCheck = readFileSync("scripts/release/run-release-check.mjs", "utf8");
 assert.match(releaseCheck, /run-runtime-smoke\.mjs/, "Release-Check muss den isolierten Runtime-Build ausfuehren.");

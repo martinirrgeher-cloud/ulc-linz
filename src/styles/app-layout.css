@@ -29,11 +29,6 @@
   flex: 0 0 auto;
 }
 
-.app-user-menu-toggle.active {
-  color: #fff;
-  background: var(--green-700);
-}
-
 .app-user-menu-panel {
   position: absolute;
   z-index: 40;
@@ -125,7 +120,7 @@
 .app-simulation-banner strong { font-size: 0.85rem; }
 .app-simulation-banner span { font-size: .76rem; }
 .app-simulation-exit {
-  min-height: 34px; display: inline-flex; gap: 5px; align-items: center; padding: 5px 8px; color: #5d3b00; background: #fff; border: 1px solid #d9b657; border-radius: 8px; font: inherit; font-size: .76rem; font-weight: 700; cursor: pointer;
+  min-height: var(--ui-control-height-compact); display: inline-flex; gap: 5px; align-items: center; padding: 5px 8px; color: #5d3b00; background: #fff; border: 1px solid #d9b657; border-radius: 8px; font: inherit; font-size: .76rem; font-weight: 700; cursor: pointer;
 }
 .app-simulation-exit svg { width: 15px; height: 15px; }
 
@@ -194,7 +189,7 @@
 @media (max-width: 760px) {
   .app-simulation-banner { top: 66px; margin: 0 6px 6px; padding: 7px 8px; }
   .app-simulation-exit span { display: none; }
-  .app-simulation-exit { width: 34px; padding: 5px; justify-content: center; }
+  .app-simulation-exit { width: var(--ui-control-height-compact); padding: 5px; justify-content: center; }
   .app-content > section > :first-child:is(.page-heading, [class$="-heading"], [class*="-heading "]) { padding-right: 50px; }
   .app-user-menu-panel { top: calc(100% + 7px); }
   .app-shell { --app-bottom-nav-height: 64px; --app-bottom-nav-edge: max(6px, env(safe-area-inset-bottom)); --app-bottom-nav-clearance: calc(var(--app-bottom-nav-height) + var(--app-bottom-nav-edge) + 24px); --app-bottom-sticky-offset: calc(var(--app-bottom-nav-height) + var(--app-bottom-nav-edge) + 8px); }

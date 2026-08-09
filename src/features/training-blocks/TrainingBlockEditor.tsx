@@ -420,8 +420,14 @@ export function TrainingBlockEditor({
                           <article className="training-block-item-card missing" key={item.clientId}>
                             <strong>Übung nicht mehr verfügbar</strong>
                             {canEdit && (
-                              <button type="button" className="text-button danger-text" onClick={() => removeItem(item.clientId)}>
-                                Entfernen
+                              <button
+                                type="button"
+                                className="icon-button icon-button--danger"
+                                onClick={() => removeItem(item.clientId)}
+                                aria-label="Nicht mehr verfügbare Übung entfernen"
+                                title="Entfernen"
+                              >
+                                <Trash2 aria-hidden="true" />
                               </button>
                             )}
                           </article>

@@ -129,7 +129,7 @@ function AppLayoutContent() {
           <div className="app-user-menu" ref={userMenuRef}>
             <button
               type="button"
-              className={`icon-button app-user-menu-toggle ${userMenuOpen ? "active" : ""}`}
+              className="icon-button icon-button--toggle app-user-menu-toggle"
               onClick={() => setUserMenuOpen((current) => !current)}
               aria-label={userMenuOpen ? "Benutzermenü schließen" : "Benutzermenü öffnen"}
               aria-expanded={userMenuOpen}

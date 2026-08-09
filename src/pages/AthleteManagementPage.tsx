@@ -746,7 +746,7 @@ export function AthleteManagementPage() {
               )}
             </div>
 
-            <div className="status-filter masterdata-status-filter" aria-label="Status filtern">
+            <div className="ui-status-filter masterdata-status-filter" aria-label="Status filtern">
               {([['active', 'Aktiv'], ['inactive', 'Inaktiv'], ['all', 'Alle']] as const).map(([value, label]) => (
                 <button type="button" className={activeFilter === value ? "active" : ""} onClick={() => setActiveFilter(value)} key={value}>{label}</button>
               ))}

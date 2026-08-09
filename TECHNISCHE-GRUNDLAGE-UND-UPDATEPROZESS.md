@@ -250,6 +250,14 @@ Verbindliche Checks prüfen unter anderem:
 
 Neue Datenbankänderungen werden als neue Migration ausgeliefert. Bereits produktive Migrationen werden nicht rückwirkend umgeschrieben.
 
+### 6.2.1 Automatische Produktionsmigration und Verifikationsnachweis
+
+Nach jedem Push auf `main` startet `.github/workflows/production-database.yml`. Der Workflow verwendet ausschließlich das Repository-Secret `SUPABASE_DB_URL`, führt zuerst `supabase db push --dry-run`, anschließend `supabase db push` aus und vergleicht danach die Versionsliste unter `supabase/migrations` exakt mit `supabase_migrations.schema_migrations` der Produktionsdatenbank. Es werden **keine** Seeds eingespielt, keine Datenbank resettet und keine abweichende Migrationshistorie automatisch per `migration repair` korrigiert.
+
+Nur wenn Repo und Produktion exakt übereinstimmen, wird der leichte Git-Tag `database-verified-<Git-Commit>` erzeugt. `scripts/release/mark-production.mjs` verlangt diesen Tag für exakt `origin/main`, bevor ein `production-*`-Tag angelegt werden darf. Dadurch bleibt der Benutzerworkflow bei sechs CMD-Dateien, ein Frontendstand mit fehlenden produktiven Migrationen kann aber nicht mehr als stabil markiert werden.
+
+Manuelle Schemaänderungen im Supabase-Dashboard sind kein normaler Releaseweg. Produktive Schemaänderungen müssen immer zuerst als neue Migration im Repository vorliegen.
+
 ### 6.3 Simulation / schreibgeschützte Benutzeransicht
 
 Die Benutzer-Simulation ist technisch gegen Schreibvorgänge abgesichert.
@@ -297,14 +305,14 @@ Feature- und Routen-CSS soll lazy über die jeweilige Route geladen werden.
 
 Referenzmessung:
 
-- 34 CSS-Dateien
-- 323.252 Bytes / 13.268 Zeilen gesamt – Beobachtungswert
-- 3 globale Dateien / 33.223 Bytes
-- 38 routebezogene CSS-Imports – Beobachtungswert
-- größter Route-CSS-Import: 40.012 Bytes
+- 36 CSS-Dateien
+- 325.478 Bytes / 13.333 Zeilen gesamt – Beobachtungswert
+- 3 globale Dateien / 35.970 Bytes
+- 41 routebezogene CSS-Imports – Beobachtungswert
+- größter Route-CSS-Import: 40.029 Bytes
 - größte CSS-Datei: `training-planning.css` mit 35.598 Bytes / 1.831 Zeilen
 - Selektor-Duplikationsquote: 7,84 %
-- 33 `!important`
+- 32 `!important`
 - 50 Legacy-Media-Query-Vorkommen
 - 14 featurebezogene Selektorvorkommen in `global.css`
 
@@ -327,6 +335,8 @@ Bevor ein hartes Budget erhöht wird, muss zuerst geprüft werden, ob CSS konsol
 
 `scripts/check-css-ownership.mjs` verhindert insbesondere, dass ausgelagerte Stammdaten-/Benutzerverwaltungsregeln wieder nach `global.css` zurückwandern.
 
+`scripts/check-route-css-ownership.mjs` schützt zusätzlich die Laufzeit-Ownership: Shared-Komponenten müssen ihr CSS selbst importieren oder globale UI-Utilities verwenden. Eine Route darf niemals nur deshalb korrekt aussehen, weil zuvor eine andere lazy Route besucht und deren Stylesheet bereits geladen wurde.
+
 ### 7.1 Verbindlicher UI-Control-Standard
 
 Die App verwendet für normale Bedienelemente semantische, fachlich neutrale Grundvarianten. Ziel ist, dass ein Speichern-, Bearbeiten-, Schließen- oder Löschbutton unabhängig von Route und CSS-Ladereihenfolge gleich gerendert wird.
@@ -344,13 +354,15 @@ Zentrale Semantik:
 
 - `.icon-button` – neutrale Iconaktion
 - `.icon-button--save` – grüne Fläche, weißes Speichern-Symbol
-- `.icon-button--danger` – destruktive Iconaktion
+- `.icon-button--danger` – destruktive Iconaktion; Hover/Focus bleiben rot
+- `.icon-button--favorite` + `aria-pressed` – Favorit, aktiv goldene Fläche + gefüllter Stern; Hover/Focus bleiben gold und werden nie grün
+- `.icon-button--selected` + `aria-pressed` – persistente/temporäre Auswahlaktion; kein generisches `.active` für Iconzustände
 - `.icon-button--inline` – feldinterne Iconaktion
 - `.ui-tabs` – gemeinsamer Tabcontainer
 - `.ui-segmented` – kompakte exklusive Auswahl
 - `.ui-search-field` – einziges Standard-Suchfeld
 - `.ui-choice-row` – anklickbare Checkbox-/Mehrfachauswahlzeile
-- `.ui-switch` / `.ui-switch-control` – echter Ein/Aus-Zustand
+- `.ui-switch` / `.ui-switch-control` – echter Ein/Aus-Zustand über `role="switch"` + `aria-checked`, nicht über generisches `.active`
 - `.ui-labeled-field` – normales beschriftetes Formularfeld als gemeinsamer Rahmen
 - `.ui-field-label` – dauerhaft sichtbare hellgraue Feldkopfzeile innerhalb dieses Rahmens
 - `.ui-field-control` – eigentliche Text-/Select-/Zahl-/Datum-/Textarea-Eingabe innerhalb des Feldrahmens
@@ -363,7 +375,9 @@ Feature-CSS darf normale Save-/Close-/Edit-/Info-/Delete-Controls nicht über ei
 
 Fachliche Statuscontrols dürfen eigene Zustandsfarben behalten, müssen aber zur gemeinsamen Größen-, Fokus- und Radiusfamilie passen.
 
-`scripts/check-ui-controls.mjs` schützt diesen Vertrag und ist Teil von `ci:quality` und `ci:preview`. Der Runtime-Smoke prüft bei zentralen Editoraktionen zusätzlich berechnete Styles, damit Fehler durch CSS-Spezifität erkannt werden.
+`scripts/check-ui-controls.mjs` schützt diesen Vertrag und ist Teil von `ci:quality` und `ci:preview`. Der Runtime-Smoke prüft bei zentralen Editoraktionen sowie semantischen Favoritenzuständen zusätzlich berechnete Styles, damit Fehler durch CSS-Spezifität erkannt werden.
+
+Zentrale schreibende CRUD-Editoren werden nicht nur auf Rendern geprüft. Writing-E2E muss mindestens einen echten Speichervorgang mit anschließendem Reload/Read-back abdecken; persistente Zustände wie Favoriten werden ebenfalls nach Reload validiert.
 
 ---
 

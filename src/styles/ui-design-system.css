@@ -80,3 +80,30 @@
 
 
 
+
+
+/* Gemeinsamer Favoritenfilter fuer Katalog und Trainingsbloecke. */
+.ui-favorite-filter {
+  min-height: var(--ui-control-height-compact);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 10px;
+  color: #765108;
+  background: #fffdf7;
+  border: 1px solid #e6d7ad;
+  border-radius: var(--ui-control-radius);
+  font: inherit;
+  font-size: .78rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+.ui-favorite-filter svg { width: 16px; height: 16px; color: #9b6b0e; }
+.ui-favorite-filter span { min-width: 22px; padding: 1px 6px; background: rgba(155, 107, 14, 0.1); border-radius: 999px; font-size: .76rem; text-align: center; }
+.ui-favorite-filter:hover:not(:disabled),
+.ui-favorite-filter:focus-visible { color: #704900; background: #fff7df; border-color: #d9b657; }
+.ui-favorite-filter[aria-pressed="true"] { color: #704900; background: #fff0bd; border-color: #d1a43b; }
+.ui-favorite-filter[aria-pressed="true"] span { background: rgba(155, 107, 14, .14); }
+.ui-favorite-filter[aria-pressed="true"]:hover:not(:disabled),
+.ui-favorite-filter[aria-pressed="true"]:focus-visible { background: #ffe89a; border-color: #bd8d20; }

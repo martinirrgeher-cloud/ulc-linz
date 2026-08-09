@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 const globalCss = await readFile("src/styles/global.css", "utf8");
 const masterdataCss = await readFile("src/styles/masterdata-foundation.css", "utf8");
 const userCss = await readFile("src/styles/user-management-foundation.css", "utf8");
+const mobileFoundationCss = await readFile("src/styles/mobile-foundation.css", "utf8");
 const dashboardCss = await readFile("src/styles/dashboard.css", "utf8");
 const athletePage = await readFile("src/pages/AthleteManagementPage.tsx", "utf8");
 const userPage = await readFile("src/pages/UserManagementPage.tsx", "utf8");
@@ -51,10 +52,11 @@ for (const marker of [
   ".member-card",
   ".permission-editor",
   ".permission-row",
-  ".status-filter",
 ]) {
   assert.ok(userCss.includes(marker), `Benutzer-Foundation verliert ${marker}.`);
 }
+assert.ok(mobileFoundationCss.includes(".ui-status-filter"), "Gemeinsamer Statusfilter muss in der globalen Mobile-Foundation liegen.");
+assert.equal(userCss.includes(".status-filter"), false, "Benutzer-Foundation darf den appweit gemeinsamen Statusfilter nicht erneut besitzen.");
 assert.ok(dashboardCss.includes(".dashboard-page .dashboard-heading"), "Dashboard-spezifischer Heading-Abstand muss routebezogen bleiben.");
 
 const orderedImports = (source, names) => {

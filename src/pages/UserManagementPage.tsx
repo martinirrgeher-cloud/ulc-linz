@@ -611,7 +611,7 @@ export function UserManagementPage() {
           </label>
           <button
             type="button"
-            className={`icon-button user-management-filter-toggle ${filtersOpen ? "active" : ""}`}
+            className="icon-button icon-button--toggle user-management-filter-toggle"
             onClick={() => setFiltersOpen((current) => !current)}
             aria-expanded={filtersOpen}
             aria-label="Benutzerfilter"
@@ -650,7 +650,7 @@ export function UserManagementPage() {
         )}
       </div>
 
-      <div className="status-filter user-management-status-filter" aria-label="Benutzerstatus filtern">
+      <div className="ui-status-filter user-management-status-filter" aria-label="Benutzerstatus filtern">
         {([
           ["all", "Alle", counts.all],
           ["active", "Aktiv", counts.active],

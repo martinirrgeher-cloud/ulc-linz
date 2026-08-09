@@ -24,7 +24,7 @@ textarea {
   .primary-button,
   .secondary-button,
   .icon-button,
-  .status-filter button {
+  .ui-status-filter button {
     min-height: var(--ui-control-height);
   }
   .icon-button {
@@ -156,7 +156,7 @@ textarea {
     padding: 30px 16px;
         border-radius: 16px;
   }
-  .status-filter {
+  .ui-status-filter {
     flex-wrap: nowrap;
         overflow-x: auto;
         padding-bottom: 4px;
@@ -164,10 +164,10 @@ textarea {
         scroll-snap-type: x proximity;
         -webkit-overflow-scrolling: touch;
   }
-  .status-filter::-webkit-scrollbar {
+  .ui-status-filter::-webkit-scrollbar {
     display: none;
   }
-  .status-filter button {
+  .ui-status-filter button {
     flex: 0 0 auto;
         scroll-snap-align: start;
   }

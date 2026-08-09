@@ -19,7 +19,6 @@
 
 .ui-switch:hover,
 .ui-switch:focus-visible,
-.ui-switch.active,
 .ui-switch[aria-checked="true"] {
   background: #f1f8f4;
   border-color: #9fcab0;
@@ -47,12 +46,10 @@
   transition: transform 0.18s ease;
 }
 
-.ui-switch.active .ui-switch-control,
 .ui-switch[aria-checked="true"] .ui-switch-control {
   background: var(--green-700);
 }
 
-.ui-switch.active .ui-switch-control > span,
 .ui-switch[aria-checked="true"] .ui-switch-control > span {
   transform: translateX(18px);
 }
@@ -162,6 +159,48 @@
   }
 }
 
+
+/* Globale, nicht sichtbare Beschriftung fuer barrierefreie Controls. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Gemeinsamer Statusfilter fuer Stammdaten, Benutzer und Trainingsbloecke. */
+.ui-status-filter {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.ui-status-filter button {
+  min-height: var(--ui-control-height-compact);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 6px 9px;
+  color: #4f6257;
+  background: #f7faf8;
+  border: 1px solid #d7e4db;
+  border-radius: var(--ui-control-radius);
+  font: inherit;
+  font-size: .78rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+.ui-status-filter button:hover,
+.ui-status-filter button:focus-visible { color: var(--green-800); background: #eef6f1; border-color: #bdd8c8; }
+.ui-status-filter button.active { color: #fff; background: var(--green-700); border-color: var(--green-700); }
+.ui-status-filter button span { min-width: 21px; padding: 1px 5px; color: inherit; background: rgba(18, 106, 62, .09); border-radius: 999px; font-size: .76rem; text-align: center; }
+.ui-status-filter button.active span { background: rgba(255, 255, 255, .18); }
+
 :root {
   --ui-touch-target: var(--ui-control-height);
   --ui-gap-compact: 8px;
@@ -242,11 +281,11 @@
     padding: 7px 9px;
     font-size: .82rem;
   }
-  .status-filter {
+  .ui-status-filter {
     gap: 4px;
         padding-bottom: 0;
   }
-  .status-filter button {
+  .ui-status-filter button {
     min-height: 38px;
         padding: 6px 9px;
         font-size: 0.76rem;
@@ -259,7 +298,7 @@
 @media (pointer: coarse) {
   .primary-button,
   .secondary-button,
-  .status-filter button,
+  .ui-status-filter button,
   .ui-tabs > button {
     min-height: var(--ui-touch-target);
   }

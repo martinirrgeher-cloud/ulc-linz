@@ -1,0 +1,93 @@
+name: Produktionsdatenbank migrieren
+
+on:
+  push:
+    branches:
+      - main
+permissions:
+  contents: write
+
+concurrency:
+  group: production-database
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    name: Supabase-Migrationen auf Produktion
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+    steps:
+      - name: Repository auschecken
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Supabase CLI einrichten
+        uses: supabase/setup-cli@v2
+        with:
+          version: 2.109.1
+
+      - name: Produktionszugang pruefen
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${SUPABASE_DB_URL:-}" ]; then
+            echo "FEHLER: Repository-Secret SUPABASE_DB_URL fehlt."
+            exit 1
+          fi
+
+      - name: Migrationshistorie vorab pruefen
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase migration list --db-url "$SUPABASE_DB_URL"
+          supabase db push --db-url "$SUPABASE_DB_URL" --dry-run
+
+      - name: Migrationen anwenden
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase db push --db-url "$SUPABASE_DB_URL"
+
+      - name: Repo und Produktionshistorie exakt vergleichen
+        shell: bash
+        run: |
+          set -euo pipefail
+          find supabase/migrations -maxdepth 1 -type f -name '*.sql' -printf '%f\n' \
+            | sed -E 's/^([0-9]+)_.*/\1/' \
+            | sort -u > /tmp/local-migrations.txt
+
+          docker run --rm postgres:17-alpine \
+            psql "$SUPABASE_DB_URL" -At \
+            -c 'select version from supabase_migrations.schema_migrations order by version;' \
+            | tr -d '\r' \
+            | sed '/^[[:space:]]*$/d' \
+            | sort -u > /tmp/remote-migrations.txt
+
+          echo "Lokale Migrationen:  $(wc -l < /tmp/local-migrations.txt)"
+          echo "Produktionshistorie: $(wc -l < /tmp/remote-migrations.txt)"
+          if ! diff -u /tmp/local-migrations.txt /tmp/remote-migrations.txt; then
+            echo "FEHLER: Produktionsdatenbank und Repository besitzen nicht dieselbe Migrationshistorie."
+            echo "Keine automatische Reparatur der Migrationshistorie wird ausgefuehrt."
+            exit 1
+          fi
+
+      - name: Produktionsdatenbank fuer Commit bestaetigen
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="database-verified-${GITHUB_SHA}"
+          existing="$(git ls-remote --tags origin "refs/tags/${tag}" | awk '{print $1}')"
+          if [ -n "$existing" ]; then
+            if [ "$existing" != "$GITHUB_SHA" ]; then
+              echo "FEHLER: Verifikations-Tag ${tag} zeigt auf einen unerwarteten Commit: ${existing}"
+              exit 1
+            fi
+            echo "Verifikations-Tag existiert bereits korrekt: ${tag}"
+            exit 0
+          fi
+          git tag "$tag" "$GITHUB_SHA"
+          git push origin "refs/tags/${tag}"
+          echo "Produktionsdatenbank verifiziert: ${tag}"

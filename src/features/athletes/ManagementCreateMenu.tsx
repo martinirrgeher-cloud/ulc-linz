@@ -38,7 +38,7 @@ export function ManagementCreateMenu({ disabled, onCreate }: ManagementCreateMen
     <div className="masterdata-create-menu" ref={rootRef}>
       <button
         type="button"
-        className={`primary-button masterdata-create-menu-toggle ${open ? "active" : ""}`}
+        className="primary-button masterdata-create-menu-toggle"
         onClick={() => setOpen((current) => !current)}
         disabled={disabled}
         aria-expanded={open}

@@ -137,7 +137,9 @@ test("Auswahllisten bearbeiten unterhalb der globalen Kopfzeile", async ({ page 
   expect(appHeaderBox).not.toBeNull();
   expect(editorHeaderBox).not.toBeNull();
   expect(editorHeaderBox.y).toBeGreaterThanOrEqual(appHeaderBox.y + appHeaderBox.height - 2);
-  await page.getByRole("button", { name: "Bearbeitung schließen", exact: true }).click();
+  await editor.getByLabel("Bezeichnung *").fill("Sprint E2E Runtime");
+  await saveButton.click();
+  await expect(page.getByText("Der Eintrag wurde gespeichert.", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Auswahllisten", exact: true })).toBeVisible();
   await expectRuntimeHealthy(page, problems, unhandled);
 });
@@ -158,6 +160,16 @@ test("D2 Übungskatalog zeigt kompakte Liste, Schnellinfos und Filter-Sheet", { 
   expect(titleFontSize).toBeGreaterThanOrEqual(15);
   const firstExercise = page.locator(".exercise-list-item").first();
   await expect(firstExercise).toBeVisible();
+  const favoriteButton = firstExercise.locator(".exercise-favorite-button");
+  await expect(favoriteButton).toHaveAttribute("aria-pressed", "true");
+  await expect(favoriteButton).toHaveCSS("color", "rgb(138, 93, 8)");
+  await expect(favoriteButton).toHaveCSS("background-color", "rgb(255, 240, 189)");
+  await favoriteButton.hover();
+  await expect(favoriteButton).toHaveCSS("color", "rgb(112, 73, 0)");
+  await expect(favoriteButton).toHaveCSS("background-color", "rgb(255, 232, 154)");
+  await favoriteButton.focus();
+  await expect(favoriteButton).toHaveCSS("color", "rgb(112, 73, 0)");
+  await expect(favoriteButton).toHaveCSS("background-color", "rgb(255, 232, 154)");
   const exerciseEditBox = await firstExercise.locator(".exercise-edit-button").boundingBox();
   expect(exerciseEditBox).not.toBeNull();
   expect(exerciseEditBox.width).toBeGreaterThanOrEqual(38);
