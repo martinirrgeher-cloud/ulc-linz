@@ -430,3 +430,77 @@ Zwei reine Release-Infrastrukturprüfungen wurden deshalb aus dem allgemeinen
 Smoke-Test entfernt und verbleiben ausschließlich im dedizierten
 Release-Infrastruktur-/Start-Change-Test. `check:test-layering` verhindert eine
 erneute Vermischung dieser Verantwortlichkeiten.
+
+
+## S3a – Frontend-, CSS- und API-Skalierungsbasis
+
+S3a verändert keine fachlichen Funktionen oder sichtbaren Seiteninhalte. Ziel ist,
+die technische Basis so zu strukturieren, dass weitere Module wachsen können,
+ohne globale CSS-Grenzen oder duplizierte RPC-/JSON-Basislogik weiter aufzublähen.
+
+### CSS
+
+Die CSS-Architektur wird ab S3a nicht mehr über starre Gesamtmengen wie
+„maximal 33 CSS-Dateien“, „maximal 34 Route-Imports“ oder eine fixe
+Gesamtquellgröße blockiert. Diese Werte bleiben sichtbar, sind aber reine
+Beobachtungswerte.
+
+Harte CSS-Gates bleiben dort, wo sie die tatsächliche Skalierbarkeit schützen:
+
+- maximal drei globale CSS-Einstiegsdateien,
+- global importierte CSS-Bytes,
+- größte einzelne CSS-Datei,
+- größter routebezogener CSS-Import,
+- Anteil dateiübergreifend doppelter Selektoren,
+- `!important`-Deklarationen,
+- keine Zunahme featurebezogener Selektoren in `global.css`,
+- keine Zunahme alter, uneinheitlicher Media-Query-Breakpoints.
+
+Neue responsive Regeln sollen bevorzugt die bereits etablierten Breakpoints
+760 px, 520 px und 390 px sowie `pointer: coarse`,
+`prefers-reduced-motion`, Landscape-Sonderfall und Print verwenden.
+Bestehende Legacy-Breakpoints dürfen schrittweise reduziert, aber nicht weiter
+vermehrt werden.
+
+Damit kann eine neue lazy geladene Route legitimerweise eigenes CSS erhalten,
+ohne dass allein die Zahl der Dateien oder Imports einen Release blockiert.
+
+### Gemeinsame UI-Bausteine
+
+Wiederverwendbare UI-Bausteine dürfen nicht unnötig in einem einzelnen
+Feature-Verzeichnis liegen. Die feste Editor-Aktionsleiste
+`StickyEditorActions` liegt deshalb zentral unter `src/components/ui`.
+`check:ui-foundation` schützt diese Zuordnung.
+
+### Gemeinsame JSON-/Supabase-RPC-Basis
+
+Feature-APIs dürfen grundlegende Parser und den typisierten Supabase-RPC-Aufruf
+nicht jeweils neu implementieren.
+
+Gemeinsame Basis:
+
+- `src/lib/json-value.ts`
+  - `isRecord`
+  - `numberOrNull`
+  - `parseStringArray`
+- `src/lib/supabase-rpc.ts`
+  - `callJsonRpc`
+  - `callJsonRpcRawError`
+
+Der Rohfehlermodus bleibt für bestehende Module erhalten, die Supabase-Fehler
+bewusst unverändert weiterreichen. Module mit bisheriger `Error(message)`-Logik
+nutzen den normalisierten Modus. Damit ändert S3a das Fehlerverhalten nicht.
+
+`check:api-foundation` verhindert künftig lokale Kopien dieser Basisfunktionen
+und direkte neue `rpc.bind`-Wrapper innerhalb der Features.
+
+### S3-Fortsetzung
+
+Nach produktiver Absicherung von S3a folgen getrennt:
+
+- S3b: schrittweise CSS-Konsolidierung und Verkleinerung von `global.css`,
+- S3c: gemeinsame Trainings-/Statistik-Bausteine für Kindertraining, U12 und U14,
+- S3d: weitere Zerlegung großer Page-Komponenten und gemeinsame Feature-Services.
+
+Diese Schritte erfolgen jeweils ohne fachliche Funktionsänderung und ohne
+Big-Bang-Refactoring.

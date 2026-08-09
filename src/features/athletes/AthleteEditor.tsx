@@ -8,7 +8,7 @@ import {
   Trash2,
   UserRound,
 } from "lucide-react";
-import { StickyEditorActions } from "@/features/athletes/StickyEditorActions";
+import { StickyEditorActions } from "@/components/ui/StickyEditorActions";
 import { useSwipeTabs } from "@/features/athletes/useSwipeTabs";
 import type {
   Athlete,

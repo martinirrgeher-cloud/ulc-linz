@@ -1,24 +1,11 @@
-import type { Json } from "@/types/database.generated";
-import { requireSupabase } from "@/lib/supabase";
+import { callJsonRpc } from "@/lib/supabase-rpc";
+import { isRecord, numberOrNull } from "@/lib/json-value";
 import type {
   DropdownListKey,
   DropdownSettingInput,
   DropdownSettingOption,
   DropdownSettingsData,
 } from "@/features/dropdown-settings/types";
-
-type JsonRpc = (
-  functionName: string,
-  args?: Record<string, unknown>,
-) => PromiseLike<{ data: Json | null; error: { message: string } | null }>;
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function numberOrNull(value: unknown): number | null {
-  return typeof value === "number" && Number.isFinite(value) ? value : null;
-}
 
 function parseOptions(value: unknown): DropdownSettingOption[] {
   if (!Array.isArray(value)) return [];
@@ -37,14 +24,6 @@ function parseOptions(value: unknown): DropdownSettingOption[] {
       usageCount: typeof item.usage_count === "number" ? item.usage_count : 0,
     }];
   }).sort((left, right) => left.sortOrder - right.sortOrder || left.label.localeCompare(right.label, "de"));
-}
-
-async function callJsonRpc(functionName: string, args: Record<string, unknown>): Promise<Json> {
-  const supabase = requireSupabase();
-  const rpc = supabase.rpc.bind(supabase) as unknown as JsonRpc;
-  const { data, error } = await rpc(functionName, args);
-  if (error) throw new Error(error.message);
-  return data ?? null;
 }
 
 export async function loadDropdownSettings(organizationId: string): Promise<DropdownSettingsData> {

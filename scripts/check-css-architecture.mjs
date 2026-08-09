@@ -7,19 +7,15 @@ const sourceRoot = path.join(projectRoot, "src");
 const mainPath = path.join(sourceRoot, "main.tsx");
 
 const limits = Object.freeze({
-  cssFiles: 33,
-  totalBytes: 350_000,
-  totalLines: 15_250,
   mainCssImports: 3,
   mainImportedBytes: 68_000,
-  routeCssImports: 34,
   importantDeclarations: 38,
-  mediaQueries: 140,
-  uniqueMediaConditions: 28,
-  maxWidthMediaQueries: 130,
-  duplicateSelectorsAcrossFiles: 255,
+  duplicateSelectorRatio: 0.10,
   largestFileBytes: 56_000,
   largestFileLines: 3_100,
+  maxRouteImportedBytes: 50_000,
+  globalFeatureSelectorOccurrences: 269,
+  legacyMediaQueries: 54,
 });
 
 const expectedRouteImports = Object.freeze({
@@ -56,6 +52,21 @@ const forbiddenMainImports = new Set(
 forbiddenMainImports.delete("user-management-e5c.css");
 
 const featureSelectorPattern = /\.(?:dashboard-page|module-section|management-|member-|athlete-|trainer-|training-group|permission-|masterdata-|exercise-|training-block|training-plan|training-planning|training-overview|training-doc|performance-|statistics-|data-import|data-export|dropdown-setting|mobile-day-selector)\b/;
+
+const featureSelectorOccurrencePattern = /\.(?:dashboard-page|module-section|management-|member-|athlete-|trainer-|training-group|permission-|masterdata-|exercise-|training-block|training-plan|training-planning|training-overview|training-doc|performance-|statistics-|data-import|data-export|dropdown-setting|mobile-day-selector)\b/g;
+
+const preferredMediaConditions = new Set([
+  "(max-width: 760px)",
+  "screen and (max-width: 760px)",
+  "(max-width: 520px)",
+  "(max-width: 390px)",
+  "screen and (max-width: 390px)",
+  "(pointer: coarse)",
+  "screen and (pointer: coarse) and (max-width: 760px)",
+  "(prefers-reduced-motion: reduce)",
+  "(max-height: 500px) and (orientation: landscape)",
+  "print",
+]);
 
 async function collectFiles(directory, predicate) {
   const files = [];
@@ -121,9 +132,28 @@ for (const name of mainImportNames) {
 }
 
 let routeCssImports = 0;
+const routeImportMetrics = [];
 for (const file of sourceFiles) {
+  if (file === mainPath) continue;
   const source = await readFile(file, "utf8");
-  if (file !== mainPath) routeCssImports += cssImportsIn(source).length;
+  const imports = cssImportsIn(source);
+  routeCssImports += imports.length;
+  if (imports.length === 0) continue;
+
+  let importedBytes = 0;
+  for (const name of imports) {
+    const importPath = path.join(sourceRoot, "styles", name);
+    try {
+      importedBytes += normalizedUtf8Bytes(await readFile(importPath, "utf8"));
+    } catch {
+      throw new Error(`Routeimportierte CSS-Datei fehlt: ${name} in ${relative(file)}`);
+    }
+  }
+  routeImportMetrics.push({
+    file: relative(file),
+    imports,
+    importedBytes,
+  });
 }
 
 for (const [relativePage, expectedImports] of Object.entries(expectedRouteImports)) {
@@ -168,6 +198,10 @@ const metrics = {
   selectorOccurrences: 0,
   uniqueSelectors: 0,
   duplicateSelectorsAcrossFiles: 0,
+  duplicateSelectorRatio: 0,
+  legacyMediaQueries: 0,
+  globalFeatureSelectorOccurrences: 0,
+  largestRouteImport: null,
   largestFile: null,
 };
 
@@ -190,6 +224,7 @@ for (const file of cssFiles) {
     const condition = normalizeWhitespace(match[1] ?? "");
     metrics.mediaQueries += 1;
     mediaConditions.add(condition);
+    if (!preferredMediaConditions.has(condition)) metrics.legacyMediaQueries += 1;
     if (/max-width/i.test(condition)) metrics.maxWidthMediaQueries += 1;
     if (/min-width/i.test(condition)) metrics.minWidthMediaQueries += 1;
   }
@@ -214,37 +249,46 @@ metrics.uniqueMediaConditions = mediaConditions.size;
 metrics.uniqueSelectors = selectorFiles.size;
 metrics.duplicateSelectorsAcrossFiles = [...selectorFiles.values()]
   .filter((owners) => owners.size > 1).length;
+metrics.duplicateSelectorRatio = metrics.uniqueSelectors > 0
+  ? metrics.duplicateSelectorsAcrossFiles / metrics.uniqueSelectors
+  : 0;
+metrics.largestRouteImport = [...routeImportMetrics]
+  .sort((left, right) => right.importedBytes - left.importedBytes)[0] ?? null;
 metrics.largestFile = [...fileMetrics].sort((left, right) => right.bytes - left.bytes)[0] ?? null;
 
+const globalSource = withoutComments(await readFile(path.join(sourceRoot, "styles", "global.css"), "utf8"));
+metrics.globalFeatureSelectorOccurrences = (globalSource.match(featureSelectorOccurrencePattern) ?? []).length;
+
 const checks = [
-  ["CSS-Dateien", metrics.fileCount, limits.cssFiles],
-  ["CSS-Quellgroesse", metrics.totalBytes, limits.totalBytes],
-  ["CSS-Zeilen", metrics.totalLines, limits.totalLines],
   ["globale CSS-Imports in main.tsx", metrics.mainCssImports, limits.mainCssImports],
   ["global importierte CSS-Bytes", metrics.mainImportedBytes, limits.mainImportedBytes],
-  ["routebezogene CSS-Imports", metrics.routeCssImports, limits.routeCssImports],
   ["!important-Deklarationen", metrics.importantDeclarations, limits.importantDeclarations],
-  ["Media Queries", metrics.mediaQueries, limits.mediaQueries],
-  ["unterschiedliche Media-Bedingungen", metrics.uniqueMediaConditions, limits.uniqueMediaConditions],
-  ["max-width-Media-Queries", metrics.maxWidthMediaQueries, limits.maxWidthMediaQueries],
-  ["dateiuebergreifend doppelte Selektoren", metrics.duplicateSelectorsAcrossFiles, limits.duplicateSelectorsAcrossFiles],
+  ["dateiuebergreifende Selektor-Duplikationsquote", metrics.duplicateSelectorRatio, limits.duplicateSelectorRatio],
+  ["Legacy-Media-Queries ausserhalb der bevorzugten Breakpoints", metrics.legacyMediaQueries, limits.legacyMediaQueries],
+  ["featurebezogene Selektorvorkommen in global.css", metrics.globalFeatureSelectorOccurrences, limits.globalFeatureSelectorOccurrences],
+  ["groesster routebezogener CSS-Import in Bytes", metrics.largestRouteImport?.importedBytes ?? 0, limits.maxRouteImportedBytes],
   ["groesste CSS-Datei in Bytes", metrics.largestFile?.bytes ?? 0, limits.largestFileBytes],
   ["groesste CSS-Datei in Zeilen", metrics.largestFile?.lines ?? 0, limits.largestFileLines],
 ];
 
 console.log("CSS-Architekturbericht");
-console.log(`- Dateien: ${metrics.fileCount}`);
-console.log(`- Gesamt: ${metrics.totalBytes} Bytes / ${metrics.totalLines} Zeilen`);
+console.log(`- Dateien: ${metrics.fileCount} (Beobachtung; kein starres Dateilimit mehr)`);
+console.log(`- Gesamt: ${metrics.totalBytes} Bytes / ${metrics.totalLines} Zeilen (Beobachtung; Wachstum wird pro Einstieg/Route begrenzt)`);
 console.log(`- Global aus main.tsx: ${metrics.mainCssImports} Dateien / ${metrics.mainImportedBytes} Bytes`);
-console.log(`- Routebezogene CSS-Imports: ${metrics.routeCssImports}`);
-console.log(`- Media Queries: ${metrics.mediaQueries} (${metrics.uniqueMediaConditions} Bedingungen, ${metrics.maxWidthMediaQueries} max-width, ${metrics.minWidthMediaQueries} min-width)`);
-console.log(`- Selektoren: ${metrics.selectorOccurrences} Vorkommen / ${metrics.uniqueSelectors} eindeutig / ${metrics.duplicateSelectorsAcrossFiles} dateiuebergreifend doppelt`);
+console.log(`- Routebezogene CSS-Imports: ${metrics.routeCssImports} (Beobachtung; neue lazy Routen duerfen eigene CSS-Dateien erhalten)`);
+console.log(`- Groesster routebezogener CSS-Import: ${metrics.largestRouteImport?.file ?? "-"} (${metrics.largestRouteImport?.importedBytes ?? 0} Bytes)`);
+console.log(`- Media Queries: ${metrics.mediaQueries} (${metrics.uniqueMediaConditions} Bedingungen, ${metrics.legacyMediaQueries} Legacy-Vorkommen)`);
+console.log(`- Selektoren: ${metrics.selectorOccurrences} Vorkommen / ${metrics.uniqueSelectors} eindeutig / ${metrics.duplicateSelectorsAcrossFiles} dateiuebergreifend doppelt (${(metrics.duplicateSelectorRatio * 100).toFixed(2)} %)`);
+console.log(`- Featureselektoren in global.css: ${metrics.globalFeatureSelectorOccurrences}`);
 console.log(`- !important: ${metrics.importantDeclarations}`);
 if (metrics.largestFile) console.log(`- Groesste Datei: ${metrics.largestFile.file} (${metrics.largestFile.bytes} Bytes / ${metrics.largestFile.lines} Zeilen)`);
 
 const exceeded = checks.filter(([, actual, maximum]) => actual > maximum);
 for (const [label, actual, maximum] of checks) {
-  console.log(`- ${label}: ${actual} / maximal ${maximum}${actual > maximum ? " UEBERSCHRITTEN" : ""}`);
+  const format = label.includes("quote")
+    ? `${(actual * 100).toFixed(2)} % / maximal ${(maximum * 100).toFixed(2)} %`
+    : `${actual} / maximal ${maximum}`;
+  console.log(`- ${label}: ${format}${actual > maximum ? " UEBERSCHRITTEN" : ""}`);
 }
 
 assert.equal(

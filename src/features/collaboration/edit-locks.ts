@@ -1,6 +1,6 @@
-import { requireSupabase } from "@/lib/supabase";
-import type { Json } from "@/types/database.generated";
 
+import { callJsonRpc as callSharedJsonRpc } from "@/lib/supabase-rpc";
+import { isRecord } from "@/lib/json-value";
 export type LockableEntityType =
   | "exercise"
   | "training_block"
@@ -32,34 +32,13 @@ export type EditLockWriteGuard = {
   expectedUpdatedAt: string;
 };
 
-type JsonRpcResponse = {
-  data: Json;
-  error: { message?: string } | null;
-};
-
-type JsonRpc = (
-  name: string,
-  parameters: Record<string, unknown>,
-) => PromiseLike<JsonRpcResponse>;
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
-}
-
 function stringValue(value: unknown): string | null {
   return typeof value === "string" && value.length > 0 ? value : null;
 }
 
-async function callJsonRpc(
-  functionName: string,
-  args: Record<string, unknown>,
-): Promise<Json> {
-  const supabase = requireSupabase();
-  const rpc = supabase.rpc.bind(supabase) as unknown as JsonRpc;
-  const { data, error } = await rpc(functionName, args);
-  if (error) throw new Error(error.message || "Die Bearbeitungsreservierung ist fehlgeschlagen.");
-  return data ?? null;
-}
+const callJsonRpc = (functionName: string, args: Record<string, unknown>) => (
+  callSharedJsonRpc(functionName, args, "Die Bearbeitungsreservierung ist fehlgeschlagen.")
+);
 
 export async function acquireEditLock(
   organizationId: string,

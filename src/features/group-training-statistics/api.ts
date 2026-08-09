@@ -1,5 +1,3 @@
-import { requireSupabase } from "@/lib/supabase";
-import type { Json } from "@/types/database.generated";
 import type {
   AthleteStatisticsRow,
   KindertrainingStatistics,
@@ -11,27 +9,9 @@ import type {
 } from "@/features/kindertraining-statistics/types";
 import type { TrainingEnvironment, TrainingSessionState } from "@/features/kindertraining/types";
 
-type JsonRpcResponse = { data: Json; error: unknown | null };
-
+import { callJsonRpcRawError as callJsonRpc } from "@/lib/supabase-rpc";
+import { isRecord } from "@/lib/json-value";
 export type GroupStatisticsModuleKey = "u12" | "u14";
-
-async function callJsonRpc(
-  functionName: string,
-  args: Record<string, Json | undefined>,
-): Promise<Json> {
-  const supabase = requireSupabase();
-  const rpc = supabase.rpc.bind(supabase) as unknown as (
-    name: string,
-    parameters: Record<string, Json | undefined>,
-  ) => PromiseLike<JsonRpcResponse>;
-  const { data, error } = await rpc(functionName, args);
-  if (error) throw error;
-  return data;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
-}
 
 function numberValue(value: unknown): number {
   if (typeof value === "number" && Number.isFinite(value)) return value;
