@@ -90,8 +90,16 @@ fi
 sanitize_file "$REPORT_DIR/pre-reset-data.log"
 
 # Nicht-personenbezogene Vorher-Zaehlung fuer Nachvollziehbarkeit.
-docker run --rm postgres:17-alpine psql "$DB_URL" -X -v ON_ERROR_STOP=1 -Atqc \
-  "select 'auth_users=' || count(*)::text from auth.users;\n   select 'organizations=' || count(*)::text from public.organizations;\n   select 'athletes=' || count(*)::text from public.athletes;\n   select 'exercises=' || count(*)::text from public.exercises;\n   select 'training_blocks=' || count(*)::text from public.training_blocks;\n   select 'storage_objects=' || count(*)::text from storage.objects;" \
+PRE_RESET_COUNTS_SQL=$(cat <<'SQL'
+select 'auth_users=' || count(*)::text from auth.users;
+select 'organizations=' || count(*)::text from public.organizations;
+select 'athletes=' || count(*)::text from public.athletes;
+select 'exercises=' || count(*)::text from public.exercises;
+select 'training_blocks=' || count(*)::text from public.training_blocks;
+select 'storage_objects=' || count(*)::text from storage.objects;
+SQL
+)
+docker run --rm postgres:17-alpine psql "$DB_URL" -X -v ON_ERROR_STOP=1 -Atqc "$PRE_RESET_COUNTS_SQL" \
   > "$REPORT_DIR/pre-reset-counts.txt"
 
 # Vor dem ersten und einzigen destruktiven Befehl pruefen wir die von der
