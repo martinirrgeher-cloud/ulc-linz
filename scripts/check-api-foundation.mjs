@@ -1,3 +1,4 @@
+import "./check-training-module-architecture.mjs";
 import assert from "node:assert/strict";
 import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";

@@ -12,8 +12,10 @@ const ForgotPasswordPage = lazy(async () => ({ default: (await import("@/pages/F
 const LoginPage = lazy(async () => ({ default: (await import("@/pages/LoginPage")).LoginPage }));
 const KindertrainingDraftPage = lazy(async () => ({ default: (await import("@/pages/KindertrainingDraftPage")).KindertrainingDraftPage }));
 const KindertrainingStatisticsPage = lazy(async () => ({ default: (await import("@/pages/KindertrainingStatisticsPage")).KindertrainingStatisticsPage }));
-const GroupTrainingPage = lazy(async () => ({ default: (await import("@/pages/GroupTrainingPage")).GroupTrainingPage }));
-const GroupTrainingStatisticsPage = lazy(async () => ({ default: (await import("@/pages/GroupTrainingStatisticsPage")).GroupTrainingStatisticsPage }));
+const U12TrainingPage = lazy(async () => ({ default: (await import("@/pages/U12TrainingPage")).U12TrainingPage }));
+const U14TrainingPage = lazy(async () => ({ default: (await import("@/pages/U14TrainingPage")).U14TrainingPage }));
+const U12TrainingStatisticsPage = lazy(async () => ({ default: (await import("@/pages/U12TrainingStatisticsPage")).U12TrainingStatisticsPage }));
+const U14TrainingStatisticsPage = lazy(async () => ({ default: (await import("@/pages/U14TrainingStatisticsPage")).U14TrainingStatisticsPage }));
 const ModulePlaceholderPage = lazy(async () => ({ default: (await import("@/pages/ModulePlaceholderPage")).ModulePlaceholderPage }));
 const PerformanceRegistrationPage = lazy(async () => ({ default: (await import("@/pages/PerformanceRegistrationPage")).PerformanceRegistrationPage }));
 const ExerciseCatalogPage = lazy(async () => ({ default: (await import("@/pages/ExerciseCatalogPage")).ExerciseCatalogPage }));
@@ -84,11 +86,7 @@ export function App() {
                 path="module/u12"
                 element={
                   <ProtectedRoute moduleKey="u12">
-                    <GroupTrainingPage
-                      moduleKey="u12"
-                      title="U12"
-                      statisticsRoute="/module/u12/statistik"
-                    />
+                    <U12TrainingPage />
                   </ProtectedRoute>
                 }
               />
@@ -96,11 +94,7 @@ export function App() {
                 path="module/u14"
                 element={
                   <ProtectedRoute moduleKey="u14">
-                    <GroupTrainingPage
-                      moduleKey="u14"
-                      title="U14"
-                      statisticsRoute="/module/u14/statistik"
-                    />
+                    <U14TrainingPage />
                   </ProtectedRoute>
                 }
               />
@@ -108,11 +102,7 @@ export function App() {
                 path="module/u12/statistik"
                 element={
                   <ProtectedRoute moduleKey="u12">
-                    <GroupTrainingStatisticsPage
-                      moduleKey="u12"
-                      title="U12"
-                      trainingRoute="/module/u12"
-                    />
+                    <U12TrainingStatisticsPage />
                   </ProtectedRoute>
                 }
               />
@@ -120,11 +110,7 @@ export function App() {
                 path="module/u14/statistik"
                 element={
                   <ProtectedRoute moduleKey="u14">
-                    <GroupTrainingStatisticsPage
-                      moduleKey="u14"
-                      title="U14"
-                      trainingRoute="/module/u14"
-                    />
+                    <U14TrainingStatisticsPage />
                   </ProtectedRoute>
                 }
               />

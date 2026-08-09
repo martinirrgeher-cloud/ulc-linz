@@ -29,6 +29,7 @@ const requiredFiles = [
   "scripts/test-writing-test-isolation.mjs",
   "scripts/lib/writing-test-isolation.mjs",
   "scripts/check-test-layering.mjs",
+  "scripts/check-training-module-architecture.mjs",
   "scripts/check-css-ownership.mjs",
   ".github/workflows/mobile-patch.yml",
   ".devcontainer/devcontainer.json",
@@ -66,6 +67,8 @@ assert.match(pkg.scripts["ci:quality"], /check:test-layering/, "CI muss die Test
 assert.match(pkg.scripts["ci:preview"], /check:test-layering/, "Preview-Gate muss die Testschichten absichern.");
 assert.match(pkg.scripts["ci:preview"], /check:test-interactions/, "Preview-Gate muss die stabilen Test-Interaktionsanker pruefen.");
 assert.equal(pkg.scripts["release:check"], pkg.scripts["release:check:ci"], "Lokale und CI-Release-Pruefung muessen denselben Einstieg verwenden.");
+const apiFoundationCheck = readFileSync("scripts/check-api-foundation.mjs", "utf8");
+assert.match(apiFoundationCheck, /check-training-module-architecture\.mjs/, "API-Foundation muss die S3c-Trainingsmodulgrenzen einschliessen.");
 const cssArchitectureCheck = readFileSync("scripts/check-css-architecture.mjs", "utf8");
 assert.match(cssArchitectureCheck, /check-css-ownership\.mjs/, "CSS-Architekturcheck muss die S3b-Ownership-Pruefung einschliessen.");
 

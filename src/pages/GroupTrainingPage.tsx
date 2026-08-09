@@ -30,23 +30,35 @@ import {
   loadGroupTrainingConfiguration,
   loadGroupTrainingSession,
   saveGroupTrainingSession,
-  type GroupTrainingModuleKey,
 } from "@/features/group-training/api";
+import type { GroupTrainingModuleDefinition } from "@/features/group-training/modules";
 import { QuickAthleteDialog } from "@/features/kindertraining/QuickAthleteDialog";
 import type {
   AthleteEmergencyContact,
   AthleteNameSort,
   AttendanceStatus,
-  KindertrainingConfiguration,
-  KindertrainingDraft,
-  KindertrainingParticipant,
-  KindertrainingSession,
   QuickAthleteResult,
+  TrainingConfiguration,
+  TrainingDraft,
   TrainingEnvironment,
-} from "@/features/kindertraining/types";
+  TrainingParticipant,
+  TrainingSession,
+} from "@/features/training-session/types";
 import { useAuth } from "@/features/auth/AuthContext";
 import { deactivateAthleteFromTraining } from "@/features/athletes/api";
 
+import {
+  athleteDisplayName,
+  draftSignature,
+  findTrainingDate,
+  formatLongDate,
+  formatSavedAt,
+  isRegularDate,
+  isoDate,
+  makeDraft,
+  readStoredAthleteNameSort,
+  sortParticipants,
+} from "@/features/training-session/core";
 import { diagnosticErrorMessage } from "@/lib/diagnostics";
 import "@/styles/kindertraining.css";
 const STATUS_OPTIONS: Array<{
@@ -64,7 +76,6 @@ function attendanceStatusIcon(status: AttendanceStatus) {
   return <span className="status-question-mark" aria-hidden="true">?</span>;
 }
 
-const SORT_STORAGE_KEY_PREFIX = "ulc-group-training-name-sort";
 
 function errorMessage(error: unknown): string {
   const message =
@@ -87,160 +98,18 @@ function errorMessage(error: unknown): string {
   );
 }
 
-function isoDate(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-function parseIsoDate(value: string): Date {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
-  if (!match) return new Date();
-
-  return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]), 12, 0, 0);
-}
-
-function addDays(value: string, amount: number): string {
-  const date = parseIsoDate(value);
-  date.setDate(date.getDate() + amount);
-  return isoDate(date);
-}
-
-function isoWeekday(value: string): number {
-  const weekday = parseIsoDate(value).getDay();
-  return weekday === 0 ? 7 : weekday;
-}
-
-function formatLongDate(value: string): string {
-  return new Intl.DateTimeFormat("de-AT", {
-    weekday: "long",
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  }).format(parseIsoDate(value));
-}
-
-function formatSavedAt(value: string): string {
-  return new Intl.DateTimeFormat("de-AT", {
-    day: "2-digit",
-    month: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(value));
-}
-
-function isRegularDate(value: string, weekdays: number[]): boolean {
-  return weekdays.includes(isoWeekday(value));
-}
-
-function findTrainingDate(
-  fromDate: string,
-  direction: -1 | 1,
-  weekdays: number[],
-  specialDates: string[],
-  includeStart = false,
-): string {
-  let candidate = includeStart ? fromDate : addDays(fromDate, direction);
-  const specialDateSet = new Set(specialDates);
-
-  for (let index = 0; index < 740; index += 1) {
-    if (isRegularDate(candidate, weekdays) || specialDateSet.has(candidate)) return candidate;
-    candidate = addDays(candidate, direction);
-  }
-
-  return fromDate;
-}
-
-function makeDraft(
-  session: KindertrainingSession,
-  groupTrainerIds: string[] = [],
-): KindertrainingDraft {
-  const trainerIds = session.id
-    ? session.trainerIds
-    : session.trainerIds.filter((trainerId) => groupTrainerIds.includes(trainerId));
-
-  return {
-    state: session.state,
-    note: session.note,
-    attendance: Object.fromEntries(
-      session.participants.map((participant) => [participant.athleteId, participant.status]),
-    ),
-    environment: session.environment,
-    trainerIds,
-  };
-}
-
-function draftSignature(
-  draft: KindertrainingDraft,
-  participants: KindertrainingParticipant[],
-): string {
-  return JSON.stringify({
-    state: draft.state,
-    note: draft.note,
-    attendance: participants.map((participant) => [
-      participant.athleteId,
-      draft.attendance[participant.athleteId] ?? "open",
-    ]),
-    environment: draft.environment,
-    trainerIds: [...draft.trainerIds].sort(),
-  });
-}
-
-function readInitialSort(moduleKey: GroupTrainingModuleKey): AthleteNameSort {
-  try {
-    return window.localStorage.getItem(`${SORT_STORAGE_KEY_PREFIX}-${moduleKey}`) === "lastName"
-      ? "lastName"
-      : "firstName";
-  } catch {
-    return "firstName";
-  }
-}
-
-function compareText(left: string, right: string): number {
-  return left.localeCompare(right, "de-AT", { sensitivity: "base" });
-}
-
-function sortParticipants(
-  participants: KindertrainingParticipant[],
-  mode: AthleteNameSort,
-): KindertrainingParticipant[] {
-  return [...participants].sort((left, right) => {
-    if (mode === "lastName") {
-      return (
-        compareText(left.lastName, right.lastName) ||
-        compareText(left.firstName, right.firstName)
-      );
-    }
-
-    return (
-      compareText(left.firstName, right.firstName) ||
-      compareText(left.lastName, right.lastName)
-    );
-  });
-}
-
-function athleteDisplayName(
-  participant: KindertrainingParticipant,
-  mode: AthleteNameSort,
-): string {
-  return mode === "lastName"
-    ? `${participant.lastName} ${participant.firstName}`
-    : `${participant.firstName} ${participant.lastName}`;
-}
-
 type AutoSaveState = "idle" | "pending" | "saving" | "saved" | "error";
 
 type SaveSnapshot = {
   organizationId: string;
   groupId: string;
   sessionDate: string;
-  state: KindertrainingDraft["state"];
+  state: TrainingDraft["state"];
   note: string;
   attendance: Record<string, AttendanceStatus>;
   environment: TrainingEnvironment;
   trainerIds: string[];
-  participants: KindertrainingParticipant[];
+  participants: TrainingParticipant[];
   revision: number;
   forceCreate: boolean;
 };
@@ -248,40 +117,35 @@ type SaveSnapshot = {
 const AUTOSAVE_DELAY_MS = 700;
 
 type GroupTrainingPageProps = {
-  moduleKey: GroupTrainingModuleKey;
-  title: "U12" | "U14";
-  statisticsRoute: string;
+  definition: GroupTrainingModuleDefinition;
 };
 
-export function GroupTrainingPage({
-  moduleKey,
-  title,
-  statisticsRoute,
-}: GroupTrainingPageProps) {
+export function GroupTrainingPage({ definition }: GroupTrainingPageProps) {
+  const { moduleKey, title, statisticsRoute, sortStorageKey } = definition;
   const { appContext, canViewModule, canEditModule } = useAuth();
   const organizationId = appContext?.organization?.id;
   const canView = canViewModule(moduleKey);
   const canEdit = canEditModule(moduleKey);
 
-  const [configuration, setConfiguration] = useState<KindertrainingConfiguration | null>(null);
+  const [configuration, setConfiguration] = useState<TrainingConfiguration | null>(null);
   const [selectedDate, setSelectedDate] = useState(() => isoDate(new Date()));
   const [transientSpecialDates, setTransientSpecialDates] = useState<string[]>([]);
   const [specialDateInput, setSpecialDateInput] = useState(() => isoDate(new Date()));
   const [showSpecialDatePicker, setShowSpecialDatePicker] = useState(false);
   const [showQuickAthlete, setShowQuickAthlete] = useState(false);
   const [activeCategory, setActiveCategory] = useState<AttendanceStatus>("open");
-  const [sortMode, setSortMode] = useState<AthleteNameSort>(() => readInitialSort(moduleKey));
+  const [sortMode, setSortMode] = useState<AthleteNameSort>(() => readStoredAthleteNameSort(sortStorageKey));
   const [searchTerm, setSearchTerm] = useState("");
-  const [session, setSession] = useState<KindertrainingSession | null>(null);
-  const [participants, setParticipants] = useState<KindertrainingParticipant[]>([]);
-  const [draft, setDraft] = useState<KindertrainingDraft>({
+  const [session, setSession] = useState<TrainingSession | null>(null);
+  const [participants, setParticipants] = useState<TrainingParticipant[]>([]);
+  const [draft, setDraft] = useState<TrainingDraft>({
     state: "scheduled",
     note: "",
     attendance: {},
     environment: null,
     trainerIds: [],
   });
-  const [baseline, setBaseline] = useState<KindertrainingDraft | null>(null);
+  const [baseline, setBaseline] = useState<TrainingDraft | null>(null);
   const [forceCreateSpecial, setForceCreateSpecial] = useState(false);
   const [configurationLoading, setConfigurationLoading] = useState(true);
   const [sessionLoading, setSessionLoading] = useState(false);
@@ -293,7 +157,7 @@ export function GroupTrainingPage({
     athleteName: string;
     contacts: AthleteEmergencyContact[];
   } | null>(null);
-  const [athleteToDeactivate, setAthleteToDeactivate] = useState<KindertrainingParticipant | null>(null);
+  const [athleteToDeactivate, setAthleteToDeactivate] = useState<TrainingParticipant | null>(null);
   const [deactivationConfirmed, setDeactivationConfirmed] = useState(false);
   const [deactivatingAthlete, setDeactivatingAthlete] = useState(false);
   const [deletingSpecial, setDeletingSpecial] = useState(false);
@@ -307,13 +171,13 @@ export function GroupTrainingPage({
   const queuedSaveKeyRef = useRef<string | null>(null);
   const revisionRef = useRef(0);
   const selectedDateRef = useRef(selectedDate);
-  const sessionRef = useRef<KindertrainingSession | null>(session);
+  const sessionRef = useRef<TrainingSession | null>(session);
   const participantsRef = useRef(participants);
   const draftRef = useRef(draft);
-  const baselineRef = useRef<KindertrainingDraft | null>(baseline);
+  const baselineRef = useRef<TrainingDraft | null>(baseline);
   const dirtyRef = useRef(false);
   const forceCreateSpecialRef = useRef(forceCreateSpecial);
-  const sessionByDateRef = useRef<Record<string, KindertrainingSession | null>>({});
+  const sessionByDateRef = useRef<Record<string, TrainingSession | null>>({});
 
   const group = configuration?.group ?? null;
   const allSpecialDates = useMemo(
@@ -600,11 +464,11 @@ export function GroupTrainingPage({
 
   useEffect(() => {
     try {
-      window.localStorage.setItem(`${SORT_STORAGE_KEY_PREFIX}-${moduleKey}`, sortMode);
+      window.localStorage.setItem(sortStorageKey, sortMode);
     } catch {
       // Lokale Speicherung ist optional; die Sortierung funktioniert trotzdem.
     }
-  }, [sortMode]);
+  }, [sortMode, sortStorageKey]);
 
   useEffect(() => {
     if (
@@ -696,7 +560,7 @@ export function GroupTrainingPage({
     );
   }
 
-  function updateDraft(updater: (current: KindertrainingDraft) => KindertrainingDraft): void {
+  function updateDraft(updater: (current: TrainingDraft) => TrainingDraft): void {
     if (!canEdit || sessionLoading) return;
     revisionRef.current += 1;
     setAutoSaveState("pending");

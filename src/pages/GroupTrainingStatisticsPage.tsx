@@ -19,86 +19,39 @@ import { loadGroupTrainingConfiguration } from "@/features/group-training/api";
 import {
   loadGroupTrainingStatistics,
   saveGroupTrainingStatisticsDefault,
-  type GroupStatisticsModuleKey,
 } from "@/features/group-training-statistics/api";
-import type { KindertrainingStatistics } from "@/features/kindertraining-statistics/types";
+import type { GroupTrainingModuleDefinition } from "@/features/group-training/modules";
+import type { TrainingStatistics } from "@/features/training-session/statistics-types";
 
 import { diagnosticErrorMessage } from "@/lib/diagnostics";
+import {
+  environmentLabel,
+  formatDate,
+  formatMonth,
+  isoToday,
+  isValidIsoDate,
+} from "@/features/training-session/statistics-core";
 import "@/styles/statistics.css";
 import "@/styles/statistics-mobile.css";
+
 type StatisticsTab = "sessions" | "athletes" | "development" | "trainers";
-
-function isoToday(): string {
-  const date = new Date();
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-function isValidIsoDate(value: string | null | undefined): value is string {
-  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
-  const parts = value.split("-").map(Number);
-  const year = parts[0] ?? 0;
-  const month = parts[1] ?? 0;
-  const day = parts[2] ?? 0;
-  const parsed = new Date(year, month - 1, day, 12);
-  return (
-    parsed.getFullYear() === year &&
-    parsed.getMonth() === month - 1 &&
-    parsed.getDate() === day
-  );
-}
-
-function formatDate(value: string): string {
-  const parts = value.split("-").map(Number);
-  const year = parts[0] ?? new Date().getFullYear();
-  const month = parts[1] ?? 1;
-  const day = parts[2] ?? 1;
-  return new Intl.DateTimeFormat("de-AT", {
-    weekday: "short",
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  }).format(new Date(year, month - 1, day, 12));
-}
-
-function formatMonth(value: string): string {
-  const parts = value.split("-").map(Number);
-  const year = parts[0] ?? new Date().getFullYear();
-  const month = parts[1] ?? 1;
-  return new Intl.DateTimeFormat("de-AT", { month: "long", year: "numeric" }).format(
-    new Date(year, month - 1, 1, 12),
-  );
-}
-
-function environmentLabel(value: string | null): string {
-  if (value === "indoor") return "Indoor";
-  if (value === "outdoor") return "Outdoor";
-  return "Offen";
-}
 
 function errorMessage(error: unknown): string {
   return diagnosticErrorMessage(error, "Die Statistik konnte nicht geladen werden.", "group_training.statistics");
 }
 
 type GroupTrainingStatisticsPageProps = {
-  moduleKey: GroupStatisticsModuleKey;
-  title: "U12" | "U14";
-  trainingRoute: string;
+  definition: GroupTrainingModuleDefinition;
 };
 
-export function GroupTrainingStatisticsPage({
-  moduleKey,
-  title,
-  trainingRoute,
-}: GroupTrainingStatisticsPageProps) {
+export function GroupTrainingStatisticsPage({ definition }: GroupTrainingStatisticsPageProps) {
+  const { moduleKey, title, trainingRoute } = definition;
   const { appContext, canViewModule, canEditModule } = useAuth();
   const organizationId = appContext?.organization?.id;
   const canView = canViewModule(moduleKey);
   const canEdit = canEditModule(moduleKey);
 
-  const [statistics, setStatistics] = useState<KindertrainingStatistics | null>(null);
+  const [statistics, setStatistics] = useState<TrainingStatistics | null>(null);
   const [groupTrainerIds, setGroupTrainerIds] = useState<string[]>([]);
   const [fromDate, setFromDate] = useState<string>(() => isoToday());
   const [toDate, setToDate] = useState<string>(() => isoToday());
