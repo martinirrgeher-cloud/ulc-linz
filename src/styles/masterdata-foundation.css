@@ -5,38 +5,6 @@
   display: grid;
   gap: 22px;
 }
-.management-tabs {
-  display: flex;
-  gap: 8px;
-  padding: 6px;
-  background: #e9f1ec;
-  border: 1px solid var(--border);
-  border-radius: 15px;
-}
-.management-tabs button {
-  flex: 1;
-  min-height: 46px;
-  display: inline-flex;
-  justify-content: center;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 14px;
-  border: 0;
-  border-radius: 11px;
-  color: var(--green-800);
-  background: transparent;
-  cursor: pointer;
-  font-weight: 700;
-}
-.management-tabs button.active {
-  color: var(--green-800);
-  background: #fff;
-  box-shadow: 0 2px 8px rgba(15, 62, 38, 0.08);
-}
-.management-tabs button svg {
-  width: 19px;
-  height: 19px;
-}
 .management-tabs button span {
   min-width: 24px;
   padding: 2px 7px;
@@ -318,9 +286,7 @@
   }
 }
 @media (max-width: 520px) {
-.management-tabs {
-    flex-direction: column;
-  }.athlete-card-actions {
+.athlete-card-actions {
     align-items: stretch;
     flex-direction: column;
   }.athlete-card-actions .secondary-button,
@@ -358,15 +324,6 @@
 .athlete-status-dot.inactive {
   background: #9aa59f;
 }
-.athlete-edit-button {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-}
-.athlete-edit-button svg {
-  width: 18px;
-  height: 18px;
-}
 .athlete-notes {
   min-height: 0;
 }
@@ -400,10 +357,6 @@
     top: 9px;
     right: 9px;
     gap: 7px;
-  }.athlete-edit-button {
-    width: 44px;
-    height: 44px;
-    min-height: 44px;
   }
 }
 .group-schedule-fieldset {
@@ -433,12 +386,12 @@
   gap: 6px;
 }
 .weekday-selector button {
-  min-height: 42px;
+  min-height: var(--ui-control-height);
   padding: 6px 4px;
   color: var(--muted);
   background: #eef3f0;
   border: 1px solid transparent;
-  border-radius: 9px;
+  border-radius: var(--ui-control-radius);
   cursor: pointer;
   font-weight: 700;
 }
@@ -454,22 +407,12 @@
 }
 .setting-checkbox {
   min-width: 0;
-  display: flex;
   align-items: flex-start;
-  gap: 9px;
-  padding: 11px;
   color: var(--green-950);
-  background: #f8fbf9;
-  border: 1px solid var(--border);
-  border-radius: 11px;
-  cursor: pointer;
 }
 .setting-checkbox input {
-  width: 20px;
-  height: 20px;
   flex: 0 0 auto;
   margin-top: 1px;
-  accent-color: var(--green-700);
 }
 .setting-checkbox span {
   min-width: 0;
@@ -494,7 +437,7 @@
   }.weekday-selector {
     gap: 4px;
   }.weekday-selector button {
-    min-height: 40px;
+    min-height: var(--ui-control-height);
     padding: 4px 2px;
     font-size: .76rem;
   }
@@ -570,9 +513,6 @@
 .emergency-contact-badge svg {
   width: 14px;
   height: 14px;
-}
-.management-tabs.three-tabs {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 .trainer-grid {
   display: grid;
@@ -775,42 +715,6 @@
   gap: 14px;
   margin-top: 14px;
 }
-.editor-section-tabs {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 5px;
-  padding: 5px;
-  background: #e9f1ec;
-  border: 1px solid var(--border);
-  border-radius: 13px;
-}
-.editor-section-tabs button {
-  min-width: 0;
-  min-height: 42px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  padding: 7px 8px;
-  color: var(--green-800);
-  background: transparent;
-  border: 0;
-  border-radius: 9px;
-  cursor: pointer;
-  font: inherit;
-  font-size: 0.82rem;
-  font-weight: 700;
-}
-.editor-section-tabs button.active {
-  color: var(--green-800);
-  background: #fff;
-  box-shadow: 0 2px 8px rgba(15, 62, 38, 0.08);
-}
-.editor-section-tabs button svg {
-  width: 17px;
-  height: 17px;
-  flex: 0 0 auto;
-}
 .editor-section-tabs button span {
   min-width: 20px;
   padding: 1px 5px;
@@ -848,12 +752,6 @@
     border-radius: 7px;
   }.masterdata-create-actions > button > span svg {
     display: none;
-  }.editor-section-tabs button {
-    padding-inline: 4px;
-    font-size: .76rem;
-  }.editor-section-tabs button svg {
-    width: 15px;
-    height: 15px;
   }
 }
 @media (max-width: 370px) {
@@ -862,8 +760,6 @@
     justify-items: center;
     gap: 3px;
     font-size: .76rem;
-  }.editor-section-tabs button svg {
-    display: none;
   }
 }
 .masterdata-create-actions > button > span svg {
@@ -920,12 +816,12 @@
 .management-filter-field select {
   width: 100%;
   min-width: 0;
-  min-height: 42px;
+  min-height: var(--ui-control-height);
   padding: 8px 32px 8px 10px;
   color: var(--green-950);
   background: #fff;
   border: 1px solid #b9cdc0;
-  border-radius: 11px;
+  border-radius: var(--ui-control-radius);
   font: inherit;
   font-size: 0.88rem;
 }

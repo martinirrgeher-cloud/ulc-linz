@@ -168,30 +168,8 @@
   color: var(--muted);
 }
 
-.statistics-tabs {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.25rem;
-  padding: 0.25rem;
-  border: 1px solid var(--border);
-  border-radius: 13px;
-  background: var(--green-50);
-}
 
-.statistics-tabs button {
-  min-height: 40px;
-  border: 0;
-  border-radius: 10px;
-  background: transparent;
-  font-weight: 750;
-  color: var(--muted);
-}
 
-.statistics-tabs button.active {
-  background: #fff;
-  color: var(--green-800);
-  box-shadow: var(--shadow);
-}
 
 .statistics-panel {
   overflow: hidden;
@@ -459,17 +437,9 @@
     grid-column: 1 / -1;
   }
 
-  .statistics-tabs {
-    overflow: hidden;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
+  
 
-  .statistics-tabs button {
-    min-width: 0;
-    padding-inline: 2px;
-    font-size: .76rem;
-    white-space: nowrap;
-  }
+  
 
   .athlete-statistics-row {
     grid-template-columns: 30px minmax(0, 1fr) 50px;

@@ -62,27 +62,7 @@
   gap: 5px;
 }
 
-.editor-shell-actions .icon-button {
-  width: 42px;
-  height: 42px;
-}
 
-.editor-shell-save {
-  color: #fff;
-  background: var(--green-700);
-  border-color: var(--green-700);
-}
-
-.editor-shell-save:hover:not(:disabled),
-.editor-shell-save:focus-visible {
-  background: var(--green-800);
-}
-
-.editor-shell-save:disabled {
-  color: #7b9285;
-  background: #edf2ef;
-  border-color: var(--border);
-}
 
 .editor-shell-body {
   min-width: 0;
@@ -116,8 +96,4 @@
     gap: 4px;
   }
 
-  .editor-shell-actions .icon-button {
-    width: 40px;
-    height: 40px;
-  }
 }

@@ -200,18 +200,18 @@ export function TrainingPlanEditor({
 
       <fieldset disabled={!canEdit || busy} className="training-plan-editor-fields">
         <div className="training-plan-basis-grid">
-          <label className="training-plan-field">
-            <span>Plantitel</span>
-            <input
+          <label className="training-plan-field ui-labeled-field">
+            <span className="ui-field-label">Plantitel</span>
+            <input className="ui-field-control"
               value={values.title}
               onChange={(event) => update("title", event.target.value)}
               maxLength={160}
               placeholder="Trainingstitel"
             />
           </label>
-          <label className="training-plan-field training-plan-field-wide">
-            <span>Allgemeine Hinweise</span>
-            <textarea
+          <label className="training-plan-field training-plan-field-wide ui-labeled-field">
+            <span className="ui-field-label">Allgemeine Hinweise</span>
+            <textarea className="ui-field-control"
               value={values.notes}
               onChange={(event) => update("notes", event.target.value)}
               rows={1}
@@ -263,6 +263,7 @@ export function TrainingPlanEditor({
                       <div className="training-plan-section-actions training-plan-compact-actions">
                         <button
                           type="button"
+                          className="icon-button"
                           onClick={() => onChange({ ...values, sections: moveArrayItem(values.sections, sectionIndex, -1) })}
                           disabled={sectionIndex === 0}
                           aria-label={`${section.name} nach oben verschieben`}
@@ -270,6 +271,7 @@ export function TrainingPlanEditor({
                         ><ArrowUp aria-hidden="true" /></button>
                         <button
                           type="button"
+                          className="icon-button"
                           onClick={() => onChange({ ...values, sections: moveArrayItem(values.sections, sectionIndex, 1) })}
                           disabled={sectionIndex === values.sections.length - 1}
                           aria-label={`${section.name} nach unten verschieben`}
@@ -277,7 +279,7 @@ export function TrainingPlanEditor({
                         ><ArrowDown aria-hidden="true" /></button>
                         <button
                           type="button"
-                          className="danger"
+                          className="icon-button icon-button--danger"
                           onClick={() => onChange({
                             ...values,
                             sections: values.sections.filter((item) => item.clientId !== section.clientId),
@@ -309,9 +311,9 @@ export function TrainingPlanEditor({
                   {expanded && (
                     <div className="training-plan-section-body">
                       <div className="training-plan-section-settings">
-                        <label className="training-plan-field">
-                          <span>Bezeichnung</span>
-                          <input
+                        <label className="training-plan-field ui-labeled-field">
+                          <span className="ui-field-label">Bezeichnung</span>
+                          <input className="ui-field-control"
                             value={section.name}
                             onChange={(event) => onChange(replaceSection(values, section.clientId, (current) => ({
                               ...current,
@@ -320,10 +322,10 @@ export function TrainingPlanEditor({
                             maxLength={160}
                           />
                         </label>
-                        <label className="training-plan-field training-plan-duration-field">
-                          <span>Dauer</span>
-                          <span>
-                            <input
+                        <label className="training-plan-field training-plan-duration-field ui-labeled-field">
+                          <span className="ui-field-label">Dauer</span>
+                          <span className="ui-field-control-wrap">
+                            <input className="ui-field-control"
                               type="number"
                               min={0}
                               max={1440}
@@ -368,7 +370,7 @@ export function TrainingPlanEditor({
                           const infoButton = (
                             <button
                               type="button"
-                              className="training-plan-item-info"
+                              className="icon-button training-plan-item-info"
                               onClick={() => setInfoExercise(exerciseInfo)}
                               aria-label={`Informationen zu ${item.exerciseName} anzeigen`}
                               title="Übungsinformationen"
@@ -378,6 +380,7 @@ export function TrainingPlanEditor({
                             <div className="training-plan-item-actions training-plan-compact-actions">
                               <button
                                 type="button"
+                                className="icon-button"
                                 onClick={() => onChange(replaceSection(values, section.clientId, (current) => ({
                                   ...current,
                                   items: moveArrayItem(current.items, itemIndex, -1),
@@ -388,6 +391,7 @@ export function TrainingPlanEditor({
                               ><ArrowUp aria-hidden="true" /></button>
                               <button
                                 type="button"
+                                className="icon-button"
                                 onClick={() => onChange(replaceSection(values, section.clientId, (current) => ({
                                   ...current,
                                   items: moveArrayItem(current.items, itemIndex, 1),
@@ -398,7 +402,7 @@ export function TrainingPlanEditor({
                               ><ArrowDown aria-hidden="true" /></button>
                               <button
                                 type="button"
-                                className="danger"
+                                className="icon-button icon-button--danger"
                                 onClick={() => onChange(replaceSection(values, section.clientId, (current) => ({
                                   ...current,
                                   items: current.items.filter((entry) => entry.clientId !== item.clientId),
@@ -499,9 +503,9 @@ export function TrainingPlanEditor({
                               <small className="training-plan-no-parameters">Keine Planungsparameter hinterlegt.</small>
                             )}
 
-                            <label className="training-plan-field">
-                              <span>Individueller Hinweis</span>
-                              <textarea
+                            <label className="training-plan-field ui-labeled-field">
+                              <span className="ui-field-label">Individueller Hinweis</span>
+                              <textarea className="ui-field-control"
                                 rows={1}
                                 value={item.note}
                                 onChange={(event) => onChange(replaceSection(values, section.clientId, (current) => replaceItem(

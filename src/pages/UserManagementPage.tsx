@@ -618,9 +618,9 @@ export function UserManagementPage() {
 
         {filtersOpen && (
           <div className="user-management-filter-panel">
-            <label className="management-filter-field">
-              <span>Rolle</span>
-              <select value={roleFilter} onChange={(event) => setRoleFilter(event.target.value as RoleFilter)} aria-label="Benutzer nach Rolle filtern">
+            <label className="management-filter-field ui-labeled-field">
+              <span className="ui-field-label">Rolle</span>
+              <select className="ui-field-control" value={roleFilter} onChange={(event) => setRoleFilter(event.target.value as RoleFilter)} aria-label="Benutzer nach Rolle filtern">
                 <option value="all">Alle Rollen</option>
                 <option value="admin">Administratoren</option>
                 <option value="trainer">Trainer</option>
@@ -628,9 +628,9 @@ export function UserManagementPage() {
                 <option value="parent">Elternteile</option>
               </select>
             </label>
-            <label className="management-filter-field">
-              <span>Konto</span>
-              <select value={accountFilter} onChange={(event) => setAccountFilter(event.target.value as AccountFilter)}>
+            <label className="management-filter-field ui-labeled-field">
+              <span className="ui-field-label">Konto</span>
+              <select className="ui-field-control" value={accountFilter} onChange={(event) => setAccountFilter(event.target.value as AccountFilter)}>
                 <option value="all">Alle Konten</option>
                 <option value="unlinked">Ohne Verknüpfung</option>
                 <option value="incomplete">Mit Warnung ({counts.incomplete})</option>

@@ -200,7 +200,7 @@ export function AthleteEditor({
         onSubmit={handleSubmit}
         {...swipeSections}
       >
-        <div className="editor-section-tabs" role="tablist" aria-label="Athletenbereiche">
+        <div className="editor-section-tabs ui-tabs" role="tablist" aria-label="Athletenbereiche">
           <button
             type="button"
             role="tab"
@@ -239,9 +239,9 @@ export function AthleteEditor({
         {section === "master" && (
           <div className="editor-section-panel" role="tabpanel">
             <div className="form-grid">
-              <label>
-                Vorname
-                <input
+              <label className="ui-labeled-field">
+                <span className="ui-field-label">Vorname</span>
+                <input className="ui-field-control"
                   type="text"
                   value={values.firstName}
                   onChange={(event) =>
@@ -253,9 +253,9 @@ export function AthleteEditor({
                 />
               </label>
 
-              <label>
-                Nachname
-                <input
+              <label className="ui-labeled-field">
+                <span className="ui-field-label">Nachname</span>
+                <input className="ui-field-control"
                   type="text"
                   value={values.lastName}
                   onChange={(event) =>
@@ -267,9 +267,9 @@ export function AthleteEditor({
                 />
               </label>
 
-              <label>
-                Geburtsjahr
-                <input
+              <label className="ui-labeled-field">
+                <span className="ui-field-label">Geburtsjahr</span>
+                <input className="ui-field-control"
                   type="number"
                   min={1900}
                   max={currentYear}
@@ -285,9 +285,9 @@ export function AthleteEditor({
                 />
               </label>
 
-              <label>
-                App-Benutzerkonto
-                <select
+              <label className="ui-labeled-field">
+                <span className="ui-field-label">App-Benutzerkonto</span>
+                <select className="ui-field-control"
                   value={values.linkedUserId ?? ""}
                   onChange={(event) =>
                     setValues((current) => ({
@@ -308,9 +308,9 @@ export function AthleteEditor({
               </label>
 
               {mode.type === "edit" && (
-                <label>
-                  Status
-                  <select
+                <label className="ui-labeled-field">
+                  <span className="ui-field-label">Status</span>
+                  <select className="ui-field-control"
                     value={values.isActive ? "active" : "inactive"}
                     onChange={(event) =>
                       setValues((current) => ({
@@ -327,9 +327,9 @@ export function AthleteEditor({
               )}
             </div>
 
-            <label className="full-width-field">
-              Interne Notiz
-              <textarea
+            <label className="full-width-field ui-labeled-field">
+              <span className="ui-field-label">Interne Notiz</span>
+              <textarea className="ui-field-control"
                 value={values.notes}
                 onChange={(event) =>
                   setValues((current) => ({ ...current, notes: event.target.value }))
@@ -407,7 +407,7 @@ export function AthleteEditor({
                       <strong>Kontakt {index + 1}</strong>
                       <button
                         type="button"
-                        className="icon-button danger-icon-button"
+                        className="icon-button icon-button--danger"
                         onClick={() => removeContact(index)}
                         aria-label={`Kontakt ${index + 1} entfernen`}
                       >
@@ -415,9 +415,9 @@ export function AthleteEditor({
                       </button>
                     </div>
                     <div className="form-grid contact-grid">
-                      <label>
-                        Name
-                        <input
+                      <label className="ui-labeled-field">
+                        <span className="ui-field-label">Name</span>
+                        <input className="ui-field-control"
                           type="text"
                           value={contact.contactName}
                           onChange={(event) => updateContact(index, { contactName: event.target.value })}
@@ -426,9 +426,9 @@ export function AthleteEditor({
                           required
                         />
                       </label>
-                      <label>
-                        Beziehung
-                        <input
+                      <label className="ui-labeled-field">
+                        <span className="ui-field-label">Beziehung</span>
+                        <input className="ui-field-control"
                           type="text"
                           value={contact.relationship}
                           onChange={(event) => updateContact(index, { relationship: event.target.value })}
@@ -436,9 +436,9 @@ export function AthleteEditor({
                           placeholder="z. B. Mutter"
                         />
                       </label>
-                      <label>
-                        Telefonnummer
-                        <input
+                      <label className="ui-labeled-field">
+                        <span className="ui-field-label">Telefonnummer</span>
+                        <input className="ui-field-control"
                           type="tel"
                           value={contact.phone}
                           onChange={(event) => updateContact(index, { phone: event.target.value })}
@@ -460,9 +460,9 @@ export function AthleteEditor({
                         </span>
                       </label>
                     </div>
-                    <label className="full-width-field">
-                      Kurze Notiz
-                      <input
+                    <label className="full-width-field ui-labeled-field">
+                      <span className="ui-field-label">Kurze Notiz</span>
+                      <input className="ui-field-control"
                         type="text"
                         value={contact.notes}
                         onChange={(event) => updateContact(index, { notes: event.target.value })}

@@ -623,7 +623,7 @@ export function CountdownPage() {
           </div>
 
           <div className="countdown-options">
-            <label>
+            <label className="ui-choice-row">
               <input
                 type="checkbox"
                 checked={settings.announceRemainingExercises}
@@ -635,7 +635,7 @@ export function CountdownPage() {
               />
               <span>Nach jeder Belastung verbleibende Übungen ansagen</span>
             </label>
-            <label>
+            <label className="ui-choice-row">
               <input
                 type="checkbox"
                 checked={settings.voiceEnabled}

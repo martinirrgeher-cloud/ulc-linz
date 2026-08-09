@@ -48,12 +48,12 @@
 .training-overview-controls select {
   width: 100%;
   min-width: 0;
-  min-height: 42px;
+  min-height: var(--ui-control-height);
   padding: 8px 10px;
   color: #153326;
   background: #fff;
   border: 1px solid #b9cdc0;
-  border-radius: 10px;
+  border-radius: var(--ui-control-radius);
 }
 
 .training-overview-athlete-filter {

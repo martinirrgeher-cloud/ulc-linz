@@ -401,18 +401,18 @@ export function TrainingPlanningPage() {
       />
 
       <section className="training-planning-selection ui-command-surface" aria-label="Trainingstag und Athlet auswählen">
-        <label>
-          <span><CalendarDays aria-hidden="true" />Datum</span>
-          <input
+        <label className="ui-labeled-field">
+          <span className="ui-field-label"><CalendarDays aria-hidden="true" />Datum</span>
+          <input className="ui-field-control"
             type="date"
             value={trainingDate}
             onChange={(event) => void handleDateChange(event.target.value)}
             disabled={loading || busy}
           />
         </label>
-        <label>
-          <span><Users aria-hidden="true" />Trainingsgruppe</span>
-          <select
+        <label className="ui-labeled-field">
+          <span className="ui-field-label"><Users aria-hidden="true" />Trainingsgruppe</span>
+          <select className="ui-field-control"
             value={groupId}
             onChange={(event) => void handleGroupChange(event.target.value)}
             disabled={loading || busy || data.groups.length === 0}
@@ -425,9 +425,9 @@ export function TrainingPlanningPage() {
             ))}
           </select>
         </label>
-        <label>
-          <span><Dumbbell aria-hidden="true" />Athlet</span>
-          <select
+        <label className="ui-labeled-field">
+          <span className="ui-field-label"><Dumbbell aria-hidden="true" />Athlet</span>
+          <select className="ui-field-control"
             value={athleteId}
             onChange={(event) => void handleAthleteChange(event.target.value)}
             disabled={loading || busy || !groupId || data.athletes.length === 0}

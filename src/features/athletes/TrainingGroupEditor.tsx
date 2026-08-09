@@ -137,7 +137,7 @@ export function TrainingGroupEditor({
         onSubmit={handleSubmit}
         {...swipeSections}
       >
-        <div className="editor-section-tabs" role="tablist" aria-label="Gruppenbereiche">
+        <div className="editor-section-tabs ui-tabs" role="tablist" aria-label="Gruppenbereiche">
           <button type="button" role="tab" aria-selected={section === "master"} className={section === "master" ? "active" : ""} onClick={() => setSection("master")}>
             <Info aria-hidden="true" /> Grunddaten
           </button>
@@ -153,9 +153,9 @@ export function TrainingGroupEditor({
           {section === "master" && (
             <div className="editor-section-panel editor-section-card" role="tabpanel">
               <div className="form-grid">
-                <label>
-                  Gruppenname
-                  <input
+                <label className="ui-labeled-field">
+                  <span className="ui-field-label">Gruppenname</span>
+                  <input className="ui-field-control"
                     type="text"
                     value={values.name}
                     onChange={(event) => setValues((current) => ({ ...current, name: event.target.value }))}
@@ -164,9 +164,9 @@ export function TrainingGroupEditor({
                     required
                   />
                 </label>
-                <label>
-                  Kurzbezeichnung
-                  <input
+                <label className="ui-labeled-field">
+                  <span className="ui-field-label">Kurzbezeichnung</span>
+                  <input className="ui-field-control"
                     type="text"
                     value={values.shortName}
                     onChange={(event) => setValues((current) => ({ ...current, shortName: event.target.value }))}
@@ -175,9 +175,9 @@ export function TrainingGroupEditor({
                   />
                 </label>
                 {mode.type === "edit" && (
-                  <label>
-                    Status
-                    <select
+                  <label className="ui-labeled-field">
+                    <span className="ui-field-label">Status</span>
+                    <select className="ui-field-control"
                       value={values.isActive ? "active" : "inactive"}
                       onChange={(event) => setValues((current) => ({ ...current, isActive: event.target.value === "active" }))}
                     >
@@ -188,9 +188,9 @@ export function TrainingGroupEditor({
                   </label>
                 )}
               </div>
-              <label className="full-width-field">
-                Beschreibung
-                <textarea
+              <label className="full-width-field ui-labeled-field">
+                <span className="ui-field-label">Beschreibung</span>
+                <textarea className="ui-field-control"
                   value={values.description}
                   onChange={(event) => setValues((current) => ({ ...current, description: event.target.value }))}
                   maxLength={1000}
@@ -220,9 +220,9 @@ export function TrainingGroupEditor({
               </fieldset>
 
               <div className="group-module-settings editor-section-card">
-                <label>
-                  Trainingsmodul
-                  <select
+                <label className="ui-labeled-field">
+                  <span className="ui-field-label">Trainingsmodul</span>
+                  <select className="ui-field-control"
                     value={values.moduleKey ?? ""}
                     onChange={(event) => setValues((current) => ({
                       ...current,
@@ -239,7 +239,7 @@ export function TrainingGroupEditor({
                   <small>Pro Trainingsmodul kann genau eine Gruppe fest zugeordnet werden.</small>
                 </label>
 
-                <label className="setting-checkbox">
+                <label className="ui-choice-row setting-checkbox">
                   <input
                     type="checkbox"
                     checked={values.allowSpecialTraining}
@@ -264,7 +264,7 @@ export function TrainingGroupEditor({
 
               <button
                 type="button"
-                className={`performance-feature-switch ${values.isPerformanceGroup ? "active" : ""}`}
+                className={`ui-switch performance-feature-switch ${values.isPerformanceGroup ? "active" : ""}`}
                 role="switch"
                 aria-checked={values.isPerformanceGroup}
                 onClick={() => setValues((current) => ({ ...current, isPerformanceGroup: !current.isPerformanceGroup }))}
@@ -273,7 +273,7 @@ export function TrainingGroupEditor({
                   <strong>Trainingsanmeldung</strong>
                   <small>Wochenweise Zu- oder Absage der Athleten aktivieren.</small>
                 </span>
-                <span className="performance-switch-control" aria-hidden="true"><span /></span>
+                <span className="ui-switch-control performance-switch-control" aria-hidden="true"><span /></span>
               </button>
 
               {values.isPerformanceGroup ? (
@@ -320,7 +320,7 @@ export function TrainingGroupEditor({
 
                   <button
                     type="button"
-                    className={`performance-setting-row performance-inline-switch ${values.allowLateRegistration ? "active" : ""}`}
+                    className={`ui-switch performance-setting-row performance-inline-switch ${values.allowLateRegistration ? "active" : ""}`}
                     role="switch"
                     aria-checked={values.allowLateRegistration}
                     onClick={() => setValues((current) => ({ ...current, allowLateRegistration: !current.allowLateRegistration }))}
@@ -329,7 +329,7 @@ export function TrainingGroupEditor({
                       <strong>Nachmeldungen erlauben</strong>
                       <small>Späte Änderungen bleiben möglich und werden markiert.</small>
                     </span>
-                    <span className="performance-switch-control" aria-hidden="true"><span /></span>
+                    <span className="ui-switch-control performance-switch-control" aria-hidden="true"><span /></span>
                   </button>
                 </div>
               ) : (

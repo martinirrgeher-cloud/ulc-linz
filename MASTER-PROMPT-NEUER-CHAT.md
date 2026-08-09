@@ -255,6 +255,51 @@ Gesamtzahl der CSS-Dateien/Route-Imports ist nur Beobachtungswert und kein küns
 
 Wenn ein CSS-Gate erreicht wird: zuerst konsolidieren, Ownership verbessern oder Duplikate beseitigen.
 
+## Verbindlicher UI-Control-Standard
+
+Buttons, Eingabefelder und Editoren werden appweit aus denselben semantischen Grundvarianten aufgebaut. Feature-CSS darf normale Standardcontrols nicht neu erfinden oder deren semantische Farben zufällig überschreiben.
+
+Verbindliche Größen:
+
+- normaler Button und normales Formularfeld: mindestens `42px` hoch
+- kompakter Button und kompaktes Formularfeld: `38px` hoch
+- normaler Iconbutton: `40 x 40px`
+- Control-Radius: `10px`
+- Checkbox/Radio: `20 x 20px`
+- mobile Schrift in Inputs/Selects/Textareas: mindestens `16px`
+- Fokusdarstellung: einheitlicher grüner Fokusrahmen/-ring
+
+Semantische Varianten:
+
+- Speichern: `icon-button icon-button--save` – immer grüne Fläche mit weißem Diskettensymbol
+- Schließen/Hilfe/Bearbeiten/Info: neutraler `icon-button`
+- Löschen: `icon-button icon-button--danger` – hellrote Fläche mit rotem Löschsymbol
+- feldinterne Iconaktion: `icon-button icon-button--inline`
+- Tabs: gemeinsame `ui-tabs`-Darstellung nach dem Stammdateneditor-Muster
+- kompakte exklusive Auswahl: `ui-segmented`
+- Checkbox-/Mehrfachauswahlzeile: `ui-choice-row`, ganze Zeile anklickbar
+- echter Ein/Aus-Zustand: `ui-switch`; Switches nicht für normale Mehrfachauswahl missbrauchen
+
+Editoren:
+
+- echte Seiteneditoren behalten die globale App-Kopfzeile sichtbar
+- darunter Sticky-Editorheader mit Titel und den semantischen Aktionen Hilfe/Speichern/Schließen
+- `EditorShell` bzw. `StickyEditorActions` verwenden dieselben zentralen Controlvarianten
+- echte Bestätigungs-, Info- oder Importdialoge dürfen modal bleiben
+
+Formulare:
+
+- normal beschriftete Textfelder, Selects, Zahlen-/Datumsfelder und Textareas verwenden verbindlich `ui-labeled-field`
+- Feldname steht als dauerhaft sichtbare hellgraue Kopfzeile **im selben Rahmen** wie der Eingabewert (`ui-field-label` + `ui-field-control`); verschwindende Placeholder sind kein Ersatz für Feldnamen
+- Suchfelder, Checkboxen/Switches, kompakte Inline-Parameter in Tabellen sowie fachliche Spezialcontrols sind von diesem Muster bewusst ausgenommen
+- Textareas verwenden dieselbe integrierte Feldkopf-Logik; kompakt und normal bleiben definierte Höhenvarianten
+- Zahlenwert und Einheit sollen als zusammengehöriges Control erscheinen, wenn die Einheit fachlich feststeht
+- neue normale Formularfelder dürfen nicht wieder mit frei darüberstehenden Labels und separater Control-Box eingeführt werden
+
+Fachliche Statuscontrols wie Anwesenheit, Dokumentationsstatus, Bewertungen, Bottom-Navigation oder Dashboard-Kacheln dürfen semantisch abweichen. Größe, Fokus, Radiusfamilie und Bedienbarkeit sollen dennoch zum gemeinsamen System passen.
+
+`scripts/check-ui-controls.mjs` ist ein hartes Architekturgate. Tests für zentrale Controls sollen zusätzlich die tatsächlich berechneten Styles prüfen, damit CSS-Spezifität semantische Varianten nicht unbemerkt überschreibt.
+
 ## API-/Supabase-Regeln
 
 Gemeinsame Basis:

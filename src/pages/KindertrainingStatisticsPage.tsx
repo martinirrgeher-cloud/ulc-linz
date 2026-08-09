@@ -154,17 +154,17 @@ export function KindertrainingStatisticsPage() {
         </summary>
         <div className="statistics-filter-content">
         <div className="statistics-filter-grid">
-          <label>
-            Von
-            <input type="date" value={fromDate} max={toDate} onChange={(event) => setFromDate(isValidIsoDate(event.target.value) ? event.target.value : isoToday())} />
+          <label className="ui-labeled-field">
+            <span className="ui-field-label">Von</span>
+            <input className="ui-field-control" type="date" value={fromDate} max={toDate} onChange={(event) => setFromDate(isValidIsoDate(event.target.value) ? event.target.value : isoToday())} />
           </label>
-          <label>
-            Bis
-            <input type="date" value={toDate} min={fromDate} max={isoToday()} onChange={(event) => setToDate(isValidIsoDate(event.target.value) ? event.target.value : isoToday())} />
+          <label className="ui-labeled-field">
+            <span className="ui-field-label">Bis</span>
+            <input className="ui-field-control" type="date" value={toDate} min={fromDate} max={isoToday()} onChange={(event) => setToDate(isValidIsoDate(event.target.value) ? event.target.value : isoToday())} />
           </label>
-          <label>
-            Trainingsliste
-            <select value={sessionLimit} onChange={(event) => setSessionLimit(Number(event.target.value))}>
+          <label className="ui-labeled-field">
+            <span className="ui-field-label">Trainingsliste</span>
+            <select className="ui-field-control" value={sessionLimit} onChange={(event) => setSessionLimit(Number(event.target.value))}>
               <option value={10}>Letzte 10 im Zeitraum</option>
               <option value={25}>Letzte 25 im Zeitraum</option>
               <option value={500}>Alle im Zeitraum</option>
@@ -212,7 +212,7 @@ export function KindertrainingStatisticsPage() {
             </div>
           </div>
 
-          <div className="statistics-tabs" role="tablist" aria-label="Statistikbereich">
+          <div className="statistics-tabs ui-tabs" role="tablist" aria-label="Statistikbereich">
             {([
               ["sessions", "Trainings"],
               ["athletes", "Athleten"],

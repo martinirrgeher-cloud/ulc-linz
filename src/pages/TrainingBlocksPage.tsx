@@ -487,14 +487,14 @@ export function TrainingBlocksPage() {
       {filtersOpen && (
         <section className="training-block-filter-panel ui-filter-sheet" aria-label="Trainingsblöcke filtern">
           <div className="training-block-filter-grid">
-            <label><span>Leistungsgruppe</span><select value={groupFilter} onChange={(event) => setGroupFilter(event.target.value)}><option value="all">Alle Gruppen</option><option value="club">Vereinsweit</option>{data.groups.map((group) => <option value={group.id} key={group.id}>{group.shortName || group.name}</option>)}</select></label>
-            <label><span>Kategorie</span><select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}><option value="all">Alle Kategorien</option>{categories.map(([key, title]) => <option value={key} key={key}>{title}</option>)}</select></label>
-            <label><span>Unterkategorie</span><select value={subcategoryFilter} onChange={(event) => setSubcategoryFilter(event.target.value)}><option value="all">Alle Unterkategorien</option>{subcategories.map((value) => <option value={value} key={value}>{value}</option>)}</select></label>
-            <label><span>Material</span><select value={materialFilter} onChange={(event) => setMaterialFilter(event.target.value)}><option value="all">Alle Materialien</option>{materials.map((value) => <option value={value} key={value}>{value}</option>)}</select></label>
-            <label><span>Übung</span><select value={exerciseFilter} onChange={(event) => setExerciseFilter(event.target.value)}><option value="all">Alle Übungen</option>{data.exercises.map((exercise) => <option value={exercise.id} key={exercise.id}>{exercise.name}</option>)}</select></label>
-            <label><span>Verwendung</span><select value={usageFilter} onChange={(event) => setUsageFilter(event.target.value as UsageFilter)}><option value="all">Alle</option><option value="unused">Noch nie verwendet</option><option value="used">Bereits verwendet</option></select></label>
-            <label><span>Dauer</span><select value={durationFilter} onChange={(event) => setDurationFilter(event.target.value as DurationFilter)}><option value="all">Alle Dauern</option><option value="none">Ohne Dauer</option><option value="short">Bis 15 min</option><option value="medium">16–30 min</option><option value="long">31–60 min</option><option value="very_long">Über 60 min</option></select></label>
-            <label><span>Sortierung</span><select value={sortMode} onChange={(event) => setSortMode(event.target.value as SortMode)}><option value="name">Alphabetisch</option><option value="usage">Am häufigsten verwendet</option><option value="updated">Zuletzt bearbeitet</option><option value="last_used">Zuletzt verwendet</option></select></label>
+            <label className="ui-labeled-field"><span className="ui-field-label">Leistungsgruppe</span><select className="ui-field-control" value={groupFilter} onChange={(event) => setGroupFilter(event.target.value)}><option value="all">Alle Gruppen</option><option value="club">Vereinsweit</option>{data.groups.map((group) => <option value={group.id} key={group.id}>{group.shortName || group.name}</option>)}</select></label>
+            <label className="ui-labeled-field"><span className="ui-field-label">Kategorie</span><select className="ui-field-control" value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}><option value="all">Alle Kategorien</option>{categories.map(([key, title]) => <option value={key} key={key}>{title}</option>)}</select></label>
+            <label className="ui-labeled-field"><span className="ui-field-label">Unterkategorie</span><select className="ui-field-control" value={subcategoryFilter} onChange={(event) => setSubcategoryFilter(event.target.value)}><option value="all">Alle Unterkategorien</option>{subcategories.map((value) => <option value={value} key={value}>{value}</option>)}</select></label>
+            <label className="ui-labeled-field"><span className="ui-field-label">Material</span><select className="ui-field-control" value={materialFilter} onChange={(event) => setMaterialFilter(event.target.value)}><option value="all">Alle Materialien</option>{materials.map((value) => <option value={value} key={value}>{value}</option>)}</select></label>
+            <label className="ui-labeled-field"><span className="ui-field-label">Übung</span><select className="ui-field-control" value={exerciseFilter} onChange={(event) => setExerciseFilter(event.target.value)}><option value="all">Alle Übungen</option>{data.exercises.map((exercise) => <option value={exercise.id} key={exercise.id}>{exercise.name}</option>)}</select></label>
+            <label className="ui-labeled-field"><span className="ui-field-label">Verwendung</span><select className="ui-field-control" value={usageFilter} onChange={(event) => setUsageFilter(event.target.value as UsageFilter)}><option value="all">Alle</option><option value="unused">Noch nie verwendet</option><option value="used">Bereits verwendet</option></select></label>
+            <label className="ui-labeled-field"><span className="ui-field-label">Dauer</span><select className="ui-field-control" value={durationFilter} onChange={(event) => setDurationFilter(event.target.value as DurationFilter)}><option value="all">Alle Dauern</option><option value="none">Ohne Dauer</option><option value="short">Bis 15 min</option><option value="medium">16–30 min</option><option value="long">31–60 min</option><option value="very_long">Über 60 min</option></select></label>
+            <label className="ui-labeled-field"><span className="ui-field-label">Sortierung</span><select className="ui-field-control" value={sortMode} onChange={(event) => setSortMode(event.target.value as SortMode)}><option value="name">Alphabetisch</option><option value="usage">Am häufigsten verwendet</option><option value="updated">Zuletzt bearbeitet</option><option value="last_used">Zuletzt verwendet</option></select></label>
           </div>
           <div className="training-block-filter-footer">
             <div className="status-filter" aria-label="Status der Trainingsblöcke filtern">
@@ -556,7 +556,7 @@ export function TrainingBlocksPage() {
                       <div className="training-block-card-actions">
                         <button
                           type="button"
-                          className={block.isFavorite ? "active" : ""}
+                          className={`icon-button ${block.isFavorite ? "active" : ""}`}
                           onClick={() => void handleFavorite(block)}
                           aria-label={block.isFavorite ? `${block.name} aus Favoriten entfernen` : `${block.name} zu Favoriten hinzufügen`}
                           title={block.isFavorite ? "Aus Favoriten entfernen" : "Favorit"}
@@ -565,7 +565,7 @@ export function TrainingBlocksPage() {
                         </button>
                         <button
                           type="button"
-                          className={compareBlockIds.includes(block.id) ? "active" : ""}
+                          className={`icon-button ${compareBlockIds.includes(block.id) ? "active" : ""}`}
                           onClick={() => toggleCompare(block.id)}
                           aria-label={`${block.name} für Vergleich ${compareBlockIds.includes(block.id) ? "abwählen" : "auswählen"}`}
                           title="Für Vergleich auswählen"
@@ -573,10 +573,10 @@ export function TrainingBlocksPage() {
                           <GitCompareArrows aria-hidden="true" />
                         </button>
                         {canEdit && <>
-                          <button type="button" onClick={() => void handleVariant(block)} disabled={busyBlockId === block.id} aria-label={`Neue Variante von ${block.name} erstellen`} title="Neue Variante erstellen"><GitBranchPlus aria-hidden="true" /></button>
-                          {block.usageCount === 0 && <button type="button" className="danger" onClick={() => void handleDelete(block)} disabled={busyBlockId === block.id} aria-label={`${block.name} löschen`} title="Endgültig löschen"><Trash2 aria-hidden="true" /></button>}
+                          <button type="button" className="icon-button" onClick={() => void handleVariant(block)} disabled={busyBlockId === block.id} aria-label={`Neue Variante von ${block.name} erstellen`} title="Neue Variante erstellen"><GitBranchPlus aria-hidden="true" /></button>
+                          {block.usageCount === 0 && <button type="button" className="icon-button icon-button--danger" onClick={() => void handleDelete(block)} disabled={busyBlockId === block.id} aria-label={`${block.name} löschen`} title="Endgültig löschen"><Trash2 aria-hidden="true" /></button>}
                         </>}
-                        <button type="button" onClick={() => openEditor(block)} aria-label={`${block.name} ${canEdit ? "bearbeiten" : "anzeigen"}`} title={canEdit ? "Bearbeiten" : "Anzeigen"}>{canEdit ? <Pencil aria-hidden="true" /> : <ClipboardCheck aria-hidden="true" />}</button>
+                        <button type="button" className="icon-button" onClick={() => openEditor(block)} aria-label={`${block.name} ${canEdit ? "bearbeiten" : "anzeigen"}`} title={canEdit ? "Bearbeiten" : "Anzeigen"}>{canEdit ? <Pencil aria-hidden="true" /> : <ClipboardCheck aria-hidden="true" />}</button>
                       </div>
                     </div>
                     <div className="training-block-card-groups">
@@ -608,7 +608,7 @@ export function TrainingBlocksPage() {
                               {exercise && (
                                 <button
                                   type="button"
-                                  className="training-block-item-info-button training-block-overview-info-button"
+                                  className="icon-button training-block-item-info-button training-block-overview-info-button"
                                   onClick={() => setInfoExercise(exercise)}
                                   aria-label={`Informationen zu ${item.exerciseName} anzeigen`}
                                   title="Übungsinformationen"

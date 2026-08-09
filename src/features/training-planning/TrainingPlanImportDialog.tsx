@@ -108,9 +108,9 @@ export function TrainingPlanImportDialog({
           {error && <div className="alert error compact-alert">{error}</div>}
 
           <div className="training-plan-import-selection">
-            <label className="training-plan-field">
-              <span><CalendarDays aria-hidden="true" />Trainingstag</span>
-              <input
+            <label className="training-plan-field ui-labeled-field">
+              <span className="ui-field-label"><CalendarDays aria-hidden="true" />Trainingstag</span>
+              <input className="ui-field-control"
                 type="date"
                 value={sourceDate}
                 onChange={(event) => setSourceDate(event.target.value)}
@@ -118,9 +118,9 @@ export function TrainingPlanImportDialog({
               />
             </label>
 
-            <label className="training-plan-field">
-              <span><Dumbbell aria-hidden="true" />Athlet</span>
-              <select
+            <label className="training-plan-field ui-labeled-field">
+              <span className="ui-field-label"><Dumbbell aria-hidden="true" />Athlet</span>
+              <select className="ui-field-control"
                 value={selectedPlanId}
                 onChange={(event) => setSelectedPlanId(event.target.value)}
                 disabled={loading || importing || busy || plans.length === 0}

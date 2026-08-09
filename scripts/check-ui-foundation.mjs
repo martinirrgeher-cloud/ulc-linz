@@ -20,6 +20,7 @@ for (const marker of [
   'className="management-editor-sticky-header"',
   'data-testid="editor-save"',
   'data-testid="editor-close"',
+  'icon-button--save',
 ]) {
   assert.ok(sharedHeader.includes(marker), `Gemeinsame Editor-Aktionsleiste verliert Vertragsmarker: ${marker}`);
 }

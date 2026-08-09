@@ -25,7 +25,7 @@
 .user-management-page .e5c-member-summary .status-badge svg,
 .user-management-page .e5c-member-summary .role-badge svg { width: 13px; height: 13px; }
 .user-management-page .e5c-compact-actions { display: flex; gap: 5px; }
-.user-management-page .e5c-compact-actions .icon-button { width: 40px; height: 40px; }
+
 
 .member-info-backdrop { position: fixed; z-index: 70; inset: 0; background: #fff; }
 .member-info-dialog { width: 100%; height: 100dvh; overflow: auto; background: #fff; }
@@ -105,7 +105,7 @@
   .user-management-filter-actions { grid-column: auto; justify-content: space-between; }
   .user-management-page .e5c-compact-member-card { grid-template-columns: minmax(0, 1fr) 40px; }
   .user-management-page .e5c-compact-actions { display: grid; gap: 4px; }
-  .user-management-page .e5c-compact-actions .icon-button { width: 38px; height: 38px; }
+
   .user-management-page .e5c-athlete-options { max-height: 14rem; }
   .user-management-page .e5c-audit-log li div { display: grid; }
 }

@@ -647,7 +647,7 @@ export function AthleteManagementPage() {
               )}
             </div>
 
-            <div className="management-tabs three-tabs" role="tablist" aria-label="Stammdatenbereich">
+            <div className="management-tabs three-tabs ui-tabs" role="tablist" aria-label="Stammdatenbereich">
               <button type="button" role="tab" aria-selected={tab === "athletes"} className={tab === "athletes" ? "active" : ""} onClick={() => switchTab("athletes")}>
                 <UserRound aria-hidden="true" /> Athleten <span>{athletes.length}</span>
               </button>
@@ -673,18 +673,18 @@ export function AthleteManagementPage() {
             <div className="masterdata-filter-grid">
               {tab === "athletes" && (
                 <>
-                  <label className="masterdata-filter-field">
-                    <span>Gruppe</span>
-                    <select value={groupFilter} onChange={(event) => setGroupFilter(event.target.value)} aria-label="Athleten nach Trainingsgruppe filtern">
+                  <label className="masterdata-filter-field ui-labeled-field">
+                    <span className="ui-field-label">Gruppe</span>
+                    <select className="ui-field-control" value={groupFilter} onChange={(event) => setGroupFilter(event.target.value)} aria-label="Athleten nach Trainingsgruppe filtern">
                       <option value="all">Alle Gruppen</option>
                       {groups.map((group) => (
                         <option value={group.id} key={group.id}>{group.name}{group.isActive ? "" : " (inaktiv)"}</option>
                       ))}
                     </select>
                   </label>
-                  <label className="masterdata-filter-field">
-                    <span>Sortierung</span>
-                    <select value={sortMode} onChange={(event) => setSortMode(event.target.value as AthleteSort)} aria-label="Athleten sortieren">
+                  <label className="masterdata-filter-field ui-labeled-field">
+                    <span className="ui-field-label">Sortierung</span>
+                    <select className="ui-field-control" value={sortMode} onChange={(event) => setSortMode(event.target.value as AthleteSort)} aria-label="Athleten sortieren">
                       <option value="lastName">Nachname A–Z</option>
                       <option value="firstName">Vorname A–Z</option>
                       <option value="birthYearAsc">Jahrgang ↑</option>
@@ -696,9 +696,9 @@ export function AthleteManagementPage() {
 
               {tab === "groups" && (
                 <>
-                  <label className="masterdata-filter-field">
-                    <span>Trainingsmodul</span>
-                    <select value={groupModuleFilter} onChange={(event) => setGroupModuleFilter(event.target.value as GroupModuleFilter)} aria-label="Gruppen nach Trainingsmodul filtern">
+                  <label className="masterdata-filter-field ui-labeled-field">
+                    <span className="ui-field-label">Trainingsmodul</span>
+                    <select className="ui-field-control" value={groupModuleFilter} onChange={(event) => setGroupModuleFilter(event.target.value as GroupModuleFilter)} aria-label="Gruppen nach Trainingsmodul filtern">
                       <option value="all">Alle Module</option>
                       <option value="none">Ohne Modul</option>
                       <option value="kindertraining">Kindertraining</option>
@@ -706,17 +706,17 @@ export function AthleteManagementPage() {
                       <option value="u14">U14</option>
                     </select>
                   </label>
-                  <label className="masterdata-filter-field">
-                    <span>Gruppentyp</span>
-                    <select value={groupTypeFilter} onChange={(event) => setGroupTypeFilter(event.target.value as GroupTypeFilter)} aria-label="Gruppen nach Typ filtern">
+                  <label className="masterdata-filter-field ui-labeled-field">
+                    <span className="ui-field-label">Gruppentyp</span>
+                    <select className="ui-field-control" value={groupTypeFilter} onChange={(event) => setGroupTypeFilter(event.target.value as GroupTypeFilter)} aria-label="Gruppen nach Typ filtern">
                       <option value="all">Alle Gruppen</option>
                       <option value="standard">Standardgruppen</option>
                       <option value="performance">Leistungsgruppen</option>
                     </select>
                   </label>
-                  <label className="masterdata-filter-field">
-                    <span>Sortierung</span>
-                    <select value={groupSortMode} onChange={(event) => setGroupSortMode(event.target.value as GroupSort)} aria-label="Gruppen sortieren">
+                  <label className="masterdata-filter-field ui-labeled-field">
+                    <span className="ui-field-label">Sortierung</span>
+                    <select className="ui-field-control" value={groupSortMode} onChange={(event) => setGroupSortMode(event.target.value as GroupSort)} aria-label="Gruppen sortieren">
                       <option value="name">Name A–Z</option>
                       <option value="shortName">Kurzname A–Z</option>
                     </select>
@@ -726,18 +726,18 @@ export function AthleteManagementPage() {
 
               {tab === "trainers" && (
                 <>
-                  <label className="masterdata-filter-field">
-                    <span>Gruppe</span>
-                    <select value={groupFilter} onChange={(event) => setGroupFilter(event.target.value)} aria-label="Trainer nach Trainingsgruppe filtern">
+                  <label className="masterdata-filter-field ui-labeled-field">
+                    <span className="ui-field-label">Gruppe</span>
+                    <select className="ui-field-control" value={groupFilter} onChange={(event) => setGroupFilter(event.target.value)} aria-label="Trainer nach Trainingsgruppe filtern">
                       <option value="all">Alle Gruppen</option>
                       {groups.map((group) => (
                         <option value={group.id} key={group.id}>{group.name}{group.isActive ? "" : " (inaktiv)"}</option>
                       ))}
                     </select>
                   </label>
-                  <label className="masterdata-filter-field">
-                    <span>Sortierung</span>
-                    <select value={trainerSortMode} onChange={(event) => setTrainerSortMode(event.target.value as TrainerSort)} aria-label="Trainer sortieren">
+                  <label className="masterdata-filter-field ui-labeled-field">
+                    <span className="ui-field-label">Sortierung</span>
+                    <select className="ui-field-control" value={trainerSortMode} onChange={(event) => setTrainerSortMode(event.target.value as TrainerSort)} aria-label="Trainer sortieren">
                       <option value="lastName">Nachname A–Z</option>
                       <option value="firstName">Vorname A–Z</option>
                     </select>

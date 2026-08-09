@@ -16,7 +16,7 @@ test.describe("Schreibende Übungs- und Trainingsblocktests", () => {
     await exerciseEditor.getByLabel("Name *").fill(SCENARIO.exerciseName);
     await exerciseEditor.getByLabel("Schwierigkeitsgrad").selectOption("medium");
     await exerciseEditor.getByRole("button", { name: "Anleitung", exact: true }).click();
-    await exerciseEditor.getByLabel("Durchführung").fill("Kontrollierter Sprint mit sauberer Beschleunigung.");
+    await exerciseEditor.getByRole("textbox", { name: "Durchführung", exact: true }).fill("Kontrollierter Sprint mit sauberer Beschleunigung.");
     await exerciseEditor.getByRole("button", { name: /Parameter/ }).click();
     await exerciseEditor.locator(".parameter-picker").getByRole("button", { name: /Wiederholungen/ }).click();
     await exerciseEditor.getByRole("button", { name: "Übung speichern", exact: true }).click();

@@ -189,9 +189,9 @@ function CompletionDialog({ value, onClose, onComplete }: CompletionDialogProps)
         </header>
 
         <div className="training-doc-modal-content">
-          <label>
-            Abschlussstatus
-            <select
+          <label className="ui-labeled-field">
+            <span className="ui-field-label">Abschlussstatus</span>
+            <select className="ui-field-control"
               value={next.status}
               onChange={(event) => setNext((current) => ({
                 ...current,
@@ -206,9 +206,9 @@ function CompletionDialog({ value, onClose, onComplete }: CompletionDialogProps)
               Vorschlag aus den Übungsrückmeldungen: {suggestedStatus === "completed" ? "vollständig abgeschlossen" : "teilweise absolviert"}.
             </small>
           </label>
-          <label>
-            Tatsächliche Dauer (Minuten)
-            <input
+          <label className="ui-labeled-field">
+            <span className="ui-field-label">Tatsächliche Dauer (Minuten)</span>
+            <input className="ui-field-control"
               type="number"
               min={0}
               max={1440}
@@ -243,9 +243,9 @@ function CompletionDialog({ value, onClose, onComplete }: CompletionDialogProps)
               ))}
             </div>
           </div>
-          <label>
-            Tageskommentar
-            <textarea
+          <label className="ui-labeled-field">
+            <span className="ui-field-label">Tageskommentar</span>
+            <textarea className="ui-field-control"
               rows={3}
               value={next.overallComment}
               onChange={(event) => setNext((current) => ({ ...current, overallComment: event.target.value }))}
@@ -266,9 +266,9 @@ function CompletionDialog({ value, onClose, onComplete }: CompletionDialogProps)
             </div>
           </div>
           {next.painLevel !== "none" && (
-            <label>
-              Beschwerden beschreiben
-              <textarea
+            <label className="ui-labeled-field">
+              <span className="ui-field-label">Beschwerden beschreiben</span>
+              <textarea className="ui-field-control"
                 rows={2}
                 value={next.painComment}
                 onChange={(event) => setNext((current) => ({ ...current, painComment: event.target.value }))}
@@ -653,7 +653,7 @@ export function TrainingDocumentationEditor({
                           </button>
                           <button
                             type="button"
-                            className={`training-doc-item-info-button${(item.exerciseVideoSignedUrl || item.exerciseVideoUrl) ? " has-video" : ""}`}
+                            className={`icon-button training-doc-item-info-button${(item.exerciseVideoSignedUrl || item.exerciseVideoUrl) ? " has-video" : ""}`}
                             onClick={() => setInfoItem(item)}
                             title="Übungsbeschreibung und Video anzeigen"
                             aria-label={`Informationen zu ${item.exerciseName} anzeigen`}
@@ -749,9 +749,9 @@ export function TrainingDocumentationEditor({
                               </label>
                             </div>
 
-                            <label className="training-doc-field">
-                              <span>Kommentar</span>
-                              <textarea
+                            <label className="training-doc-field ui-labeled-field">
+                              <span className="ui-field-label">Kommentar</span>
+                              <textarea className="ui-field-control"
                                 rows={2}
                                 value={item.comment}
                                 onChange={(event) => onChange(replaceItem(value, item.id, (current) => ({ ...current, comment: event.target.value })))}
@@ -775,9 +775,9 @@ export function TrainingDocumentationEditor({
                               </div>
                             </div>
                             {item.painLevel !== "none" && (
-                              <label className="training-doc-field">
-                                <span>Beschwerden beschreiben</span>
-                                <textarea
+                              <label className="training-doc-field ui-labeled-field">
+                                <span className="ui-field-label">Beschwerden beschreiben</span>
+                                <textarea className="ui-field-control"
                                   rows={2}
                                   value={item.painComment}
                                   onChange={(event) => onChange(replaceItem(value, item.id, (current) => ({ ...current, painComment: event.target.value })))}
@@ -822,7 +822,7 @@ export function TrainingDocumentationEditor({
                                     {value.canEdit && (
                                       <button
                                         type="button"
-                                        className="icon-button danger"
+                                        className="icon-button icon-button--danger"
                                         onClick={() => onChange(replaceItem(value, item.id, (current) => ({
                                           ...current,
                                           sets: current.sets.filter((entry) => entry.clientId !== set.clientId),
@@ -904,7 +904,7 @@ export function TrainingDocumentationEditor({
                                         <Film aria-hidden="true" /><span>{medium.title}</span>
                                       </a>
                                       {value.canEdit && (
-                                        <button type="button" className="icon-button danger" onClick={() => void deleteMedia(medium.id)} aria-label={`${medium.title} löschen`}>
+                                        <button type="button" className="icon-button icon-button--danger" onClick={() => void deleteMedia(medium.id)} aria-label={`${medium.title} löschen`}>
                                           <Trash2 aria-hidden="true" />
                                         </button>
                                       )}
@@ -915,9 +915,9 @@ export function TrainingDocumentationEditor({
                             </section>
 
                             {value.canReview ? (
-                              <label className="training-doc-field trainer-field">
-                                <span>Trainerrückmeldung zur Übung</span>
-                                <textarea
+                              <label className="training-doc-field trainer-field ui-labeled-field">
+                                <span className="ui-field-label">Trainerrückmeldung zur Übung</span>
+                                <textarea className="ui-field-control"
                                   rows={2}
                                   value={item.trainerComment}
                                   onChange={(event) => onChange(replaceItem(value, item.id, (current) => ({ ...current, trainerComment: event.target.value })))}
@@ -946,9 +946,9 @@ export function TrainingDocumentationEditor({
       <section className="training-doc-overall">
         <header><CircleGauge aria-hidden="true" /><div><h3>Trainingsabschluss</h3><small>Gesamtwerte und Rückmeldung</small></div></header>
         <div className="training-doc-overall-grid">
-          <label>
-            Ist-Dauer (Min.)
-            <input
+          <label className="ui-labeled-field">
+            <span className="ui-field-label">Ist-Dauer (Min.)</span>
+            <input className="ui-field-control"
               type="number"
               min={0}
               max={1440}
@@ -1002,9 +1002,9 @@ export function TrainingDocumentationEditor({
           </div>
         </div>
         {value.painLevel !== "none" && (
-          <label className="training-doc-field">
-            <span>Beschwerden beschreiben</span>
-            <textarea
+          <label className="training-doc-field ui-labeled-field">
+            <span className="ui-field-label">Beschwerden beschreiben</span>
+            <textarea className="ui-field-control"
               rows={2}
               value={value.painComment}
               onChange={(event) => onChange({ ...value, painComment: event.target.value })}
@@ -1012,9 +1012,9 @@ export function TrainingDocumentationEditor({
             />
           </label>
         )}
-        <label className="training-doc-field">
-          <span>Tageskommentar</span>
-          <textarea
+        <label className="training-doc-field ui-labeled-field">
+          <span className="ui-field-label">Tageskommentar</span>
+          <textarea className="ui-field-control"
             rows={3}
             value={value.overallComment}
             onChange={(event) => onChange({ ...value, overallComment: event.target.value })}
@@ -1022,9 +1022,9 @@ export function TrainingDocumentationEditor({
           />
         </label>
         {value.canReview ? (
-          <label className="training-doc-field trainer-field">
-            <span>Trainerrückmeldung zum Training</span>
-            <textarea
+          <label className="training-doc-field trainer-field ui-labeled-field">
+            <span className="ui-field-label">Trainerrückmeldung zum Training</span>
+            <textarea className="ui-field-control"
               rows={3}
               value={value.trainerFeedback}
               onChange={(event) => onChange({ ...value, trainerFeedback: event.target.value })}

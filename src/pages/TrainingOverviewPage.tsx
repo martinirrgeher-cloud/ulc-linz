@@ -231,9 +231,9 @@ export function TrainingOverviewPage() {
       {error && <div className="alert error">{error}</div>}
 
       <section className="training-overview-controls" aria-label="Woche, Trainingsgruppe und Athletenfilter auswählen">
-        <label>
-          <span><Users aria-hidden="true" />Trainingsgruppe</span>
-          <select
+        <label className="ui-labeled-field">
+          <span className="ui-field-label"><Users aria-hidden="true" />Trainingsgruppe</span>
+          <select className="ui-field-control"
             value={groupId}
             onChange={(event) => setGroupId(event.target.value)}
             disabled={loading || overview.groups.length === 0}

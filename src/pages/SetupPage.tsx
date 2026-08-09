@@ -70,9 +70,9 @@ export function SetupPage() {
         {error && <div className="alert error">{error}</div>}
 
         <form onSubmit={handleSubmit} className="form-stack">
-          <label>
-            Vereinsname
-            <input
+          <label className="ui-labeled-field">
+            <span className="ui-field-label">Vereinsname</span>
+            <input className="ui-field-control"
               type="text"
               value={organizationName}
               onChange={(event) => setOrganizationName(event.target.value)}
@@ -81,9 +81,9 @@ export function SetupPage() {
             />
           </label>
 
-          <label>
-            Technische Kurzbezeichnung
-            <input
+          <label className="ui-labeled-field">
+            <span className="ui-field-label">Technische Kurzbezeichnung</span>
+            <input className="ui-field-control"
               type="text"
               value={slug}
               onChange={(event) => {
@@ -96,9 +96,9 @@ export function SetupPage() {
             <small>Wird intern verwendet und später nicht laufend geändert.</small>
           </label>
 
-          <label>
-            Dein Anzeigename
-            <input
+          <label className="ui-labeled-field">
+            <span className="ui-field-label">Dein Anzeigename</span>
+            <input className="ui-field-control"
               type="text"
               value={displayName}
               onChange={(event) => setDisplayName(event.target.value)}

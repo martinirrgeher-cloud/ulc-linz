@@ -447,7 +447,7 @@ test("D2 macht den Übungskatalog kompakt, aufklappbar und mobile-first", () => 
   assert.ok(exerciseCatalogPageSource.includes("exercise-quick-videos"));
   assert.ok(exerciseCatalogPageSource.includes('presentation="page"'));
   assert.ok(exerciseEditorSource.includes("<EditorShell"));
-  assert.ok(exerciseEditorSource.includes("exercise-editor-save-button"));
+  assert.ok(exerciseEditorSource.includes("icon-button--save"));
   assert.ok(exerciseEditorSource.includes("EXERCISE_PARAMETER_GROUPS"));
   assert.ok(exerciseEditorSource.includes("SpeechToTextButton"));
   assert.ok(exerciseEditorSource.includes("Übungen derselben Kategorie"));

@@ -269,9 +269,9 @@ export function ExerciseVideoPanel({
                 <strong>{selectedFile.name}</strong>
                 <small>{formatBytes(selectedFile.size)}</small>
               </div>
-              <label className="exercise-field">
-                <span>Bezeichnung</span>
-                <input
+              <label className="exercise-field ui-labeled-field">
+                <span className="ui-field-label">Bezeichnung</span>
+                <input className="ui-field-control"
                   type="text"
                   value={title}
                   onChange={(event) => setTitle(event.target.value)}
@@ -368,7 +368,7 @@ export function ExerciseVideoPanel({
                   {canEdit && (
                     <button
                       type="button"
-                      className="icon-button danger-icon-button"
+                      className="icon-button icon-button--danger"
                       onClick={() => void handleDelete(video)}
                       disabled={controlsDisabled}
                       aria-label={`${video.title} löschen`}

@@ -5,7 +5,7 @@
 }
 @media screen and (max-width: 760px) {
   .mobile-day-selector button {
-    min-height: 50px;
+    min-height: var(--ui-control-height);
   }
   .mobile-day-selector strong {
     font-size: 0.78rem;
@@ -29,7 +29,7 @@
         overflow-x: auto;
         background: #fff;
         border: 1px solid var(--border);
-        border-radius: 11px;
+        border-radius: var(--ui-control-radius);
         scrollbar-width: none;
   }
   .mobile-day-selector::-webkit-scrollbar {
@@ -45,7 +45,7 @@
         color: var(--green-950);
         background: #f6faf7;
         border: 1px solid #dbe7df;
-        border-radius: 8px;
+        border-radius: var(--ui-control-radius);
         cursor: pointer;
   }
   .mobile-day-selector button.active {

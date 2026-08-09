@@ -6,7 +6,7 @@
   .training-planning-heading .eyebrow { margin-bottom: 4px !important; font-size: .76rem; }
   .training-planning-selection { gap: 7px; padding: 9px; }
   .training-planning-page small { font-size: .8rem; }
-  .training-plan-section-actions button, .training-plan-item-actions button { min-width: 42px; min-height: 42px; }
+  
   .training-plan-section-actions, .training-plan-item-actions { gap: 4px; }
-  .training-plan-section-actions svg, .training-plan-item-actions svg { width: 17px; height: 17px; }
+  
 }

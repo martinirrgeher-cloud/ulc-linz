@@ -24,7 +24,7 @@ export function SpecialTrainingPicker({
         />
         <button
           type="button"
-          className="icon-button special-training-save"
+          className="icon-button icon-button--save"
           onClick={onSave}
           aria-label="Sondertraining speichern"
           title="Sondertraining speichern"
@@ -33,7 +33,7 @@ export function SpecialTrainingPicker({
         </button>
         <button
           type="button"
-          className="icon-button special-training-cancel"
+          className="icon-button"
           onClick={onCancel}
           aria-label="Sondertraining abbrechen"
           title="Sondertraining abbrechen"

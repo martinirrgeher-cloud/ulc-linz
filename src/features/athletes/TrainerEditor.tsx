@@ -131,7 +131,7 @@ export function TrainerEditor({
         onSubmit={handleSubmit}
         {...swipeSections}
       >
-        <div className="editor-section-tabs" role="tablist" aria-label="Trainerbereiche">
+        <div className="editor-section-tabs ui-tabs" role="tablist" aria-label="Trainerbereiche">
           <button type="button" role="tab" aria-selected={section === "master"} className={section === "master" ? "active" : ""} onClick={() => setSection("master")}>
             <UserRound aria-hidden="true" /> Stammdaten
           </button>
@@ -147,9 +147,9 @@ export function TrainerEditor({
           {section === "master" && (
             <div className="editor-section-panel editor-section-card" role="tabpanel">
               <div className="form-grid">
-                <label>
-                  Vorname
-                  <input
+                <label className="ui-labeled-field">
+                  <span className="ui-field-label">Vorname</span>
+                  <input className="ui-field-control"
                     type="text"
                     value={values.firstName}
                     onChange={(event) => setValues((current) => ({ ...current, firstName: event.target.value }))}
@@ -157,9 +157,9 @@ export function TrainerEditor({
                     required
                   />
                 </label>
-                <label>
-                  Nachname
-                  <input
+                <label className="ui-labeled-field">
+                  <span className="ui-field-label">Nachname</span>
+                  <input className="ui-field-control"
                     type="text"
                     value={values.lastName}
                     onChange={(event) => setValues((current) => ({ ...current, lastName: event.target.value }))}
@@ -167,9 +167,9 @@ export function TrainerEditor({
                     required
                   />
                 </label>
-                <label>
-                  Telefonnummer
-                  <input
+                <label className="ui-labeled-field">
+                  <span className="ui-field-label">Telefonnummer</span>
+                  <input className="ui-field-control"
                     type="tel"
                     value={values.phone}
                     onChange={(event) => setValues((current) => ({ ...current, phone: event.target.value }))}
@@ -178,9 +178,9 @@ export function TrainerEditor({
                     placeholder="Optional"
                   />
                 </label>
-                <label>
-                  E-Mail-Adresse
-                  <input
+                <label className="ui-labeled-field">
+                  <span className="ui-field-label">E-Mail-Adresse</span>
+                  <input className="ui-field-control"
                     type="email"
                     value={values.email}
                     onChange={(event) => setValues((current) => ({ ...current, email: event.target.value }))}
@@ -189,9 +189,9 @@ export function TrainerEditor({
                     placeholder="Optional"
                   />
                 </label>
-                <label>
-                  App-Benutzerkonto
-                  <select
+                <label className="ui-labeled-field">
+                  <span className="ui-field-label">App-Benutzerkonto</span>
+                  <select className="ui-field-control"
                     value={values.linkedUserId ?? ""}
                     onChange={(event) => setValues((current) => ({ ...current, linkedUserId: event.target.value || null }))}
                   >
@@ -205,9 +205,9 @@ export function TrainerEditor({
                   <small>Erforderlich für die eigene Traineranwesenheit.</small>
                 </label>
                 {mode.type === "edit" && (
-                  <label>
-                    Status
-                    <select
+                  <label className="ui-labeled-field">
+                    <span className="ui-field-label">Status</span>
+                    <select className="ui-field-control"
                       value={values.isActive ? "active" : "inactive"}
                       onChange={(event) => setValues((current) => ({ ...current, isActive: event.target.value === "active" }))}
                     >
@@ -248,9 +248,9 @@ export function TrainerEditor({
 
           {section === "notes" && (
             <div className="editor-section-panel editor-section-card" role="tabpanel">
-              <label className="full-width-field">
-                Interne Notiz
-                <textarea
+              <label className="full-width-field ui-labeled-field">
+                <span className="ui-field-label">Interne Notiz</span>
+                <textarea className="ui-field-control"
                   value={values.notes}
                   onChange={(event) => setValues((current) => ({ ...current, notes: event.target.value }))}
                   maxLength={2000}

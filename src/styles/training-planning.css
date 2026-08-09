@@ -59,12 +59,12 @@
 .training-plan-copy-search input {
   width: 100%;
   min-width: 0;
-  min-height: 44px;
+  min-height: var(--ui-control-height-compact);
   padding: 10px 12px;
   color: #153326;
   background: #fff;
   border: 1px solid #b9cdc0;
-  border-radius: 11px;
+  border-radius: var(--ui-control-radius);
 }
 
 .training-planning-selection input:focus,
@@ -386,24 +386,7 @@
   padding-right: 9px;
 }
 
-.training-plan-section-actions button,
-.training-plan-item-actions button {
-  width: 40px;
-  height: 40px;
-  display: grid;
-  place-items: center;
-  padding: 0;
-  color: var(--green-800);
-  background: #fff;
-  border: 1px solid #d6e5db;
-  border-radius: 9px;
-  cursor: pointer;
-}
 
-.training-plan-section-actions button.danger,
-.training-plan-item-actions button.danger {
-  color: var(--danger);
-}
 
 .training-plan-section-actions button:disabled,
 .training-plan-item-actions button:disabled {
@@ -747,7 +730,7 @@
   .training-plan-field textarea,
   .training-plan-picker-search input,
   .training-plan-copy-search input {
-    min-height: 48px;
+    min-height: var(--ui-control-height-compact);
     font-size: 16px;
   }
 
@@ -885,7 +868,7 @@
 .training-planning-selection {
   gap: 7px;
   padding: 9px;
-  border-radius: 12px;
+  border-radius: var(--ui-control-radius);
 }
 
 .training-planning-selection label,
@@ -905,9 +888,9 @@
 .training-plan-field select,
 .training-plan-field textarea,
 .training-plan-picker-search input {
-  min-height: 38px;
+  min-height: var(--ui-control-height-compact);
   padding: 7px 9px;
-  border-radius: 9px;
+  border-radius: var(--ui-control-radius);
 }
 
 .training-plan-field select:focus {
@@ -970,7 +953,7 @@
 .training-plan-summary-list > button {
   gap: 6px;
   padding: 7px 8px;
-  border-radius: 9px;
+  border-radius: var(--ui-control-radius);
 }
 
 .training-planning-no-plans {
@@ -1089,12 +1072,6 @@
   padding-right: 6px;
 }
 
-.training-plan-section-actions button,
-.training-plan-item-actions button {
-  width: 40px;
-  height: 40px;
-  border-radius: 7px;
-}
 
 .training-plan-section-actions svg,
 .training-plan-item-actions svg {
@@ -1125,7 +1102,7 @@
 .training-plan-item {
   gap: 7px;
   padding: 8px;
-  border-radius: 9px;
+  border-radius: var(--ui-control-radius);
 }
 
 .training-plan-item > header {
@@ -1167,7 +1144,7 @@
 
 .training-plan-picker-list > button {
   padding: 8px 9px;
-  border-radius: 9px;
+  border-radius: var(--ui-control-radius);
 }
 
 .training-plan-import-backdrop {
@@ -1253,7 +1230,7 @@
   color: var(--green-950);
   background: #f4faf6;
   border: 1px solid #d5e7da;
-  border-radius: 9px;
+  border-radius: var(--ui-control-radius);
 }
 
 .training-plan-import-preview span,
@@ -1315,7 +1292,7 @@
   .training-plan-field select,
   .training-plan-field textarea,
   .training-plan-picker-search input {
-    min-height: 40px;
+    min-height: var(--ui-control-height-compact);
   }
 
   .training-plan-editor-heading {
@@ -1512,29 +1489,8 @@
   padding: 0;
 }
 
-.training-plan-item-info {
-  width: 29px;
-  height: 29px;
-  display: grid;
-  place-items: center;
-  padding: 0;
-  color: var(--green-800);
-  background: #fff;
-  border: 1px solid #bad8c5;
-  border-radius: 50%;
-  cursor: pointer;
-}
 
-.training-plan-item-info:hover,
-.training-plan-item-info:focus-visible {
-  color: #fff;
-  background: var(--green-700);
-  border-color: var(--green-700);
-}
 
-.training-plan-item-info svg {
-  width: 15px;
-}
 
 .training-plan-item.standalone > header {
   grid-template-columns: minmax(0, 1fr) auto;
@@ -1655,10 +1611,6 @@
     row-gap: 3px;
   }
 
-  .training-plan-item.nested .training-plan-item-info {
-    width: 27px;
-    height: 27px;
-  }
 }
 
 
@@ -1845,19 +1797,6 @@
   color: var(--muted);
   font-size: .94rem;
   line-height: 1.2;
-}
-
-.training-plan-item-title-row .training-plan-item-info {
-  width: 40px;
-  height: 40px;
-  min-width: 40px;
-  min-height: 40px;
-  flex: 0 0 40px;
-}
-
-.training-plan-item-title-row .training-plan-item-info svg {
-  width: 14px;
-  height: 14px;
 }
 
 @media (max-width: 440px) {

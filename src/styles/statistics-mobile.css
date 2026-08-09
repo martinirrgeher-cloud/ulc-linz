@@ -3,10 +3,10 @@
 @media screen and (max-width: 760px) {
   .statistics-filter-grid input,
   .statistics-filter-grid select {
-    min-height: 42px;
+    min-height: var(--ui-control-height);
         padding: 8px 10px;
         font-size: 16px;
-        border-radius: 10px;
+        border-radius: var(--ui-control-radius);
   }
   .statistics-filter-card {
     padding: 0;

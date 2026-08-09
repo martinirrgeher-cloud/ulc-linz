@@ -145,9 +145,9 @@ export function QuickAthleteDialog({
         ) : (
           <form onSubmit={handleSubmit}>
             <div className="quick-athlete-fields">
-              <label>
-                Vorname
-                <input
+              <label className="ui-labeled-field">
+                <span className="ui-field-label">Vorname</span>
+                <input className="ui-field-control"
                   type="text"
                   value={firstName}
                   onChange={(event) => setFirstName(event.target.value)}
@@ -157,9 +157,9 @@ export function QuickAthleteDialog({
                   required
                 />
               </label>
-              <label>
-                Nachname
-                <input
+              <label className="ui-labeled-field">
+                <span className="ui-field-label">Nachname</span>
+                <input className="ui-field-control"
                   type="text"
                   value={lastName}
                   onChange={(event) => setLastName(event.target.value)}
@@ -168,9 +168,9 @@ export function QuickAthleteDialog({
                   required
                 />
               </label>
-              <label>
-                Jahrgang
-                <input
+              <label className="ui-labeled-field">
+                <span className="ui-field-label">Jahrgang</span>
+                <input className="ui-field-control"
                   type="number"
                   inputMode="numeric"
                   min={1900}

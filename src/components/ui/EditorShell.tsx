@@ -45,7 +45,7 @@ export function EditorShell({
           {canEdit && (
             <button
               type="button"
-              className="icon-button editor-shell-save"
+              className="icon-button icon-button--save"
               onClick={onSave}
               disabled={busy || !canSave}
               aria-label={busy ? "Änderungen werden gespeichert" : saveLabel}

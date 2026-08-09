@@ -55,9 +55,9 @@ export function ResetPasswordPage() {
           <div className="alert success">Das Passwort wurde erfolgreich geändert.</div>
         ) : (
           <form onSubmit={handleSubmit} className="form-stack">
-            <label>
-              Neues Passwort
-              <input
+            <label className="ui-labeled-field">
+              <span className="ui-field-label">Neues Passwort</span>
+              <input className="ui-field-control"
                 type="password"
                 autoComplete="new-password"
                 value={password}
@@ -67,9 +67,9 @@ export function ResetPasswordPage() {
                 disabled={!isAuthenticated}
               />
             </label>
-            <label>
-              Passwort wiederholen
-              <input
+            <label className="ui-labeled-field">
+              <span className="ui-field-label">Passwort wiederholen</span>
+              <input className="ui-field-control"
                 type="password"
                 autoComplete="new-password"
                 value={confirmation}
