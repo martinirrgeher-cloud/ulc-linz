@@ -1,6 +1,6 @@
 begin;
 
-select plan(30);
+select plan(41);
 
 select is(
   (
@@ -52,7 +52,7 @@ select ok(
 select ok(
   has_function_privilege(
     'authenticated',
-    'public.save_exercise_catalog_item_v3(uuid,uuid,text,text,text,text,text,text,text,text[],text,boolean,uuid[],jsonb,uuid,timestamp with time zone)',
+    'public.save_exercise_catalog_item_v4(uuid,uuid,text,text,text,text,text,text,text,text[],text,boolean,uuid[],jsonb,text,uuid[],uuid,timestamp with time zone)',
     'EXECUTE'
   ),
   'Der atomare Übungsspeicher ist für authenticated freigegeben'
@@ -60,7 +60,7 @@ select ok(
 select ok(
   has_function_privilege(
     'authenticated',
-    'public.save_training_block_v2(uuid,uuid,text,text,text,integer,boolean,uuid[],jsonb,uuid,timestamp with time zone)',
+    'public.save_training_block_v3(uuid,uuid,text,text,text,integer,boolean,uuid[],jsonb,uuid,timestamp with time zone)',
     'EXECUTE'
   ),
   'Der atomare Trainingsblockspeicher ist für authenticated freigegeben'
@@ -88,6 +88,14 @@ select ok(
     'EXECUTE'
   ),
   'Der atomare Gruppenspeicher ist für authenticated freigegeben'
+);
+select ok(
+  has_function_privilege(
+    'authenticated',
+    'public.admin_update_organization_member_v3(uuid,uuid,text,public.app_role,public.membership_status,jsonb,uuid[],uuid,uuid,timestamp with time zone)',
+    'EXECUTE'
+  ),
+  'Die aktuelle Benutzeränderung V3 ist für authenticated freigegeben'
 );
 select ok(
   has_function_privilege(
@@ -145,6 +153,111 @@ select ok(
     'EXECUTE'
   ),
   'Der alte Trainingsblockspeicher ist gesperrt'
+);
+select ok(
+  not has_function_privilege(
+    'authenticated',
+    'public.update_trainer(uuid,uuid,text,text,text,text,text,boolean)',
+    'EXECUTE'
+  ),
+  'Der alte Trainerspeicher ist gesperrt'
+);
+select ok(
+  not has_function_privilege(
+    'authenticated',
+    'public.update_trainer_v2(uuid,uuid,text,text,text,text,text,boolean,uuid[])',
+    'EXECUTE'
+  ),
+  'Der Trainerspeicher V2 ist gesperrt'
+);
+select ok(
+  not has_function_privilege(
+    'authenticated',
+    'public.update_training_group(uuid,uuid,text,text,text,boolean,integer)',
+    'EXECUTE'
+  ),
+  'Der alte Gruppenspeicher ist gesperrt'
+);
+select ok(
+  not has_function_privilege(
+    'authenticated',
+    'public.update_training_group_v2(uuid,uuid,text,text,text,boolean,integer,text,smallint[],boolean)',
+    'EXECUTE'
+  ),
+  'Der Gruppenspeicher V2 ist gesperrt'
+);
+select ok(
+  not has_function_privilege(
+    'authenticated',
+    'public.admin_update_organization_member(uuid,uuid,text,public.app_role,public.membership_status,jsonb)',
+    'EXECUTE'
+  ),
+  'Die alte Benutzeränderung ist gesperrt'
+);
+select ok(
+  not has_function_privilege(
+    'authenticated',
+    'public.admin_update_organization_member_v2(uuid,uuid,text,public.app_role,public.membership_status,jsonb,uuid,uuid,uuid,timestamp with time zone)',
+    'EXECUTE'
+  ),
+  'Die Benutzeränderung V2 ist gesperrt'
+);
+select ok(
+  not has_function_privilege(
+    'authenticated',
+    'public.save_exercise_catalog_item_v3(uuid,uuid,text,text,text,text,text,text,text,text[],text,boolean,uuid[],jsonb,uuid,timestamp with time zone)',
+    'EXECUTE'
+  ),
+  'Der Übungsspeicher V3 ist für direkte API-Aufrufe gesperrt'
+);
+select ok(
+  not has_function_privilege(
+    'authenticated',
+    'public.save_training_block_v2(uuid,uuid,text,text,text,integer,boolean,uuid[],jsonb,uuid,timestamp with time zone)',
+    'EXECUTE'
+  ),
+  'Der Trainingsblockspeicher V2 ist für direkte API-Aufrufe gesperrt'
+);
+
+select is(
+  (
+    select count(*)::bigint
+    from unnest(array[
+      'public.update_trainer(uuid,uuid,text,text,text,text,text,boolean)',
+      'public.update_trainer_v2(uuid,uuid,text,text,text,text,text,boolean,uuid[])',
+      'public.update_training_group(uuid,uuid,text,text,text,boolean,integer)',
+      'public.update_training_group_v2(uuid,uuid,text,text,text,boolean,integer,text,smallint[],boolean)',
+      'public.admin_update_organization_member(uuid,uuid,text,public.app_role,public.membership_status,jsonb)',
+      'public.admin_update_organization_member_v2(uuid,uuid,text,public.app_role,public.membership_status,jsonb,uuid,uuid,uuid,timestamp with time zone)',
+      'public.save_exercise_catalog_item_v3(uuid,uuid,text,text,text,text,text,text,text,text[],text,boolean,uuid[],jsonb,uuid,timestamp with time zone)',
+      'public.save_training_block_v2(uuid,uuid,text,text,text,integer,boolean,uuid[],jsonb,uuid,timestamp with time zone)'
+    ]) legacy(signature)
+    where has_function_privilege('anon', legacy.signature, 'EXECUTE')
+  ),
+  0::bigint,
+  'anon kann keine bestätigte Legacy-Schreib-RPC direkt ausführen'
+);
+
+select is(
+  (
+    select count(*)::bigint
+    from unnest(array[
+      'public.update_trainer(uuid,uuid,text,text,text,text,text,boolean)',
+      'public.update_trainer_v2(uuid,uuid,text,text,text,text,text,boolean,uuid[])',
+      'public.update_training_group(uuid,uuid,text,text,text,boolean,integer)',
+      'public.update_training_group_v2(uuid,uuid,text,text,text,boolean,integer,text,smallint[],boolean)',
+      'public.admin_update_organization_member(uuid,uuid,text,public.app_role,public.membership_status,jsonb)',
+      'public.admin_update_organization_member_v2(uuid,uuid,text,public.app_role,public.membership_status,jsonb,uuid,uuid,uuid,timestamp with time zone)',
+      'public.save_exercise_catalog_item_v3(uuid,uuid,text,text,text,text,text,text,text,text[],text,boolean,uuid[],jsonb,uuid,timestamp with time zone)',
+      'public.save_training_block_v2(uuid,uuid,text,text,text,integer,boolean,uuid[],jsonb,uuid,timestamp with time zone)'
+    ]) legacy(signature)
+    join pg_proc function_row on function_row.oid = to_regprocedure(legacy.signature)
+    cross join lateral aclexplode(coalesce(function_row.proacl, acldefault('f', function_row.proowner))) privilege
+    where privilege.grantee = 0
+      and privilege.privilege_type = 'EXECUTE'
+  ),
+  0::bigint,
+  'PUBLIC besitzt keine EXECUTE-Rechte auf bestätigte Legacy-Schreib-RPCs'
 );
 select ok(
   not has_function_privilege(
