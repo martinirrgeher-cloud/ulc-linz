@@ -36,7 +36,7 @@ select has_function('public', 'admin_member_audit_overview', array['uuid', 'uuid
 select has_function('public', 'provision_organization_member_v2', array['uuid', 'uuid', 'text', 'app_role', 'membership_status', 'jsonb', 'uuid', 'timestamp with time zone'], 'Erweiterte Benutzeranlage ist vorhanden');
 select has_function('public', 'admin_member_invitation_target', array['uuid', 'uuid', 'uuid'], 'Einladungsziel ist vorhanden');
 select has_function('public', 'record_member_invitation_sent', array['uuid', 'uuid', 'uuid', 'boolean'], 'Einladungsversand kann protokolliert werden');
-select has_function('public', 'admin_update_organization_member_v2', array['uuid', 'uuid', 'text', 'app_role', 'membership_status', 'jsonb', 'uuid', 'uuid', 'uuid', 'timestamp with time zone'], 'Versionsgesicherte Benutzeränderung ist vorhanden');
+select has_function('public', 'admin_update_organization_member_v3', array['uuid', 'uuid', 'text', 'app_role', 'membership_status', 'jsonb', 'uuid[]', 'uuid', 'uuid', 'timestamp with time zone'], 'Versionsgesicherte Benutzeränderung V3 ist vorhanden');
 select is(
   public.edit_lock_module_key('organization_member'),
   'user_management',
@@ -164,14 +164,14 @@ select ok(
 );
 
 select ok(
-  (public.admin_update_organization_member_v2(
+  (public.admin_update_organization_member_v3(
     '61000000-0000-0000-0000-000000000001',
     '62000000-0000-0000-0000-000000000002',
     'E5c Ziel geändert',
     'trainer',
     'invited',
     '[{"module_key":"kindertraining","can_view":true,"can_edit":true}]'::jsonb,
-    null,
+    array[]::uuid[],
     '63000000-0000-0000-0000-000000000002',
     '64000000-0000-0000-0000-000000000001',
     current_setting('e5c.initial_version')::timestamptz
@@ -221,7 +221,7 @@ set local role authenticated;
 
 select alike(
   public.e5c_capture_error(format(
-    'select public.admin_update_organization_member_v2(%L::uuid,%L::uuid,%L,%L::public.app_role,%L::public.membership_status,%L::jsonb,null,null,%L::uuid,%L::timestamptz)',
+    'select public.admin_update_organization_member_v3(%L::uuid,%L::uuid,%L,%L::public.app_role,%L::public.membership_status,%L::jsonb,array[]::uuid[],null,%L::uuid,%L::timestamptz)',
     '61000000-0000-0000-0000-000000000001',
     '62000000-0000-0000-0000-000000000002',
     'Veralteter Stand',
